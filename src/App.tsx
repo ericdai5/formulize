@@ -4,8 +4,6 @@ import { Global, css } from "@emotion/react";
 import { Workspace } from "./Workspace";
 
 function App() {
-  const [count, setCount] = useState(1);
-
   // Convert TeX to MathML & SVG
   // const [rendered, setRendered] = useState(false);
   // useEffect(() => {

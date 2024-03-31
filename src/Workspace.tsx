@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Global, css } from "@emotion/react";
 
 import { SelectionStore, selectionStore } from "./store";
+import { RenderedFormula } from "./RenderedFormula";
+import { Debug } from "./Debug";
 
 export const Workspace = observer(() => {
   return (
@@ -18,6 +20,10 @@ export const Workspace = observer(() => {
         align-items: center;
         justify-content: center;
       `}
+      onDoubleClick={(e) => {
+        selectionStore.clearSelection();
+        e.preventDefault();
+      }}
       onMouseDown={(e) => {
         selectionStore.startDragSelection(e.clientX, e.clientY);
         e.preventDefault();
@@ -31,7 +37,6 @@ export const Workspace = observer(() => {
         e.preventDefault();
       }}
     >
-      {"Hello?"}
       {selectionStore.selectionRect ? (
         <div
           css={css`
@@ -40,13 +45,15 @@ export const Workspace = observer(() => {
             background-color: rgba(0, 0, 0, 0.1);
             z-index: 1000;
             pointer-events: none;
-            left: ${selectionStore.selectionRectLeft}px;
-            top: ${selectionStore.selectionRectTop}px;
-            width: ${selectionStore.selectionRectWidth}px;
-            height: ${selectionStore.selectionRectHeight}px;
+            left: ${selectionStore.selectionRectDimensions.left}px;
+            top: ${selectionStore.selectionRectDimensions.top}px;
+            width: ${selectionStore.selectionRectDimensions.width}px;
+            height: ${selectionStore.selectionRectDimensions.height}px;
           `}
         ></div>
       ) : null}
+      <RenderedFormula />
+      <Debug />
     </div>
   );
 });
