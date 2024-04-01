@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import styled from "@emotion/styled";
 import { observer } from "mobx-react-lite";
 
 import { selectionStore } from "./store";
@@ -7,24 +8,52 @@ function formatCoordinate(n: number) {
   return Math.round(n).toString().padStart(3, " ");
 }
 
+const CoordinateCell = styled.td`
+  text-align: right;
+  padding-right: 1rem;
+`;
+
 export const Debug = observer(() => {
   return (
     <div
       css={css`
         position: absolute;
-        top: 0;
+        top: 2rem;
         right: 0;
         padding: 1rem;
       `}
     >
       <pre>Targets:</pre>
-      {Array.from(selectionStore.targets.values()).map((target) => (
-        <pre key={target.id}>
-          {target.id.padStart(5, " ")}: {formatCoordinate(target.left)},{" "}
-          {formatCoordinate(target.top)} - {formatCoordinate(target.width)} x{" "}
-          {formatCoordinate(target.height)}
-        </pre>
-      ))}
+      <table
+        css={css`
+          font-family: monospace;
+        `}
+      >
+        <thead
+          css={css`
+            font-weight: bold;
+          `}
+        >
+          <tr>
+            <CoordinateCell>Id</CoordinateCell>
+            <CoordinateCell>Left</CoordinateCell>
+            <CoordinateCell>Top</CoordinateCell>
+            <CoordinateCell>Width</CoordinateCell>
+            <CoordinateCell>Height</CoordinateCell>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from(selectionStore.targets.values()).map((target) => (
+            <tr key={target.id}>
+              <CoordinateCell>{target.id}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.left)}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.top)}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.width)}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.height)}</CoordinateCell>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <pre>Selection rect:</pre>
       {selectionStore.selectionRect ? (
         <>

@@ -5,6 +5,7 @@ import { Global, css } from "@emotion/react";
 import { SelectionStore, selectionStore } from "./store";
 import { RenderedFormula } from "./RenderedFormula";
 import { Debug } from "./Debug";
+import { Menu } from "./Menu";
 
 export const Workspace = observer(() => {
   return (
@@ -37,6 +38,7 @@ export const Workspace = observer(() => {
         e.preventDefault();
       }}
     >
+      <Menu />
       {selectionStore.selectionRect ? (
         <div
           css={css`

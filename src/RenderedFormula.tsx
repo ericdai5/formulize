@@ -2,11 +2,14 @@ import { useRef, useEffect } from "react";
 import { css } from "@emotion/react";
 import { observer } from "mobx-react-lite";
 
-import { selectionStore } from "./store";
+import { selectionStore, styleStore } from "./store";
 
 export const RenderedFormula = () => {
   return (
     <svg
+      css={css`
+        transform: scale(2);
+      `}
       xmlns="http://www.w3.org/2000/svg"
       width="11.893ex"
       height="2.185ex"
@@ -112,7 +115,7 @@ const FormulaLeaf = observer(({ id, linkHref }: FormulaLeafProps) => {
           ? "red"
           : selectionStore.selected.includes(id)
             ? "blue"
-            : "currentColor"
+            : styleStore.color.get(id) ?? "currentColor"
       }
       xlinkHref={linkHref}
       ref={ref}

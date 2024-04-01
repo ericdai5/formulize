@@ -97,3 +97,19 @@ export const selectionStore = SelectionStore.create({
   selected: [],
   selectionRect: undefined,
 });
+
+export const StyleStore = types
+  .model("StyleStore", {
+    color: types.map(types.string),
+  })
+  .actions((self) => ({
+    setSelectionColor(color: string) {
+      for (const id of selectionStore.selected) {
+        self.color.set(id, color);
+      }
+    },
+  }));
+
+export const styleStore = StyleStore.create({
+  color: {},
+});
