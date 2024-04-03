@@ -1,5 +1,10 @@
 import { default as React, useState, useRef } from "react";
 import { css } from "@emotion/react";
+import Icon from '@mui/material/Icon';
+import BoxIcon from './Icons/BoxIcon.svg';
+import AnnotateIcon from './Icons/AnnotateIcon.svg';
+import LogoIcon from './Icons/LogoIcon.svg';
+import LineDivideIcon from './Icons/LineDivideIcon.svg';
 
 import { styleStore } from "./store";
 
@@ -18,8 +23,27 @@ export const Menu = () => {
         background: #f0f0f0;
       `}
     >
+
+      <LogoMenu />
+      <LineDivideMenu />
+
+      <SaveMenu />
+      <UndoMenu />
+      <RedoMenu />
+      <ZoomMenu />
+      <LineDivideMenu />
+
+      <BoldMenu />
+      <ItalicsMenu />
+      <UnderlineMenu />
+      <StrikethroughMenu />
       <ColorMenu />
       <BoxMenu />
+      <LineWeightMenu />
+      <LineDivideMenu />
+
+      <AnnotateMenu />
+
     </div>
   );
 };
@@ -115,6 +139,60 @@ const SubMenu = ({
   );
 };
 
+const LogoMenu = () => {
+  return (
+      <img src={LogoIcon} />
+  );
+};
+
+const SaveMenu = () => {
+  return (
+      <Icon>save</Icon>
+  );
+};
+
+const UndoMenu = () => {
+  return (
+      <Icon>undo</Icon>
+  );
+};
+
+const RedoMenu = () => {
+  return (
+      <Icon>redo</Icon>
+  );
+};
+
+const ZoomMenu = () => {
+  return (
+      <Icon>zoom_in</Icon>
+  );
+};
+
+const BoldMenu = () => {
+  return (
+      <Icon>format_bold</Icon>
+  );
+};
+
+const ItalicsMenu = () => {
+  return (
+      <Icon>format_italic</Icon>
+  );
+};
+
+const UnderlineMenu = () => {
+  return (
+      <Icon>format_underline</Icon>
+  );
+};
+
+const StrikethroughMenu = () => {
+  return (
+      <Icon>format_strikethrough</Icon>
+  );
+};
+
 const ColorMenu = () => {
   const colors = [
     "#000000",
@@ -127,39 +205,91 @@ const ColorMenu = () => {
   ];
 
   return (
-    <SubMenu menuButton={<ColorSwatch color="#0000FF" />}>
-      <div
-        css={css`
+      <SubMenu menuButton={<Icon>format_color_text</Icon>}>
+        <div
+            css={css`
           padding: 0.5rem;
           width: 7rem;
           display: flex;
           flex-wrap: wrap;
           justify-content: flex-start;
         `}
-      >
-        {colors.map((color) => (
-          <div
-            key={color}
-            css={css`
+        >
+          {colors.map((color) => (
+              <div
+                  key={color}
+                  css={css`
               margin: 0.25rem;
             `}
-            onClick={(e) => {
-              styleStore.setSelectionColor(color);
-              e.stopPropagation();
-            }}
-          >
-            <ColorSwatch key={color} color={color} />
-          </div>
-        ))}
-      </div>
-    </SubMenu>
+                  onClick={(e) => {
+                    styleStore.setSelectionColor(color);
+                    e.stopPropagation();
+                  }}
+              >
+                <ColorSwatch key={color} color={color} />
+              </div>
+          ))}
+        </div>
+      </SubMenu>
   );
 };
 
 const BoxMenu = () => {
+  const colors = [
+    "#000000",
+    "#FF0000",
+    "#00FF00",
+    "#0000FF",
+    "#FFFF00",
+    "#00FFFF",
+    "#FF00FF",
+  ];
+
   return (
-    <SubMenu menuButton={<ColorSwatch color="#FF0000" />}>
-      {"Unfinished Box menu"}
-    </SubMenu>
+      <SubMenu menuButton={<img src={BoxIcon}/>}>
+        <div
+            css={css`
+          padding: 0.5rem;
+          width: 7rem;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+        `}
+        >
+          {colors.map((color) => (
+              <div
+                  key={color}
+                  css={css`
+              margin: 0.25rem;
+            `}
+                  onClick={(e) => {
+                    styleStore.setSelectionColor(color);
+                    e.stopPropagation();
+                    //hide the box
+                  }}
+              >
+                <ColorSwatch key={color} color={color} />
+              </div>
+          ))}
+        </div>
+      </SubMenu>
+  );
+};
+
+const LineWeightMenu = () => {
+  return (
+      <Icon>line_weight</Icon>
+  );
+};
+
+const AnnotateMenu = () => {
+  return (
+      <img src={AnnotateIcon}/>
+  );
+};
+
+const LineDivideMenu = () => {
+  return (
+      <img src={LineDivideIcon}/>
   );
 };
