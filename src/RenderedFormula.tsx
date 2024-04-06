@@ -20,11 +20,11 @@ const RenderedFormulaSVG = observer(() => {
         transform: scale(4);
       `}
       xmlns="http://www.w3.org/2000/svg"
-      width={`${11.893}ex`}
-      height="2.185ex"
+      width={formulaStore.dimensions.widthAsAttr}
+      height={formulaStore.dimensions.heightAsAttr}
       role="img"
       focusable="false"
-      viewBox="0 -883.9 5256.7 965.9"
+      viewBox={formulaStore.viewBox.asAttr}
       xmlnsXlink="http://www.w3.org/1999/xlink"
     >
       <RenderedFormulaDefs defs={formulaStore.defs} />
@@ -47,22 +47,10 @@ const RenderedFormulaDefs = ({
   );
 };
 
-function transformString(node: IFormulaNode) {
-  let transform = "";
-  if (node.translateX !== undefined && node.translateY !== undefined) {
-    transform += `translate(${node.translateX},${node.translateY}) `;
-  }
-
-  if (node.scaleX !== undefined && node.scaleY !== undefined) {
-    transform += `scale(${node.scaleX},${node.scaleY})`;
-  }
-  return transform.length > 0 ? transform : undefined;
-}
-
 const RenderedFormulaNode = ({ node }: { node: IFormulaNode }) => {
   if (node.nodeType === "g") {
     return (
-      <g data-mml-node={node.mmlNode} transform={transformString(node)}>
+      <g data-mml-node={node.mmlNode} transform={node.transformAttr}>
         {node.children?.map((child) => (
           <RenderedFormulaNode key={child.id} node={child} />
         ))}
