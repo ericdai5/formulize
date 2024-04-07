@@ -7,6 +7,7 @@ import LogoIcon from './Icons/LogoIcon.svg';
 import LineDivideIcon from './Icons/LineDivideIcon.svg';
 
 import { styleStore } from "./store";
+import {Button} from "@mui/material";
 
 export const Menu = () => {
   return (
@@ -59,7 +60,7 @@ const MenuItem = ({
   return (
     <div
       css={css`
-        height: 2rem;
+        height: 2.5rem;
         min-width: 2rem;
         display: flex;
         justify-content: center;
@@ -67,7 +68,9 @@ const MenuItem = ({
         cursor: pointer;
         &:hover {
           background: #e0e0e0;
+          height: 2rem;
         }
+        font-family: "Source Sans 3", sans-serif;
       `}
       onClick={(e) => {
         onClick();
@@ -112,6 +115,12 @@ const SubMenu = ({
     <div
       css={css`
         position: relative;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        &:hover {
+            height: 1.8rem;
+        }
       `}
     >
       <MenuItem
@@ -141,55 +150,134 @@ const SubMenu = ({
 
 const LogoMenu = () => {
   return (
-      <img src={LogoIcon} />
+      <div
+          css={css`
+        height: 2.25rem;
+        width: 2.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `}
+      ><img src={LogoIcon} /></div>
+
   );
 };
 
 const SaveMenu = () => {
   return (
-      <Icon>save</Icon>
+      <div
+          css={css`
+        height: 2rem;
+        width: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `}
+      ><Icon>save</Icon></div>
+
   );
 };
 
 const UndoMenu = () => {
   return (
-      <Icon>undo</Icon>
+      <div
+          css={css`
+        height: 2rem;
+        width: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `}
+      ><Icon>undo</Icon></div>
+
   );
 };
 
 const RedoMenu = () => {
   return (
-      <Icon>redo</Icon>
+      <div
+          css={css`
+        height: 2rem;
+        width: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `}
+      ><Icon>redo</Icon></div>
+
   );
 };
 
 const ZoomMenu = () => {
   return (
-      <Icon>zoom_in</Icon>
+      <div
+          css={css`
+        height: 2rem;
+        width: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `}
+      ><Icon>zoom_in</Icon></div>
+
   );
 };
 
 const BoldMenu = () => {
   return (
-      <Icon>format_bold</Icon>
+      <MenuItem menuButton={<Icon>format_bold</Icon>}>
+        <div
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+        >
+          <Icon>format_bold</Icon>
+        </div>
+      </MenuItem>
+
   );
 };
 
 const ItalicsMenu = () => {
   return (
-      <Icon>format_italic</Icon>
+      <MenuItem menuButton={<Icon>format_italic</Icon>}>
+        <div
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+        >
+          <Icon>format_italic</Icon>
+        </div>
+      </MenuItem>
   );
 };
 
 const UnderlineMenu = () => {
   return (
-      <Icon>format_underline</Icon>
+      <MenuItem menuButton={<Icon>format_underline</Icon>}>
+        <div
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+        >
+          <Icon>format_underline</Icon>
+        </div>
+      </MenuItem>
+
   );
 };
 
 const StrikethroughMenu = () => {
   return (
-      <Icon>format_strikethrough</Icon>
+      <MenuItem menuButton={<Icon>format_strikethrough</Icon>}>
+        <div
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+        >
+          <Icon>format_strikethrough</Icon>
+        </div>
+      </MenuItem>
   );
 };
 
@@ -277,19 +365,68 @@ const BoxMenu = () => {
 };
 
 const LineWeightMenu = () => {
+  const weights = [
+      "Thin",
+      "Normal",
+      "Thick",
+  ];
+
   return (
-      <Icon>line_weight</Icon>
+      <SubMenu menuButton={<Icon>line_weight</Icon>}>
+        <div
+            css={css`
+          padding: 0.5rem;
+          width: 5rem;
+          display: flex;
+          flex-direction: column;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+        `}
+        >
+          {weights.map((weight) => (
+              <div
+                  key={weight}
+                  css={css`
+              margin: 0.25rem;
+            `}
+                  onClick={(e) => {
+                    //styleStore.setSelectionWeight(weight);
+                    e.stopPropagation();
+                  }}
+              >
+                {weight}
+              </div>
+          ))}
+        </div>
+      </SubMenu>
   );
 };
 
 const AnnotateMenu = () => {
   return (
-      <img src={AnnotateIcon}/>
+      <MenuItem menuButton={<img src={AnnotateIcon}/>}>
+        <div
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+        >
+          <img src={AnnotateIcon}/>
+        </div>
+      </MenuItem>
   );
 };
 
 const LineDivideMenu = () => {
   return (
-      <img src={LineDivideIcon}/>
+      <div
+          css={css`
+        height: 2rem;
+        width: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `}
+      ><img src={LineDivideIcon}/></div>
+
   );
 };
