@@ -8,8 +8,13 @@ import {
   formulaStore,
   IFormulaNode,
 } from "./store";
+import { populateFormulaStore } from "./mathjax";
 
 export const RenderedFormula = () => {
+  useEffect(() => {
+    populateFormulaStore("x^2 + y^2 = z^2");
+  }, []);
+
   return <RenderedFormulaSVG />;
 };
 

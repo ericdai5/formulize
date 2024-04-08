@@ -163,7 +163,6 @@ export const formulaStore = FormulaStore.create({
     height: 965.9,
   },
 });
-populateFormulaStore("a^2 + b^2 = c^2");
 
 export const SelectionStore = types
   .model("SelectionStore", {
