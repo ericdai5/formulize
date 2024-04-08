@@ -1,18 +1,19 @@
-import { default as React, useState, useRef } from "react";
+import {default as React, useState, useRef, useEffect} from "react";
 import { css } from "@emotion/react";
 import Icon from '@mui/material/Icon';
 import BoxIcon from './Icons/BoxIcon.svg';
 import AnnotateIcon from './Icons/AnnotateIcon.svg';
 import LogoIcon from './Icons/LogoIcon.svg';
 import LineDivideIcon from './Icons/LineDivideIcon.svg';
+import BracketListOption from './Icons/BracketListOption.svg'
+import CurlyBraceListOption from './Icons/CurlyBraceListOption.svg'
 
 import { styleStore } from "./store";
-import {Button} from "@mui/material";
 
 export const Menu = () => {
   return (
-    <div
-      css={css`
+      <div
+          css={css`
         position: absolute;
         top: 0;
         left: 0;
@@ -23,29 +24,29 @@ export const Menu = () => {
         justify-content: flex-start;
         background: #f0f0f0;
       `}
-    >
+      >
 
-      <LogoMenu />
-      <LineDivideMenu />
+        <LogoMenu />
+        <LineDivideMenu />
 
-      <SaveMenu />
-      <UndoMenu />
-      <RedoMenu />
-      <ZoomMenu />
-      <LineDivideMenu />
+        <SaveMenu />
+        <UndoMenu />
+        <RedoMenu />
+        <ZoomMenu />
+        <LineDivideMenu />
 
-      <BoldMenu />
-      <ItalicsMenu />
-      <UnderlineMenu />
-      <StrikethroughMenu />
-      <ColorMenu />
-      <BoxMenu />
-      <LineWeightMenu />
-      <LineDivideMenu />
+        <BoldMenu />
+        <ItalicsMenu />
+        <UnderlineMenu />
+        <StrikethroughMenu />
+        <ColorMenu />
+        <BoxMenu />
+        <LineWeightMenu />
+        <LineDivideMenu />
 
-      <AnnotateMenu />
+        <AnnotateMenu />
 
-    </div>
+      </div>
   );
 };
 
@@ -54,12 +55,12 @@ type MenuItemProps = {
 };
 
 const MenuItem = ({
-  children,
-  onClick,
-}: React.PropsWithChildren<MenuItemProps>) => {
+                    children,
+                    onClick,
+                  }: React.PropsWithChildren<MenuItemProps>) => {
   return (
-    <div
-      css={css`
+      <div
+          css={css`
         height: 2.5rem;
         min-width: 2rem;
         display: flex;
@@ -72,13 +73,13 @@ const MenuItem = ({
         }
         font-family: "Source Sans 3", sans-serif;
       `}
-      onClick={(e) => {
-        onClick();
-        e.stopPropagation();
-      }}
-    >
-      {children}
-    </div>
+          onClick={(e) => {
+            onClick();
+            e.stopPropagation();
+          }}
+      >
+        {children}
+      </div>
   );
 };
 
@@ -89,15 +90,15 @@ type ColorSwatchProps = {
 
 const ColorSwatch = ({ color, onClick }: ColorSwatchProps) => {
   return (
-    <div
-      onClick={onClick}
-      css={css`
+      <div
+          onClick={onClick}
+          css={css`
         width: 1rem;
         height: 1rem;
         background-color: ${color};
         border: 1px solid black;
       `}
-    ></div>
+      ></div>
   );
 };
 
@@ -105,15 +106,28 @@ type SubMenuProps = {
   menuButton: React.ReactNode;
 };
 
+
 const SubMenu = ({
-  menuButton,
-  children,
-}: React.PropsWithChildren<SubMenuProps>) => {
+                   menuButton,
+                   children,
+                 }: React.PropsWithChildren<SubMenuProps>) => {
   const [open, setOpen] = React.useState(false);
 
+  const handleDropDownFocus = (state: boolean) => {
+        setOpen(!state);
+  };
+  const handleClickOutsideDropdown =()=>{
+        if(open){
+            setOpen(false)
+
+        }
+  };
+  window.addEventListener("click", handleClickOutsideDropdown);
+
+
   return (
-    <div
-      css={css`
+      <div
+          css={css`
         position: relative;
         height: 2rem;
         display: flex;
@@ -122,16 +136,17 @@ const SubMenu = ({
             height: 1.8rem;
         }
       `}
-    >
-      <MenuItem
-        onClick={() => {
-          setOpen(!open);
-        }}
       >
-        {menuButton}
-        {open && (
-          <div
-            css={css`
+        <MenuItem
+            onClick={() => {
+              setOpen(!open);
+            }}
+            onClick={() => handleDropDownFocus(open)}
+        >
+          {menuButton}
+          {open && (
+              <div
+                  css={css`
               position: absolute;
               top: 2rem;
               left: 0;
@@ -139,12 +154,12 @@ const SubMenu = ({
               flex-direction: column;
               background: #f0f0f0;
             `}
-          >
-            {children}
-          </div>
-        )}
-      </MenuItem>
-    </div>
+              >
+                {children}
+              </div>
+          )}
+        </MenuItem>
+      </div>
   );
 };
 
@@ -366,9 +381,9 @@ const BoxMenu = () => {
 
 const LineWeightMenu = () => {
   const weights = [
-      "Thin",
-      "Normal",
-      "Thick",
+    "Thin",
+    "Normal",
+    "Thick",
   ];
 
   return (
@@ -403,16 +418,38 @@ const LineWeightMenu = () => {
 };
 
 const AnnotateMenu = () => {
+    const annotationHeads = [
+        BracketListOption,
+        CurlyBraceListOption,
+    ]
   return (
-      <MenuItem menuButton={<img src={AnnotateIcon}/>}>
-        <div
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-        >
-          <img src={AnnotateIcon}/>
-        </div>
-      </MenuItem>
+      <SubMenu menuButton={<img src={AnnotateIcon}/>}>
+          <div
+              css={css`
+          padding: 0.5rem;
+          width: 2rem;
+          display: flex;
+          flex-direction: column;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+        `}
+          >
+              {annotationHeads.map((head) => (
+                  <div
+                      key={head}
+                      css={css`
+              margin: 0.25rem;
+            `}
+                      onClick={(e) => {
+                          //styleStore.setSelectionHead(head);
+                          e.stopPropagation();
+                      }}
+                  >
+                      <img src={head} height={"17rem"}/>
+                  </div>
+              ))}
+          </div>
+      </SubMenu>
   );
 };
 
