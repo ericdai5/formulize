@@ -108,7 +108,37 @@ export const StyleStore = types
         self.color.set(id, color);
       }
     },
-  }));
+    setSelectionBold() {
+      for (const id of selectionStore.selected) {
+        //set text to bold
+      }
+    },
+    setSelectionItalic() {
+      for (const id of selectionStore.selected) {
+        //set text to italic
+      }
+    },
+    setSelectionUnderline() {
+      for (const id of selectionStore.selected) {
+        //set text to underline
+      }
+    },
+    setSelectionStrikethrough() {
+      for (const id of selectionStore.selected) {
+        //set text to strikethrough
+      }
+    },
+    setSelectionLineWeight(weight : string) {
+      for (const id of selectionStore.selected) {
+        //set box width of selection to weight?
+      }
+    },
+    setSelectionAnnotationHead(head : string) {
+      for (const id of selectionStore.selected) {
+        //make annotation on selected term with specified head
+      }
+    }
+    }));
 
 export const styleStore = StyleStore.create({
   color: {},

@@ -1,4 +1,4 @@
-import {default as React, useState, useRef, useEffect} from "react";
+import {default as React} from "react";
 import { css } from "@emotion/react";
 import Icon from '@mui/material/Icon';
 import BoxIcon from './Icons/BoxIcon.svg';
@@ -243,7 +243,8 @@ const BoldMenu = () => {
       <MenuItem menuButton={<Icon>format_bold</Icon>}>
         <div
             onClick={(e) => {
-              e.stopPropagation();
+                styleStore.setSelectionBold();
+                e.stopPropagation();
             }}
         >
           <Icon>format_bold</Icon>
@@ -258,7 +259,8 @@ const ItalicsMenu = () => {
       <MenuItem menuButton={<Icon>format_italic</Icon>}>
         <div
             onClick={(e) => {
-              e.stopPropagation();
+                styleStore.setSelectionItalic();
+                e.stopPropagation();
             }}
         >
           <Icon>format_italic</Icon>
@@ -272,7 +274,8 @@ const UnderlineMenu = () => {
       <MenuItem menuButton={<Icon>format_underline</Icon>}>
         <div
             onClick={(e) => {
-              e.stopPropagation();
+                styleStore.setSelectionUnderline();
+                e.stopPropagation();
             }}
         >
           <Icon>format_underline</Icon>
@@ -287,7 +290,8 @@ const StrikethroughMenu = () => {
       <MenuItem menuButton={<Icon>format_strikethrough</Icon>}>
         <div
             onClick={(e) => {
-              e.stopPropagation();
+                styleStore.setSelectionStrikethrough();
+                e.stopPropagation();
             }}
         >
           <Icon>format_strikethrough</Icon>
@@ -368,7 +372,6 @@ const BoxMenu = () => {
                   onClick={(e) => {
                     styleStore.setSelectionColor(color);
                     e.stopPropagation();
-                    //hide the box
                   }}
               >
                 <ColorSwatch key={color} color={color} />
@@ -405,7 +408,7 @@ const LineWeightMenu = () => {
               margin: 0.25rem;
             `}
                   onClick={(e) => {
-                    //styleStore.setSelectionWeight(weight);
+                    styleStore.setSelectionLineWeight(weight);
                     e.stopPropagation();
                   }}
               >
@@ -441,7 +444,7 @@ const AnnotateMenu = () => {
               margin: 0.25rem;
             `}
                       onClick={(e) => {
-                          //styleStore.setSelectionHead(head);
+                          styleStore.setSelectionAnnotationHead(head);
                           e.stopPropagation();
                       }}
                   >
