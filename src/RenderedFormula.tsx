@@ -2,17 +2,16 @@ import { useRef, useEffect } from "react";
 import { css } from "@emotion/react";
 import { observer } from "mobx-react-lite";
 
+import { formulaStore, selectionStore, styleStore } from "./store";
 import {
-  selectionStore,
-  styleStore,
-  formulaStore,
-  IFormulaNode,
-} from "./store";
-import { populateFormulaStore } from "./mathjax";
+  deriveFormulaTree,
+  FormulaSVGSpecNode,
+  FormulaSVGTransform,
+} from "./FormulaTree";
 
 export const RenderedFormula = () => {
   useEffect(() => {
-    populateFormulaStore("x^2 + y^2 = z^2");
+    formulaStore.updateFormula(deriveFormulaTree("a + b = c").augmentedFormula);
   }, []);
 
   return <RenderedFormulaSVG />;
@@ -25,15 +24,15 @@ const RenderedFormulaSVG = observer(() => {
         transform: scale(4);
       `}
       xmlns="http://www.w3.org/2000/svg"
-      width={formulaStore.dimensions.widthAsAttr}
-      height={formulaStore.dimensions.heightAsAttr}
+      width={formulaStore.widthAttr}
+      height={formulaStore.heightAttr}
       role="img"
       focusable="false"
-      viewBox={formulaStore.viewBox.asAttr}
+      viewBox={formulaStore.viewboxAttr}
       xmlnsXlink="http://www.w3.org/1999/xlink"
     >
-      <RenderedFormulaDefs defs={formulaStore.defs} />
-      <RenderedFormulaNode node={formulaStore.root} />
+      <RenderedFormulaDefs defs={formulaStore.svgSpec.defs} />
+      <RenderedFormulaNode node={formulaStore.svgSpec.root} />
     </svg>
   );
 });
@@ -52,17 +51,38 @@ const RenderedFormulaDefs = ({
   );
 };
 
-const RenderedFormulaNode = ({ node }: { node: IFormulaNode }) => {
-  if (node.nodeType === "g") {
+const transformString = (spec: FormulaSVGTransform) => {
+  let transform = "";
+  if (spec.scale) {
+    transform += `scale(${spec.scale.x}, ${spec.scale.y}) `;
+  }
+  if (spec.translate) {
+    transform += `translate(${spec.translate.x}, ${spec.translate.y}) `;
+  }
+  return transform.length > 0 ? transform : undefined;
+};
+
+const RenderedFormulaNode = ({ node }: { node: FormulaSVGSpecNode }) => {
+  if (node.type === "g") {
     return (
-      <g data-mml-node={node.mmlNode} transform={node.transformAttr}>
+      <g id={node.id} transform={transformString(node.transform)}>
         {node.children?.map((child) => (
           <RenderedFormulaNode key={child.id} node={child} />
         ))}
       </g>
     );
-  } else if (node.nodeType === "use") {
+  } else if (node.type === "use") {
     return <RenderedFormulaLeaf id={node.id} linkHref={node.linkHref!} />;
+  } else if (node.type === "rect") {
+    return (
+      <rect
+        id={node.id}
+        x={node.x}
+        y={node.y}
+        width={node.width}
+        height={node.height}
+      />
+    );
   } else {
     return "?";
   }
@@ -84,13 +104,14 @@ const RenderedFormulaLeaf = observer(({ id, linkHref }: FormulaLeafProps) => {
         rect.left,
         rect.top,
         rect.width,
-        rect.height,
+        rect.height
       );
     }
   }, [id, linkHref]);
 
   return (
     <use
+      id={id}
       onClick={() => selectionStore.toggle(id)}
       fill={
         selectionStore.currentlyDragged.includes(id)

@@ -6,9 +6,6 @@ import { SelectionStore, selectionStore } from "./store";
 import { RenderedFormula } from "./RenderedFormula";
 import { Debug } from "./Debug";
 import { Menu } from "./Menu";
-import { populateFormulaStore } from "./mathjax";
-
-window.populateFormulaStore = populateFormulaStore;
 
 export const Workspace = observer(() => {
   return (
