@@ -33,21 +33,21 @@ export const deriveFormulaTree = (
         "0.0.0",
         new Identifier("0.0.0.0", "a"),
         undefined,
-        new Number("0.0.0.1", 2)
+        new Numeral("0.0.0.1", 2)
       ),
       new Op("0.0.1", "+"),
       new Script(
         "0.0.2",
         new Identifier("0.0.2.0", "b"),
         undefined,
-        new Number("0.0.2.1", 2)
+        new Numeral("0.0.2.1", 2)
       ),
       new Op("0.0.3", "="),
       new Script(
         "0.0.4",
         new Identifier("0.0.4.0", "c"),
         undefined,
-        new Number("0.0.4.1", 2)
+        new Numeral("0.0.4.1", 2)
       ),
     ]),
   };
@@ -185,7 +185,7 @@ type AugmentedFormulaNode =
   | Fraction
   | Op
   | Identifier
-  | number
+  | Numeral
   | NewLine
   | AlignMarker;
 
@@ -243,7 +243,7 @@ class Identifier implements AugmentedFormulaNodeBase {
   }
 }
 
-class Number implements AugmentedFormulaNodeBase {
+class Numeral implements AugmentedFormulaNodeBase {
   public type = "number" as const;
   constructor(
     public svgId: string,
