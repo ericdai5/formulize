@@ -243,7 +243,7 @@ const BoldMenu = () => {
       <MenuItem menuButton={<Icon>format_bold</Icon>}>
         <div
             onClick={(e) => {
-                styleStore.setSelectionBold();
+                //styleStore.setSelectionBold();
                 e.stopPropagation();
             }}
         >
@@ -259,7 +259,7 @@ const ItalicsMenu = () => {
       <MenuItem menuButton={<Icon>format_italic</Icon>}>
         <div
             onClick={(e) => {
-                styleStore.setSelectionItalic();
+                //styleStore.setSelectionItalic();
                 e.stopPropagation();
             }}
         >
@@ -274,7 +274,7 @@ const UnderlineMenu = () => {
       <MenuItem menuButton={<Icon>format_underline</Icon>}>
         <div
             onClick={(e) => {
-                styleStore.setSelectionUnderline();
+                //styleStore.setSelectionUnderline();
                 e.stopPropagation();
             }}
         >
@@ -290,7 +290,7 @@ const StrikethroughMenu = () => {
       <MenuItem menuButton={<Icon>format_strikethrough</Icon>}>
         <div
             onClick={(e) => {
-                styleStore.setSelectionStrikethrough();
+                //styleStore.setSelectionStrikethrough();
                 e.stopPropagation();
             }}
         >
@@ -408,7 +408,7 @@ const LineWeightMenu = () => {
               margin: 0.25rem;
             `}
                   onClick={(e) => {
-                    styleStore.setSelectionLineWeight(weight);
+                    //styleStore.setSelectionLineWeight(weight);
                     e.stopPropagation();
                   }}
               >
@@ -444,7 +444,7 @@ const AnnotateMenu = () => {
               margin: 0.25rem;
             `}
                       onClick={(e) => {
-                          styleStore.setSelectionAnnotationHead(head);
+                          //styleStore.setSelectionAnnotationHead(head);
                           e.stopPropagation();
                       }}
                   >
