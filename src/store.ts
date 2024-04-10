@@ -1,4 +1,42 @@
-import { types } from "mobx-state-tree";
+import { types, IAnyModelType, Instance } from "mobx-state-tree";
+
+import {
+  AugmentedFormula,
+  FormulaSVGSpec,
+  deriveFormulaTree,
+} from "./FormulaTree";
+
+export const FormulaStore = types
+  .model("FormulaStore", {
+    svgSpec: types.frozen<FormulaSVGSpec>(),
+    augmentedFormula: types.frozen<AugmentedFormula>(),
+  })
+  .actions((self) => ({
+    updateFormula(newFormula: AugmentedFormula) {
+      const latex = newFormula.toLatex();
+      const { svgSpec, augmentedFormula } = deriveFormulaTree(latex);
+      self.svgSpec = svgSpec;
+      self.augmentedFormula = augmentedFormula;
+    },
+  }))
+  .views((self) => ({
+    // views here
+    get viewboxAttr() {
+      const { x, y, width, height } = self.svgSpec.viewBox;
+      return `${x} ${y} ${width} ${height}`;
+    },
+    get widthAttr() {
+      return `${self.svgSpec.dimensions.width}${self.svgSpec.dimensions.unit}`;
+    },
+    get heightAttr() {
+      return `${self.svgSpec.dimensions.height}${self.svgSpec.dimensions.unit}`;
+    },
+  }));
+
+export const formulaStore = FormulaStore.create({
+  svgSpec: FormulaSVGSpec.empty(),
+  augmentedFormula: new AugmentedFormula([]),
+});
 
 export const SelectionStore = types
   .model("SelectionStore", {
@@ -10,7 +48,7 @@ export const SelectionStore = types
         top: types.number,
         width: types.number,
         height: types.number,
-      }),
+      })
     ),
     selectionRect: types.maybe(
       types.model({
@@ -18,7 +56,7 @@ export const SelectionStore = types
         y1: types.number,
         x2: types.number,
         y2: types.number,
-      }),
+      })
     ),
   })
   .actions((self) => ({
@@ -53,9 +91,16 @@ export const SelectionStore = types
       left: number,
       top: number,
       width: number,
-      height: number,
+      height: number
     ) {
       self.targets.set(id, { id, left, top, width, height });
+    },
+    toggle(id: string) {
+      if (self.selected.includes(id)) {
+        self.selected.remove(id);
+      } else {
+        self.selected.push(id);
+      }
     },
   }))
   .views((self) => ({
