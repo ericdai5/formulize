@@ -9,6 +9,7 @@ import { Menu, ContextMenu } from "./Menu";
 
 export const Workspace = observer(() => {
   const [showTopMenu, setShowTopMenu] = useState(true);
+  console.log("Workspace render");
 
   const [contextMenuAnchor, setContextMenuAnchor] = useState<{
     anchorX: number;

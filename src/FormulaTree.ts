@@ -3,22 +3,29 @@ import * as babelPlugin from "prettier/parser-babel";
 import * as estreePlugin from "prettier/plugins/estree";
 
 export const debugLatex = async (latex: string) => {
-  const svg: SVGElement = MathJax.tex2svg(latex).querySelector("svg");
-  const mml: MathMLElement = MathJax.tex2mml(latex);
+  // const svg: SVGElement = MathJax.tex2svg(latex).querySelector("svg");
+  // const mml: MathMLElement = MathJax.tex2mml(latex);
 
-  const formattedSvg = await prettier.format(svg.outerHTML, {
+  // const formattedSvg = await prettier.format(svg.outerHTML, {
+  //   parser: "babel",
+  //   plugins: [babelPlugin, estreePlugin],
+  // });
+
+  // console.log(formattedSvg);
+  // console.log(mml);
+
+  const html: Element = MathJax.tex2chtml(latex);
+  const formattedHtml = await prettier.format(html.outerHTML, {
     parser: "babel",
     plugins: [babelPlugin, estreePlugin],
   });
-
-  console.log(formattedSvg);
-  console.log(mml);
+  console.log(formattedHtml);
 };
 
 window.debugLatex = debugLatex;
 
 export const deriveFormulaTree = (
-  latex: string
+  latex: string,
 ): {
   svgSpec: FormulaSVGSpec;
   augmentedFormula: AugmentedFormula;
@@ -33,21 +40,21 @@ export const deriveFormulaTree = (
         "0.0.0",
         new Identifier("0.0.0.0", "a"),
         undefined,
-        new Numeral("0.0.0.1", 2)
+        new Numeral("0.0.0.1", 2),
       ),
       new Op("0.0.1", "+"),
       new Script(
         "0.0.2",
         new Identifier("0.0.2.0", "b"),
         undefined,
-        new Numeral("0.0.2.1", 2)
+        new Numeral("0.0.2.1", 2),
       ),
       new Op("0.0.3", "="),
       new Script(
         "0.0.4",
         new Identifier("0.0.4.0", "c"),
         undefined,
-        new Numeral("0.0.4.1", 2)
+        new Numeral("0.0.4.1", 2),
       ),
     ]),
   };
@@ -85,7 +92,7 @@ export const deriveFormulaSVGSpec = (latex: string): FormulaSVGSpec => {
 const buildFormulaSVGNode = (node: Element, id: string): FormulaSVGSpecNode => {
   if (node instanceof SVGGElement) {
     const children = Array.from(node.childNodes).map((child, i) =>
-      buildFormulaSVGNode(child as Element, `${id}.${i}`)
+      buildFormulaSVGNode(child as Element, `${id}.${i}`),
     );
     const transform = extractTransform(node.transform.baseVal);
     return new FormulaSVGGroup(id, children, transform);
@@ -97,7 +104,7 @@ const buildFormulaSVGNode = (node: Element, id: string): FormulaSVGSpecNode => {
       parseFloat(getAttributeOrThrow(node, "x")),
       parseFloat(getAttributeOrThrow(node, "y")),
       parseFloat(getAttributeOrThrow(node, "width")),
-      parseFloat(getAttributeOrThrow(node, "height"))
+      parseFloat(getAttributeOrThrow(node, "height")),
     );
   }
   console.log("Unknown node type:", node);
@@ -195,7 +202,7 @@ class Script implements AugmentedFormulaNodeBase {
     public svgId: string,
     public base: AugmentedFormulaNode,
     public sub?: AugmentedFormulaNode,
-    public sup?: AugmentedFormulaNode
+    public sup?: AugmentedFormulaNode,
   ) {}
 
   toLatex(): string {
@@ -210,7 +217,7 @@ class Op implements AugmentedFormulaNodeBase {
   public type = "op" as const;
   constructor(
     public svgId: string,
-    public op: string
+    public op: string,
   ) {}
 
   toLatex(): string {
@@ -223,7 +230,7 @@ class Fraction implements AugmentedFormulaNodeBase {
   constructor(
     public svgId: string,
     public numerator: AugmentedFormulaNode,
-    public denominator: AugmentedFormulaNode
+    public denominator: AugmentedFormulaNode,
   ) {}
 
   toLatex(): string {
@@ -235,7 +242,7 @@ class Identifier implements AugmentedFormulaNodeBase {
   public type = "ident" as const;
   constructor(
     public svgId: string,
-    public name: string
+    public name: string,
   ) {}
 
   toLatex(): string {
@@ -247,7 +254,7 @@ class Numeral implements AugmentedFormulaNodeBase {
   public type = "number" as const;
   constructor(
     public svgId: string,
-    public value: number
+    public value: number,
   ) {}
 
   toLatex(): string {
@@ -283,7 +290,7 @@ export class FormulaSVGSpec {
     public defs: { id: string; d: string }[],
     public root: FormulaSVGSpecNode,
     public viewBox: { x: number; y: number; width: number; height: number },
-    public dimensions: { width: number; height: number; unit: string }
+    public dimensions: { width: number; height: number; unit: string },
   ) {}
 
   static empty(): FormulaSVGSpec {
@@ -291,7 +298,7 @@ export class FormulaSVGSpec {
       [],
       new FormulaSVGGroup("0", [], {}),
       { x: 0, y: 0, width: 0, height: 0 },
-      { width: 0, height: 0, unit: "px" }
+      { width: 0, height: 0, unit: "px" },
     );
   }
 }
@@ -307,7 +314,7 @@ class FormulaSVGGroup {
   constructor(
     public id: string,
     public children: FormulaSVGSpecNode[],
-    public transform: FormulaSVGTransform
+    public transform: FormulaSVGTransform,
   ) {}
 }
 
@@ -316,7 +323,7 @@ class FormulaSVGUse {
 
   constructor(
     public id: string,
-    public linkHref: string
+    public linkHref: string,
   ) {}
 }
 
@@ -328,6 +335,6 @@ class FormulaSVGRect {
     public x: number,
     public y: number,
     public width: number,
-    public height: number
+    public height: number,
   ) {}
 }

@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 import { css } from "@emotion/react";
 import { observer } from "mobx-react-lite";
+import { MathJaxContext, MathJax } from "better-react-mathjax";
 
 import { formulaStore, selectionStore, styleStore } from "./store";
 import {
@@ -10,11 +11,56 @@ import {
 } from "./FormulaTree";
 
 export const RenderedFormula = () => {
-  useEffect(() => {
-    formulaStore.updateFormula(deriveFormulaTree("a + b = c").augmentedFormula);
-  }, []);
+  // useEffect(() => {
+  //   formulaStore.updateFormula(deriveFormulaTree("a + b = c").augmentedFormula);
+  // }, []);
 
-  return <RenderedFormulaSVG />;
+  // return <RenderedFormulaSVG />;
+  return <RenderedFormulaComponent />;
+};
+
+const RenderedFormulaComponent = () => {
+  console.log("Rendering");
+  const ref = useRef<Element>(null);
+  useEffect(() => {
+    if (ref.current) {
+      window.mathjaxWrapper = ref.current;
+    }
+  }, [ref.current]);
+
+  return (
+    <MathJaxContext
+      version={3}
+      config={{
+        loader: {
+          load: ["input/tex", "output/chtml", "[tex]/color", "[tex]/html"],
+        },
+        tex: { packages: { "[+]": ["color", "html"] } },
+      }}
+    >
+      <div
+        css={css`
+          transform: scale(4);
+        `}
+        ref={ref}
+      >
+        <MathJax
+          hideUntilTypeset={"first"}
+          renderMode={"pre"}
+          text={String.raw`\cssId{aSquared}{\cssId{a}{a}^\cssId{squared}{2}}`}
+          typesettingOptions={{
+            fn: "tex2chtml",
+          }}
+          onInitTypeset={() => {
+            console.log("Initial typeset");
+          }}
+          onTypeset={() => {
+            console.log("Typeset");
+          }}
+        />
+      </div>
+    </MathJaxContext>
+  );
 };
 
 const RenderedFormulaSVG = observer(() => {
@@ -104,7 +150,7 @@ const RenderedFormulaLeaf = observer(({ id, linkHref }: FormulaLeafProps) => {
         rect.left,
         rect.top,
         rect.width,
-        rect.height
+        rect.height,
       );
     }
   }, [id, linkHref]);

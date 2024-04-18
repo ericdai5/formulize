@@ -4,20 +4,6 @@ import { Global, css } from "@emotion/react";
 import { Workspace } from "./Workspace";
 
 function App() {
-  // Convert TeX to MathML & SVG
-  // const [rendered, setRendered] = useState(false);
-  // useEffect(() => {
-  //   if (!rendered) {
-  //     const tree = MathJax.tex2mml("a^2 + b^2 = c^2", {});
-  //     const treeNode = new DOMParser().parseFromString(tree, "text/xml");
-  //     console.log(treeNode);
-  //     const node = MathJax.tex2svg("a^2 + b^2 = c^2", {});
-  //     console.log(node);
-  //     document.body.appendChild(node);
-  //     setRendered(true);
-  //   }
-  // }, [rendered, setRendered]);
-
   return (
     <>
       <Global
