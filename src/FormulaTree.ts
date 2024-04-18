@@ -3,23 +3,16 @@ import * as babelPlugin from "prettier/parser-babel";
 import * as estreePlugin from "prettier/plugins/estree";
 
 export const debugLatex = async (latex: string) => {
-  // const svg: SVGElement = MathJax.tex2svg(latex).querySelector("svg");
-  // const mml: MathMLElement = MathJax.tex2mml(latex);
-
-  // const formattedSvg = await prettier.format(svg.outerHTML, {
-  //   parser: "babel",
-  //   plugins: [babelPlugin, estreePlugin],
-  // });
-
-  // console.log(formattedSvg);
-  // console.log(mml);
-
   const html: Element = MathJax.tex2chtml(latex);
   const formattedHtml = await prettier.format(html.outerHTML, {
     parser: "babel",
     plugins: [babelPlugin, estreePlugin],
   });
+  window.mjxDebug = html;
   console.log(formattedHtml);
+
+  const renderSpec = deriveRenderSpec(html);
+  console.log(renderSpec);
 };
 
 window.debugLatex = debugLatex;
@@ -27,14 +20,20 @@ window.debugLatex = debugLatex;
 export const deriveFormulaTree = (
   latex: string,
 ): {
-  svgSpec: FormulaSVGSpec;
+  renderSpec: RenderSpec;
   augmentedFormula: AugmentedFormula;
 } => {
-  const svgSpec = deriveFormulaSVGSpec(latex);
-  console.log(svgSpec);
+  const chtml = MathJax.tex2chtml(latex);
+  const renderSpec = deriveRenderSpec(chtml);
+
+  // MathJax rendering requires appending new styles to the document
+  MathJax.startup.document.clear();
+  MathJax.startup.document.updateDocument();
+
+  // TODO: parse AugmentedFormula from LaTeX
 
   return {
-    svgSpec,
+    renderSpec,
     augmentedFormula: new AugmentedFormula([
       new Script(
         "0.0.0",
@@ -58,120 +57,6 @@ export const deriveFormulaTree = (
       ),
     ]),
   };
-};
-
-window.deriveFormulaTree = deriveFormulaTree;
-
-const getAttributeOrThrow = (node: Element, attribute: string) => {
-  const value = node.getAttribute(attribute);
-  if (value === null) {
-    throw new Error(`Attribute ${attribute} not found on ${node.nodeName}`);
-  }
-  return value;
-};
-
-export const deriveFormulaSVGSpec = (latex: string): FormulaSVGSpec => {
-  const svg: SVGElement = MathJax.tex2svg(latex).querySelector("svg");
-  const defs = Array.from(svg.querySelectorAll("defs > *")).map((def) => ({
-    id: def.id,
-    d: getAttributeOrThrow(def, "d"),
-  }));
-
-  const viewBox = parseViewBox(getAttributeOrThrow(svg, "viewBox"));
-  const dimensions = extractSVGSize(svg);
-
-  const contentNodes = svg.querySelectorAll(":scope > :not(defs)");
-  const root = buildFormulaSVGNode(contentNodes[0], "0");
-  if (contentNodes.length !== 1) {
-    throw new Error("Expected exactly one non-defs child of the root svg");
-  }
-
-  return new FormulaSVGSpec(defs, root, viewBox, dimensions);
-};
-
-const buildFormulaSVGNode = (node: Element, id: string): FormulaSVGSpecNode => {
-  if (node instanceof SVGGElement) {
-    const children = Array.from(node.childNodes).map((child, i) =>
-      buildFormulaSVGNode(child as Element, `${id}.${i}`),
-    );
-    const transform = extractTransform(node.transform.baseVal);
-    return new FormulaSVGGroup(id, children, transform);
-  } else if (node.nodeName === "use") {
-    return new FormulaSVGUse(id, getAttributeOrThrow(node, "xlink:href"));
-  } else if (node.nodeName === "rect") {
-    return new FormulaSVGRect(
-      id,
-      parseFloat(getAttributeOrThrow(node, "x")),
-      parseFloat(getAttributeOrThrow(node, "y")),
-      parseFloat(getAttributeOrThrow(node, "width")),
-      parseFloat(getAttributeOrThrow(node, "height")),
-    );
-  }
-  console.log("Unknown node type:", node);
-  throw new Error("Unknown node type");
-};
-
-const extractTransform = (transformList: SVGTransformList) => {
-  const transform: FormulaSVGTransform = {};
-  for (let i = 0; i < transformList.numberOfItems; i++) {
-    const item = transformList.getItem(i);
-    switch (item.type) {
-      case SVGTransform.SVG_TRANSFORM_TRANSLATE:
-        transform.translate = {
-          x: item.matrix.e,
-          y: item.matrix.f,
-        };
-        break;
-      case SVGTransform.SVG_TRANSFORM_SCALE:
-        transform.scale = {
-          x: item.matrix.a,
-          y: item.matrix.d,
-        };
-        break;
-      default:
-        throw new Error("Unknown transform type");
-    }
-  }
-  return transform;
-};
-
-const parseViewBox = (viewBox: string) => {
-  const [x, y, width, height] = viewBox.split(" ").map(parseFloat);
-  return { x, y, width, height };
-};
-
-const extractSVGSize = (svg: SVGElement) => {
-  const width = svg.width.baseVal.valueInSpecifiedUnits;
-  const height = svg.height.baseVal.valueInSpecifiedUnits;
-  const unit = SVGLengthUnit(svg.width.baseVal);
-  return { width, height, unit };
-};
-
-const SVGLengthUnit = (length: SVGLength) => {
-  switch (length.unitType) {
-    case SVGLength.SVG_LENGTHTYPE_NUMBER:
-      return "";
-    case SVGLength.SVG_LENGTHTYPE_PERCENTAGE:
-      return "%";
-    case SVGLength.SVG_LENGTHTYPE_EMS:
-      return "em";
-    case SVGLength.SVG_LENGTHTYPE_EXS:
-      return "ex";
-    case SVGLength.SVG_LENGTHTYPE_PX:
-      return "px";
-    case SVGLength.SVG_LENGTHTYPE_CM:
-      return "cm";
-    case SVGLength.SVG_LENGTHTYPE_MM:
-      return "mm";
-    case SVGLength.SVG_LENGTHTYPE_IN:
-      return "in";
-    case SVGLength.SVG_LENGTHTYPE_PT:
-      return "pt";
-    case SVGLength.SVG_LENGTHTYPE_PC:
-      return "pc";
-    default:
-      throw new Error("Unknown SVGLength unit type");
-  }
 };
 
 interface AugmentedFormulaNodeBase {
@@ -280,61 +165,37 @@ class AlignMarker implements AugmentedFormulaNodeBase {
   }
 }
 
-export type FormulaSVGSpecNode =
-  | FormulaSVGGroup
-  | FormulaSVGUse
-  | FormulaSVGRect;
-
-export class FormulaSVGSpec {
-  constructor(
-    public defs: { id: string; d: string }[],
-    public root: FormulaSVGSpecNode,
-    public viewBox: { x: number; y: number; width: number; height: number },
-    public dimensions: { width: number; height: number; unit: string },
-  ) {}
-
-  static empty(): FormulaSVGSpec {
-    return new FormulaSVGSpec(
-      [],
-      new FormulaSVGGroup("0", [], {}),
-      { x: 0, y: 0, width: 0, height: 0 },
-      { width: 0, height: 0, unit: "px" },
-    );
-  }
-}
-
-export type FormulaSVGTransform = {
-  translate?: { x: number; y: number };
-  scale?: { x: number; y: number };
+export type RenderSpec = {
+  tagName: string;
+  id?: string;
+  className?: string;
+  style?: Record<string, string>;
+  attrs: Record<string, string>;
+  children: RenderSpec[];
 };
 
-class FormulaSVGGroup {
-  public type = "g" as const;
+export const deriveRenderSpec = (node: Element): RenderSpec => {
+  const children = Array.from(node.children).map(deriveRenderSpec);
+  return {
+    tagName: node.tagName.toLowerCase(),
+    id: node.getAttribute("id") ?? undefined,
+    className: node.getAttribute("class") ?? undefined,
+    style: "style" in node ? extractStyle(node) : undefined,
+    attrs: Object.fromEntries(
+      Array.from(node.attributes)
+        .filter((a) => !["id", "class", "style"].includes(a.name))
+        .map((attr) => [attr.name, attr.value]),
+    ),
+    children,
+  };
+};
 
-  constructor(
-    public id: string,
-    public children: FormulaSVGSpecNode[],
-    public transform: FormulaSVGTransform,
-  ) {}
-}
-
-class FormulaSVGUse {
-  public type = "use" as const;
-
-  constructor(
-    public id: string,
-    public linkHref: string,
-  ) {}
-}
-
-class FormulaSVGRect {
-  public type = "rect" as const;
-
-  constructor(
-    public id: string,
-    public x: number,
-    public y: number,
-    public width: number,
-    public height: number,
-  ) {}
-}
+export const extractStyle = (node: Element): Record<string, string> => {
+  return Object.fromEntries(
+    Array.from(node.style).map((prop) => [
+      // https://stackoverflow.com/a/60738940
+      prop.replace(/-./g, (x) => x[1].toUpperCase()),
+      node.style[prop as string],
+    ]),
+  );
+};

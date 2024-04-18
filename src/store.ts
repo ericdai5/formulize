@@ -1,40 +1,24 @@
 import { types, IAnyModelType, Instance } from "mobx-state-tree";
 
-import {
-  AugmentedFormula,
-  FormulaSVGSpec,
-  deriveFormulaTree,
-} from "./FormulaTree";
+import { AugmentedFormula, deriveFormulaTree, RenderSpec } from "./FormulaTree";
 
 export const FormulaStore = types
   .model("FormulaStore", {
-    svgSpec: types.frozen<FormulaSVGSpec>(),
+    renderSpec: types.frozen<RenderSpec | null>(),
     augmentedFormula: types.frozen<AugmentedFormula>(),
   })
   .actions((self) => ({
     updateFormula(newFormula: AugmentedFormula) {
       const latex = newFormula.toLatex();
-      const { svgSpec, augmentedFormula } = deriveFormulaTree(latex);
-      self.svgSpec = svgSpec;
+      const { renderSpec, augmentedFormula } = deriveFormulaTree(latex);
+      self.renderSpec = renderSpec;
       self.augmentedFormula = augmentedFormula;
     },
   }))
-  .views((self) => ({
-    // views here
-    get viewboxAttr() {
-      const { x, y, width, height } = self.svgSpec.viewBox;
-      return `${x} ${y} ${width} ${height}`;
-    },
-    get widthAttr() {
-      return `${self.svgSpec.dimensions.width}${self.svgSpec.dimensions.unit}`;
-    },
-    get heightAttr() {
-      return `${self.svgSpec.dimensions.height}${self.svgSpec.dimensions.unit}`;
-    },
-  }));
+  .views((self) => ({}));
 
 export const formulaStore = FormulaStore.create({
-  svgSpec: FormulaSVGSpec.empty(),
+  renderSpec: null,
   augmentedFormula: new AugmentedFormula([]),
 });
 
@@ -48,7 +32,7 @@ export const SelectionStore = types
         top: types.number,
         width: types.number,
         height: types.number,
-      })
+      }),
     ),
     selectionRect: types.maybe(
       types.model({
@@ -56,7 +40,7 @@ export const SelectionStore = types
         y1: types.number,
         x2: types.number,
         y2: types.number,
-      })
+      }),
     ),
   })
   .actions((self) => ({
@@ -91,7 +75,7 @@ export const SelectionStore = types
       left: number,
       top: number,
       width: number,
-      height: number
+      height: number,
     ) {
       self.targets.set(id, { id, left, top, width, height });
     },
@@ -153,7 +137,7 @@ export const StyleStore = types
         self.color.set(id, color);
       }
     },
-    }));
+  }));
 
 export const styleStore = StyleStore.create({
   color: {},
