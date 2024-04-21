@@ -21,8 +21,8 @@ export const deriveFormulaTree = (
   latex: string,
 ): {
   renderSpec: RenderSpec;
-  augmentedFormula: AugmentedFormula;
 } => {
+  console.log("Rendering:", latex);
   const chtml = MathJax.tex2chtml(latex);
   const renderSpec = deriveRenderSpec(chtml);
 
@@ -34,28 +34,6 @@ export const deriveFormulaTree = (
 
   return {
     renderSpec,
-    augmentedFormula: new AugmentedFormula([
-      new Script(
-        "0.0.0",
-        new Identifier("0.0.0.0", "a"),
-        undefined,
-        new Numeral("0.0.0.1", 2),
-      ),
-      new Op("0.0.1", "+"),
-      new Script(
-        "0.0.2",
-        new Identifier("0.0.2.0", "b"),
-        undefined,
-        new Numeral("0.0.2.1", 2),
-      ),
-      new Op("0.0.3", "="),
-      new Script(
-        "0.0.4",
-        new Identifier("0.0.4.0", "c"),
-        undefined,
-        new Numeral("0.0.4.1", 2),
-      ),
-    ]),
   };
 };
 
@@ -81,39 +59,46 @@ type AugmentedFormulaNode =
   | NewLine
   | AlignMarker;
 
-class Script implements AugmentedFormulaNodeBase {
+const withId = (id: string, latex: string) => {
+  return String.raw`\cssId{${id}}{${latex}}`;
+};
+
+export class Script implements AugmentedFormulaNodeBase {
   public type = "script" as const;
   constructor(
-    public svgId: string,
+    public id: string,
     public base: AugmentedFormulaNode,
     public sub?: AugmentedFormulaNode,
     public sup?: AugmentedFormulaNode,
   ) {}
 
   toLatex(): string {
-    return `${this.base.toLatex()}${this.sub ? `_{${this.sub.toLatex()}}` : ""}${this.sup ? `^{${this.sup.toLatex()}}` : ""}`;
+    return withId(
+      this.id,
+      `${this.base.toLatex()}${this.sub ? `_{${this.sub.toLatex()}}` : ""}${this.sup ? `^{${this.sup.toLatex()}}` : ""}`,
+    );
   }
 }
 
 /**
  * Multiple terms separated by the same operator, e.g. `a + b + c`
  */
-class Op implements AugmentedFormulaNodeBase {
+export class Op implements AugmentedFormulaNodeBase {
   public type = "op" as const;
   constructor(
-    public svgId: string,
+    public id: string,
     public op: string,
   ) {}
 
   toLatex(): string {
-    return this.op;
+    return withId(this.id, this.op);
   }
 }
 
-class Fraction implements AugmentedFormulaNodeBase {
+export class Fraction implements AugmentedFormulaNodeBase {
   public type = "frac" as const;
   constructor(
-    public svgId: string,
+    public id: string,
     public numerator: AugmentedFormulaNode,
     public denominator: AugmentedFormulaNode,
   ) {}
@@ -123,31 +108,31 @@ class Fraction implements AugmentedFormulaNodeBase {
   }
 }
 
-class Identifier implements AugmentedFormulaNodeBase {
+export class Identifier implements AugmentedFormulaNodeBase {
   public type = "ident" as const;
   constructor(
-    public svgId: string,
+    public id: string,
     public name: string,
   ) {}
 
   toLatex(): string {
-    return this.name;
+    return withId(this.id, this.name);
   }
 }
 
-class Numeral implements AugmentedFormulaNodeBase {
+export class Numeral implements AugmentedFormulaNodeBase {
   public type = "number" as const;
   constructor(
-    public svgId: string,
+    public id: string,
     public value: number,
   ) {}
 
   toLatex(): string {
-    return this.value.toString();
+    return withId(this.id, this.value.toString());
   }
 }
 
-class NewLine implements AugmentedFormulaNodeBase {
+export class NewLine implements AugmentedFormulaNodeBase {
   public type = "newline" as const;
   constructor() {}
 
@@ -156,7 +141,7 @@ class NewLine implements AugmentedFormulaNodeBase {
   }
 }
 
-class AlignMarker implements AugmentedFormulaNodeBase {
+export class AlignMarker implements AugmentedFormulaNodeBase {
   public type = "align" as const;
   constructor() {}
 

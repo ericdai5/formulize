@@ -9,10 +9,11 @@ export const FormulaStore = types
   })
   .actions((self) => ({
     updateFormula(newFormula: AugmentedFormula) {
-      const latex = newFormula.toLatex();
-      const { renderSpec, augmentedFormula } = deriveFormulaTree(latex);
+      const latex = String.raw`\begin{aligned} ${newFormula.toLatex()} \end{aligned}`;
+      console.log("Updating formula:", latex);
+      const { renderSpec } = deriveFormulaTree(latex);
       self.renderSpec = renderSpec;
-      self.augmentedFormula = augmentedFormula;
+      self.augmentedFormula = newFormula;
     },
   }))
   .views((self) => ({}));
