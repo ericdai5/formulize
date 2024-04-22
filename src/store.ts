@@ -44,50 +44,57 @@ export const SelectionStore = types
       }),
     ),
   })
-  .actions((self) => ({
-    startDragSelection(x: number, y: number) {
-      self.selectionRect = {
-        x1: x,
-        y1: y,
-        x2: x,
-        y2: y,
-      };
-    },
-    updateDragSelection(x2: number, y2: number) {
-      if (!self.selectionRect) {
-        return;
-      }
-      self.selectionRect.x2 = x2;
-      self.selectionRect.y2 = y2;
-    },
-    stopDragSelection() {
-      self.currentlyDragged.forEach((id) => {
-        if (!self.selected.includes(id)) {
+  .actions((self) => {
+    const targetRefs: Map<string, HTMLElement> = new Map();
+
+    return {
+      addTarget(id: string, ref: HTMLElement) {
+        targetRefs.set(id, ref);
+      },
+      removeTarget(id: string) {
+        targetRefs.delete(id);
+      },
+      startDragSelection(x: number, y: number) {
+        self.selectionRect = {
+          x1: x,
+          y1: y,
+          x2: x,
+          y2: y,
+        };
+      },
+      updateDragSelection(x2: number, y2: number) {
+        if (!self.selectionRect) {
+          return;
+        }
+        self.selectionRect.x2 = x2;
+        self.selectionRect.y2 = y2;
+      },
+      stopDragSelection() {
+        self.currentlyDragged.forEach((id) => {
+          if (!self.selected.includes(id)) {
+            self.selected.push(id);
+          }
+        });
+        self.selectionRect = undefined;
+      },
+      clearSelection() {
+        self.selected.clear();
+      },
+      updateTargets() {
+        for (const [id, ref] of targetRefs) {
+          const { left, top, width, height } = ref.getBoundingClientRect();
+          self.targets.set(id, { id, left, top, width, height });
+        }
+      },
+      toggle(id: string) {
+        if (self.selected.includes(id)) {
+          self.selected.remove(id);
+        } else {
           self.selected.push(id);
         }
-      });
-      self.selectionRect = undefined;
-    },
-    clearSelection() {
-      self.selected.clear();
-    },
-    updateTarget(
-      id: string,
-      left: number,
-      top: number,
-      width: number,
-      height: number,
-    ) {
-      self.targets.set(id, { id, left, top, width, height });
-    },
-    toggle(id: string) {
-      if (self.selected.includes(id)) {
-        self.selected.remove(id);
-      } else {
-        self.selected.push(id);
-      }
-    },
-  }))
+      },
+    };
+  })
   .views((self) => ({
     get selectionRectDimensions() {
       return {

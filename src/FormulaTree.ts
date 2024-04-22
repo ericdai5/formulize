@@ -75,7 +75,7 @@ export class Script implements AugmentedFormulaNodeBase {
   toLatex(): string {
     return withId(
       this.id,
-      `${this.base.toLatex()}${this.sub ? `_{${this.sub.toLatex()}}` : ""}${this.sup ? `^{${this.sup.toLatex()}}` : ""}`,
+      String.raw`\fcolorbox{red}{white}{$${this.base.toLatex()}${this.sub ? `_{${this.sub.toLatex()}}` : ""}${this.sup ? `^{${this.sup.toLatex()}}` : ""}$}`,
     );
   }
 }

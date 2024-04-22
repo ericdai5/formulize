@@ -1,7 +1,6 @@
-import { useEffect } from "react";
+import { useRef, useState, useLayoutEffect, useEffect, RefObject } from "react";
 import { css } from "@emotion/react";
 import { observer } from "mobx-react-lite";
-import { useInView } from "react-intersection-observer";
 
 import { formulaStore, selectionStore, styleStore } from "./store";
 import {
@@ -89,19 +88,20 @@ const GenericFormulaNode = ({ spec }: { spec: RenderSpec }) => {
 };
 
 const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
-  const { ref, entry } = useInView();
-
+  const ref = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (entry && spec.id) {
-      selectionStore.updateTarget(
-        spec.id,
-        entry.boundingClientRect.left,
-        entry.boundingClientRect.top,
-        entry.boundingClientRect.width,
-        entry.boundingClientRect.height,
-      );
+    if (spec.id && ref.current) {
+      selectionStore.addTarget(spec.id, ref.current);
     }
-  }, [entry, spec.id]);
+
+    selectionStore.updateTargets();
+
+    () => {
+      if (spec.id) {
+        selectionStore.removeTarget(spec.id);
+      }
+    };
+  }, [spec.id, ref.current]);
 
   const Tag = spec.tagName;
   return (
