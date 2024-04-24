@@ -19,7 +19,7 @@ window.testMutateFormula = () => {
       ...formulaStore.augmentedFormula.children.slice(0, -1),
       new NewLine(),
       ...formulaStore.augmentedFormula.children.slice(-1),
-    ]),
+    ])
   );
 };
 
@@ -31,25 +31,36 @@ export const RenderedFormula = observer(() => {
           "0.0.0",
           new Identifier("0.0.0.0", "a"),
           undefined,
-          new Numeral("0.0.0.1", 2),
+          new Numeral("0.0.0.1", 2)
         ),
         new Op("0.0.1", "+"),
         new Script(
           "0.0.2",
           new Identifier("0.0.2.0", "b"),
           undefined,
-          new Numeral("0.0.2.1", 2),
+          new Numeral("0.0.2.1", 2)
         ),
         new Op("0.0.3", "="),
         new Script(
           "0.0.4",
           new Identifier("0.0.4.0", "c"),
           undefined,
-          new Numeral("0.0.4.1", 2),
+          new Numeral("0.0.4.1", 2)
         ),
-      ]),
+      ])
     );
   }, []);
+
+  useEffect(() => {
+    const resizeHandler = () => {
+      selectionStore.updateTargets();
+    };
+    window.addEventListener("resize", resizeHandler);
+
+    () => {
+      window.removeEventListener("resize", resizeHandler);
+    };
+  });
 
   console.log("Rendering spec:", formulaStore.renderSpec);
   return (

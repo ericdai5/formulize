@@ -17,10 +17,15 @@ export const Debug = observer(() => {
   return (
     <div
       css={css`
-        position: absolute;
+        position: fixed;
         top: 2rem;
         right: 0;
         padding: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
       `}
     >
       <pre>Targets:</pre>

@@ -1,29 +1,52 @@
-import * as prettier from "prettier/standalone";
-import * as babelPlugin from "prettier/parser-babel";
-import * as estreePlugin from "prettier/plugins/estree";
+// import * as prettier from "prettier/standalone";
+// import * as babelPlugin from "prettier/parser-babel";
+// import * as estreePlugin from "prettier/plugins/estree";
+// import katex from "katex";
 
 export const debugLatex = async (latex: string) => {
-  const html: Element = MathJax.tex2chtml(latex);
-  const formattedHtml = await prettier.format(html.outerHTML, {
-    parser: "babel",
-    plugins: [babelPlugin, estreePlugin],
-  });
-  window.mjxDebug = html;
-  console.log(formattedHtml);
+  // const html: Element = MathJax.tex2chtml(latex);
+  // const formattedHtml = await prettier.format(html.outerHTML, {
+  //   parser: "babel",
+  //   plugins: [babelPlugin, estreePlugin],
+  // });
+  // console.log(formattedHtml);
 
-  const renderSpec = deriveRenderSpec(html);
-  console.log(renderSpec);
+  // const renderSpec = deriveRenderSpec(html);
+  // console.log(renderSpec);
+
+  const katexOptions = {
+    strict: false,
+    trust: true,
+    output: "html",
+  };
+  console.log("KaTeX Parse tree:", katex.__parse(latex, katexOptions));
+
+  const katexRendered = katex.renderToString(latex, katexOptions);
+  // const formattedKatex = await prettier.format(katexRendered, {
+  //   parser: "babel",
+  //   plugins: [babelPlugin, estreePlugin],
+  // });
+  // console.log("KaTeX rendered:", formattedKatex);
+
+  let debugDiv = document.getElementById("debug");
+  if (!debugDiv) {
+    debugDiv = document.createElement("div");
+    debugDiv.id = "debug";
+    document.body.appendChild(debugDiv);
+  }
+  debugDiv.innerHTML = katexRendered;
 };
 
 window.debugLatex = debugLatex;
 
-export const deriveFormulaTree = (
-  latex: string,
+export const updateFormula = (
+  newFormula: AugmentedFormula
 ): {
   renderSpec: RenderSpec;
+  augmentedFormula: AugmentedFormula;
 } => {
-  console.log("Rendering:", latex);
-  const chtml = MathJax.tex2chtml(latex);
+  console.log("Rendering:", newFormula);
+  const chtml = MathJax.tex2chtml(newFormula.toLatex("render"));
   const renderSpec = deriveRenderSpec(chtml);
 
   // MathJax rendering requires appending new styles to the document
@@ -31,22 +54,38 @@ export const deriveFormulaTree = (
   MathJax.startup.document.updateDocument();
 
   // TODO: parse AugmentedFormula from LaTeX
+  const augmentedFormula = deriveAugmentedFormula(newFormula.toLatex("ast"));
 
   return {
     renderSpec,
+    augmentedFormula,
   };
 };
 
+const deriveAugmentedFormula = (latex: string): AugmentedFormula => {
+  const katexTrees = katex.__parse(latex, { strict: false, trust: true });
+
+  const augmentedTrees = katexTrees.map(buildAugmentedFormula);
+  return new AugmentedFormula(augmentedTrees);
+};
+
+const buildAugmentedFormula = (
+  katexTree: katex.ParseNode
+): AugmentedFormulaNode => {};
+
+// TODO: eventually this will also cover alternative code presentations (content only, with augmentations)
+type LatexMode = "render" | "ast";
+
 interface AugmentedFormulaNodeBase {
-  toLatex(): string;
+  toLatex(mode: LatexMode): string;
 }
 
 export class AugmentedFormula {
   public type = "formula" as const;
   constructor(public children: AugmentedFormulaNode[]) {}
 
-  toLatex(): string {
-    return this.children.map((child) => child.toLatex()).join(" ");
+  toLatex(mode: LatexMode): string {
+    return this.children.map((child) => child.toLatex(mode)).join(" ");
   }
 }
 
@@ -59,8 +98,13 @@ type AugmentedFormulaNode =
   | NewLine
   | AlignMarker;
 
-const withId = (id: string, latex: string) => {
-  return String.raw`\cssId{${id}}{${latex}}`;
+const withId = (mode: LatexMode, id: string, latex: string) => {
+  switch (mode) {
+    case "ast":
+      return String.raw`\htmlId{${id}}{${latex}}`;
+    case "render":
+      return String.raw`\cssId{${id}}{${latex}}`;
+  }
 };
 
 export class Script implements AugmentedFormulaNodeBase {
@@ -69,13 +113,14 @@ export class Script implements AugmentedFormulaNodeBase {
     public id: string,
     public base: AugmentedFormulaNode,
     public sub?: AugmentedFormulaNode,
-    public sup?: AugmentedFormulaNode,
+    public sup?: AugmentedFormulaNode
   ) {}
 
-  toLatex(): string {
+  toLatex(mode: LatexMode): string {
     return withId(
+      mode,
       this.id,
-      String.raw`\fcolorbox{red}{white}{$${this.base.toLatex()}${this.sub ? `_{${this.sub.toLatex()}}` : ""}${this.sup ? `^{${this.sup.toLatex()}}` : ""}$}`,
+      String.raw`\fcolorbox{red}{white}{$${this.base.toLatex(mode)}${this.sub ? `_{${this.sub.toLatex(mode)}}` : ""}${this.sup ? `^{${this.sup.toLatex(mode)}}` : ""}$}`
     );
   }
 }
@@ -87,11 +132,11 @@ export class Op implements AugmentedFormulaNodeBase {
   public type = "op" as const;
   constructor(
     public id: string,
-    public op: string,
+    public op: string
   ) {}
 
-  toLatex(): string {
-    return withId(this.id, this.op);
+  toLatex(mode: LatexMode): string {
+    return withId(mode, this.id, this.op);
   }
 }
 
@@ -100,11 +145,11 @@ export class Fraction implements AugmentedFormulaNodeBase {
   constructor(
     public id: string,
     public numerator: AugmentedFormulaNode,
-    public denominator: AugmentedFormulaNode,
+    public denominator: AugmentedFormulaNode
   ) {}
 
-  toLatex(): string {
-    return String.raw`\frac{${this.numerator.toLatex()}}{${this.denominator.toLatex()}}`;
+  toLatex(mode: LatexMode): string {
+    return String.raw`\frac{${this.numerator.toLatex(mode)}}{${this.denominator.toLatex(mode)}}`;
   }
 }
 
@@ -112,11 +157,11 @@ export class Identifier implements AugmentedFormulaNodeBase {
   public type = "ident" as const;
   constructor(
     public id: string,
-    public name: string,
+    public name: string
   ) {}
 
-  toLatex(): string {
-    return withId(this.id, this.name);
+  toLatex(mode: LatexMode): string {
+    return withId(mode, this.id, this.name);
   }
 }
 
@@ -124,11 +169,11 @@ export class Numeral implements AugmentedFormulaNodeBase {
   public type = "number" as const;
   constructor(
     public id: string,
-    public value: number,
+    public value: number
   ) {}
 
-  toLatex(): string {
-    return withId(this.id, this.value.toString());
+  toLatex(mode: LatexMode): string {
+    return withId(mode, this.id, this.value.toString());
   }
 }
 
@@ -136,7 +181,7 @@ export class NewLine implements AugmentedFormulaNodeBase {
   public type = "newline" as const;
   constructor() {}
 
-  toLatex(): string {
+  toLatex(mode: LatexMode): string {
     return String.raw`\\`;
   }
 }
@@ -145,7 +190,7 @@ export class AlignMarker implements AugmentedFormulaNodeBase {
   public type = "align" as const;
   constructor() {}
 
-  toLatex(): string {
+  toLatex(mode: LatexMode): string {
     return "&";
   }
 }
@@ -169,7 +214,7 @@ export const deriveRenderSpec = (node: Element): RenderSpec => {
     attrs: Object.fromEntries(
       Array.from(node.attributes)
         .filter((a) => !["id", "class", "style"].includes(a.name))
-        .map((attr) => [attr.name, attr.value]),
+        .map((attr) => [attr.name, attr.value])
     ),
     children,
   };
@@ -181,6 +226,6 @@ export const extractStyle = (node: Element): Record<string, string> => {
       // https://stackoverflow.com/a/60738940
       prop.replace(/-./g, (x) => x[1].toUpperCase()),
       node.style[prop as string],
-    ]),
+    ])
   );
 };

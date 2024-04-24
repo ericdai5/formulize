@@ -1,6 +1,6 @@
 import { types, IAnyModelType, Instance } from "mobx-state-tree";
 
-import { AugmentedFormula, deriveFormulaTree, RenderSpec } from "./FormulaTree";
+import { AugmentedFormula, updateFormula, RenderSpec } from "./FormulaTree";
 
 export const FormulaStore = types
   .model("FormulaStore", {
@@ -9,11 +9,9 @@ export const FormulaStore = types
   })
   .actions((self) => ({
     updateFormula(newFormula: AugmentedFormula) {
-      const latex = String.raw`\begin{aligned} ${newFormula.toLatex()} \end{aligned}`;
-      console.log("Updating formula:", latex);
-      const { renderSpec } = deriveFormulaTree(latex);
+      const { renderSpec, augmentedFormula } = updateFormula(newFormula);
       self.renderSpec = renderSpec;
-      self.augmentedFormula = newFormula;
+      self.augmentedFormula = augmentedFormula;
     },
   }))
   .views((self) => ({}));
@@ -33,7 +31,7 @@ export const SelectionStore = types
         top: types.number,
         width: types.number,
         height: types.number,
-      }),
+      })
     ),
     selectionRect: types.maybe(
       types.model({
@@ -41,7 +39,7 @@ export const SelectionStore = types
         y1: types.number,
         x2: types.number,
         y2: types.number,
-      }),
+      })
     ),
   })
   .actions((self) => {

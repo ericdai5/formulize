@@ -15,6 +15,7 @@
     "@emotion/styled": "^11.11.5",
     "@mui/material": "^5.15.14",
     "better-react-mathjax": "^2.0.3",
+    "katex": "^0.16.10",
     "mathjax-full": "3.2.2",
     "mobx": "^6.12.3",
     "mobx-react-lite": "^4.0.7",
@@ -24,6 +25,7 @@
     "react-intersection-observer": "^9.8.2"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.7",
     "@types/mathjax": "^0.0.40",
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
