@@ -4,6 +4,41 @@ declare namespace katex {
     trust?: boolean;
   }
 
+  type SourceLocation = {
+    readonly lexer: { input: string; tokenRegex: RegExp };
+    readonly start: number;
+    readonly end: number;
+  };
+
+  type AlignSpec =
+    | { type: "separator"; separator: string }
+    | {
+        type: "align";
+        align: string;
+        pregap?: number;
+        postgap?: number;
+      };
+
+  type ColSeparationType = "align" | "alignat" | "gather" | "small" | "CD";
+
+  type Atom = "bin" | "close" | "inner" | "open" | "punct" | "rel";
+
+  export type Mode = "math" | "text";
+
+  export type StyleStr = "text" | "display" | "script" | "scriptscript";
+
+  type Token = {
+    text: string;
+    loc: SourceLocation;
+    noexpand?: boolean;
+    treatAsRelax?: boolean;
+  };
+
+  type Measurement = {
+    number: number;
+    unit: string;
+  };
+
   type ParseNode =
     | {
         type: "array";
@@ -15,7 +50,7 @@ declare namespace katex {
         cols?: AlignSpec[];
         arraystretch: number;
         body: ParseNode[][];
-        rowGaps: ?Measurement[];
+        rowGaps?: Measurement[];
         hLinesBeforeRow: Array<boolean[]>;
         tags?: (boolean | ParseNode[])[];
         leqno?: boolean;
@@ -55,9 +90,8 @@ declare namespace katex {
         alwaysHandleSupSub?: boolean;
         suppressBaseShift?: boolean;
         parentIsSupSub: boolean;
-        symbol: boolean;
+        symbol: true;
         name: string;
-        body?: void;
       }
     | {
         type: "op";
@@ -67,8 +101,7 @@ declare namespace katex {
         alwaysHandleSupSub?: boolean;
         suppressBaseShift?: boolean;
         parentIsSupSub: boolean;
-        symbol: false; // If 'symbol' is true, `body` *must* be set.
-        name?: void;
+        symbol: false;
         body: ParseNode[];
       }
     | {
@@ -102,9 +135,9 @@ declare namespace katex {
         type: "supsub";
         mode: Mode;
         loc?: SourceLocation;
-        base: ?ParseNode;
-        sup?: ?ParseNode;
-        sub?: ?ParseNode;
+        base?: ParseNode;
+        sup?: ParseNode;
+        sub?: ParseNode;
       }
     | {
         type: "tag";
