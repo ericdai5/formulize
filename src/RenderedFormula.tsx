@@ -7,7 +7,7 @@ import {
   RenderSpec,
   AugmentedFormula,
   Script,
-  Symbol,
+  MathSymbol,
   NewLine,
 } from "./FormulaTree";
 
@@ -27,23 +27,23 @@ export const RenderedFormula = observer(() => {
       new AugmentedFormula([
         new Script(
           "a^2",
-          new Symbol("(a)^2", "a"),
+          new MathSymbol("(a)^2", "a"),
           undefined,
-          new Symbol("a^(2)", "2")
+          new MathSymbol("a^(2)", "2")
         ),
-        new Symbol("+", "+"),
+        new MathSymbol("+", "+"),
         new Script(
           "b^2",
-          new Symbol("(b)^2", "b"),
+          new MathSymbol("(b)^2", "b"),
           undefined,
-          new Symbol("b^(2)", "2")
+          new MathSymbol("b^(2)", "2")
         ),
-        new Symbol("=", "="),
+        new MathSymbol("=", "="),
         new Script(
           "c^2",
-          new Symbol("(c)^2", "c"),
+          new MathSymbol("(c)^2", "c"),
           undefined,
-          new Symbol("c^(2)", "2")
+          new MathSymbol("c^(2)", "2")
         ),
       ])
     );
@@ -58,7 +58,7 @@ export const RenderedFormula = observer(() => {
     () => {
       window.removeEventListener("resize", resizeHandler);
     };
-  });
+  }, []);
 
   return (
     <div
@@ -89,7 +89,10 @@ const GenericFormulaNode = ({ spec }: { spec: RenderSpec }) => {
     // @ts-expect-error This is an arbitrary tag, we can't statically type it
     <Tag id={spec.id} class={spec.className} style={spec.style} {...spec.attrs}>
       {spec.children?.map((child, i) => (
-        <RenderedFormulaComponent key={i} spec={child} />
+        <RenderedFormulaComponent
+          key={"id" in child ? child.id : i}
+          spec={child}
+        />
       ))}
     </Tag>
   );
@@ -109,7 +112,9 @@ const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
         selectionStore.removeTarget(spec.id);
       }
     };
-  }, [spec.id, ref.current]);
+  }, [spec.id]);
+
+  console.log("Rendering", spec.id);
 
   const Tag = spec.tagName;
   return (
@@ -124,7 +129,7 @@ const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
           color: ${spec.id ? styleStore.color.get(spec.id) : "black"};
 
           ${spec.id &&
-          (selectionStore.currentlyDragged.includes(spec.id) ||
+          (selectionStore.currentlyDragged.has(spec.id) ||
             selectionStore.selected.includes(spec.id))
             ? `&:after {
             position: absolute;

@@ -25,6 +25,8 @@
     "react-intersection-observer": "^9.8.2"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^7.24.1",
+    "@babel/plugin-syntax-decorators": "^7.24.1",
     "@types/katex": "^0.16.7",
     "@types/mathjax": "^0.0.40",
     "@types/react": "^18.2.56",

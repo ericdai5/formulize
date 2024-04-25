@@ -1,8 +1,8 @@
 import { observer } from "mobx-react-lite";
-import { useEffect, useState } from "react";
-import { Global, css } from "@emotion/react";
+import { useState, useCallback, MouseEvent } from "react";
+import { css } from "@emotion/react";
 
-import { SelectionStore, selectionStore } from "./store";
+import { selectionStore } from "./store";
 import { RenderedFormula } from "./RenderedFormula";
 import { Debug } from "./Debug";
 import { Menu, ContextMenu } from "./Menu";
@@ -14,6 +14,34 @@ export const Workspace = observer(() => {
     anchorX: number;
     anchorY: number;
   } | null>(null);
+
+  const handleDoubleClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    selectionStore.clearSelection();
+    e.preventDefault();
+  }, []);
+  const handleMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    selectionStore.startDragSelection(e.clientX, e.clientY);
+    e.preventDefault();
+  }, []);
+  const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    if (selectionStore.isDragging) {
+      selectionStore.updateDragSelection(e.clientX, e.clientY);
+    }
+    e.preventDefault();
+  }, []);
+  const handleMouseUp = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    selectionStore.stopDragSelection();
+    e.preventDefault();
+  }, []);
+  const handleContextMenu = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (!showTopMenu) {
+        setContextMenuAnchor({ anchorX: e.clientX, anchorY: e.clientY });
+      }
+      e.preventDefault();
+    },
+    [showTopMenu, setContextMenuAnchor]
+  );
 
   return (
     <div
@@ -28,33 +56,11 @@ export const Workspace = observer(() => {
         align-items: center;
         justify-content: center;
       `}
-      onDoubleClick={(e) => {
-        selectionStore.clearSelection();
-        e.preventDefault();
-      }}
-      onMouseDown={(e) => {
-        selectionStore.startDragSelection(e.clientX, e.clientY);
-        e.preventDefault();
-      }}
-      onMouseMove={(e) => {
-        selectionStore.updateDragSelection(e.clientX, e.clientY);
-        e.preventDefault();
-      }}
-      onMouseUp={(e) => {
-        selectionStore.stopDragSelection();
-        e.preventDefault();
-      }}
-      onClick={(e) => {
-        if (contextMenuAnchor !== null) {
-          setContextMenuAnchor(null);
-        }
-      }}
-      onContextMenu={(e) => {
-        if (!showTopMenu) {
-          setContextMenuAnchor({ anchorX: e.clientX, anchorY: e.clientY });
-        }
-        e.preventDefault();
-      }}
+      onDoubleClick={handleDoubleClick}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onContextMenu={handleContextMenu}
     >
       <div
         css={css`
@@ -88,23 +94,31 @@ export const Workspace = observer(() => {
       {!showTopMenu && contextMenuAnchor !== null && (
         <ContextMenu {...contextMenuAnchor} />
       )}
-      {selectionStore.selectionRect ? (
-        <div
-          css={css`
-            position: absolute;
-            border: 1px solid black;
-            background-color: rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            pointer-events: none;
-            left: ${selectionStore.selectionRectDimensions.left}px;
-            top: ${selectionStore.selectionRectDimensions.top}px;
-            width: ${selectionStore.selectionRectDimensions.width}px;
-            height: ${selectionStore.selectionRectDimensions.height}px;
-          `}
-        ></div>
-      ) : null}
+      <SelectionRect />
       <RenderedFormula />
       <Debug />
     </div>
+  );
+});
+
+const SelectionRect = observer(() => {
+  if (!selectionStore.selectionRectDimensions) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        border: "1px solid black",
+        backgroundColor: "rgba(0, 0, 0, 0.1)",
+        zIndex: "1000",
+        pointerEvents: "none",
+        left: `${selectionStore.selectionRectDimensions.left}px`,
+        top: `${selectionStore.selectionRectDimensions.top}px`,
+        width: `${selectionStore.selectionRectDimensions.width}px`,
+        height: `${selectionStore.selectionRectDimensions.height}px`,
+      }}
+    ></div>
   );
 });

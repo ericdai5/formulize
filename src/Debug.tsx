@@ -71,7 +71,7 @@ export const Debug = observer(() => {
         <pre>None</pre>
       )}
       <pre>Drag selection:</pre>
-      <pre>{selectionStore.currentlyDragged.join(",\n")}</pre>
+      <pre>{Array.from(selectionStore.currentlyDragged).join(",\n")}</pre>
       <pre>Selection:</pre>
       <pre>{selectionStore.selected.join(",\n")}</pre>
     </div>

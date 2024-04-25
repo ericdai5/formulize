@@ -19,7 +19,7 @@ function App() {
             height: 100vh;
           }
         `}
-      ></Global>
+      />
       <Workspace />
     </>
   );

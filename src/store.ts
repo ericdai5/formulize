@@ -1,4 +1,5 @@
 import { types, IAnyModelType, Instance } from "mobx-state-tree";
+import { observable, computed, action } from "mobx";
 
 import { AugmentedFormula, updateFormula, RenderSpec } from "./FormulaTree";
 
@@ -21,99 +22,117 @@ export const formulaStore = FormulaStore.create({
   augmentedFormula: new AugmentedFormula([]),
 });
 
-export const SelectionStore = types
-  .model("SelectionStore", {
-    selected: types.array(types.string),
-    targets: types.map(
-      types.model({
-        id: types.string,
-        left: types.number,
-        top: types.number,
-        width: types.number,
-        height: types.number,
-      })
-    ),
-    selectionRect: types.maybe(
-      types.model({
-        x1: types.number,
-        y1: types.number,
-        x2: types.number,
-        y2: types.number,
-      })
-    ),
-  })
-  .actions((self) => {
-    const targetRefs: Map<string, HTMLElement> = new Map();
+class SelectionStore {
+  @observable accessor selected: string[] = [];
+  @observable accessor targets: Map<
+    string,
+    { id: string; left: number; top: number; width: number; height: number }
+  > = new Map();
+  @observable accessor selectionRect: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null = null;
 
-    return {
-      addTarget(id: string, ref: HTMLElement) {
-        targetRefs.set(id, ref);
-      },
-      removeTarget(id: string) {
-        targetRefs.delete(id);
-      },
-      startDragSelection(x: number, y: number) {
-        self.selectionRect = {
-          x1: x,
-          y1: y,
-          x2: x,
-          y2: y,
-        };
-      },
-      updateDragSelection(x2: number, y2: number) {
-        if (!self.selectionRect) {
-          return;
-        }
-        self.selectionRect.x2 = x2;
-        self.selectionRect.y2 = y2;
-      },
-      stopDragSelection() {
-        self.currentlyDragged.forEach((id) => {
-          if (!self.selected.includes(id)) {
-            self.selected.push(id);
-          }
-        });
-        self.selectionRect = undefined;
-      },
-      clearSelection() {
-        self.selected.clear();
-      },
-      updateTargets() {
-        for (const [id, ref] of targetRefs) {
-          const { left, top, width, height } = ref.getBoundingClientRect();
-          self.targets.set(id, { id, left, top, width, height });
-        }
-      },
-      toggle(id: string) {
-        if (self.selected.includes(id)) {
-          self.selected.remove(id);
-        } else {
-          self.selected.push(id);
-        }
-      },
+  targetRefs: Map<string, HTMLElement> = new Map();
+
+  @action
+  addTarget(id: string, ref: HTMLElement) {
+    this.targetRefs.set(id, ref);
+  }
+
+  @action
+  removeTarget(id: string) {
+    this.targetRefs.delete(id);
+  }
+
+  @action
+  startDragSelection(x: number, y: number) {
+    this.selectionRect = {
+      x1: x,
+      y1: y,
+      x2: x,
+      y2: y,
     };
-  })
-  .views((self) => ({
-    get selectionRectDimensions() {
-      return {
-        left: Math.min(self.selectionRect!.x1, self.selectionRect!.x2),
-        top: Math.min(self.selectionRect!.y1, self.selectionRect!.y2),
-        width: Math.abs(self.selectionRect!.x1 - self.selectionRect!.x2),
-        height: Math.abs(self.selectionRect!.y1 - self.selectionRect!.y2),
-      };
-    },
-    get currentlyDragged() {
-      if (!self.selectionRect) {
-        return [];
+  }
+
+  @action
+  updateDragSelection(x2: number, y2: number) {
+    if (!this.selectionRect) {
+      return;
+    }
+    this.selectionRect.x2 = x2;
+    this.selectionRect.y2 = y2;
+  }
+
+  @action
+  stopDragSelection() {
+    this.currentlyDragged.forEach((id) => {
+      if (!this.selected.includes(id)) {
+        this.selected.push(id);
       }
+    });
+    this.selectionRect = null;
+  }
 
-      const { x1, x2, y1, y2 } = self.selectionRect;
-      const dragLeft = Math.min(x1, x2);
-      const dragRight = Math.max(x1, x2);
-      const dragTop = Math.min(y1, y2);
-      const dragBottom = Math.max(y1, y2);
+  @action
+  clearSelection() {
+    this.selected = [];
+  }
 
-      const dragged = Array.from(self.targets.values()).flatMap((target) => {
+  @action
+  updateTargets() {
+    for (const [id, ref] of this.targetRefs) {
+      const { left, top, width, height } = ref.getBoundingClientRect();
+      this.targets.set(id, { id, left, top, width, height });
+    }
+  }
+
+  @action
+  toggle(id: string) {
+    if (this.selected.includes(id)) {
+      this.selected = this.selected.filter((selectedId) => selectedId !== id);
+    } else {
+      this.selected.push(id);
+    }
+  }
+
+  @computed
+  get isDragging() {
+    return this.selectionRect !== null;
+  }
+
+  @computed
+  get selectionRectDimensions() {
+    if (!this.selectionRect) {
+      return null;
+    }
+    return {
+      left: Math.min(this.selectionRect.x1, this.selectionRect.x2),
+      top: Math.min(this.selectionRect.y1, this.selectionRect.y2),
+      width: Math.abs(this.selectionRect.x1 - this.selectionRect.x2),
+      height: Math.abs(this.selectionRect!.y1 - this.selectionRect!.y2),
+    };
+  }
+
+  @computed({
+    equals: (a: Set<string>, b: Set<string>) =>
+      a.size === b.size && Array.from(a).every((id) => b.has(id)),
+  })
+  get currentlyDragged(): Set<string> {
+    if (!this.selectionRect) {
+      return new Set();
+    }
+
+    const { x1, x2, y1, y2 } = this.selectionRect;
+    const dragLeft = Math.min(x1, x2);
+    const dragRight = Math.max(x1, x2);
+    const dragTop = Math.min(y1, y2);
+    const dragBottom = Math.max(y1, y2);
+
+    return new Set(
+      Array.from(this.targets.values()).flatMap((target) => {
         const { left, top, width, height } = target;
         const right = left + width;
         const bottom = top + height;
@@ -123,15 +142,12 @@ export const SelectionStore = types
           bottom >= dragTop
           ? [target.id]
           : [];
-      });
-      return dragged;
-    },
-  }));
+      })
+    );
+  }
+}
 
-export const selectionStore = SelectionStore.create({
-  selected: [],
-  selectionRect: undefined,
-});
+export const selectionStore = new SelectionStore();
 
 export const StyleStore = types
   .model("StyleStore", {

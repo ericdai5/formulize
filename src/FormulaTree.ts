@@ -94,14 +94,14 @@ const buildAugmentedFormula = (
     case "supsub":
       return new Script(
         "",
-        katexTree.base ? buildAugmentedFormula(katexTree.base) : undefined,
+        buildAugmentedFormula(katexTree.base!),
         katexTree.sub ? buildAugmentedFormula(katexTree.sub) : undefined,
         katexTree.sup ? buildAugmentedFormula(katexTree.sup) : undefined
       );
     case "atom":
     case "mathord":
     case "textord":
-      return new Symbol(id ?? "", katexTree.text);
+      return new MathSymbol(id ?? "", katexTree.text);
   }
 
   console.log("Failed to build:", katexTree);
@@ -127,9 +127,7 @@ export class AugmentedFormula {
 type AugmentedFormulaNode =
   | Script
   | Fraction
-  | Op
-  | Identifier
-  | Numeral
+  | MathSymbol
   | NewLine
   | AlignMarker;
 
@@ -181,7 +179,7 @@ export class Fraction implements AugmentedFormulaNodeBase {
   }
 }
 
-export class Symbol implements AugmentedFormulaNodeBase {
+export class MathSymbol implements AugmentedFormulaNodeBase {
   public type = "symbol" as const;
   constructor(
     public id: string,
