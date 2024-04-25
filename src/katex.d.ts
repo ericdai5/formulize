@@ -297,7 +297,7 @@ declare namespace katex {
         type: "html";
         mode: Mode;
         loc?: SourceLocation;
-        attributes: { [string]: string };
+        attributes: { [key: string]: string };
         body: ParseNode[];
       }
     | {

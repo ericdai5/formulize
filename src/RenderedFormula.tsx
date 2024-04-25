@@ -7,9 +7,7 @@ import {
   RenderSpec,
   AugmentedFormula,
   Script,
-  Identifier,
-  Numeral,
-  Op,
+  Symbol,
   NewLine,
 } from "./FormulaTree";
 
@@ -28,24 +26,24 @@ export const RenderedFormula = observer(() => {
     formulaStore.updateFormula(
       new AugmentedFormula([
         new Script(
-          "0.0.0",
-          new Identifier("0.0.0.0", "a"),
+          "a^2",
+          new Symbol("(a)^2", "a"),
           undefined,
-          new Numeral("0.0.0.1", 2)
+          new Symbol("a^(2)", "2")
         ),
-        new Op("0.0.1", "+"),
+        new Symbol("+", "+"),
         new Script(
-          "0.0.2",
-          new Identifier("0.0.2.0", "b"),
+          "b^2",
+          new Symbol("(b)^2", "b"),
           undefined,
-          new Numeral("0.0.2.1", 2)
+          new Symbol("b^(2)", "2")
         ),
-        new Op("0.0.3", "="),
+        new Symbol("=", "="),
         new Script(
-          "0.0.4",
-          new Identifier("0.0.4.0", "c"),
+          "c^2",
+          new Symbol("(c)^2", "c"),
           undefined,
-          new Numeral("0.0.4.1", 2)
+          new Symbol("c^(2)", "2")
         ),
       ])
     );
@@ -62,7 +60,6 @@ export const RenderedFormula = observer(() => {
     };
   });
 
-  console.log("Rendering spec:", formulaStore.renderSpec);
   return (
     <div
       css={css`
