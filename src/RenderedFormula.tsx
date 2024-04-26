@@ -4,21 +4,29 @@ import { observer } from "mobx-react-lite";
 
 import { formulaStore, selectionStore, styleStore } from "./store";
 import {
+  deriveAugmentedFormula,
   RenderSpec,
   AugmentedFormula,
   Script,
   MathSymbol,
-  NewLine,
 } from "./FormulaTree";
 
 window.testMutateFormula = () => {
+  window.mutatedTimes = (window.mutatedTimes || 0) + 1;
+
   formulaStore.updateFormula(
     new AugmentedFormula([
       ...formulaStore.augmentedFormula.children.slice(0, -1),
-      new NewLine(),
+      new MathSymbol(`t${window.mutatedTimes}`, "t"),
+      new MathSymbol(`+${window.mutatedTimes}`, "+"),
       ...formulaStore.augmentedFormula.children.slice(-1),
     ])
   );
+};
+
+window.setFormula = (latex: string) => {
+  formulaStore.updateFormula(deriveAugmentedFormula(latex));
+  selectionStore.updateTargets();
 };
 
 export const RenderedFormula = observer(() => {
@@ -108,6 +116,7 @@ const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
     selectionStore.updateTargets();
 
     () => {
+      console.log("Target cleanup running");
       if (spec.id) {
         selectionStore.removeTarget(spec.id);
       }

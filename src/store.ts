@@ -1,5 +1,5 @@
 import { types, IAnyModelType, Instance } from "mobx-state-tree";
-import { observable, computed, action } from "mobx";
+import { observable, computed, action, reaction } from "mobx";
 
 import { AugmentedFormula, updateFormula, RenderSpec } from "./FormulaTree";
 
@@ -45,6 +45,12 @@ class SelectionStore {
   @action
   removeTarget(id: string) {
     this.targetRefs.delete(id);
+  }
+
+  @action
+  clearTargets() {
+    this.targetRefs.clear();
+    this.targets.clear();
   }
 
   @action
@@ -148,6 +154,17 @@ class SelectionStore {
 }
 
 export const selectionStore = new SelectionStore();
+
+// Whenever the formula changes, we'll completely rerender the formula. But the
+// tree doesn't unmount, so effect cleanups for the target ref registrations
+// don't run. Instead, we'll manually watch for when the rendered formula changes
+// and clear the registered targets for the old formula.
+//
+// According to the MobX docs, reactions run synchronously after the store changes.
+reaction(
+  () => formulaStore.renderSpec,
+  () => selectionStore.clearTargets()
+);
 
 export const StyleStore = types
   .model("StyleStore", {
