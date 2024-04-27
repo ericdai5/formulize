@@ -1,7 +1,7 @@
-import { types, IAnyModelType, Instance } from "mobx-state-tree";
-import { observable, computed, action, reaction } from "mobx";
+import { action, computed, observable, reaction } from "mobx";
+import { types } from "mobx-state-tree";
 
-import { AugmentedFormula, updateFormula, RenderSpec } from "./FormulaTree";
+import { AugmentedFormula, RenderSpec, updateFormula } from "./FormulaTree";
 
 export const FormulaStore = types
   .model("FormulaStore", {

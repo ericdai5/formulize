@@ -1,14 +1,16 @@
-import { default as React } from "react";
 import { css } from "@emotion/react";
+import { default as React } from "react";
+
 import Icon from "@mui/material/Icon";
-import BoxIcon from "./Icons/BoxIcon.svg";
-import AnnotateIcon from "./Icons/AnnotateIcon.svg";
-import LogoIcon from "./Icons/LogoIcon.svg";
-import LineDivideIcon from "./Icons/LineDivideIcon.svg";
-import BracketListOption from "./Icons/BracketListOption.svg";
-import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
 
 import { styleStore } from "./store";
+
+import AnnotateIcon from "./Icons/AnnotateIcon.svg";
+import BoxIcon from "./Icons/BoxIcon.svg";
+import BracketListOption from "./Icons/BracketListOption.svg";
+import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
+import LineDivideIcon from "./Icons/LineDivideIcon.svg";
+import LogoIcon from "./Icons/LogoIcon.svg";
 
 export const Menu = () => {
   return (

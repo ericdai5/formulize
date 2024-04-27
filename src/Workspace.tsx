@@ -1,11 +1,12 @@
-import { observer } from "mobx-react-lite";
-import { useState, useCallback, MouseEvent } from "react";
 import { css } from "@emotion/react";
+import { MouseEvent, useCallback, useState } from "react";
 
-import { selectionStore } from "./store";
-import { RenderedFormula } from "./RenderedFormula";
+import { observer } from "mobx-react-lite";
+
 import { Debug } from "./Debug";
-import { Menu, ContextMenu } from "./Menu";
+import { ContextMenu, Menu } from "./Menu";
+import { RenderedFormula } from "./RenderedFormula";
+import { selectionStore } from "./store";
 
 export const Workspace = observer(() => {
   const [showTopMenu, setShowTopMenu] = useState(true);

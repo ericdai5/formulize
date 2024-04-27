@@ -1,15 +1,16 @@
-import { useRef, useState, useLayoutEffect, useEffect, RefObject } from "react";
 import { css } from "@emotion/react";
+import { useEffect, useRef } from "react";
+
 import { observer } from "mobx-react-lite";
 
-import { formulaStore, selectionStore, styleStore } from "./store";
 import {
-  deriveAugmentedFormula,
-  RenderSpec,
   AugmentedFormula,
-  Script,
   MathSymbol,
+  RenderSpec,
+  Script,
+  deriveAugmentedFormula,
 } from "./FormulaTree";
+import { formulaStore, selectionStore } from "./store";
 
 window.testMutateFormula = () => {
   window.mutatedTimes = (window.mutatedTimes || 0) + 1;
