@@ -3,7 +3,9 @@ import { default as React } from "react";
 
 import Icon from "@mui/material/Icon";
 
-import { styleStore } from "./store";
+import { Color } from "./FormulaTree";
+import { replaceNodes } from "./formulaTransformations";
+import { formulaStore, selectionStore } from "./store";
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
@@ -245,7 +247,6 @@ const BoldMenu = () => {
     <MenuItem menuButton={<Icon>format_bold</Icon>}>
       <div
         onClick={(e) => {
-          //styleStore.setSelectionBold();
           e.stopPropagation();
         }}
       >
@@ -260,7 +261,6 @@ const ItalicsMenu = () => {
     <MenuItem menuButton={<Icon>format_italic</Icon>}>
       <div
         onClick={(e) => {
-          //styleStore.setSelectionItalic();
           e.stopPropagation();
         }}
       >
@@ -275,7 +275,6 @@ const UnderlineMenu = () => {
     <MenuItem menuButton={<Icon>format_underline</Icon>}>
       <div
         onClick={(e) => {
-          //styleStore.setSelectionUnderline();
           e.stopPropagation();
         }}
       >
@@ -290,7 +289,6 @@ const StrikethroughMenu = () => {
     <MenuItem menuButton={<Icon>format_strikethrough</Icon>}>
       <div
         onClick={(e) => {
-          //styleStore.setSelectionStrikethrough();
           e.stopPropagation();
         }}
       >
@@ -329,7 +327,22 @@ const ColorMenu = () => {
               margin: 0.25rem;
             `}
             onClick={(e) => {
-              styleStore.setSelectionColor(color);
+              formulaStore.updateFormula(
+                replaceNodes(formulaStore.augmentedFormula, (node) => {
+                  if (selectionStore.selected.includes(node.id)) {
+                    // TODO: should not run if parent is color
+                    return new Color(node.id, color, [node]);
+                  } else if (
+                    node.type === "color" &&
+                    node.children.some((child) =>
+                      selectionStore.selected.includes(child.id)
+                    )
+                  ) {
+                    return new Color(node.id, color, node.children);
+                  }
+                  return node;
+                })
+              );
               e.stopPropagation();
             }}
           >
@@ -370,7 +383,6 @@ const BoxMenu = () => {
               margin: 0.25rem;
             `}
             onClick={(e) => {
-              styleStore.setSelectionColor(color);
               e.stopPropagation();
             }}
           >
@@ -404,7 +416,6 @@ const LineWeightMenu = () => {
               margin: 0.25rem;
             `}
             onClick={(e) => {
-              //styleStore.setSelectionLineWeight(weight);
               e.stopPropagation();
             }}
           >
@@ -437,7 +448,6 @@ const AnnotateMenu = () => {
               margin: 0.25rem;
             `}
             onClick={(e) => {
-              //styleStore.setSelectionAnnotationHead(head);
               e.stopPropagation();
             }}
           >

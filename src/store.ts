@@ -12,7 +12,8 @@ export const FormulaStore = types
     updateFormula(newFormula: AugmentedFormula) {
       const { renderSpec, augmentedFormula } = updateFormula(newFormula);
       self.renderSpec = renderSpec;
-      self.augmentedFormula = augmentedFormula;
+      self.augmentedFormula = newFormula;
+      selectionStore.clearTargets();
     },
   }))
   .views((self) => ({}));
@@ -161,23 +162,7 @@ export const selectionStore = new SelectionStore();
 // and clear the registered targets for the old formula.
 //
 // According to the MobX docs, reactions run synchronously after the store changes.
-reaction(
-  () => formulaStore.renderSpec,
-  () => selectionStore.clearTargets()
-);
-
-export const StyleStore = types
-  .model("StyleStore", {
-    color: types.map(types.string),
-  })
-  .actions((self) => ({
-    setSelectionColor(color: string) {
-      for (const id of selectionStore.selected) {
-        self.color.set(id, color);
-      }
-    },
-  }));
-
-export const styleStore = StyleStore.create({
-  color: {},
-});
+// reaction(
+//   () => formulaStore.renderSpec,
+//   () => selectionStore.clearTargets()
+// );

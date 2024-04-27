@@ -127,6 +127,7 @@ const buildAugmentedFormula = (
       );
     case "ordgroup":
       return new Group(
+        id,
         katexTree.body.map((child, i) =>
           buildAugmentedFormula(child, `${id}.${i}`)
         )
@@ -150,12 +151,16 @@ export class AugmentedFormula {
   constructor(public children: AugmentedFormulaNode[]) {}
 
   toLatex(mode: LatexMode): string {
-    console.log(this.children);
     return this.children.map((child) => child.toLatex(mode)).join(" ");
   }
 }
 
-type AugmentedFormulaNode = Script | Fraction | MathSymbol | Color | Group;
+export type AugmentedFormulaNode =
+  | Script
+  | Fraction
+  | MathSymbol
+  | Color
+  | Group;
 
 const withId = (mode: LatexMode, id: string, latex: string) => {
   switch (mode) {
@@ -265,7 +270,10 @@ export class Color implements AugmentedFormulaNodeBase {
 
 export class Group implements AugmentedFormulaNodeBase {
   public type = "group" as const;
-  constructor(public children: AugmentedFormulaNode[]) {}
+  constructor(
+    public id: string,
+    public children: AugmentedFormulaNode[]
+  ) {}
 
   toLatex(mode: LatexMode): string {
     const childrenLatex = this.children
@@ -275,7 +283,10 @@ export class Group implements AugmentedFormulaNodeBase {
   }
 
   clone(): AugmentedFormulaNode {
-    return new Group(this.children.map((child) => child.clone()));
+    return new Group(
+      this.id,
+      this.children.map((child) => child.clone())
+    );
   }
 }
 

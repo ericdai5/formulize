@@ -69,6 +69,10 @@ export const RenderedFormula = observer(() => {
     };
   }, []);
 
+  useEffect(() => {
+    selectionStore.updateTargets();
+  });
+
   return (
     <div
       css={css`
@@ -108,13 +112,11 @@ const GenericFormulaNode = ({ spec }: { spec: RenderSpec }) => {
 };
 
 const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (spec.id && ref.current) {
       selectionStore.addTarget(spec.id, ref.current);
     }
-
-    selectionStore.updateTargets();
 
     () => {
       console.log("Target cleanup running");
@@ -122,9 +124,7 @@ const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
         selectionStore.removeTarget(spec.id);
       }
     };
-  }, [spec.id]);
-
-  console.log("Rendering", spec.id);
+  });
 
   const Tag = spec.tagName;
   return (
@@ -135,8 +135,6 @@ const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
         css={css`
           display: inline-block;
           position: relative;
-
-          color: ${spec.id ? styleStore.color.get(spec.id) : "black"};
 
           ${spec.id &&
           (selectionStore.currentlyDragged.has(spec.id) ||
