@@ -1,20 +1,18 @@
-import {
-  AugmentedFormula,
-  AugmentedFormulaNode,
-  Color,
-  Fraction,
-  Group,
-  MathSymbol,
-  Script,
-} from "./FormulaTree";
+import { AugmentedFormula, AugmentedFormulaNode } from "./FormulaTree";
+
+const assertUnreachable = (x: never): never => {
+  throw new Error("Non-exhaustive match for " + x);
+};
 
 export const replaceNodes = (
   formula: AugmentedFormula,
   replacer: (node: AugmentedFormulaNode) => AugmentedFormulaNode
 ): AugmentedFormula => {
   return normalizeIds(
-    new AugmentedFormula(
-      formula.children.map((node) => replaceNode(node, replacer))
+    fixParents(
+      new AugmentedFormula(
+        formula.children.map((node) => replaceNode(node, replacer))
+      )
     )
   );
 };
@@ -26,73 +24,113 @@ const replaceNode = (
   switch (node.type) {
     case "script":
       return replacer(
-        new Script(
-          node.id,
-          replaceNode(node.base, replacer),
-          node.sub ? replaceNode(node.sub, replacer) : undefined,
-          node.sup ? replaceNode(node.sup, replacer) : undefined
-        )
+        node.withChanges({
+          base: replaceNode(node.base, replacer),
+          sub: node.sub ? replaceNode(node.sub, replacer) : undefined,
+          sup: node.sup ? replaceNode(node.sup, replacer) : undefined,
+        })
       );
     case "frac":
       return replacer(
-        new Fraction(
-          node.id,
-          replaceNode(node.numerator, replacer),
-          replaceNode(node.denominator, replacer)
-        )
+        node.withChanges({
+          numerator: replaceNode(node.numerator, replacer),
+          denominator: replaceNode(node.denominator, replacer),
+        })
       );
     case "symbol":
-      return replacer(node.clone());
+      return replacer(node.withChanges({}));
     case "color":
-      return new Color(
-        node.id,
-        node.color,
-        node.children.map((child) => replaceNode(child, replacer))
+      return replacer(
+        node.withChanges({
+          body: node.body.map((child) => replaceNode(child, replacer)),
+        })
       );
     case "group":
-      return new Group(
-        node.id,
-        node.children.map((child) => replaceNode(child, replacer))
+      return replacer(
+        node.withChanges({
+          body: node.body.map((child) => replaceNode(child, replacer)),
+        })
       );
   }
 };
 
 export const normalizeIds = (formula: AugmentedFormula): AugmentedFormula => {
+  console.log("Fixing IDs", formula);
   return new AugmentedFormula(
     formula.children.map((node, i) => reassignIds(node, `${i}`))
   );
 };
 
-export const reassignIds = (
+const reassignIds = (
   node: AugmentedFormulaNode,
   id: string
 ): AugmentedFormulaNode => {
   switch (node.type) {
     case "script":
-      return new Script(
+      return node.withChanges({
         id,
-        reassignIds(node.base, `${id}.base`),
-        node.sub ? reassignIds(node.sub, `${id}.sub`) : undefined,
-        node.sup ? reassignIds(node.sup, `${id}.sup`) : undefined
-      );
+        base: reassignIds(node.base, `${id}.base`),
+        sub: node.sub ? reassignIds(node.sub, `${id}.sub`) : undefined,
+        sup: node.sup ? reassignIds(node.sup, `${id}.sup`) : undefined,
+      });
     case "frac":
-      return new Fraction(
+      return node.withChanges({
         id,
-        reassignIds(node.numerator, `${id}.numerator`),
-        reassignIds(node.denominator, `${id}.denominator`)
-      );
+        numerator: reassignIds(node.numerator, `${id}.numerator`),
+        denominator: reassignIds(node.denominator, `${id}.denominator`),
+      });
     case "symbol":
-      return new MathSymbol(id, node.value);
+      return node.withChanges({ id });
     case "color":
-      return new Color(
+      return node.withChanges({
         id,
-        node.color,
-        node.children.map((child, i) => reassignIds(child, `${id}.${i}`))
-      );
+        body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
+      });
     case "group":
-      return new Group(
+      return node.withChanges({
         id,
-        node.children.map((child, i) => reassignIds(child, `${id}.${i}`))
-      );
+        body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
+      });
+  }
+  return assertUnreachable(node);
+};
+
+export const fixParents = (formula: AugmentedFormula): AugmentedFormula => {
+  console.log("Fixing parents", formula);
+  return new AugmentedFormula(
+    formula.children.map((node) => fixParent(node, null))
+  );
+};
+
+const fixParent = (
+  node: AugmentedFormulaNode,
+  parent: AugmentedFormulaNode | null
+): AugmentedFormulaNode => {
+  switch (node.type) {
+    case "script":
+      return node.withChanges({
+        parent,
+        base: fixParent(node.base, node),
+        sub: node.sub ? fixParent(node.sub, node) : undefined,
+        sup: node.sup ? fixParent(node.sup, node) : undefined,
+      });
+    case "frac":
+      return node.withChanges({
+        parent,
+        numerator: fixParent(node.numerator, node),
+        denominator: fixParent(node.denominator, node),
+      });
+    case "symbol":
+      return node.withChanges({ parent });
+    case "color":
+      return node.withChanges({
+        parent,
+        body: node.body.map((child) => fixParent(child, node)),
+      });
+    case "group":
+      return node.withChanges({
+        parent,
+        body: node.body.map((child) => fixParent(child, node)),
+      });
   }
 };

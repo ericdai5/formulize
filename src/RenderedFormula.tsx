@@ -32,30 +32,7 @@ window.setFormula = (latex: string) => {
 
 export const RenderedFormula = observer(() => {
   useEffect(() => {
-    formulaStore.updateFormula(
-      new AugmentedFormula([
-        new Script(
-          "a^2",
-          new MathSymbol("(a)^2", "a"),
-          undefined,
-          new MathSymbol("a^(2)", "2")
-        ),
-        new MathSymbol("+", "+"),
-        new Script(
-          "b^2",
-          new MathSymbol("(b)^2", "b"),
-          undefined,
-          new MathSymbol("b^(2)", "2")
-        ),
-        new MathSymbol("=", "="),
-        new Script(
-          "c^2",
-          new MathSymbol("(c)^2", "c"),
-          undefined,
-          new MathSymbol("c^(2)", "2")
-        ),
-      ])
-    );
+    formulaStore.updateFormula(deriveAugmentedFormula("a^2 + b^2 = c^2"));
   }, []);
 
   useEffect(() => {

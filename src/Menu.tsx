@@ -329,16 +329,22 @@ const ColorMenu = () => {
             onClick={(e) => {
               formulaStore.updateFormula(
                 replaceNodes(formulaStore.augmentedFormula, (node) => {
-                  if (selectionStore.selected.includes(node.id)) {
-                    // TODO: should not run if parent is color
-                    return new Color(node.id, color, [node]);
-                  } else if (
+                  if (
                     node.type === "color" &&
-                    node.children.some((child) =>
-                      selectionStore.selected.includes(child.id)
-                    )
+                    (selectionStore.selected.includes(node.id) ||
+                      node.body.some((child) =>
+                        selectionStore.selected.includes(child.id)
+                      ))
                   ) {
-                    return new Color(node.id, color, node.children);
+                    console.log("Modifying existing color node", node);
+                    return new Color(node.id, color, node.body);
+                  } else if (
+                    selectionStore.selected.includes(node.id) &&
+                    (node.ancestors.length === 0 ||
+                      node.ancestors[0].type !== "color")
+                  ) {
+                    console.log("Applying new color node to", node);
+                    return new Color(node.id, color, [node]);
                   }
                   return node;
                 })

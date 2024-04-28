@@ -95,43 +95,49 @@ const buildAugmentedFormula = (
       }
       return buildAugmentedFormula(child, katexTree.attributes.id);
     }
-    case "supsub":
-      return new Script(
-        id,
-        buildAugmentedFormula(katexTree.base!, `${id}.base`),
-        katexTree.sub
-          ? buildAugmentedFormula(katexTree.sub, `${id}.sub`)
-          : undefined,
-        katexTree.sup
-          ? buildAugmentedFormula(katexTree.sup, `${id}.sup`)
-          : undefined
-      );
-    case "genfrac":
+    case "supsub": {
+      const base = buildAugmentedFormula(katexTree.base!, `${id}.base`);
+      const sub = katexTree.sub
+        ? buildAugmentedFormula(katexTree.sub, `${id}.sub`)
+        : undefined;
+      const sup = katexTree.sup
+        ? buildAugmentedFormula(katexTree.sup, `${id}.sup`)
+        : undefined;
+      const script = new Script(id, base, sub, sup);
+      base._parent = script;
+      sub && (sub._parent = script);
+      sup && (sup._parent = script);
+      return script;
+    }
+    case "genfrac": {
       // TODO: this is wrong, other things can be genfrac as well
-      return new Fraction(
-        id,
-        buildAugmentedFormula(katexTree.numer, `${id}.numer`),
-        buildAugmentedFormula(katexTree.denom, `${id}.denom`)
-      );
+      const numer = buildAugmentedFormula(katexTree.numer, `${id}.numer`);
+      const denom = buildAugmentedFormula(katexTree.denom, `${id}.denom`);
+      const frac = new Fraction(id, numer, denom);
+      numer._parent = frac;
+      denom._parent = frac;
+      return frac;
+    }
     case "atom":
     case "mathord":
     case "textord":
       return new MathSymbol(id, katexTree.text);
-    case "color":
-      return new Color(
-        id,
-        katexTree.color,
-        katexTree.body.map((child) =>
-          buildAugmentedFormula(child, `${id}.body`)
-        )
+    case "color": {
+      const children = katexTree.body.map((child) =>
+        buildAugmentedFormula(child, `${id}.body`)
       );
-    case "ordgroup":
-      return new Group(
-        id,
-        katexTree.body.map((child, i) =>
-          buildAugmentedFormula(child, `${id}.${i}`)
-        )
+      const color = new Color(id, katexTree.color, children);
+      children.forEach((child) => (child._parent = color));
+      return color;
+    }
+    case "ordgroup": {
+      const children = katexTree.body.map((child, i) =>
+        buildAugmentedFormula(child, `${id}.${i}`)
       );
+      const group = new Group(id, children);
+      children.forEach((child) => (child._parent = group));
+      return group;
+    }
   }
 
   console.log("Failed to build:", katexTree);
@@ -141,13 +147,7 @@ const buildAugmentedFormula = (
 // only, with augmentations)
 type LatexMode = "render" | "ast";
 
-interface AugmentedFormulaNodeBase {
-  toLatex(mode: LatexMode): string;
-  clone(): AugmentedFormulaNode;
-}
-
 export class AugmentedFormula {
-  public type = "formula" as const;
   constructor(public children: AugmentedFormulaNode[]) {}
 
   toLatex(mode: LatexMode): string {
@@ -162,24 +162,41 @@ export type AugmentedFormulaNode =
   | Color
   | Group;
 
-const withId = (mode: LatexMode, id: string, latex: string) => {
-  switch (mode) {
-    case "ast":
-      return String.raw`\htmlId{${id}}{${latex}}`;
-    case "render":
-    default:
-      return String.raw`\cssId{${id}}{${latex}}`;
-  }
-};
+abstract class AugmentedFormulaNodeBase {
+  public _parent: AugmentedFormulaNode | null = null;
+  constructor(public id: string) {}
 
-export class Script implements AugmentedFormulaNodeBase {
+  protected latexWithId(mode: LatexMode, latex: string): string {
+    switch (mode) {
+      case "ast":
+        return String.raw`\htmlId{${this.id}}{${latex}}`;
+      case "render":
+      default:
+        return String.raw`\cssId{${this.id}}{${latex}}`;
+    }
+  }
+
+  get ancestors(): AugmentedFormulaNode[] {
+    if (this._parent === null) {
+      return [];
+    }
+    return [this._parent, ...this._parent.ancestors];
+  }
+
+  abstract toLatex(mode: LatexMode): string;
+  abstract get children(): AugmentedFormulaNode[];
+}
+
+export class Script extends AugmentedFormulaNodeBase {
   public type = "script" as const;
   constructor(
     public id: string,
     public base: AugmentedFormulaNode,
     public sub?: AugmentedFormulaNode,
     public sup?: AugmentedFormulaNode
-  ) {}
+  ) {
+    super(id);
+  }
 
   toLatex(mode: LatexMode): string {
     const baseLatex = String.raw`{${this.base.toLatex(mode)}}`;
@@ -195,23 +212,47 @@ export class Script implements AugmentedFormulaNodeBase {
     // );
   }
 
-  clone(): AugmentedFormulaNode {
-    return new Script(
-      this.id,
-      this.base.clone(),
-      this.sub ? this.sub.clone() : undefined,
-      this.sup ? this.sup.clone() : undefined
+  withChanges({
+    id,
+    parent,
+    base,
+    sub,
+    sup,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    base?: AugmentedFormulaNode;
+    sub?: AugmentedFormulaNode;
+    sup?: AugmentedFormulaNode;
+  }): Script {
+    const script = new Script(
+      id ?? this.id,
+      base ?? this.base,
+      sub ?? this.sub,
+      sup ?? this.sup
     );
+    script._parent = parent ?? this._parent;
+    return script;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [
+      this.base,
+      ...(this.sub ? [this.sub] : []),
+      ...(this.sup ? [this.sup] : []),
+    ];
   }
 }
 
-export class Fraction implements AugmentedFormulaNodeBase {
+export class Fraction extends AugmentedFormulaNodeBase {
   public type = "frac" as const;
   constructor(
     public id: string,
     public numerator: AugmentedFormulaNode,
     public denominator: AugmentedFormulaNode
-  ) {}
+  ) {
+    super(id);
+  }
 
   toLatex(mode: LatexMode): string {
     const numeratorLatex = this.numerator.toLatex(mode);
@@ -219,74 +260,137 @@ export class Fraction implements AugmentedFormulaNodeBase {
     return String.raw`\frac{${numeratorLatex}}{${denominatorLatex}}`;
   }
 
-  clone(): AugmentedFormulaNode {
-    return new Fraction(
-      this.id,
-      this.numerator.clone(),
-      this.denominator.clone()
+  withChanges({
+    id,
+    parent,
+    numerator,
+    denominator,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    numerator?: AugmentedFormulaNode;
+    denominator?: AugmentedFormulaNode;
+  }): Fraction {
+    const fraction = new Fraction(
+      id ?? this.id,
+      numerator ?? this.numerator,
+      denominator ?? this.denominator
     );
+    fraction._parent = parent ?? this._parent;
+    return fraction;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [this.numerator, this.denominator];
   }
 }
 
-export class MathSymbol implements AugmentedFormulaNodeBase {
+export class MathSymbol extends AugmentedFormulaNodeBase {
   public type = "symbol" as const;
   constructor(
     public id: string,
     public value: string
-  ) {}
-
-  toLatex(mode: LatexMode): string {
-    return withId(mode, this.id, this.value.toString());
+  ) {
+    super(id);
   }
 
-  clone(): AugmentedFormulaNode {
-    return new MathSymbol(this.id, this.value);
+  toLatex(mode: LatexMode): string {
+    return this.latexWithId(mode, this.value.toString());
+  }
+
+  withChanges({
+    id,
+    parent,
+    value,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    value?: string;
+  }): MathSymbol {
+    const symbol = new MathSymbol(id ?? this.id, value ?? this.value);
+    symbol._parent = parent ?? this._parent;
+    return symbol;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [];
   }
 }
 
-export class Color implements AugmentedFormulaNodeBase {
+export class Color extends AugmentedFormulaNodeBase {
   public type = "color" as const;
   constructor(
     public id: string,
     public color: string,
-    public children: AugmentedFormulaNode[]
-  ) {}
+    public body: AugmentedFormulaNode[]
+  ) {
+    super(id);
+  }
 
   toLatex(mode: LatexMode): string {
-    const childrenLatex = this.children
+    const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
     return String.raw`\textcolor{${this.color}}{${childrenLatex}}`;
   }
 
-  clone(): AugmentedFormulaNode {
-    return new Color(
-      this.id,
-      this.color,
-      this.children.map((child) => child.clone())
+  withChanges({
+    id,
+    parent,
+    color,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    color?: string;
+    body?: AugmentedFormulaNode[];
+  }): Color {
+    const colorNode = new Color(
+      id ?? this.id,
+      color ?? this.color,
+      body ?? this.body
     );
+    colorNode._parent = parent ?? this._parent;
+    return colorNode;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return this.body;
   }
 }
 
-export class Group implements AugmentedFormulaNodeBase {
+export class Group extends AugmentedFormulaNodeBase {
   public type = "group" as const;
   constructor(
     public id: string,
-    public children: AugmentedFormulaNode[]
-  ) {}
+    public body: AugmentedFormulaNode[]
+  ) {
+    super(id);
+  }
 
   toLatex(mode: LatexMode): string {
-    const childrenLatex = this.children
+    const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
     return String.raw`{${childrenLatex}}`;
   }
 
-  clone(): AugmentedFormulaNode {
-    return new Group(
-      this.id,
-      this.children.map((child) => child.clone())
-    );
+  withChanges({
+    id,
+    parent,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    body?: AugmentedFormulaNode[];
+  }): Group {
+    const group = new Group(id ?? this.id, body ?? this.body);
+    group._parent = parent ?? this._parent;
+    return group;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return this.body;
   }
 }
 
