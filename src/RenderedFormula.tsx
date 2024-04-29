@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { useEffect, useRef } from "react";
+import { Children, useEffect, useRef } from "react";
 
 import { observer } from "mobx-react-lite";
 
@@ -79,10 +79,7 @@ const GenericFormulaNode = ({ spec }: { spec: RenderSpec }) => {
     // @ts-expect-error This is an arbitrary tag, we can't statically type it
     <Tag id={spec.id} class={spec.className} style={spec.style} {...spec.attrs}>
       {spec.children?.map((child, i) => (
-        <RenderedFormulaComponent
-          key={"id" in child ? child.id : i}
-          spec={child}
-        />
+        <RenderedFormulaComponent key={child.id ?? i} spec={child} />
       ))}
     </Tag>
   );

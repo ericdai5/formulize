@@ -148,10 +148,22 @@ const buildAugmentedFormula = (
 type LatexMode = "render" | "ast";
 
 export class AugmentedFormula {
-  constructor(public children: AugmentedFormulaNode[]) {}
+  private idToNode: { [id: string]: AugmentedFormulaNode } = {};
+
+  constructor(public children: AugmentedFormulaNode[]) {
+    const collectIds = (node: AugmentedFormulaNode) => {
+      this.idToNode[node.id] = node;
+      node.children.forEach(collectIds);
+    };
+    children.forEach(collectIds);
+  }
 
   toLatex(mode: LatexMode): string {
     return this.children.map((child) => child.toLatex(mode)).join(" ");
+  }
+
+  findNode(id: string): AugmentedFormulaNode | null {
+    return this.idToNode[id] ?? null;
   }
 }
 
@@ -202,7 +214,10 @@ export class Script extends AugmentedFormulaNodeBase {
     const baseLatex = String.raw`{${this.base.toLatex(mode)}}`;
     const subLatex = this.sub ? String.raw`_{${this.sub.toLatex(mode)}}` : "";
     const supLatex = this.sup ? String.raw`^{${this.sup.toLatex(mode)}}` : "";
-    return String.raw`{${baseLatex}${subLatex}${supLatex}}`;
+    return this.latexWithId(
+      mode,
+      String.raw`{${baseLatex}${subLatex}${supLatex}}`
+    );
     // return withId(
     //   mode,
     //   this.id,
@@ -257,7 +272,10 @@ export class Fraction extends AugmentedFormulaNodeBase {
   toLatex(mode: LatexMode): string {
     const numeratorLatex = this.numerator.toLatex(mode);
     const denominatorLatex = this.denominator.toLatex(mode);
-    return String.raw`\frac{${numeratorLatex}}{${denominatorLatex}}`;
+    return this.latexWithId(
+      mode,
+      String.raw`\frac{${numeratorLatex}}{${denominatorLatex}}`
+    );
   }
 
   withChanges({
@@ -331,7 +349,10 @@ export class Color extends AugmentedFormulaNodeBase {
     const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
-    return String.raw`\textcolor{${this.color}}{${childrenLatex}}`;
+    return this.latexWithId(
+      mode,
+      String.raw`\textcolor{${this.color}}{${childrenLatex}}`
+    );
   }
 
   withChanges({
@@ -372,7 +393,7 @@ export class Group extends AugmentedFormulaNodeBase {
     const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
-    return String.raw`{${childrenLatex}}`;
+    return this.latexWithId(mode, String.raw`{${childrenLatex}}`);
   }
 
   withChanges({
