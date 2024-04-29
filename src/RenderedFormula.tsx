@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import styled from "@emotion/styled";
 import { Children, useEffect, useRef } from "react";
 
 import { observer } from "mobx-react-lite";
@@ -72,18 +73,42 @@ const RenderedFormulaComponent = ({ spec }: { spec: RenderSpec }) => {
   );
 };
 
-const GenericFormulaNode = ({ spec }: { spec: RenderSpec }) => {
+const selectionBorderStyles = ({ showBorder }: { showBorder: boolean }) =>
+  showBorder
+    ? css`
+            &:after {
+            position: absolute;
+            content: "";
+            top: -0.1rem;
+            bottom: -0.1rem;
+            left: -0.1rem;
+            right: -0.1rem;
+            outline: 1px dashed black;
+          `
+    : "";
+
+const SelectionBorder = styled.div`
+  display: inline-block;
+  position: relative;
+  ${({ showBorder }) => selectionBorderStyles({ showBorder })}
+`;
+
+const GenericFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
   const Tag = spec.tagName;
   return (
     // TODO: React throws a seemingly harmless error about `class` vs `className`
     // @ts-expect-error This is an arbitrary tag, we can't statically type it
     <Tag id={spec.id} class={spec.className} style={spec.style} {...spec.attrs}>
-      {spec.children?.map((child, i) => (
-        <RenderedFormulaComponent key={child.id ?? i} spec={child} />
-      ))}
+      <SelectionBorder
+        showBorder={spec.id && selectionStore.resolvedSelection.has(spec.id)}
+      >
+        {spec.children?.map((child, i) => (
+          <RenderedFormulaComponent key={child.id ?? i} spec={child} />
+        ))}
+      </SelectionBorder>
     </Tag>
   );
-};
+});
 
 const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -105,31 +130,14 @@ const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
     // TODO: React throws a seemingly harmless error about `class` vs `className`
     // @ts-expect-error This is an arbitrary tag, we can't statically type it
     <Tag id={spec.id} class={spec.className} style={spec.style} {...spec.attrs}>
-      <div
-        css={css`
-          display: inline-block;
-          position: relative;
-
-          ${spec.id &&
-          (selectionStore.currentlyDragged.has(spec.id) ||
-            selectionStore.selected.includes(spec.id))
-            ? `&:after {
-            position: absolute;
-            content: "";
-            top: -0.1rem;
-            bottom: -0.1rem;
-            left: -0.1rem;
-            right: -0.1rem;
-            outline: 1px dashed black;
-          }`
-            : ""}
-        `}
+      <SelectionBorder
+        showBorder={spec.id && selectionStore.resolvedSelection.has(spec.id)}
         ref={ref}
       >
         {spec.children?.map((child, i) => (
           <RenderedFormulaComponent key={i} spec={child} />
         ))}
-      </div>
+      </SelectionBorder>
     </Tag>
   );
 });

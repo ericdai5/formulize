@@ -17,6 +17,7 @@ const CoordinateCell = styled.td`
 export const Debug = observer(() => {
   return (
     <div
+      onMouseDown={(e) => e.stopPropagation()}
       css={css`
         position: fixed;
         top: 2rem;
@@ -94,5 +95,7 @@ const Selected = observer(() => (
   <>
     <pre>Selection:</pre>
     <pre>{selectionStore.selected.join(",\n")}</pre>
+    <pre>Resolved selection:</pre>
+    <pre>{Array.from(selectionStore.resolvedSelection).join(",\n")}</pre>
   </>
 ));

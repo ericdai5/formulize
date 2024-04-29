@@ -153,6 +153,31 @@ class SelectionStore {
       })
     );
   }
+
+  @computed({
+    equals: (a: Set<string>, b: Set<string>) =>
+      a.size === b.size && Array.from(a).every((id) => b.has(id)),
+  })
+  get resolvedSelection(): Set<string> {
+    const frontier = new Set([...this.selected, ...this.currentlyDragged]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const selectedId of frontier) {
+        const node = formulaStore.augmentedFormula.findNode(selectedId);
+        if (!node) {
+          continue;
+        }
+
+        if (node._parent?.children.every((child) => frontier.has(child.id))) {
+          frontier.add(node._parent.id);
+          node._parent.children.forEach((child) => frontier.delete(child.id));
+          changed = true;
+        }
+      }
+    }
+    return frontier;
+  }
 }
 
 export const selectionStore = new SelectionStore();

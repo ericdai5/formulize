@@ -28,6 +28,9 @@ export const Menu = () => {
         justify-content: flex-start;
         background: #f0f0f0;
       `}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+      }}
     >
       <LogoMenu />
       <LineDivideMenu />
@@ -331,15 +334,15 @@ const ColorMenu = () => {
                 replaceNodes(formulaStore.augmentedFormula, (node) => {
                   if (
                     node.type === "color" &&
-                    (selectionStore.selected.includes(node.id) ||
+                    (selectionStore.resolvedSelection.has(node.id) ||
                       node.body.some((child) =>
-                        selectionStore.selected.includes(child.id)
+                        selectionStore.resolvedSelection.has(child.id)
                       ))
                   ) {
                     console.log("Modifying existing color node", node);
                     return new Color(node.id, color, node.body);
                   } else if (
-                    selectionStore.selected.includes(node.id) &&
+                    selectionStore.resolvedSelection.has(node.id) &&
                     (node.ancestors.length === 0 ||
                       node.ancestors[0].type !== "color")
                   ) {
@@ -393,13 +396,13 @@ const BoxMenu = () => {
                 replaceNodes(formulaStore.augmentedFormula, (node) => {
                   if (
                     node.type === "box" &&
-                    (selectionStore.selected.includes(node.id) ||
-                      selectionStore.selected.includes(node.body.id))
+                    (selectionStore.resolvedSelection.has(node.id) ||
+                      selectionStore.resolvedSelection.has(node.body.id))
                   ) {
                     console.log("Modifying existing box node", node);
                     return new Box(node.id, color, "white", node.body);
                   } else if (
-                    selectionStore.selected.includes(node.id) &&
+                    selectionStore.resolvedSelection.has(node.id) &&
                     (node.ancestors.length === 0 ||
                       node.ancestors[0].type !== "box")
                   ) {
