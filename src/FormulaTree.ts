@@ -46,11 +46,10 @@ export const updateFormula = (
   newFormula: AugmentedFormula
 ): {
   renderSpec: RenderSpec;
-  augmentedFormula: AugmentedFormula;
 } => {
-  console.log("Rendering:", newFormula);
+  console.log("LaTeX:", newFormula.toLatex("noid"));
+  console.log("New formula:", newFormula);
   const renderLatex = newFormula.toLatex("render");
-  console.log("LaTeX:", renderLatex);
   const chtml = MathJax.tex2chtml(renderLatex);
   const renderSpec = deriveRenderSpec(chtml);
   console.log("Render spec:", renderSpec);
@@ -60,13 +59,8 @@ export const updateFormula = (
   MathJax.startup.document.clear();
   MathJax.startup.document.updateDocument();
 
-  // TODO: parse AugmentedFormula from LaTeX
-  const augmentedFormula = deriveAugmentedFormula(newFormula.toLatex("ast"));
-  console.log("Augmented formula:", augmentedFormula);
-
   return {
     renderSpec,
-    augmentedFormula,
   };
 };
 
@@ -76,7 +70,6 @@ export const deriveAugmentedFormula = (latex: string): AugmentedFormula => {
   const augmentedTrees = katexTrees.map((katexTree, i) =>
     buildAugmentedFormula(katexTree, `${i}`)
   );
-  console.log("Augmented trees:", augmentedTrees);
   return new AugmentedFormula(augmentedTrees);
 };
 
@@ -130,6 +123,7 @@ const buildAugmentedFormula = (
       children.forEach((child) => (child._parent = color));
       return color;
     }
+    case "styling":
     case "ordgroup": {
       const children = katexTree.body.map((child, i) =>
         buildAugmentedFormula(child, `${id}.${i}`)
@@ -138,6 +132,21 @@ const buildAugmentedFormula = (
       children.forEach((child) => (child._parent = group));
       return group;
     }
+    case "enclose": {
+      // const children = katexTree.body.map((child, i) =>
+      //   buildAugmentedFormula(child, `${id}.${i}`)
+      // );
+      const child = buildAugmentedFormula(katexTree.body, `${id}.body`);
+      const box = new Box(
+        id,
+        katexTree.borderColor!,
+        katexTree.backgroundColor!,
+        child
+      );
+      // children.forEach((child) => (child._parent = box));
+      child._parent = box;
+      return box;
+    }
   }
 
   console.log("Failed to build:", katexTree);
@@ -145,7 +154,7 @@ const buildAugmentedFormula = (
 
 // TODO: eventually this will also cover alternative code presentations (content
 // only, with augmentations)
-type LatexMode = "render" | "ast";
+type LatexMode = "render" | "ast" | "noid";
 
 export class AugmentedFormula {
   private idToNode: { [id: string]: AugmentedFormulaNode } = {};
@@ -172,7 +181,8 @@ export type AugmentedFormulaNode =
   | Fraction
   | MathSymbol
   | Color
-  | Group;
+  | Group
+  | Box;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -183,8 +193,9 @@ abstract class AugmentedFormulaNodeBase {
       case "ast":
         return String.raw`\htmlId{${this.id}}{${latex}}`;
       case "render":
-      default:
         return String.raw`\cssId{${this.id}}{${latex}}`;
+      case "noid":
+        return latex;
     }
   }
 
@@ -218,13 +229,6 @@ export class Script extends AugmentedFormulaNodeBase {
       mode,
       String.raw`{${baseLatex}${subLatex}${supLatex}}`
     );
-    // return withId(
-    //   mode,
-    //   this.id,
-    //   String.raw`\fcolorbox{red}{white}{$${this.base.toLatex(mode)}${this.sub
-    //   ? `_{${this.sub.toLatex(mode)}}` : ""}${this.sup ?
-    //   `^{${this.sup.toLatex(mode)}}` : ""}$}`
-    // );
   }
 
   withChanges({
@@ -412,6 +416,57 @@ export class Group extends AugmentedFormulaNodeBase {
 
   get children(): AugmentedFormulaNode[] {
     return this.body;
+  }
+}
+
+export class Box extends AugmentedFormulaNodeBase {
+  public type = "box" as const;
+  constructor(
+    public id: string,
+    public borderColor: string,
+    public backgroundColor: string,
+    public body: AugmentedFormulaNode
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    // const childrenLatex = this.body
+    //   .map((child) => child.toLatex(mode))
+    //   .join(" ");
+    const bodyLatex = this.body.toLatex(mode);
+    return this.latexWithId(
+      mode,
+      // fcolorbox returns to text mode so the body must be wrapped in $
+      String.raw`\fcolorbox{${this.borderColor}}{${this.backgroundColor}}{$${bodyLatex}$}`
+    );
+  }
+
+  withChanges({
+    id,
+    parent,
+    borderColor,
+    backgroundColor,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    borderColor?: string;
+    backgroundColor?: string;
+    body?: AugmentedFormulaNode;
+  }): Box {
+    const box = new Box(
+      id ?? this.id,
+      borderColor ?? this.borderColor,
+      backgroundColor ?? this.backgroundColor,
+      body ?? this.body
+    );
+    box._parent = parent ?? this._parent;
+    return box;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [this.body];
   }
 }
 

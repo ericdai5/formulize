@@ -10,7 +10,7 @@ export const FormulaStore = types
   })
   .actions((self) => ({
     updateFormula(newFormula: AugmentedFormula) {
-      const { renderSpec, augmentedFormula } = updateFormula(newFormula);
+      const { renderSpec } = updateFormula(newFormula);
       self.renderSpec = renderSpec;
       self.augmentedFormula = newFormula;
       selectionStore.clearTargets();
@@ -52,6 +52,7 @@ class SelectionStore {
   clearTargets() {
     this.targetRefs.clear();
     this.targets.clear();
+    this.selected.clear();
   }
 
   @action

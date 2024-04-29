@@ -51,6 +51,12 @@ const replaceNode = (
           body: node.body.map((child) => replaceNode(child, replacer)),
         })
       );
+    case "box":
+      return replacer(
+        node.withChanges({
+          body: replaceNode(node.body, replacer),
+        })
+      );
   }
 };
 
@@ -82,14 +88,15 @@ const reassignIds = (
     case "symbol":
       return node.withChanges({ id });
     case "color":
-      return node.withChanges({
-        id,
-        body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
-      });
     case "group":
       return node.withChanges({
         id,
         body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
+      });
+    case "box":
+      return node.withChanges({
+        id,
+        body: reassignIds(node.body, `${id}.body`),
       });
   }
   return assertUnreachable(node);
@@ -123,14 +130,16 @@ const fixParent = (
     case "symbol":
       return node.withChanges({ parent });
     case "color":
-      return node.withChanges({
-        parent,
-        body: node.body.map((child) => fixParent(child, node)),
-      });
     case "group":
       return node.withChanges({
         parent,
         body: node.body.map((child) => fixParent(child, node)),
       });
+    case "box":
+      return node.withChanges({
+        parent,
+        body: fixParent(node.body, node),
+      });
   }
+  return assertUnreachable(node);
 };

@@ -3,7 +3,7 @@ import { default as React } from "react";
 
 import Icon from "@mui/material/Icon";
 
-import { Color } from "./FormulaTree";
+import { Box, Color } from "./FormulaTree";
 import { replaceNodes } from "./formulaTransformations";
 import { formulaStore, selectionStore } from "./store";
 
@@ -389,6 +389,26 @@ const BoxMenu = () => {
               margin: 0.25rem;
             `}
             onClick={(e) => {
+              formulaStore.updateFormula(
+                replaceNodes(formulaStore.augmentedFormula, (node) => {
+                  if (
+                    node.type === "box" &&
+                    (selectionStore.selected.includes(node.id) ||
+                      selectionStore.selected.includes(node.body.id))
+                  ) {
+                    console.log("Modifying existing box node", node);
+                    return new Box(node.id, color, "white", node.body);
+                  } else if (
+                    selectionStore.selected.includes(node.id) &&
+                    (node.ancestors.length === 0 ||
+                      node.ancestors[0].type !== "box")
+                  ) {
+                    console.log("Applying new box node to", node);
+                    return new Box(node.id, color, "white", node);
+                  }
+                  return node;
+                })
+              );
               e.stopPropagation();
             }}
           >
