@@ -18,21 +18,17 @@ export const Workspace = observer(() => {
 
   const handleDoubleClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
     selectionStore.clearSelection();
-    e.preventDefault();
   }, []);
   const handleMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
     selectionStore.startDragSelection(e.clientX, e.clientY);
-    e.preventDefault();
   }, []);
   const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
     if (selectionStore.isDragging) {
       selectionStore.updateDragSelection(e.clientX, e.clientY);
     }
-    e.preventDefault();
   }, []);
   const handleMouseUp = useCallback((e: MouseEvent<HTMLDivElement>) => {
     selectionStore.stopDragSelection();
-    e.preventDefault();
   }, []);
   const handleContextMenu = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {

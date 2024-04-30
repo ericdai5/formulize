@@ -42,6 +42,15 @@ export const debugLatex = async (latex: string) => {
 
 window.debugLatex = debugLatex;
 
+export const checkFormulaCode = (latex: string) => {
+  try {
+    deriveAugmentedFormula(latex);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const updateFormula = (
   newFormula: AugmentedFormula
 ): {
@@ -125,6 +134,9 @@ const buildAugmentedFormula = (
     }
     case "styling":
     case "ordgroup": {
+      if (katexTree.body.length === 1) {
+        return buildAugmentedFormula(katexTree.body[0], id);
+      }
       const children = katexTree.body.map((child, i) =>
         buildAugmentedFormula(child, `${id}.${i}`)
       );
