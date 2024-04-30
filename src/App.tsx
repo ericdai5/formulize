@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
 import { Global, css } from "@emotion/react";
+import { useEffect, useState } from "react";
 
+import { Editor } from "./Editor";
 import { Workspace } from "./Workspace";
 
 function App() {
@@ -20,7 +21,29 @@ function App() {
           }
         `}
       />
-      <Workspace />
+      <div
+        css={css`
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+          height: 100%;
+        `}
+      >
+        <div
+          css={css`
+            display: flex;
+            position: relative;
+            height: 100%;
+            width: 25%;
+            border-right: 2px solid black;
+            overflow-x: hidden;
+            overflow-y: auto;
+          `}
+        >
+          <Editor />
+        </div>
+        <Workspace />
+      </div>
     </>
   );
 }

@@ -3,25 +3,25 @@ import { types } from "mobx-state-tree";
 
 import { AugmentedFormula, RenderSpec, updateFormula } from "./FormulaTree";
 
-export const FormulaStore = types
-  .model("FormulaStore", {
-    renderSpec: types.frozen<RenderSpec | null>(),
-    augmentedFormula: types.frozen<AugmentedFormula>(),
-  })
-  .actions((self) => ({
-    updateFormula(newFormula: AugmentedFormula) {
-      const { renderSpec } = updateFormula(newFormula);
-      self.renderSpec = renderSpec;
-      self.augmentedFormula = newFormula;
-      selectionStore.clearTargets();
-    },
-  }))
-  .views((self) => ({}));
+class FormulaStore {
+  @observable accessor renderSpec: RenderSpec | null = null;
+  @observable accessor augmentedFormula: AugmentedFormula =
+    new AugmentedFormula([]);
 
-export const formulaStore = FormulaStore.create({
-  renderSpec: null,
-  augmentedFormula: new AugmentedFormula([]),
-});
+  @action
+  updateFormula(newFormula: AugmentedFormula) {
+    const { renderSpec } = updateFormula(newFormula);
+    this.renderSpec = renderSpec;
+    this.augmentedFormula = newFormula;
+    selectionStore.clearTargets();
+  }
+
+  @computed
+  get latexWithStyling() {
+    return this.augmentedFormula.toLatex("noid");
+  }
+}
+export const formulaStore = new FormulaStore();
 
 class SelectionStore {
   @observable accessor selected: string[] = [];

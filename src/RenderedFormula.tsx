@@ -2,6 +2,7 @@ import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 import { Children, useEffect, useRef } from "react";
 
+import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import {
@@ -58,7 +59,7 @@ export const RenderedFormula = observer(() => {
       `}
     >
       {formulaStore.renderSpec !== null && (
-        <RenderedFormulaComponent spec={formulaStore.renderSpec} />
+        <RenderedFormulaComponent spec={toJS(formulaStore.renderSpec)} />
       )}
       <br />
     </div>

@@ -11,9 +11,13 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@codemirror/basic-setup": "^0.20.0",
+    "@codemirror/language": "^6.10.1",
+    "@codemirror/legacy-modes": "^6.4.0",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@mui/material": "^5.15.14",
+    "@uiw/react-codemirror": "^4.22.0",
     "better-react-mathjax": "^2.0.3",
     "katex": "^0.16.10",
     "mathjax-full": "3.2.2",
