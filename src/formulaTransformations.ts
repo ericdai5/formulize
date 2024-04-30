@@ -61,7 +61,7 @@ const replaceNode = (
 };
 
 export const normalizeIds = (formula: AugmentedFormula): AugmentedFormula => {
-  console.log("Fixing IDs", formula);
+  // console.log("Fixing IDs", formula);
   return new AugmentedFormula(
     formula.children.map((node, i) => reassignIds(node, `${i}`))
   );
@@ -103,7 +103,7 @@ const reassignIds = (
 };
 
 export const fixParents = (formula: AugmentedFormula): AugmentedFormula => {
-  console.log("Fixing parents", formula);
+  // console.log("Fixing parents", formula);
   return new AugmentedFormula(
     formula.children.map((node) => fixParent(node, null))
   );

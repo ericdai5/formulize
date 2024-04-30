@@ -5,13 +5,7 @@ import App from "./App.tsx";
 
 window.MathJax = {
   loader: {
-    load: [
-      "input/tex",
-      "output/chtml",
-      "[tex]/require",
-      "[tex]/html",
-      "[tex]/color",
-    ],
+    load: ["input/tex", "output/chtml", "[tex]/html", "[tex]/color"],
     tex: { packages: { "[+]": ["html", "color"] } },
   },
   startup: {
