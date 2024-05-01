@@ -28,6 +28,7 @@ export const Debug = observer(() => {
         overflow-x: hidden;
         display: flex;
         flex-direction: column;
+        background: rgba(255, 255, 255, 0.8);
       `}
     >
       <Viewport />
