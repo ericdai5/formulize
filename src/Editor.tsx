@@ -40,7 +40,11 @@ export const Editor = observer(() => {
       const newEditorView = new EditorView({
         state: EditorState.create({
           // extensions: [basicSetup, StreamLanguage.define(stex), codeUpdateListener],
-          extensions: [basicSetup, StreamLanguage.define(stex)],
+          extensions: [
+            basicSetup,
+            EditorView.lineWrapping,
+            StreamLanguage.define(stex),
+          ],
           doc: formulaStore.latexWithStyling,
         }),
         parent: container,
