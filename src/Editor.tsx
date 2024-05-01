@@ -94,8 +94,15 @@ export const Editor = observer(() => {
       />
       <div
         css={css`
+          height: 2rem;
+          background-color: #f0f0f0;
+        `}
+      ></div>
+      <div
+        css={css`
           width: 100%;
           height: 100%;
+          border: 2px solid ${editorCodeCorrect ? "transparent" : "red"};
         `}
         ref={(ref) => setContainer(ref)}
       ></div>
