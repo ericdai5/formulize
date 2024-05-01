@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { EditorState, EditorView, basicSetup } from "@codemirror/basic-setup";
 import { StreamLanguage } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
+import { EditorState } from "@codemirror/state";
+import { EditorView, basicSetup } from "codemirror";
 
 import { checkFormulaCode, deriveAugmentedFormula } from "./FormulaTree";
 import { formulaStore } from "./store";
@@ -38,8 +39,8 @@ export const Editor = observer(() => {
 
       const newEditorView = new EditorView({
         state: EditorState.create({
-          // extensions: [basicSetup, codeUpdateListener],
-          extensions: [basicSetup],
+          // extensions: [basicSetup, StreamLanguage.define(stex), codeUpdateListener],
+          extensions: [basicSetup, StreamLanguage.define(stex)],
           doc: formulaStore.latexWithStyling,
         }),
         parent: container,
