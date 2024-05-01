@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { MouseEvent, useCallback, useState } from "react";
+import { MouseEvent, useCallback, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
@@ -40,6 +40,17 @@ export const Workspace = observer(() => {
     [showTopMenu, setContextMenuAnchor]
   );
 
+  useEffect(() => {
+    const resizeHandler = () => {
+      selectionStore.updateWorkspaceDimensions();
+    };
+    window.addEventListener("resize", resizeHandler);
+
+    () => {
+      window.removeEventListener("resize", resizeHandler);
+    };
+  }, []);
+
   return (
     <div
       css={css`
@@ -58,6 +69,7 @@ export const Workspace = observer(() => {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
+      ref={(ref) => selectionStore.initializeWorkspace(ref)}
     >
       <div
         css={css`

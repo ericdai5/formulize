@@ -1,5 +1,11 @@
-import { action, computed, observable, reaction } from "mobx";
-import { types } from "mobx-state-tree";
+import {
+  ObservableArray,
+  ObservableMap,
+  action,
+  computed,
+  observable,
+  reaction,
+} from "mobx";
 
 import { AugmentedFormula, RenderSpec, updateFormula } from "./FormulaTree";
 
@@ -23,20 +29,68 @@ class FormulaStore {
 }
 export const formulaStore = new FormulaStore();
 
-class SelectionStore {
-  @observable accessor selected: string[] = [];
-  @observable accessor targets: Map<
-    string,
-    { id: string; left: number; top: number; width: number; height: number }
-  > = new Map();
-  @observable accessor selectionRect: {
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-  } | null = null;
+type DimensionBox = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
 
+type BoundingBox = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
+export const toBoundingBox = (box: DimensionBox): BoundingBox => ({
+  x1: box.left,
+  y1: box.top,
+  x2: box.left + box.width,
+  y2: box.top + box.height,
+});
+
+export const toDimensionBox = (box: BoundingBox): DimensionBox => ({
+  left: Math.min(box.x1, box.x2),
+  top: Math.min(box.y1, box.y2),
+  width: Math.abs(box.x1 - box.x2),
+  height: Math.abs(box.y1 - box.y2),
+});
+
+class SelectionStore {
+  @observable accessor workspaceBBox: DimensionBox | null = null;
+  @observable accessor selected: ObservableArray<string> = observable.array();
+  @observable accessor targets: ObservableMap<
+    string,
+    { id: string } & DimensionBox
+  > = observable.map();
+  @observable accessor selectionRect: BoundingBox | null = null;
+
+  workspaceRef: HTMLElement | null = null;
   targetRefs: Map<string, HTMLElement> = new Map();
+
+  @action
+  initializeWorkspace(workspaceRef: HTMLElement | null) {
+    this.workspaceRef = workspaceRef;
+
+    if (!workspaceRef) {
+      return;
+    }
+
+    const { left, top, width, height } = workspaceRef.getBoundingClientRect();
+    this.workspaceBBox = { left, top, width, height };
+  }
+
+  @action
+  updateWorkspaceDimensions() {
+    if (!this.workspaceRef) {
+      return;
+    }
+
+    const { left, top, width, height } =
+      this.workspaceRef.getBoundingClientRect();
+    this.workspaceBBox = { left, top, width, height };
+  }
 
   @action
   addTarget(id: string, ref: HTMLElement) {
@@ -116,9 +170,14 @@ class SelectionStore {
     if (!this.selectionRect) {
       return null;
     }
+
     return {
-      left: Math.min(this.selectionRect.x1, this.selectionRect.x2),
-      top: Math.min(this.selectionRect.y1, this.selectionRect.y2),
+      left:
+        Math.min(this.selectionRect.x1, this.selectionRect.x2) -
+        (this.workspaceBBox?.left ?? 0),
+      top:
+        Math.min(this.selectionRect.y1, this.selectionRect.y2) -
+        (this.workspaceBBox?.top ?? 0),
       width: Math.abs(this.selectionRect.x1 - this.selectionRect.x2),
       height: Math.abs(this.selectionRect!.y1 - this.selectionRect!.y2),
     };
