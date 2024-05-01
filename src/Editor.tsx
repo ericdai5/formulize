@@ -17,9 +17,9 @@ export const Editor = observer(() => {
   const [editorCodeCorrect, setEditorCodeCorrect] = useState(true);
 
   useEffect(() => {
-    if (container && !editorView) {
+    if (container && (!editorView || editorView.contentDOM !== container)) {
       // Automatically update the formula when the editor code changes
-      // TODO: This is way too noisy due to the LaTeX changing a lot from changing a single character
+      // TODO: This doesn't work because cursor position is reset
       // const codeUpdateListener = EditorView.updateListener.of((update) => {
       //   if (
       //     update.docChanged &&
@@ -28,10 +28,10 @@ export const Editor = observer(() => {
       //     console.log("Editor code changed:", update);
       //     const newCode = update.state.doc.toString();
       //     if (checkFormulaCode(newCode)) {
-      //       setEditorCorrectness(() => "correct");
+      //       setEditorCodeCorrect(() => true);
       //       formulaStore.updateFormula(deriveAugmentedFormula(newCode));
       //     } else {
-      //       setEditorCorrectness(() => "wrong");
+      //       setEditorCodeCorrect(() => false);
       //     }
       //   }
       // });
@@ -89,6 +89,7 @@ export const Editor = observer(() => {
         styles={css`
           .cm-editor {
             height: 100%;
+            font-size: 1.5rem;
           }
         `}
       />

@@ -35,7 +35,7 @@ function App() {
             flex-direction: column;
             position: relative;
             height: 100%;
-            width: 25%;
+            width: 50%;
             border-right: 2px solid black;
             overflow-x: hidden;
             overflow-y: auto;
