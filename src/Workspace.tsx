@@ -97,6 +97,8 @@ export const Workspace = observer(() => {
         flex-direction: column;
         align-items: center;
         justify-content: center;
+
+        overflow: hidden;
       `}
       onDoubleClick={handleDoubleClick}
       onMouseDown={handleMouseDown}
