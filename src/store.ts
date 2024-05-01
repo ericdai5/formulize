@@ -65,6 +65,8 @@ class SelectionStore {
     { id: string } & DimensionBox
   > = observable.map();
   @observable accessor selectionRect: BoundingBox | null = null;
+  @observable accessor zoom = 4;
+  @observable accessor pan = { x: 0, y: 0 };
 
   workspaceRef: HTMLElement | null = null;
   targetRefs: Map<string, HTMLElement> = new Map();
@@ -160,9 +162,15 @@ class SelectionStore {
     }
   }
 
-  @computed
-  get isDragging() {
-    return this.selectionRect !== null;
+  @action
+  updatePan(dx: number, dy: number) {
+    this.pan.x += dx;
+    this.pan.y += dy;
+  }
+
+  @action
+  updateZoom(dz: number) {
+    this.zoom = Math.max(1, this.zoom + dz / 1000);
   }
 
   @computed

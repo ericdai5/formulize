@@ -30,12 +30,22 @@ export const Debug = observer(() => {
         flex-direction: column;
       `}
     >
+      <Viewport />
       <Targets />
       <Drag />
       <Selected />
     </div>
   );
 });
+
+const Viewport = observer(() => (
+  <>
+    <pre>
+      Pan: {selectionStore.pan.x}, {selectionStore.pan.y}
+    </pre>
+    <pre>Zoom: {selectionStore.zoom}</pre>
+  </>
+));
 
 const Targets = observer(() => (
   <>

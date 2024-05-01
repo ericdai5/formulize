@@ -54,9 +54,9 @@ export const RenderedFormula = observer(() => {
 
   return (
     <div
-      css={css`
-        transform: scale(4);
-      `}
+      style={{
+        transform: `translate(${selectionStore.pan.x}px, ${selectionStore.pan.y}px) scale(${selectionStore.zoom})`,
+      }}
     >
       {formulaStore.renderSpec !== null && (
         <RenderedFormulaComponent spec={toJS(formulaStore.renderSpec)} />

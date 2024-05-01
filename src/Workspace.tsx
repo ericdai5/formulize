@@ -10,6 +10,12 @@ import { selectionStore } from "./store";
 
 export const Workspace = observer(() => {
   const [showTopMenu, setShowTopMenu] = useState(true);
+  const [dragState, setDragState] = useState<
+    | { state: "none" }
+    | { state: "leftdown"; x: number; y: number }
+    | { state: "selecting" }
+    | { state: "panning"; lastX: number; lastY: number }
+  >({ state: "none" });
 
   const [contextMenuAnchor, setContextMenuAnchor] = useState<{
     anchorX: number;
@@ -20,16 +26,39 @@ export const Workspace = observer(() => {
     selectionStore.clearSelection();
   }, []);
   const handleMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    selectionStore.startDragSelection(e.clientX, e.clientY);
-  }, []);
-  const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    if (selectionStore.isDragging) {
-      selectionStore.updateDragSelection(e.clientX, e.clientY);
+    if (e.button === 0) {
+      setDragState({ state: "leftdown", x: e.clientX, y: e.clientY });
+    } else if (e.button === 1) {
+      setDragState({ state: "panning", lastX: e.clientX, lastY: e.clientY });
     }
   }, []);
-  const handleMouseUp = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    selectionStore.stopDragSelection();
-  }, []);
+  const handleMouseMove = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (dragState.state === "leftdown") {
+        selectionStore.startDragSelection(dragState.x, dragState.y);
+        selectionStore.updateDragSelection(e.clientX, e.clientY);
+        setDragState({ state: "selecting" });
+      } else if (dragState.state === "selecting") {
+        selectionStore.updateDragSelection(e.clientX, e.clientY);
+      } else if (dragState.state === "panning") {
+        // Update pan
+        const dx = e.clientX - dragState.lastX;
+        const dy = e.clientY - dragState.lastY;
+        selectionStore.updatePan(dx, dy);
+        setDragState({ state: "panning", lastX: e.clientX, lastY: e.clientY });
+      }
+    },
+    [dragState, setDragState]
+  );
+  const handleMouseUp = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (dragState.state === "selecting") {
+        selectionStore.stopDragSelection();
+      }
+      setDragState({ state: "none" });
+    },
+    [dragState, setDragState]
+  );
   const handleContextMenu = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
       if (!showTopMenu) {
@@ -39,6 +68,11 @@ export const Workspace = observer(() => {
     },
     [showTopMenu, setContextMenuAnchor]
   );
+  const handleScroll = useCallback((e: WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectionStore.updateZoom(-e.deltaY);
+  }, []);
 
   useEffect(() => {
     const resizeHandler = () => {
@@ -69,6 +103,7 @@ export const Workspace = observer(() => {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
+      onWheel={handleScroll}
       ref={(ref) => selectionStore.initializeWorkspace(ref)}
     >
       <div
