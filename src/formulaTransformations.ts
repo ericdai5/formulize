@@ -8,8 +8,8 @@ export const replaceNodes = (
   formula: AugmentedFormula,
   replacer: (node: AugmentedFormulaNode) => AugmentedFormulaNode
 ): AugmentedFormula => {
-  return normalizeIds(
-    fixParents(
+  return fixParents(
+    normalizeIds(
       new AugmentedFormula(
         formula.children.map((node) => replaceNode(node, replacer))
       )

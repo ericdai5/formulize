@@ -225,12 +225,22 @@ class SelectionStore {
       for (const selectedId of frontier) {
         const node = formulaStore.augmentedFormula.findNode(selectedId);
         if (!node) {
+          console.error(`Node with id ${selectedId} not found`);
           continue;
         }
 
         if (node._parent?.children.every((child) => frontier.has(child.id))) {
+          // If every child of a node is selected, the parent should be selected
           frontier.add(node._parent.id);
           node._parent.children.forEach((child) => frontier.delete(child.id));
+          changed = true;
+        } else if (node._parent?.children.length === 1) {
+          // Selection groupings pass upwards through single-child nodes
+          // e.g. if both Symbols in a Group(Color(Symbol), Color(Symbol))
+          // are selected, the Group should be selected as well, ignoring that
+          // the Colors are not directly selected
+          frontier.add(node._parent.id);
+          frontier.delete(node.id);
           changed = true;
         }
       }
