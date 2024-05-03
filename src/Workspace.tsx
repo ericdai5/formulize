@@ -15,7 +15,7 @@ import { RenderedFormula } from "./RenderedFormula";
 import { selectionStore } from "./store";
 
 export const Workspace = observer(() => {
-  const [showDebug, setShowDebug] = useState(true);
+  const [showDebug, setShowDebug] = useState(false);
   const [dragState, setDragState] = useState<
     | { state: "none" }
     | { state: "leftdown"; x: number; y: number }
@@ -165,6 +165,8 @@ const SelectionRect = observer(() => {
   );
 });
 
+const SELECTION_PADDING = 0.4;
+
 const SelectionBorders = observer(() => {
   return (
     <>
@@ -175,10 +177,10 @@ const SelectionBorders = observer(() => {
           <div
             style={{
               position: "absolute",
-              left: `${target.left - left}px`,
-              top: `${target.top - top}px`,
-              width: `${target.width}px`,
-              height: `${target.height}px`,
+              left: `calc(${target.left - left}px - ${SELECTION_PADDING}rem)`,
+              top: `calc(${target.top - top}px - ${SELECTION_PADDING}rem)`,
+              width: `calc(${target.width}px + ${2 * SELECTION_PADDING}rem)`,
+              height: `calc(${target.height}px + ${2 * SELECTION_PADDING}rem)`,
               border: "2px dashed black",
               zIndex: "1000",
             }}
