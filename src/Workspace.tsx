@@ -1,26 +1,27 @@
 import { css } from "@emotion/react";
-import { MouseEvent, useCallback, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  MouseEvent,
+  WheelEvent,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import { observer } from "mobx-react-lite";
 
 import { Debug } from "./Debug";
-import { ContextMenu, Menu } from "./Menu";
 import { RenderedFormula } from "./RenderedFormula";
 import { selectionStore } from "./store";
 
 export const Workspace = observer(() => {
-  const [showTopMenu, setShowTopMenu] = useState(true);
+  const [showDebug, setShowDebug] = useState(true);
   const [dragState, setDragState] = useState<
     | { state: "none" }
     | { state: "leftdown"; x: number; y: number }
     | { state: "selecting" }
     | { state: "panning"; lastX: number; lastY: number }
   >({ state: "none" });
-
-  const [contextMenuAnchor, setContextMenuAnchor] = useState<{
-    anchorX: number;
-    anchorY: number;
-  } | null>(null);
 
   const handleDoubleClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
     selectionStore.clearSelection();
@@ -59,20 +60,20 @@ export const Workspace = observer(() => {
     },
     [dragState, setDragState]
   );
-  const handleContextMenu = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      if (!showTopMenu) {
-        setContextMenuAnchor({ anchorX: e.clientX, anchorY: e.clientY });
-      }
-      e.preventDefault();
-    },
-    [showTopMenu, setContextMenuAnchor]
-  );
   const handleScroll = useCallback((e: WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     selectionStore.updateZoom(-e.deltaY);
   }, []);
+  const handleSetRef = useCallback((ref: Element | null) => {
+    selectionStore.initializeWorkspace(ref);
+  }, []);
+  const handleToggleShowDebug = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      setShowDebug(e.target.checked);
+    },
+    [setShowDebug]
+  );
 
   useEffect(() => {
     const resizeHandler = () => {
@@ -104,46 +105,40 @@ export const Workspace = observer(() => {
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onContextMenu={handleContextMenu}
       onWheel={handleScroll}
-      ref={(ref) => selectionStore.initializeWorkspace(ref)}
+      ref={handleSetRef}
     >
       <div
         css={css`
           position: absolute;
-          top: 2rem;
-          left: 1rem;
+          top: 0.5rem;
+          right: 1rem;
+          z-index: 1000;
         `}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-        }}
       >
         <input
-          id="showTopMenu"
+          id="showDebug"
           css={css`
             margin-right: 0.5rem;
           `}
           type="checkbox"
-          checked={showTopMenu}
-          onChange={(e) => setShowTopMenu(e.target.checked)}
+          checked={showDebug}
+          onChange={handleToggleShowDebug}
         />
         <label
           css={css`
             user-select: none;
+            font-family: monospace;
           `}
-          htmlFor="showTopMenu"
+          htmlFor="showDebug"
         >
-          Show top menu
+          Show debug menu
         </label>
       </div>
-      {showTopMenu && <Menu />}
-      {!showTopMenu && contextMenuAnchor !== null && (
-        <ContextMenu {...contextMenuAnchor} />
-      )}
       <SelectionRect />
       <SelectionBorders />
       <RenderedFormula />
-      <Debug />
+      {showDebug && <Debug />}
     </div>
   );
 });

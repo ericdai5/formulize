@@ -2,6 +2,7 @@ import { Global, css } from "@emotion/react";
 import { useEffect, useState } from "react";
 
 import { Editor } from "./Editor";
+import { Menu } from "./Menu";
 import { Workspace } from "./Workspace";
 
 function App() {
@@ -44,7 +45,18 @@ function App() {
         >
           <Editor />
         </div>
-        <Workspace />
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            width: 100%;
+            height: 100%;
+          `}
+        >
+          <Menu />
+          <Workspace />
+        </div>
       </div>
     </>
   );

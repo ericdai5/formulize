@@ -18,6 +18,7 @@ export const Debug = observer(() => {
   return (
     <div
       onMouseDown={(e) => e.stopPropagation()}
+      onScroll={(e) => e.stopPropagation()}
       css={css`
         position: fixed;
         top: 2rem;

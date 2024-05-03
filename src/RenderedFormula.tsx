@@ -78,9 +78,6 @@ const RenderedFormulaComponent = observer(({ spec }: { spec: RenderSpec }) => {
         ref,
         ["mjx-mi", "mjx-mn", "mjx-mo"].includes(spec.tagName)
       );
-      requestAnimationFrame(() => {
-        selectionStore.updateTargets();
-      });
     }
 
     () => {

@@ -186,6 +186,10 @@ export class AugmentedFormula {
   findNode(id: string): AugmentedFormulaNode | null {
     return this.idToNode[id] ?? null;
   }
+
+  equals(other: AugmentedFormula) {
+    return this.toLatex("noid") === other.toLatex("noid");
+  }
 }
 
 export type AugmentedFormulaNode =

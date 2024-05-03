@@ -18,10 +18,6 @@ export const Menu = () => {
   return (
     <div
       css={css`
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
         height: 2rem;
         display: flex;
         flex-direction: row;
@@ -137,6 +133,7 @@ const SubMenu = ({
         &:hover {
           height: 1.8rem;
         }
+        z-index: 500;
       `}
     >
       <MenuItem
@@ -500,70 +497,6 @@ const LineDivideMenu = () => {
       `}
     >
       <img src={LineDivideIcon} />
-    </div>
-  );
-};
-
-export const ContextMenu = ({
-  anchorX,
-  anchorY,
-}: {
-  anchorX: number;
-  anchorY: number;
-}) => {
-  const [menuWidth, setMenuWidth] = React.useState(0);
-  const ref = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (ref.current) {
-      setMenuWidth(ref.current.offsetWidth);
-    }
-  }, [ref.current]);
-
-  return (
-    <div
-      ref={ref}
-      css={css`
-        position: absolute;
-        top: calc(${anchorY}px - 3rem);
-        left: ${anchorX - menuWidth / 2}px;
-        height: 2.3rem;
-        z-index: 100;
-        visibility: ${menuWidth === 0 ? "hidden" : "visible"};
-
-        &:after {
-          content: "";
-          position: absolute;
-          top: calc(1.5rem - 2px);
-          left: calc(50% - 0.5rem);
-          width: 1rem;
-          height: 1rem;
-          background: #f0f0f0;
-          border: 2px solid black;
-          transform: rotate(45deg);
-          z-index: 0;
-        }
-      `}
-    >
-      <div
-        css={css`
-          position: relative;
-          display: flex;
-          height: 2.3rem;
-          background: #f0f0f0;
-          border: 2px solid black;
-          z-index: 100;
-        `}
-      >
-        <BoldMenu />
-        <ItalicsMenu />
-        <UnderlineMenu />
-        <StrikethroughMenu />
-        <ColorMenu />
-        <BoxMenu />
-        <LineWeightMenu />
-        <AnnotateMenu />
-      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import {
-  ObservableArray,
+  IObservableArray,
   ObservableMap,
   action,
   computed,
@@ -13,13 +13,19 @@ class FormulaStore {
   @observable accessor renderSpec: RenderSpec | null = null;
   @observable accessor augmentedFormula: AugmentedFormula =
     new AugmentedFormula([]);
+  @observable accessor suppressEditorUpdate = false;
 
   @action
   updateFormula(newFormula: AugmentedFormula) {
+    if (this.augmentedFormula.equals(newFormula)) {
+      console.log("Skipping formula update");
+      return;
+    }
+
     const { renderSpec } = updateFormula(newFormula);
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
-    selectionStore.clearTargets();
+    selectionStore.clearSelection();
   }
 
   @computed
@@ -59,7 +65,7 @@ export const toDimensionBox = (box: BoundingBox): DimensionBox => ({
 
 class SelectionStore {
   @observable accessor workspaceBBox: DimensionBox | null = null;
-  @observable accessor selected: ObservableArray<string> = observable.array();
+  @observable accessor selected: IObservableArray<string> = observable.array();
   @observable accessor targets: ObservableMap<
     string,
     { id: string; isLeaf: boolean } & DimensionBox
@@ -106,6 +112,7 @@ class SelectionStore {
 
   @action
   clearTargets() {
+    console.log("Clearing targets");
     this.targetRefs.clear();
     this.targets.clear();
     this.selected.clear();
@@ -142,15 +149,21 @@ class SelectionStore {
 
   @action
   clearSelection() {
-    this.selected = [];
+    this.selected.clear();
   }
 
   @action
   updateTargets() {
     for (const [id, [ref, isLeaf]] of this.targetRefs) {
       const { left, top, width, height } = ref.getBoundingClientRect();
-      this.targets.set(id, { id, left, top, width, height, isLeaf });
+      if (left === 0 && top === 0 && width === 0 && height === 0) {
+        // When the formula changes, the elements with these IDs may no longer exist
+        this.targets.delete(id);
+      } else {
+        this.targets.set(id, { id, left, top, width, height, isLeaf });
+      }
     }
+    console.log(this.targetRefs.size, "targets updated");
   }
 
   @action
