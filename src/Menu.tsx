@@ -15,6 +15,8 @@ import LineDivideIcon from "./Icons/LineDivideIcon.svg";
 import LogoIcon from "./Icons/LogoIcon.svg";
 
 export const Menu = () => {
+  const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+
   return (
     <div
       css={css`
@@ -41,8 +43,24 @@ export const Menu = () => {
       <ItalicsMenu />
       <UnderlineMenu />
       <StrikethroughMenu />
-      <ColorMenu />
-      <BoxMenu />
+      <ColorMenu
+        open={openMenu === "color"}
+        onMenuOpen={() => setOpenMenu("color")}
+        onMenuClose={() => {
+          if (openMenu === "color") {
+            setOpenMenu(null);
+          }
+        }}
+      />
+      <BoxMenu
+        open={openMenu === "box"}
+        onMenuOpen={() => setOpenMenu("box")}
+        onMenuClose={() => {
+          if (openMenu === "box") {
+            setOpenMenu(null);
+          }
+        }}
+      />
       <LineWeightMenu />
       <LineDivideMenu />
 
@@ -103,25 +121,30 @@ const ColorSwatch = ({ color, onClick }: ColorSwatchProps) => {
   );
 };
 
+type DismissableMenuProps = {
+  open: boolean;
+  onMenuOpen: () => void;
+  onMenuClose: () => void;
+};
+
 type SubMenuProps = {
   menuButton: React.ReactNode;
-};
+} & DismissableMenuProps;
 
 const SubMenu = ({
   menuButton,
+  open,
+  onMenuOpen,
+  onMenuClose,
   children,
 }: React.PropsWithChildren<SubMenuProps>) => {
-  const [open, setOpen] = React.useState(false);
+  React.useEffect(() => {
+    window.addEventListener("click", onMenuClose);
 
-  const handleDropDownFocus = (state: boolean) => {
-    setOpen(!state);
-  };
-  const handleClickOutsideDropdown = () => {
-    if (open) {
-      setOpen(false);
-    }
-  };
-  window.addEventListener("click", handleClickOutsideDropdown);
+    () => {
+      window.removeEventListener("click", onMenuClose);
+    };
+  }, [onMenuClose]);
 
   return (
     <div
@@ -136,12 +159,7 @@ const SubMenu = ({
         z-index: 500;
       `}
     >
-      <MenuItem
-        onClick={() => {
-          setOpen(!open);
-        }}
-        onClick={() => handleDropDownFocus(open)}
-      >
+      <MenuItem onClick={onMenuOpen}>
         {menuButton}
         {open && (
           <div
@@ -298,7 +316,7 @@ const StrikethroughMenu = () => {
   );
 };
 
-const ColorMenu = () => {
+const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   const colors = [
     "#000000",
     "#FF0000",
@@ -310,7 +328,12 @@ const ColorMenu = () => {
   ];
 
   return (
-    <SubMenu menuButton={<Icon>format_color_text</Icon>}>
+    <SubMenu
+      menuButton={<Icon>format_color_text</Icon>}
+      open={open}
+      onMenuOpen={onMenuOpen}
+      onMenuClose={onMenuClose}
+    >
       <div
         css={css`
           padding: 0.5rem;
@@ -350,6 +373,7 @@ const ColorMenu = () => {
                 })
               );
               e.stopPropagation();
+              onMenuClose();
             }}
           >
             <ColorSwatch key={color} color={color} />
@@ -360,7 +384,7 @@ const ColorMenu = () => {
   );
 };
 
-const BoxMenu = () => {
+const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   const colors = [
     "#000000",
     "#FF0000",
@@ -372,7 +396,12 @@ const BoxMenu = () => {
   ];
 
   return (
-    <SubMenu menuButton={<img src={BoxIcon} />}>
+    <SubMenu
+      menuButton={<img src={BoxIcon} />}
+      open={open}
+      onMenuOpen={onMenuOpen}
+      onMenuClose={onMenuClose}
+    >
       <div
         css={css`
           padding: 0.5rem;
@@ -410,6 +439,7 @@ const BoxMenu = () => {
                 })
               );
               e.stopPropagation();
+              onMenuClose();
             }}
           >
             <ColorSwatch key={color} color={color} />
