@@ -62,17 +62,17 @@ class SelectionStore {
   @observable accessor selected: ObservableArray<string> = observable.array();
   @observable accessor targets: ObservableMap<
     string,
-    { id: string } & DimensionBox
+    { id: string; isLeaf: boolean } & DimensionBox
   > = observable.map();
   @observable accessor selectionRect: BoundingBox | null = null;
   @observable accessor zoom = 4;
   @observable accessor pan = { x: 0, y: 0 };
 
-  workspaceRef: HTMLElement | null = null;
-  targetRefs: Map<string, HTMLElement> = new Map();
+  workspaceRef: Element | null = null;
+  targetRefs: Map<string, [Element, boolean]> = new Map();
 
   @action
-  initializeWorkspace(workspaceRef: HTMLElement | null) {
+  initializeWorkspace(workspaceRef: Element | null) {
     this.workspaceRef = workspaceRef;
 
     if (!workspaceRef) {
@@ -95,8 +95,8 @@ class SelectionStore {
   }
 
   @action
-  addTarget(id: string, ref: HTMLElement) {
-    this.targetRefs.set(id, ref);
+  addTarget(id: string, ref: Element, isLeaf: boolean) {
+    this.targetRefs.set(id, [ref, isLeaf]);
   }
 
   @action
@@ -147,9 +147,9 @@ class SelectionStore {
 
   @action
   updateTargets() {
-    for (const [id, ref] of this.targetRefs) {
+    for (const [id, [ref, isLeaf]] of this.targetRefs) {
       const { left, top, width, height } = ref.getBoundingClientRect();
-      this.targets.set(id, { id, left, top, width, height });
+      this.targets.set(id, { id, left, top, width, height, isLeaf });
     }
   }
 
@@ -211,7 +211,8 @@ class SelectionStore {
         const { left, top, width, height } = target;
         const right = left + width;
         const bottom = top + height;
-        return left <= dragRight &&
+        return target.isLeaf &&
+          left <= dragRight &&
           right >= dragLeft &&
           top <= dragBottom &&
           bottom >= dragTop

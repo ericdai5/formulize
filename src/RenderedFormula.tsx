@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
-import { Children, useEffect, useRef } from "react";
+import { Children, useEffect, useState } from "react";
 
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -49,7 +49,10 @@ export const RenderedFormula = observer(() => {
   }, []);
 
   useEffect(() => {
-    selectionStore.updateTargets();
+    console.log("Updating targets");
+    requestAnimationFrame(() => {
+      selectionStore.updateTargets();
+    });
   });
 
   return (
@@ -61,61 +64,23 @@ export const RenderedFormula = observer(() => {
       {formulaStore.renderSpec !== null && (
         <RenderedFormulaComponent spec={toJS(formulaStore.renderSpec)} />
       )}
-      <br />
     </div>
   );
 });
 
-const RenderedFormulaComponent = ({ spec }: { spec: RenderSpec }) => {
-  return ["mjx-mi", "mjx-mn", "mjx-mo"].includes(spec.tagName) ? (
-    <TargetableFormulaNode spec={spec} />
-  ) : (
-    <GenericFormulaNode spec={spec} />
-  );
-};
-
-const selectionBorderStyles = ({ showBorder }: { showBorder: boolean }) =>
-  showBorder
-    ? css`
-            &:after {
-            position: absolute;
-            content: "";
-            top: -0.1rem;
-            bottom: -0.1rem;
-            left: -0.1rem;
-            right: -0.1rem;
-            outline: 1px dashed black;
-          `
-    : "";
-
-const SelectionBorder = styled.div`
-  display: inline-block;
-  position: relative;
-  ${({ showBorder }) => selectionBorderStyles({ showBorder })}
-`;
-
-const GenericFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
-  const Tag = spec.tagName;
-  return (
-    // TODO: React throws a seemingly harmless error about `class` vs `className`
-    // @ts-expect-error This is an arbitrary tag, we can't statically type it
-    <Tag id={spec.id} class={spec.className} style={spec.style} {...spec.attrs}>
-      <SelectionBorder
-        showBorder={spec.id && selectionStore.resolvedSelection.has(spec.id)}
-      >
-        {spec.children?.map((child, i) => (
-          <RenderedFormulaComponent key={child.id ?? i} spec={child} />
-        ))}
-      </SelectionBorder>
-    </Tag>
-  );
-});
-
-const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
-  const ref = useRef<HTMLDivElement>(null);
+const RenderedFormulaComponent = observer(({ spec }: { spec: RenderSpec }) => {
+  const [ref, setRef] = useState<Element | null>(null);
   useEffect(() => {
-    if (spec.id && ref.current) {
-      selectionStore.addTarget(spec.id, ref.current);
+    if (spec.id && ref) {
+      console.log("Got element ref", ref);
+      selectionStore.addTarget(
+        spec.id,
+        ref,
+        ["mjx-mi", "mjx-mn", "mjx-mo"].includes(spec.tagName)
+      );
+      requestAnimationFrame(() => {
+        selectionStore.updateTargets();
+      });
     }
 
     () => {
@@ -124,21 +89,22 @@ const TargetableFormulaNode = observer(({ spec }: { spec: RenderSpec }) => {
         selectionStore.removeTarget(spec.id);
       }
     };
-  });
+  }, [ref, spec.id]);
 
   const Tag = spec.tagName;
   return (
     // TODO: React throws a seemingly harmless error about `class` vs `className`
     // @ts-expect-error This is an arbitrary tag, we can't statically type it
-    <Tag id={spec.id} class={spec.className} style={spec.style} {...spec.attrs}>
-      <SelectionBorder
-        showBorder={spec.id && selectionStore.resolvedSelection.has(spec.id)}
-        ref={ref}
-      >
-        {spec.children?.map((child, i) => (
-          <RenderedFormulaComponent key={i} spec={child} />
-        ))}
-      </SelectionBorder>
+    <Tag
+      id={spec.id}
+      class={spec.className}
+      style={spec.style}
+      {...spec.attrs}
+      ref={(ref: unknown) => setRef(ref as Element)}
+    >
+      {spec.children?.map((child, i) => (
+        <RenderedFormulaComponent key={i} spec={child} />
+      ))}
     </Tag>
   );
 });

@@ -141,6 +141,7 @@ export const Workspace = observer(() => {
         <ContextMenu {...contextMenuAnchor} />
       )}
       <SelectionRect />
+      <SelectionBorders />
       <RenderedFormula />
       <Debug />
     </div>
@@ -166,5 +167,30 @@ const SelectionRect = observer(() => {
         height: `${selectionStore.selectionRectDimensions.height}px`,
       }}
     ></div>
+  );
+});
+
+const SelectionBorders = observer(() => {
+  return (
+    <>
+      {Array.from(selectionStore.resolvedSelection).map((id) => {
+        const target = selectionStore.targets.get(id)!;
+        const { left, top } = selectionStore.workspaceBBox!;
+        return (
+          <div
+            style={{
+              position: "absolute",
+              left: `${target.left - left}px`,
+              top: `${target.top - top}px`,
+              width: `${target.width}px`,
+              height: `${target.height}px`,
+              border: "2px dashed black",
+              zIndex: "1000",
+            }}
+            key={id}
+          ></div>
+        );
+      })}
+    </>
   );
 });
