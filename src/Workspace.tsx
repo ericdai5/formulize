@@ -23,7 +23,7 @@ export const Workspace = observer(() => {
     | { state: "panning"; lastX: number; lastY: number }
   >({ state: "none" });
 
-  const handleDoubleClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
+  const handleDoubleClick = useCallback((_: MouseEvent<HTMLDivElement>) => {
     selectionStore.clearSelection();
   }, []);
   const handleMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
@@ -52,7 +52,7 @@ export const Workspace = observer(() => {
     [dragState, setDragState]
   );
   const handleMouseUp = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
+    (_: MouseEvent<HTMLDivElement>) => {
       if (dragState.state === "selecting") {
         selectionStore.stopDragSelection();
       }

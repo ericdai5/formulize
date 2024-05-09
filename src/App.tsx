@@ -1,5 +1,4 @@
 import { Global, css } from "@emotion/react";
-import { useEffect, useState } from "react";
 
 import { Editor } from "./Editor";
 import { Menu } from "./Menu";

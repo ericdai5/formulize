@@ -4,7 +4,6 @@ import {
   action,
   computed,
   observable,
-  reaction,
 } from "mobx";
 
 import { AugmentedFormula, RenderSpec, updateFormula } from "./FormulaTree";
@@ -169,7 +168,9 @@ class SelectionStore {
   @action
   toggle(id: string) {
     if (this.selected.includes(id)) {
-      this.selected = this.selected.filter((selectedId) => selectedId !== id);
+      this.selected.replace(
+        this.selected.filter((selectedId) => selectedId !== id)
+      );
     } else {
       this.selected.push(id);
     }

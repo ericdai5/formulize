@@ -1,6 +1,4 @@
-import { css } from "@emotion/react";
-import styled from "@emotion/styled";
-import { Children, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -9,25 +7,24 @@ import {
   AugmentedFormula,
   MathSymbol,
   RenderSpec,
-  Script,
   deriveAugmentedFormula,
 } from "./FormulaTree";
 import { formulaStore, selectionStore } from "./store";
 
-window.testMutateFormula = () => {
-  window.mutatedTimes = (window.mutatedTimes || 0) + 1;
+(window as any).testMutateFormula = () => {
+  (window as any).mutatedTimes = ((window as any).mutatedTimes || 0) + 1;
 
   formulaStore.updateFormula(
     new AugmentedFormula([
       ...formulaStore.augmentedFormula.children.slice(0, -1),
-      new MathSymbol(`t${window.mutatedTimes}`, "t"),
-      new MathSymbol(`+${window.mutatedTimes}`, "+"),
+      new MathSymbol(`t${(window as any).mutatedTimes}`, "t"),
+      new MathSymbol(`+${(window as any).mutatedTimes}`, "+"),
       ...formulaStore.augmentedFormula.children.slice(-1),
     ])
   );
 };
 
-window.setFormula = (latex: string) => {
+(window as any).setFormula = (latex: string) => {
   formulaStore.updateFormula(deriveAugmentedFormula(latex));
   selectionStore.updateTargets();
 };

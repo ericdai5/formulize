@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 
 window.MathJax = {
+  // @ts-expect-error This is valid, MathJax types are incomplete
   loader: {
     load: ["input/tex", "output/chtml", "[tex]/html", "[tex]/color"],
     tex: { packages: { "[+]": ["html", "color"] } },

@@ -40,7 +40,7 @@ export const debugLatex = async (latex: string) => {
   console.log("Parsed augmented formula:", parsed);
 };
 
-window.debugLatex = debugLatex;
+(window as any).debugLatex = debugLatex;
 
 export const checkFormulaCode = (latex: string) => {
   try {
@@ -59,14 +59,14 @@ export const updateFormula = (
   console.log("LaTeX:", newFormula.toLatex("noid"));
   console.log("New formula:", newFormula);
   const renderLatex = newFormula.toLatex("render");
-  const chtml = MathJax.tex2chtml(renderLatex);
+  const chtml = (MathJax as any).tex2chtml(renderLatex);
   const renderSpec = deriveRenderSpec(chtml);
   console.log("Render spec:", renderSpec);
 
   // MathJax rendering requires appending new styles to the document
   // TODO: Don't know what this does when there are multiple formulas
-  MathJax.startup.document.clear();
-  MathJax.startup.document.updateDocument();
+  (MathJax as any).startup.document.clear();
+  (MathJax as any).startup.document.updateDocument();
 
   return {
     renderSpec,
@@ -162,6 +162,7 @@ const buildAugmentedFormula = (
   }
 
   console.log("Failed to build:", katexTree);
+  throw new Error("Failed to build formula tree");
 };
 
 // TODO: eventually this will also cover alternative code presentations (content
@@ -513,10 +514,11 @@ export const deriveRenderSpec = (node: Element): RenderSpec => {
 
 export const extractStyle = (node: Element): Record<string, string> => {
   return Object.fromEntries(
-    Array.from(node.style).map((prop) => [
+    Array.from((node as HTMLElement).style).map((prop) => [
       // https://stackoverflow.com/a/60738940
       prop.replace(/-./g, (x) => x[1].toUpperCase()),
-      node.style[prop as string],
+      // @ts-expect-error This is a valid way to access a style property
+      node.style[prop],
     ])
   );
 };

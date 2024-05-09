@@ -61,10 +61,26 @@ export const Menu = () => {
           }
         }}
       />
-      <LineWeightMenu />
+      <LineWeightMenu
+        open={openMenu === "line"}
+        onMenuOpen={() => setOpenMenu("line")}
+        onMenuClose={() => {
+          if (openMenu === "line") {
+            setOpenMenu(null);
+          }
+        }}
+      />
       <LineDivideMenu />
 
-      <AnnotateMenu />
+      <AnnotateMenu
+        open={openMenu === "annotate"}
+        onMenuOpen={() => setOpenMenu("annotate")}
+        onMenuClose={() => {
+          if (openMenu === "annotate") {
+            setOpenMenu(null);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -262,7 +278,7 @@ const ZoomMenu = () => {
 
 const BoldMenu = () => {
   return (
-    <MenuItem menuButton={<Icon>format_bold</Icon>}>
+    <MenuItem onClick={() => {}}>
       <div
         onClick={(e) => {
           e.stopPropagation();
@@ -276,7 +292,7 @@ const BoldMenu = () => {
 
 const ItalicsMenu = () => {
   return (
-    <MenuItem menuButton={<Icon>format_italic</Icon>}>
+    <MenuItem onClick={() => {}}>
       <div
         onClick={(e) => {
           e.stopPropagation();
@@ -290,7 +306,7 @@ const ItalicsMenu = () => {
 
 const UnderlineMenu = () => {
   return (
-    <MenuItem menuButton={<Icon>format_underline</Icon>}>
+    <MenuItem onClick={() => {}}>
       <div
         onClick={(e) => {
           e.stopPropagation();
@@ -304,7 +320,7 @@ const UnderlineMenu = () => {
 
 const StrikethroughMenu = () => {
   return (
-    <MenuItem menuButton={<Icon>format_strikethrough</Icon>}>
+    <MenuItem onClick={() => {}}>
       <div
         onClick={(e) => {
           e.stopPropagation();
@@ -450,11 +466,20 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   );
 };
 
-const LineWeightMenu = () => {
+const LineWeightMenu = ({
+  open,
+  onMenuOpen,
+  onMenuClose,
+}: DismissableMenuProps) => {
   const weights = ["Thin", "Normal", "Thick"];
 
   return (
-    <SubMenu menuButton={<Icon>line_weight</Icon>}>
+    <SubMenu
+      menuButton={<Icon>line_weight</Icon>}
+      open={open}
+      onMenuOpen={onMenuOpen}
+      onMenuClose={onMenuClose}
+    >
       <div
         css={css`
           padding: 0.5rem;
@@ -483,10 +508,19 @@ const LineWeightMenu = () => {
   );
 };
 
-const AnnotateMenu = () => {
+const AnnotateMenu = ({
+  open,
+  onMenuOpen,
+  onMenuClose,
+}: DismissableMenuProps) => {
   const annotationHeads = [BracketListOption, CurlyBraceListOption];
   return (
-    <SubMenu menuButton={<img src={AnnotateIcon} />}>
+    <SubMenu
+      menuButton={<img src={AnnotateIcon} />}
+      open={open}
+      onMenuOpen={onMenuOpen}
+      onMenuClose={onMenuClose}
+    >
       <div
         css={css`
           padding: 0.5rem;
