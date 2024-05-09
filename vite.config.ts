@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: "/forge/",
+  base: "/formula-editor/forge/",
   plugins: [
     react({
       jsxImportSource: "@emotion/react",
