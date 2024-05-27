@@ -69,7 +69,6 @@ const RenderedFormulaComponent = observer(({ spec }: { spec: RenderSpec }) => {
   const [ref, setRef] = useState<Element | null>(null);
   useEffect(() => {
     if (spec.id && ref) {
-      console.log("Got element ref", ref);
       selectionStore.addTarget(
         spec.id,
         ref,
@@ -83,7 +82,7 @@ const RenderedFormulaComponent = observer(({ spec }: { spec: RenderSpec }) => {
         selectionStore.removeTarget(spec.id);
       }
     };
-  }, [ref, spec.id]);
+  }, [ref, spec.id, spec.tagName]);
 
   const Tag = spec.tagName;
   return (

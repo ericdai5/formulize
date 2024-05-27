@@ -4,7 +4,7 @@
 // import katex from "katex";
 
 export const debugLatex = async (latex: string) => {
-  // const html: Element = MathJax.tex2chtml(latex);
+  const mathjaxRendered: Element = MathJax.tex2chtml(latex);
   // const formattedHtml = await prettier.format(html.outerHTML, {
   //   parser: "babel",
   //   plugins: [babelPlugin, estreePlugin],
@@ -32,9 +32,14 @@ export const debugLatex = async (latex: string) => {
   if (!debugDiv) {
     debugDiv = document.createElement("div");
     debugDiv.id = "debug";
+    debugDiv.style.position = "fixed";
+    debugDiv.style.bottom = "0";
+    debugDiv.style.left = "50%";
     document.body.appendChild(debugDiv);
   }
   debugDiv.innerHTML = katexRendered;
+  // (MathJax as any).startup.document.updateDocument();
+  // debugDiv.innerHTML = mathjaxRendered.outerHTML;
 
   const parsed = deriveAugmentedFormula(latex);
   console.log("Parsed augmented formula:", parsed);
@@ -159,6 +164,20 @@ const buildAugmentedFormula = (
       child._parent = box;
       return box;
     }
+    case "horizBrace": {
+      const base = buildAugmentedFormula(katexTree.base, `${id}.base`);
+      const brace = new Brace(id, katexTree.isOver, base);
+      base._parent = brace;
+      return brace;
+    }
+    case "text": {
+      const children = katexTree.body.map((child, i) =>
+        buildAugmentedFormula(child, `${id}.${i}`)
+      );
+      const text = new Text(id, children);
+      children.forEach((child) => (child._parent = text));
+      return text;
+    }
   }
 
   console.log("Failed to build:", katexTree);
@@ -173,6 +192,7 @@ export class AugmentedFormula {
   private idToNode: { [id: string]: AugmentedFormulaNode } = {};
 
   constructor(public children: AugmentedFormulaNode[]) {
+    console.log("New formula from:", children);
     const collectIds = (node: AugmentedFormulaNode) => {
       this.idToNode[node.id] = node;
       node.children.forEach(collectIds);
@@ -199,7 +219,9 @@ export type AugmentedFormulaNode =
   | MathSymbol
   | Color
   | Group
-  | Box;
+  | Box
+  | Brace
+  | Text;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -239,9 +261,9 @@ export class Script extends AugmentedFormulaNodeBase {
   }
 
   toLatex(mode: LatexMode): string {
-    const baseLatex = String.raw`{${this.base.toLatex(mode)}}`;
-    const subLatex = this.sub ? String.raw`_{${this.sub.toLatex(mode)}}` : "";
-    const supLatex = this.sup ? String.raw`^{${this.sup.toLatex(mode)}}` : "";
+    const baseLatex = String.raw`${this.base.toLatex(mode)}`;
+    const subLatex = this.sub ? String.raw`_${this.sub.toLatex(mode)}` : "";
+    const supLatex = this.sup ? String.raw`^${this.sup.toLatex(mode)}` : "";
     return this.latexWithId(
       mode,
       String.raw`{${baseLatex}${subLatex}${supLatex}}`
@@ -414,7 +436,9 @@ export class Group extends AugmentedFormulaNodeBase {
     const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
-    return this.latexWithId(mode, String.raw`{${childrenLatex}}`);
+    return this.body.length === 1
+      ? this.latexWithId(mode, childrenLatex)
+      : this.latexWithId(mode, String.raw`{${childrenLatex}}`);
   }
 
   withChanges({
@@ -484,6 +508,82 @@ export class Box extends AugmentedFormulaNodeBase {
 
   get children(): AugmentedFormulaNode[] {
     return [this.body];
+  }
+}
+
+export class Brace extends AugmentedFormulaNodeBase {
+  type = "brace" as const;
+  constructor(
+    public id: string,
+    public over: boolean,
+    public base: AugmentedFormulaNode
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    const baseLatex = this.base.toLatex(mode);
+    const command = "\\" + (this.over ? "over" : "under") + "brace";
+    return this.latexWithId(mode, String.raw`${command}{${baseLatex}}`);
+  }
+
+  withChanges({
+    id,
+    parent,
+    over,
+    base,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    over?: boolean;
+    base?: AugmentedFormulaNode;
+  }): Brace {
+    const brace = new Brace(
+      id ?? this.id,
+      over ?? this.over,
+      base ?? this.base
+    );
+    brace._parent = parent ?? this._parent;
+    return brace;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [this.base];
+  }
+}
+
+export class Text extends AugmentedFormulaNodeBase {
+  type = "text" as const;
+  constructor(
+    public id: string,
+    public body: AugmentedFormulaNode[]
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    const childrenLatex = this.body
+      .map((child) => child.toLatex("noid"))
+      .join("");
+    return this.latexWithId(mode, String.raw`\text{${childrenLatex}}`);
+  }
+
+  withChanges({
+    id,
+    parent,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    body?: AugmentedFormulaNode[];
+  }): Text {
+    const t = new Text(id ?? this.id, body ?? this.body);
+    t._parent = parent ?? this._parent;
+    return t;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return this.body;
   }
 }
 

@@ -57,7 +57,20 @@ const replaceNode = (
           body: replaceNode(node.body, replacer),
         })
       );
+    case "brace":
+      return replacer(
+        node.withChanges({
+          base: replaceNode(node.base, replacer),
+        })
+      );
+    case "text":
+      return replacer(
+        node.withChanges({
+          body: node.body.map((child) => replaceNode(child, replacer)),
+        })
+      );
   }
+  return assertUnreachable(node);
 };
 
 export const normalizeIds = (formula: AugmentedFormula): AugmentedFormula => {
@@ -97,6 +110,16 @@ const reassignIds = (
       return node.withChanges({
         id,
         body: reassignIds(node.body, `${id}.body`),
+      });
+    case "brace":
+      return node.withChanges({
+        id,
+        base: reassignIds(node.base, `${id}.base`),
+      });
+    case "text":
+      return node.withChanges({
+        id,
+        body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
       });
   }
   return assertUnreachable(node);
@@ -139,6 +162,16 @@ const fixParent = (
       return node.withChanges({
         parent,
         body: fixParent(node.body, node),
+      });
+    case "brace":
+      return node.withChanges({
+        parent,
+        base: fixParent(node.base, node),
+      });
+    case "text":
+      return node.withChanges({
+        parent,
+        body: node.body.map((child) => fixParent(child, node)),
       });
   }
   return assertUnreachable(node);

@@ -3,7 +3,7 @@ import { default as React } from "react";
 
 import Icon from "@mui/material/Icon";
 
-import { Box, Color } from "./FormulaTree";
+import { Box, Brace, Color, MathSymbol, Script, Text } from "./FormulaTree";
 import { replaceNodes } from "./formulaTransformations";
 import { formulaStore, selectionStore } from "./store";
 
@@ -175,7 +175,7 @@ const SubMenu = ({
         z-index: 500;
       `}
     >
-      <MenuItem onClick={onMenuOpen}>
+      <MenuItem onClick={open ? onMenuClose : onMenuOpen}>
         {menuButton}
         {open && (
           <div
@@ -513,7 +513,35 @@ const AnnotateMenu = ({
   onMenuOpen,
   onMenuClose,
 }: DismissableMenuProps) => {
-  const annotationHeads = [BracketListOption, CurlyBraceListOption];
+  const makeAnnotationCallback = (over: boolean) => (e: React.MouseEvent) => {
+    formulaStore.updateFormula(
+      replaceNodes(formulaStore.augmentedFormula, (node) => {
+        if (
+          node.type === "brace" &&
+          selectionStore.resolvedSelection.has(node.id)
+        ) {
+          console.log("Modifying existing brace node", node);
+        } else if (
+          selectionStore.resolvedSelection.has(node.id) &&
+          (node.ancestors.length === 0 || node.ancestors[0].type !== "brace")
+        ) {
+          console.log("Applying new brace node to", node);
+          return new Script(
+            "",
+            new Brace("", over, node),
+            undefined,
+            new Text(
+              "",
+              Array.from("caption").map((c) => new MathSymbol("", c))
+            )
+          );
+        }
+        return node;
+      })
+    );
+    e.stopPropagation();
+    onMenuClose();
+  };
   return (
     <SubMenu
       menuButton={<img src={AnnotateIcon} />}
@@ -531,19 +559,24 @@ const AnnotateMenu = ({
           justify-content: flex-start;
         `}
       >
-        {annotationHeads.map((head) => (
-          <div
-            key={head}
-            css={css`
-              margin: 0.25rem;
-            `}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <img src={head} height={"17rem"} />
-          </div>
-        ))}
+        <div
+          css={css`
+            margin: 0.25rem;
+            transform: rotate(90deg) translateY(0.2rem);
+          `}
+          onClick={makeAnnotationCallback(true)}
+        >
+          <img src={CurlyBraceListOption} height={"17rem"} />
+        </div>
+        <div
+          css={css`
+            margin: 0.25rem;
+            transform: rotate(-90deg) translateY(0.2rem);
+          `}
+          onClick={makeAnnotationCallback(false)}
+        >
+          <img src={CurlyBraceListOption} height={"17rem"} />
+        </div>
       </div>
     </SubMenu>
   );
