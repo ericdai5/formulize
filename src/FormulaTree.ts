@@ -178,6 +178,8 @@ const buildAugmentedFormula = (
       children.forEach((child) => (child._parent = text));
       return text;
     }
+    case "spacing":
+      return new Space(id, katexTree.text);
   }
 
   console.log("Failed to build:", katexTree);
@@ -221,7 +223,8 @@ export type AugmentedFormulaNode =
   | Group
   | Box
   | Brace
-  | Text;
+  | Text
+  | Space;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -584,6 +587,38 @@ export class Text extends AugmentedFormulaNodeBase {
 
   get children(): AugmentedFormulaNode[] {
     return this.body;
+  }
+}
+
+export class Space extends AugmentedFormulaNodeBase {
+  type = "space" as const;
+  constructor(
+    public id: string,
+    public text: string
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    return this.text;
+  }
+
+  withChanges({
+    id,
+    parent,
+    text,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    text?: string;
+  }): Space {
+    const space = new Space(id ?? this.id, text ?? this.text);
+    space._parent = parent ?? this._parent;
+    return space;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [];
   }
 }
 

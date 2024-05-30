@@ -38,14 +38,11 @@ const replaceNode = (
         })
       );
     case "symbol":
+    case "space":
       return replacer(node.withChanges({}));
     case "color":
-      return replacer(
-        node.withChanges({
-          body: node.body.map((child) => replaceNode(child, replacer)),
-        })
-      );
     case "group":
+    case "text":
       return replacer(
         node.withChanges({
           body: node.body.map((child) => replaceNode(child, replacer)),
@@ -61,12 +58,6 @@ const replaceNode = (
       return replacer(
         node.withChanges({
           base: replaceNode(node.base, replacer),
-        })
-      );
-    case "text":
-      return replacer(
-        node.withChanges({
-          body: node.body.map((child) => replaceNode(child, replacer)),
         })
       );
   }
@@ -99,9 +90,11 @@ const reassignIds = (
         denominator: reassignIds(node.denominator, `${id}.denominator`),
       });
     case "symbol":
+    case "space":
       return node.withChanges({ id });
     case "color":
     case "group":
+    case "text":
       return node.withChanges({
         id,
         body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
@@ -115,11 +108,6 @@ const reassignIds = (
       return node.withChanges({
         id,
         base: reassignIds(node.base, `${id}.base`),
-      });
-    case "text":
-      return node.withChanges({
-        id,
-        body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
       });
   }
   return assertUnreachable(node);
@@ -151,9 +139,11 @@ const fixParent = (
         denominator: fixParent(node.denominator, node),
       });
     case "symbol":
+    case "space":
       return node.withChanges({ parent });
     case "color":
     case "group":
+    case "text":
       return node.withChanges({
         parent,
         body: node.body.map((child) => fixParent(child, node)),
@@ -167,11 +157,6 @@ const fixParent = (
       return node.withChanges({
         parent,
         base: fixParent(node.base, node),
-      });
-    case "text":
-      return node.withChanges({
-        parent,
-        body: node.body.map((child) => fixParent(child, node)),
       });
   }
   return assertUnreachable(node);
