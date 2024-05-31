@@ -71,15 +71,17 @@ const Targets = observer(() => (
         </tr>
       </thead>
       <tbody>
-        {Array.from(selectionStore.targets.values()).map((target) => (
-          <tr key={target.id}>
-            <CoordinateCell>{target.id}</CoordinateCell>
-            <CoordinateCell>{formatCoordinate(target.left)}</CoordinateCell>
-            <CoordinateCell>{formatCoordinate(target.top)}</CoordinateCell>
-            <CoordinateCell>{formatCoordinate(target.width)}</CoordinateCell>
-            <CoordinateCell>{formatCoordinate(target.height)}</CoordinateCell>
-          </tr>
-        ))}
+        {Array.from(selectionStore.screenSpaceTargets.values()).map(
+          (target) => (
+            <tr key={target.id}>
+              <CoordinateCell>{target.id}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.left)}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.top)}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.width)}</CoordinateCell>
+              <CoordinateCell>{formatCoordinate(target.height)}</CoordinateCell>
+            </tr>
+          )
+        )}
       </tbody>
     </table>
   </>

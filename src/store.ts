@@ -64,6 +64,7 @@ export const toDimensionBox = (box: BoundingBox): DimensionBox => ({
 
 class SelectionStore {
   @observable accessor workspaceBBox: DimensionBox | null = null;
+  @observable accessor formulaRootBBox: DimensionBox | null = null;
   @observable accessor selected: IObservableArray<string> = observable.array();
   @observable accessor targets: ObservableMap<
     string,
@@ -74,6 +75,7 @@ class SelectionStore {
   @observable accessor pan = { x: 0, y: 0 };
 
   workspaceRef: Element | null = null;
+  formulaRootRef: Element | null = null;
   targetRefs: Map<string, [Element, boolean]> = new Map();
 
   @action
@@ -84,8 +86,20 @@ class SelectionStore {
       return;
     }
 
-    const { left, top, width, height } = workspaceRef.getBoundingClientRect();
-    this.workspaceBBox = { left, top, width, height };
+    this.updateTargets();
+  }
+
+  @action
+  initializeFormulaRoot(formulaRootRef: Element | null) {
+    this.formulaRootRef = formulaRootRef;
+
+    if (!formulaRootRef) {
+      return;
+    }
+
+    console.log("new formula root");
+
+    this.updateTargets();
   }
 
   @action
@@ -153,15 +167,48 @@ class SelectionStore {
 
   @action
   updateTargets() {
+    if (this.workspaceRef) {
+      const { left, top, width, height } =
+        this.workspaceRef.getBoundingClientRect();
+      this.workspaceBBox = { left, top, width, height };
+    }
+
+    if (this.formulaRootRef) {
+      const { left, top, width, height } =
+        this.formulaRootRef.getBoundingClientRect();
+      const trueLeft = left - this.pan.x;
+      const trueTop = top - this.pan.y;
+      this.formulaRootBBox = { left: trueLeft, top: trueTop, width, height };
+    }
+
     for (const [id, [ref, isLeaf]] of this.targetRefs) {
       const { left, top, width, height } = ref.getBoundingClientRect();
       if (left === 0 && top === 0 && width === 0 && height === 0) {
         // When the formula changes, the elements with these IDs may no longer exist
         this.targets.delete(id);
       } else {
-        this.targets.set(id, { id, left, top, width, height, isLeaf });
+        // Convert to formula root coordinates (origin at center of formula root)
+        const formulaOriginX =
+          this.formulaRootBBox!.left + this.formulaRootBBox!.width / 2;
+        const formulaOriginY =
+          this.formulaRootBBox!.top + this.formulaRootBBox!.height / 2;
+
+        const leftFromOrigin = (left - this.pan.x - formulaOriginX) / this.zoom;
+        const topFromOrigin = (top - this.pan.y - formulaOriginY) / this.zoom;
+        const baseWidth = width / this.zoom;
+        const baseHeight = height / this.zoom;
+
+        this.targets.set(id, {
+          id,
+          left: leftFromOrigin,
+          top: topFromOrigin,
+          width: baseWidth,
+          height: baseHeight,
+          isLeaf,
+        });
       }
     }
+
     console.log(this.targetRefs.size, "targets updated");
   }
 
@@ -206,6 +253,72 @@ class SelectionStore {
   }
 
   @computed({
+    equals: (
+      a: Map<string, { id: string } & DimensionBox>,
+      b: Map<string, { id: string } & DimensionBox>
+    ) => {
+      if (a.size !== b.size) {
+        return false;
+      }
+
+      for (const [id, aBox] of a) {
+        const bBox = b.get(id);
+        if (!bBox) {
+          return false;
+        }
+
+        if (
+          aBox.left !== bBox.left ||
+          aBox.top !== bBox.top ||
+          aBox.width !== bBox.width ||
+          aBox.height !== bBox.height
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+  })
+  get screenSpaceTargets(): Map<string, { id: string } & DimensionBox> {
+    return new Map<string, { id: string } & DimensionBox>(
+      Array.from(this.targets.values()).flatMap(
+        (target): [[string, { id: string } & DimensionBox]] => {
+          const { left, top, width, height } = target;
+
+          const {
+            left: formulaLeft,
+            top: formulaTop,
+            width: formulaWidth,
+            height: formulaHeight,
+          } = this.formulaRootBBox!;
+
+          const originX = formulaLeft + formulaWidth / 2;
+          const originY = formulaTop + formulaHeight / 2;
+
+          const screenLeft = originX + left * this.zoom + this.pan.x;
+          const screenTop = originY + top * this.zoom + this.pan.y;
+          const screenWidth = width * this.zoom;
+          const screenHeight = height * this.zoom;
+
+          return [
+            [
+              target.id,
+              {
+                id: target.id,
+                left: screenLeft,
+                top: screenTop,
+                width: screenWidth,
+                height: screenHeight,
+              },
+            ],
+          ];
+        }
+      )
+    );
+  }
+
+  @computed({
     equals: (a: Set<string>, b: Set<string>) =>
       a.size === b.size && Array.from(a).every((id) => b.has(id)),
   })
@@ -223,13 +336,27 @@ class SelectionStore {
     return new Set(
       Array.from(this.targets.values()).flatMap((target) => {
         const { left, top, width, height } = target;
-        const right = left + width;
-        const bottom = top + height;
+
+        const {
+          left: formulaLeft,
+          top: formulaTop,
+          width: formulaWidth,
+          height: formulaHeight,
+        } = this.formulaRootBBox!;
+
+        const originX = formulaLeft + formulaWidth / 2;
+        const originY = formulaTop + formulaHeight / 2;
+
+        const screenLeft = originX + left * this.zoom + this.pan.x;
+        const screenTop = originY + top * this.zoom + this.pan.y;
+        const screenRight = screenLeft + width * this.zoom;
+        const screenBottom = screenTop + height * this.zoom;
+
         return target.isLeaf &&
-          left <= dragRight &&
-          right >= dragLeft &&
-          top <= dragBottom &&
-          bottom >= dragTop
+          screenLeft <= dragRight &&
+          screenRight >= dragLeft &&
+          screenTop <= dragBottom &&
+          screenBottom >= dragTop
           ? [target.id]
           : [];
       })

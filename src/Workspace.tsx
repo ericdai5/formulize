@@ -171,7 +171,7 @@ const SelectionBorders = observer(() => {
   return (
     <>
       {Array.from(selectionStore.resolvedSelection).map((id) => {
-        const target = selectionStore.targets.get(id)!;
+        const target = selectionStore.screenSpaceTargets.get(id)!;
         const { left, top } = selectionStore.workspaceBBox!;
         return (
           <div
@@ -179,7 +179,7 @@ const SelectionBorders = observer(() => {
               position: "absolute",
               left: `calc(${target.left - left}px - ${SELECTION_PADDING}rem)`,
               top: `calc(${target.top - top}px - ${SELECTION_PADDING}rem)`,
-              width: `calc(${target.width}px + ${2 * SELECTION_PADDING}rem)`,
+              width: `calc((${target.width}px + ${2 * SELECTION_PADDING}rem)`,
               height: `calc(${target.height}px + ${2 * SELECTION_PADDING}rem)`,
               border: "2px dashed black",
               zIndex: "1000",

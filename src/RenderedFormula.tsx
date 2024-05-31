@@ -1,33 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import {
-  AugmentedFormula,
-  MathSymbol,
-  RenderSpec,
-  deriveAugmentedFormula,
-} from "./FormulaTree";
+import { RenderSpec, deriveAugmentedFormula } from "./FormulaTree";
 import { formulaStore, selectionStore } from "./store";
-
-(window as any).testMutateFormula = () => {
-  (window as any).mutatedTimes = ((window as any).mutatedTimes || 0) + 1;
-
-  formulaStore.updateFormula(
-    new AugmentedFormula([
-      ...formulaStore.augmentedFormula.children.slice(0, -1),
-      new MathSymbol(`t${(window as any).mutatedTimes}`, "t"),
-      new MathSymbol(`+${(window as any).mutatedTimes}`, "+"),
-      ...formulaStore.augmentedFormula.children.slice(-1),
-    ])
-  );
-};
-
-(window as any).setFormula = (latex: string) => {
-  formulaStore.updateFormula(deriveAugmentedFormula(latex));
-  selectionStore.updateTargets();
-};
 
 export const RenderedFormula = observer(() => {
   useEffect(() => {
@@ -36,7 +13,9 @@ export const RenderedFormula = observer(() => {
 
   useEffect(() => {
     const resizeHandler = () => {
-      selectionStore.updateTargets();
+      requestAnimationFrame(() => {
+        selectionStore.updateTargets();
+      });
     };
     window.addEventListener("resize", resizeHandler);
 
@@ -45,15 +24,25 @@ export const RenderedFormula = observer(() => {
     };
   }, []);
 
-  useEffect(() => {
-    console.log("Updating targets");
-    requestAnimationFrame(() => {
-      selectionStore.updateTargets();
-    });
-  });
+  useEffect(
+    () => {
+      console.log("Updating targets");
+      requestAnimationFrame(() => {
+        selectionStore.updateTargets();
+      });
+    },
+    // For performance reasons, we only want this to trigger when we have a new formula to render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [formulaStore.renderSpec]
+  );
+
+  const handleSetRef = useCallback((ref: Element | null) => {
+    selectionStore.initializeFormulaRoot(ref);
+  }, []);
 
   return (
     <div
+      ref={handleSetRef}
       style={{
         transform: `translate(${selectionStore.pan.x}px, ${selectionStore.pan.y}px) scale(${selectionStore.zoom})`,
       }}
