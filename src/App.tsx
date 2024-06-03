@@ -20,6 +20,14 @@ function App() {
             height: 100vh;
             overflow: hidden;
           }
+
+          .inactive-styled-range {
+            border-top: 2px solid red;
+          }
+
+          .active-styled-range {
+            border-top: 5px solid red;
+          }
         `}
       />
       <div
