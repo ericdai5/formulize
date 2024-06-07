@@ -1,3 +1,4 @@
+import { css as classnames } from "@emotion/css";
 import { Global, css } from "@emotion/react";
 import { useEffect, useState } from "react";
 
@@ -24,14 +25,6 @@ import { EditorView, basicSetup } from "codemirror";
 import { checkFormulaCode, deriveAugmentedFormula } from "./FormulaTree";
 import { formulaStore } from "./store";
 
-const ActiveStyledRangeMarker = Decoration.mark({
-  class: "active-styled-range",
-});
-
-const InactiveStyledRangeMarker = Decoration.mark({
-  class: "inactive-styled-range",
-});
-
 const styledRanges = (view: EditorView) => {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
@@ -39,9 +32,45 @@ const styledRanges = (view: EditorView) => {
   const active = view.state.field(styledRangeSelectionState);
   console.log("Active", active);
   if (active) {
-    builder.add(0, 5, ActiveStyledRangeMarker);
+    builder.add(
+      0,
+      5,
+      Decoration.mark({
+        class: classnames`
+            position: relative;
+
+            &::after {
+              content: "";
+              position: absolute;
+              top: -5px;
+              left: 0;
+              width: 100%;
+              height: 5px;
+              background-color: red;
+            }
+        `,
+      })
+    );
   } else {
-    builder.add(0, 5, InactiveStyledRangeMarker);
+    builder.add(
+      0,
+      5,
+      Decoration.mark({
+        class: classnames`
+            position: relative;
+
+            &::after {
+              content: "";
+              position: absolute;
+              top: -5px;
+              left: 0;
+              width: 100%;
+              height: 2px;
+              background-color: red;
+            }
+        `,
+      })
+    );
   }
 
   return builder.finish();
