@@ -1,4 +1,4 @@
-import { css as classnames } from "@emotion/css";
+import { css as classname } from "@emotion/css";
 import { Global, css } from "@emotion/react";
 import { useEffect, useState } from "react";
 
@@ -29,48 +29,84 @@ const styledRanges = (view: EditorView) => {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
 
-  const active = view.state.field(styledRangeSelectionState);
-  console.log("Active", active);
-  if (active) {
-    builder.add(
-      0,
-      5,
-      Decoration.mark({
-        class: classnames`
-            position: relative;
+  const nestingDepth = view.state.field(styledRangeSelectionState);
+  console.log("Nesting depth", nestingDepth);
+  const l1Inactive = Decoration.mark({
+    class: classname`
+      position: relative;
 
-            &::after {
-              content: "";
-              position: absolute;
-              top: -5px;
-              left: 0;
-              width: 100%;
-              height: 5px;
-              background-color: red;
-            }
-        `,
-      })
-    );
-  } else {
-    builder.add(
-      0,
-      5,
-      Decoration.mark({
-        class: classnames`
-            position: relative;
+      &::after {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        top: -4px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: black;
+      }
+    `,
+  });
+  const l1Active = Decoration.mark({
+    class: classname`
+      position: relative;
 
-            &::after {
-              content: "";
-              position: absolute;
-              top: -5px;
-              left: 0;
-              width: 100%;
-              height: 2px;
-              background-color: red;
-            }
-        `,
-      })
-    );
+      &::after {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        top: -4px;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background-color: black;
+      }
+    `,
+  });
+  const l2Inactive = Decoration.mark({
+    class: classname`
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        top: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: red;
+      }
+    `,
+  });
+  const l2Active = Decoration.mark({
+    class: classname`
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        top: -2px;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background-color: red;
+      }
+    `,
+  });
+  if (nestingDepth === 0) {
+    builder.add(0, 5, l1Inactive);
+
+    builder.add(3, 5, l2Inactive);
+  } else if (nestingDepth === 1) {
+    builder.add(0, 5, l1Active);
+
+    builder.add(3, 5, l2Inactive);
+  } else if (nestingDepth === 2) {
+    builder.add(0, 5, l1Active);
+
+    builder.add(3, 5, l2Active);
   }
 
   return builder.finish();
@@ -102,7 +138,7 @@ const styledRangeViewExtension = ViewPlugin.fromClass(
 
 const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
   const newSelection = tr.selection;
-  if (newSelection) {
+  if (newSelection && !tr.docChanged) {
     const prevSelection = tr.startState.selection;
     if (newSelection.ranges.length === 1 && prevSelection.ranges.length === 1) {
       console.log(
@@ -116,11 +152,21 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
         // where the cursor is about to move into the styled range
         newSelection.ranges[0].from === 4 &&
         // but the cursor is currently outside the styled range
-        tr.startState.field(styledRangeSelectionState) === false
+        tr.startState.field(styledRangeSelectionState) === 0
       ) {
-        console.log("Cursor move into styled range");
         return {
-          effects: [setStyledRangeSelection.of(true)],
+          effects: [setStyledRangeSelection.of(1)],
+        };
+      } else if (
+        // Empty selection
+        newSelection.ranges[0].from === newSelection.ranges[0].to &&
+        // where the cursor is about to move into the styled range
+        newSelection.ranges[0].from === 4 &&
+        // but the cursor is currently between the styled ranges
+        tr.startState.field(styledRangeSelectionState) === 1
+      ) {
+        return {
+          effects: [setStyledRangeSelection.of(2)],
         };
       } else if (
         // Empty selection
@@ -128,11 +174,23 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
         // where the cursor is about to move out of the styled range
         newSelection.ranges[0].from === 6 &&
         // but the cursor is currently inside the styled range
-        tr.startState.field(styledRangeSelectionState) === true
+        tr.startState.field(styledRangeSelectionState) === 2
       ) {
         console.log("Cursor move out of styled range");
         return {
-          effects: [setStyledRangeSelection.of(false)],
+          effects: [setStyledRangeSelection.of(1)],
+        };
+      } else if (
+        // Empty selection
+        newSelection.ranges[0].from === newSelection.ranges[0].to &&
+        // where the cursor is about to move out of the styled range
+        newSelection.ranges[0].from === 6 &&
+        // but the cursor is currently inside the styled range
+        tr.startState.field(styledRangeSelectionState) === 1
+      ) {
+        console.log("Cursor move out of styled range");
+        return {
+          effects: [setStyledRangeSelection.of(0)],
         };
       }
     }
@@ -140,11 +198,11 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
   return tr;
 });
 
-const setStyledRangeSelection = StateEffect.define<boolean>();
+const setStyledRangeSelection = StateEffect.define<number>();
 
 const styledRangeSelectionState = StateField.define({
   create() {
-    return false;
+    return 0;
   },
 
   update(value, tr) {

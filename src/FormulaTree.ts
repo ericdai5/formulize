@@ -2,6 +2,7 @@
 // import * as babelPlugin from "prettier/parser-babel";
 // import * as estreePlugin from "prettier/plugins/estree";
 // import katex from "katex";
+import { FormulaLatexRange, StyledRange, UnstyledRange } from "./FormulaText";
 
 export const debugLatex = async (latex: string) => {
   const mathjaxRendered: Element = MathJax.tex2chtml(latex);
@@ -213,6 +214,10 @@ export class AugmentedFormula {
   equals(other: AugmentedFormula) {
     return this.toLatex("noid") === other.toLatex("noid");
   }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return this.children.map((child) => child.toStyledRanges());
+  }
 }
 
 export type AugmentedFormulaNode =
@@ -250,6 +255,7 @@ abstract class AugmentedFormulaNodeBase {
 
   abstract toLatex(mode: LatexMode): string;
   abstract get children(): AugmentedFormulaNode[];
+  abstract toStyledRanges(): FormulaLatexRange[];
 }
 
 export class Script extends AugmentedFormulaNodeBase {
@@ -303,6 +309,14 @@ export class Script extends AugmentedFormulaNodeBase {
       ...(this.sup ? [this.sup] : []),
     ];
   }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return [
+      new UnstyledRange("{"),
+      ...this.children.flatMap((child) => child.toStyledRanges()),
+      new UnstyledRange("}"),
+    ];
+  }
 }
 
 export class Fraction extends AugmentedFormulaNodeBase {
@@ -347,6 +361,16 @@ export class Fraction extends AugmentedFormulaNodeBase {
   get children(): AugmentedFormulaNode[] {
     return [this.numerator, this.denominator];
   }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return [
+      new UnstyledRange(String.raw`\frac{`),
+      ...this.numerator.toStyledRanges(),
+      new UnstyledRange("}{"),
+      ...this.denominator.toStyledRanges(),
+      new UnstyledRange("}"),
+    ];
+  }
 }
 
 export class MathSymbol extends AugmentedFormulaNodeBase {
@@ -378,6 +402,10 @@ export class MathSymbol extends AugmentedFormulaNodeBase {
 
   get children(): AugmentedFormulaNode[] {
     return [];
+  }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return [new UnstyledRange(this.value)];
   }
 }
 
@@ -424,6 +452,16 @@ export class Color extends AugmentedFormulaNodeBase {
   get children(): AugmentedFormulaNode[] {
     return this.body;
   }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return [
+      new StyledRange(
+        String.raw`\textcolor{${this.color}}{`,
+        this.children.flatMap((child) => child.toStyledRanges()),
+        "}"
+      ),
+    ];
+  }
 }
 
 export class Group extends AugmentedFormulaNodeBase {
@@ -460,6 +498,21 @@ export class Group extends AugmentedFormulaNodeBase {
 
   get children(): AugmentedFormulaNode[] {
     return this.body;
+  }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return this.body.length === 1
+      ? this.body[0].toStyledRanges()
+      : [
+          new UnstyledRange("{"),
+          ...this.children.flatMap((child, i) =>
+            child.toStyledRanges().concat(
+              // Add a space between children
+              i < this.children.length - 1 ? new UnstyledRange(" ") : []
+            )
+          ),
+          new UnstyledRange("}"),
+        ];
   }
 }
 
@@ -512,6 +565,16 @@ export class Box extends AugmentedFormulaNodeBase {
   get children(): AugmentedFormulaNode[] {
     return [this.body];
   }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return [
+      new StyledRange(
+        String.raw`\fcolorbox{${this.borderColor}}{${this.backgroundColor}}{`,
+        this.body.toStyledRanges(),
+        "}"
+      ),
+    ];
+  }
 }
 
 export class Brace extends AugmentedFormulaNodeBase {
@@ -553,6 +616,16 @@ export class Brace extends AugmentedFormulaNodeBase {
   get children(): AugmentedFormulaNode[] {
     return [this.base];
   }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    // TODO: This is wrong because we don't have the information locally for the script.
+    // We should refactor Brace to include the annotation and avoid creating a Script node.
+    return new StyledRange(
+      this.over ? String.raw`\overbrace{` : String.raw`\underbrace{`,
+      this.base.toStyledRanges(),
+      "}"
+    );
+  }
 }
 
 export class Text extends AugmentedFormulaNodeBase {
@@ -588,6 +661,16 @@ export class Text extends AugmentedFormulaNodeBase {
   get children(): AugmentedFormulaNode[] {
     return this.body;
   }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return [
+      new StyledRange(
+        String.raw`\text{`,
+        this.children.flatMap((child) => child.toStyledRanges()),
+        "}"
+      ),
+    ];
+  }
 }
 
 export class Space extends AugmentedFormulaNodeBase {
@@ -619,6 +702,10 @@ export class Space extends AugmentedFormulaNodeBase {
 
   get children(): AugmentedFormulaNode[] {
     return [];
+  }
+
+  toStyledRanges(): FormulaLatexRange[] {
+    return [new UnstyledRange(this.text)];
   }
 }
 

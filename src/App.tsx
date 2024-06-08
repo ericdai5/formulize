@@ -20,6 +20,10 @@ function App() {
             height: 100vh;
             overflow: hidden;
           }
+
+          .cm-editor {
+            padding-top: 1rem;
+          }
         `}
       />
       <div
