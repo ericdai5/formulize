@@ -30,6 +30,10 @@ export const RenderedFormula = observer(() => {
       requestAnimationFrame(() => {
         selectionStore.updateTargets();
       });
+      console.log(
+        "Styled ranges:",
+        formulaStore.augmentedFormula.toStyledRanges()
+      );
     },
     // For performance reasons, we only want this to trigger when we have a new formula to render
     // eslint-disable-next-line react-hooks/exhaustive-deps

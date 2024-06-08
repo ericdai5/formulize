@@ -2,7 +2,12 @@
 // import * as babelPlugin from "prettier/parser-babel";
 // import * as estreePlugin from "prettier/plugins/estree";
 // import katex from "katex";
-import { FormulaLatexRange, StyledRange, UnstyledRange } from "./FormulaText";
+import {
+  FormulaLatexRange,
+  StyledRange,
+  UnstyledRange,
+  combineUnstyledRanges,
+} from "./FormulaText";
 
 export const debugLatex = async (latex: string) => {
   const mathjaxRendered: Element = MathJax.tex2chtml(latex);
@@ -216,7 +221,13 @@ export class AugmentedFormula {
   }
 
   toStyledRanges(): FormulaLatexRange[] {
-    return this.children.map((child) => child.toStyledRanges());
+    return combineUnstyledRanges(
+      this.children.flatMap((child, i) =>
+        i < this.children.length - 1
+          ? child.toStyledRanges().concat(new UnstyledRange(" "))
+          : child.toStyledRanges()
+      )
+    );
   }
 }
 
@@ -313,7 +324,13 @@ export class Script extends AugmentedFormulaNodeBase {
   toStyledRanges(): FormulaLatexRange[] {
     return [
       new UnstyledRange("{"),
-      ...this.children.flatMap((child) => child.toStyledRanges()),
+      ...this.base.toStyledRanges(),
+      ...(this.sub
+        ? [new UnstyledRange("_"), ...this.sub.toStyledRanges()]
+        : []),
+      ...(this.sup
+        ? [new UnstyledRange("^"), ...this.sup.toStyledRanges()]
+        : []),
       new UnstyledRange("}"),
     ];
   }
