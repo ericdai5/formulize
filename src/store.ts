@@ -29,7 +29,12 @@ class FormulaStore {
 
   @computed
   get latexWithStyling() {
-    return this.augmentedFormula.toLatex("noid");
+    return this.augmentedFormula.toLatex("no-id");
+  }
+
+  @computed
+  get latexWithoutStyling() {
+    return this.augmentedFormula.toLatex("content-only");
   }
 }
 export const formulaStore = new FormulaStore();

@@ -67,7 +67,7 @@ export const updateFormula = (
 ): {
   renderSpec: RenderSpec;
 } => {
-  console.log("LaTeX:", newFormula.toLatex("noid"));
+  console.log("LaTeX:", newFormula.toLatex("no-id"));
   console.log("New formula:", newFormula);
   const renderLatex = newFormula.toLatex("render");
   const chtml = (MathJax as any).tex2chtml(renderLatex);
@@ -194,7 +194,7 @@ const buildAugmentedFormula = (
 
 // TODO: eventually this will also cover alternative code presentations (content
 // only, with augmentations)
-type LatexMode = "render" | "ast" | "noid";
+type LatexMode = "render" | "ast" | "no-id" | "content-only";
 
 export class AugmentedFormula {
   private idToNode: { [id: string]: AugmentedFormulaNode } = {};
@@ -217,7 +217,7 @@ export class AugmentedFormula {
   }
 
   equals(other: AugmentedFormula) {
-    return this.toLatex("noid") === other.toLatex("noid");
+    return this.toLatex("no-id") === other.toLatex("no-id");
   }
 
   toStyledRanges(): FormulaLatexRange[] {
@@ -252,7 +252,8 @@ abstract class AugmentedFormulaNodeBase {
         return String.raw`\htmlId{${this.id}}{${latex}}`;
       case "render":
         return String.raw`\cssId{${this.id}}{${latex}}`;
-      case "noid":
+      case "no-id":
+      case "content-only":
         return latex;
     }
   }
@@ -440,6 +441,10 @@ export class Color extends AugmentedFormulaNodeBase {
     const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
+    if (mode === "content-only") {
+      return childrenLatex;
+    }
+
     return this.latexWithId(
       mode,
       String.raw`\textcolor{${this.color}}{${childrenLatex}}`
@@ -475,7 +480,11 @@ export class Color extends AugmentedFormulaNodeBase {
       new StyledRange(
         String.raw`\textcolor{${this.color}}{`,
         this.children.flatMap((child) => child.toStyledRanges()),
-        "}"
+        "}",
+        {
+          color: this.color,
+          tooltip: `Color: ${this.color}`,
+        }
       ),
     ];
   }
@@ -606,6 +615,11 @@ export class Brace extends AugmentedFormulaNodeBase {
 
   toLatex(mode: LatexMode): string {
     const baseLatex = this.base.toLatex(mode);
+
+    if (mode === "content-only") {
+      return baseLatex;
+    }
+
     const command = "\\" + (this.over ? "over" : "under") + "brace";
     return this.latexWithId(mode, String.raw`${command}{${baseLatex}}`);
   }
@@ -637,11 +651,13 @@ export class Brace extends AugmentedFormulaNodeBase {
   toStyledRanges(): FormulaLatexRange[] {
     // TODO: This is wrong because we don't have the information locally for the script.
     // We should refactor Brace to include the annotation and avoid creating a Script node.
-    return new StyledRange(
-      this.over ? String.raw`\overbrace{` : String.raw`\underbrace{`,
-      this.base.toStyledRanges(),
-      "}"
-    );
+    return [
+      new StyledRange(
+        this.over ? String.raw`\overbrace{` : String.raw`\underbrace{`,
+        this.base.toStyledRanges(),
+        "}"
+      ),
+    ];
   }
 }
 
@@ -656,7 +672,7 @@ export class Text extends AugmentedFormulaNodeBase {
 
   toLatex(mode: LatexMode): string {
     const childrenLatex = this.body
-      .map((child) => child.toLatex("noid"))
+      .map((child) => child.toLatex("no-id"))
       .join("");
     return this.latexWithId(mode, String.raw`\text{${childrenLatex}}`);
   }
@@ -681,10 +697,14 @@ export class Text extends AugmentedFormulaNodeBase {
 
   toStyledRanges(): FormulaLatexRange[] {
     return [
-      new StyledRange(
-        String.raw`\text{`,
-        this.children.flatMap((child) => child.toStyledRanges()),
-        "}"
+      // TODO: This interacts with Brace. Brace should really own the script and annotation and return the appropriate ranges.
+      // new StyledRange(
+      //   String.raw`\text{`,
+      //   this.children.flatMap((child) => child.toStyledRanges()),
+      //   "}"
+      // ),
+      new UnstyledRange(
+        String.raw`\text{${this.children.flatMap((child) => child.toStyledRanges())}}`
       ),
     ];
   }
