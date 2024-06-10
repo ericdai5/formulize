@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 
 import { observer } from "mobx-react-lite";
 
-import { selectionStore } from "./store";
+import { formulaStore, selectionStore } from "./store";
 
 function formatCoordinate(n: number) {
   return Math.round(n).toString().padStart(3, " ");
@@ -64,6 +64,7 @@ const Targets = observer(() => (
       >
         <tr>
           <CoordinateCell>Id</CoordinateCell>
+          <CoordinateCell>Type</CoordinateCell>
           <CoordinateCell>Left</CoordinateCell>
           <CoordinateCell>Top</CoordinateCell>
           <CoordinateCell>Width</CoordinateCell>
@@ -75,6 +76,9 @@ const Targets = observer(() => (
           (target) => (
             <tr key={target.id}>
               <CoordinateCell>{target.id}</CoordinateCell>
+              <CoordinateCell>
+                {formulaStore.augmentedFormula.findNode(target.id)?.type}
+              </CoordinateCell>
               <CoordinateCell>{formatCoordinate(target.left)}</CoordinateCell>
               <CoordinateCell>{formatCoordinate(target.top)}</CoordinateCell>
               <CoordinateCell>{formatCoordinate(target.width)}</CoordinateCell>

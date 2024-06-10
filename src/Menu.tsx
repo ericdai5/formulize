@@ -526,14 +526,15 @@ const AnnotateMenu = ({
           (node.ancestors.length === 0 || node.ancestors[0].type !== "brace")
         ) {
           console.log("Applying new brace node to", node);
+          const caption = new Text(
+            "",
+            Array.from("caption").map((c) => new MathSymbol("", c))
+          );
           return new Script(
             "",
             new Brace("", over, node),
-            undefined,
-            new Text(
-              "",
-              Array.from("caption").map((c) => new MathSymbol("", c))
-            )
+            over ? undefined : caption,
+            over ? caption : undefined
           );
         }
         return node;

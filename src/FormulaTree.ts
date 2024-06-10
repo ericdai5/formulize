@@ -478,6 +478,7 @@ export class Color extends AugmentedFormulaNodeBase {
   toStyledRanges(): FormulaLatexRange[] {
     return [
       new StyledRange(
+        this.id,
         String.raw`\textcolor{${this.color}}{`,
         this.children.flatMap((child) => child.toStyledRanges()),
         "}",
@@ -554,10 +555,12 @@ export class Box extends AugmentedFormulaNodeBase {
   }
 
   toLatex(mode: LatexMode): string {
-    // const childrenLatex = this.body
-    //   .map((child) => child.toLatex(mode))
-    //   .join(" ");
     const bodyLatex = this.body.toLatex(mode);
+
+    if (mode === "content-only") {
+      return bodyLatex;
+    }
+
     return this.latexWithId(
       mode,
       // fcolorbox returns to text mode so the body must be wrapped in $
@@ -595,9 +598,14 @@ export class Box extends AugmentedFormulaNodeBase {
   toStyledRanges(): FormulaLatexRange[] {
     return [
       new StyledRange(
+        this.id,
         String.raw`\fcolorbox{${this.borderColor}}{${this.backgroundColor}}{`,
         this.body.toStyledRanges(),
-        "}"
+        "}",
+        {
+          color: this.borderColor,
+          tooltip: `Box: ${this.borderColor}`,
+        }
       ),
     ];
   }
@@ -653,6 +661,7 @@ export class Brace extends AugmentedFormulaNodeBase {
     // We should refactor Brace to include the annotation and avoid creating a Script node.
     return [
       new StyledRange(
+        this.id,
         this.over ? String.raw`\overbrace{` : String.raw`\underbrace{`,
         this.base.toStyledRanges(),
         "}"
@@ -703,9 +712,9 @@ export class Text extends AugmentedFormulaNodeBase {
       //   this.children.flatMap((child) => child.toStyledRanges()),
       //   "}"
       // ),
-      new UnstyledRange(
-        String.raw`\text{${this.children.flatMap((child) => child.toStyledRanges())}}`
-      ),
+      new UnstyledRange(String.raw`\text{`),
+      ...this.children.flatMap((child) => child.toStyledRanges()),
+      new UnstyledRange(String.raw`}`),
     ];
   }
 }

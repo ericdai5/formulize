@@ -23,12 +23,18 @@ import {
 } from "@codemirror/view";
 import { EditorView, basicSetup } from "codemirror";
 
-import { FormulaLatexRange, StyledRange, UnstyledRange } from "./FormulaText";
+import {
+  FormulaLatexRange,
+  StyledRange,
+  UnstyledRange,
+  getPositionRanges,
+} from "./FormulaText";
 import { checkFormulaCode, deriveAugmentedFormula } from "./FormulaTree";
 import { formulaStore } from "./store";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };
 
+// Calculates the decorations for the styled ranges in the formula
 const styledRanges = (view: EditorView) => {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
@@ -61,19 +67,28 @@ const styledRanges = (view: EditorView) => {
             to: offset,
             decoration: Decoration.mark({
               class: classname`
-              position: relative;
+                position: relative;
+                /* border: 1px solid ${range.hints?.color || "black"}; */
 
-              &::after {
-                content: "";
-                position: absolute;
-                z-index: ${nestingDepth};
-                top: ${-4 + 2 * nestingDepth}px;
-                left: 0;
-                width: 100%;
-                height: 2px;
-                background-color: ${range.hints?.color || "black"};
-              }
-            `,
+                &::after {
+                  content: "";
+                  position: absolute;
+                  z-index: ${nestingDepth};
+                  top: ${-4 + 4 * nestingDepth}px;
+                  left: 0;
+                  width: 100%;
+                  height: ${view.state.field(styledRangeSelectionState).has(range.id) ? 4 : 2}px;
+                  background-color: ${range.hints?.color || "black"};
+                }
+              `,
+              // This isn't actually very good: perfectly overlapping ranges will be obscured
+              // by the innermost range's tooltip. But doing otherwise requires injecting HTML
+              // via CodeMirror's "Widget" decorations
+              attributes: range.hints?.tooltip
+                ? {
+                    title: range.hints.tooltip,
+                  }
+                : {},
             }),
           },
         ]),
@@ -83,13 +98,19 @@ const styledRanges = (view: EditorView) => {
   };
 
   let offset = 0;
-  let decorations = [];
+  let decorations: DecorationRange[] = [];
   for (const range of styledRanges) {
     const [newDecorations, newOffset] = buildDecoration(range, offset, 0);
     offset = newOffset;
+    // CodeMirror requires that calls to builder.add be in order of increasing start position
+    // so we just collect them first
     decorations = decorations.concat(newDecorations);
   }
+
+  // then sort
   decorations = decorations.sort((a, b) => a.from - b.from);
+
+  // and apply to the builder in order
   for (const { from, to, decoration } of decorations) {
     builder.add(from, to, decoration);
   }
@@ -97,6 +118,7 @@ const styledRanges = (view: EditorView) => {
   return builder.finish();
 };
 
+// Shows the styled ranges in the CodeMirror editor
 const styledRangeViewExtension = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
@@ -121,61 +143,95 @@ const styledRangeViewExtension = ViewPlugin.fromClass(
   }
 );
 
+// Manages the cursor/selection state for styled ranges
 const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
   const newSelection = tr.selection;
   if (newSelection && !tr.docChanged) {
     const prevSelection = tr.startState.selection;
-    if (newSelection.ranges.length === 1 && prevSelection.ranges.length === 1) {
+
+    // TODO: We currently only handle between-character cursor movement, not multi-character selections
+    if (
+      newSelection.ranges.length === 1 &&
+      prevSelection.ranges.length === 1 &&
+      newSelection.ranges[0].from === newSelection.ranges[0].to &&
+      prevSelection.ranges[0].from === prevSelection.ranges[0].to
+    ) {
+      const styledRanges = formulaStore.augmentedFormula.toStyledRanges();
+      const touchedRanges = getPositionRanges(
+        styledRanges,
+        newSelection.ranges[0].from
+      ).filter((range): range is StyledRange => range instanceof StyledRange);
+      const prevTouchedRanges = getPositionRanges(
+        styledRanges,
+        prevSelection.ranges[0].from
+      ).filter((range): range is StyledRange => range instanceof StyledRange);
+
+      // We calculate the ranges both including and excluding the edges because
+      // for entering ranges, we want to exclude the edges (so the cursor can be
+      // placed against the edge of the range without entering), but for exiting
+      // ranges, we want to include the edges (so the cursor can be placed at
+      // the edge of the range without exiting).
+      const inclusiveTouchedRanges = getPositionRanges(
+        styledRanges,
+        newSelection.ranges[0].from,
+        true
+      ).filter((range): range is StyledRange => range instanceof StyledRange);
+      const inclusivePrevTouchedRanges = getPositionRanges(
+        styledRanges,
+        prevSelection.ranges[0].from,
+        true
+      ).filter((range): range is StyledRange => range instanceof StyledRange);
+
       console.log(
         "Cursor move",
         newSelection.ranges[0].from,
-        newSelection.ranges[0].to
+        styledRanges,
+        touchedRanges.map((range) => range.id),
+        inclusiveTouchedRanges.map((range) => range.id)
       );
-      if (
-        // Empty selection
-        newSelection.ranges[0].from === newSelection.ranges[0].to &&
-        // where the cursor is about to move into the styled range
-        newSelection.ranges[0].from === 4 &&
-        // but the cursor is currently outside the styled range
-        tr.startState.field(styledRangeSelectionState) === 0
-      ) {
+
+      // Moving out of ranges takes priority over moving into ranges
+      const lostRanges = inclusivePrevTouchedRanges.filter(
+        (range) => !inclusiveTouchedRanges.find((r) => r.equals(range))
+      );
+      const currentActiveRanges = tr.startState.field(
+        styledRangeSelectionState
+      );
+      const lostActiveRanges = lostRanges.filter((range) =>
+        currentActiveRanges.has(range.id)
+      );
+      if (lostActiveRanges.length > 0) {
+        // Move out of the deepest range
+        console.log(
+          "Moving out of range",
+          lostActiveRanges[lostActiveRanges.length - 1].id
+        );
+        const newActiveRanges = new Set(
+          Array.from(currentActiveRanges).filter(
+            (range) =>
+              range !== lostActiveRanges[lostActiveRanges.length - 1].id
+          )
+        );
         return {
-          effects: [setStyledRangeSelection.of(1)],
+          effects: [setStyledRangeSelections.of(newActiveRanges)],
         };
-      } else if (
-        // Empty selection
-        newSelection.ranges[0].from === newSelection.ranges[0].to &&
-        // where the cursor is about to move into the styled range
-        newSelection.ranges[0].from === 4 &&
-        // but the cursor is currently between the styled ranges
-        tr.startState.field(styledRangeSelectionState) === 1
-      ) {
+      }
+
+      // Move into the shallowest new range, if any
+      const gainedRanges = touchedRanges.filter(
+        (range) => !prevTouchedRanges.find((r) => r.equals(range))
+      );
+      const gainedInactiveRanges = gainedRanges.filter(
+        (range) => !currentActiveRanges.has(range.id)
+      );
+      if (gainedInactiveRanges.length > 0) {
+        console.log("Moving into range", gainedInactiveRanges[0].id);
+        const newActiveRanges = new Set([
+          ...Array.from(currentActiveRanges),
+          gainedInactiveRanges[0].id,
+        ]);
         return {
-          effects: [setStyledRangeSelection.of(2)],
-        };
-      } else if (
-        // Empty selection
-        newSelection.ranges[0].from === newSelection.ranges[0].to &&
-        // where the cursor is about to move out of the styled range
-        newSelection.ranges[0].from === 6 &&
-        // but the cursor is currently inside the styled range
-        tr.startState.field(styledRangeSelectionState) === 2
-      ) {
-        console.log("Cursor move out of styled range");
-        return {
-          effects: [setStyledRangeSelection.of(1)],
-        };
-      } else if (
-        // Empty selection
-        newSelection.ranges[0].from === newSelection.ranges[0].to &&
-        // where the cursor is about to move out of the styled range
-        newSelection.ranges[0].from === 6 &&
-        // but the cursor is currently inside the styled range
-        tr.startState.field(styledRangeSelectionState) === 1
-      ) {
-        console.log("Cursor move out of styled range");
-        return {
-          effects: [setStyledRangeSelection.of(0)],
+          effects: [setStyledRangeSelections.of(newActiveRanges)],
         };
       }
     }
@@ -183,17 +239,17 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
   return tr;
 });
 
-const setStyledRangeSelection = StateEffect.define<number>();
-
+// Boilerplate state getter/setter for the selection range cursor
+// Contains the IDs of the styled ranges that the cursor is currently inside
+const setStyledRangeSelections = StateEffect.define<Set<string>>();
 const styledRangeSelectionState = StateField.define({
   create() {
-    return 0;
+    return new Set<string>();
   },
 
   update(value, tr) {
-    console.log("Selection state update", value, tr);
     for (const effect of tr.effects) {
-      if (effect.is(setStyledRangeSelection)) {
+      if (effect.is(setStyledRangeSelections)) {
         console.log("Setting selection state to", effect.value);
         value = effect.value;
       }
