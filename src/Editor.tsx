@@ -31,7 +31,11 @@ import {
   UnstyledRange,
   getPositionRanges,
 } from "./FormulaText";
-import { checkFormulaCode, deriveAugmentedFormula } from "./FormulaTree";
+import {
+  type AugmentedFormula,
+  checkFormulaCode,
+  deriveAugmentedFormula,
+} from "./FormulaTree";
 import { formulaStore } from "./store";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };
@@ -442,11 +446,13 @@ const ContentOnlyEditor = observer(() => {
 
       // Automatically update the editor code when the formula changes due to interactions
       const disposeReaction = reaction(
-        () => formulaStore.latexWithoutStyling,
-        (latex) => {
+        (): [AugmentedFormula, string] => [
+          formulaStore.augmentedFormula,
+          formulaStore.latexWithoutStyling,
+        ],
+        ([, latex]) => {
           console.log("Synchronizing editor with new formula", latex);
           setEditorCodeCorrect(() => true);
-
           newEditorView.dispatch([
             newEditorView.state.update({
               changes: {
