@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
+import { history, historyField, historyKeymap } from "@codemirror/commands";
 import { StreamLanguage } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 import {
@@ -20,6 +21,7 @@ import {
   DecorationSet,
   ViewPlugin,
   ViewUpdate,
+  keymap,
 } from "@codemirror/view";
 import { EditorView, basicSetup } from "codemirror";
 
@@ -145,6 +147,7 @@ const styledRangeViewExtension = ViewPlugin.fromClass(
 
 // Manages the cursor/selection state for styled ranges
 const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
+  console.log("Some transaction", tr);
   const newSelection = tr.selection;
   if (newSelection && !tr.docChanged) {
     const prevSelection = tr.startState.selection;
@@ -258,7 +261,24 @@ const styledRangeSelectionState = StateField.define({
   },
 });
 
-const EditorTab = styled.button`
+const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
+  if (tr.docChanged) {
+    tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+      if (fromA < toA) {
+        console.log("Deletion:", fromA, toA);
+      }
+
+      if (fromB < toB) {
+        console.log("Insertion:", fromB, toB, inserted);
+      }
+    });
+  } else {
+    console.log("Non-doc transaction", tr);
+  }
+  return tr;
+});
+
+const EditorTab = styled.button<{ selected: boolean }>`
   height: 100%;
   background-color: ${(props) => (props.selected ? "white" : "#f0f0f0")};
   border: none;
@@ -402,14 +422,17 @@ const ContentOnlyEditor = observer(() => {
     if (container && (!editorView || editorView.contentDOM !== container)) {
       const newEditorView = new EditorView({
         state: EditorState.create({
-          // extensions: [basicSetup, StreamLanguage.define(stex), codeUpdateListener],
           extensions: [
             basicSetup,
+            // history(),
+            // historyField,
+            // keymap.of(historyKeymap),
             EditorView.lineWrapping,
             StreamLanguage.define(stex),
             styledRangeViewExtension,
             styledRangeSelectionState,
             styledRangeCursorExtension,
+            styledRangeEditExtension,
           ],
           doc: formulaStore.latexWithoutStyling,
         }),
