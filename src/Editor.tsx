@@ -2,6 +2,7 @@ import { css as classname } from "@emotion/css";
 import { Global, css } from "@emotion/react";
 import styled from "@emotion/styled";
 import { useEffect, useState } from "react";
+import useStateRef from "react-usestateref";
 
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -348,26 +349,27 @@ const FullStyleEditor = observer(() => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [editorCodeCorrect, setEditorCodeCorrect] = useState(true);
+  const [, setSuppressCodeUpdate, suppressCodeUpdateRef] = useStateRef(false);
 
   useEffect(() => {
     if (container && (!editorView || editorView.contentDOM !== container)) {
       // Automatically update the formula when the editor code changes
-      // TODO: This doesn't work because cursor position is reset
-      // const codeUpdateListener = EditorView.updateListener.of((update) => {
-      //   if (
-      //     update.docChanged &&
-      //     update.state.doc.toString() !== formulaStore.latexWithStyling
-      //   ) {
-      //     console.log("Editor code changed:", update);
-      //     const newCode = update.state.doc.toString();
-      //     if (checkFormulaCode(newCode)) {
-      //       setEditorCodeCorrect(() => true);
-      //       formulaStore.updateFormula(deriveAugmentedFormula(newCode));
-      //     } else {
-      //       setEditorCodeCorrect(() => false);
-      //     }
-      //   }
-      // });
+      const codeUpdateListener = EditorView.updateListener.of((update) => {
+        console.log("Editor update:", update);
+        if (
+          update.docChanged &&
+          update.state.doc.toString() !== formulaStore.latexWithStyling
+        ) {
+          console.log("Editor code changed:", update);
+          const newCode = update.state.doc.toString();
+          if (checkFormulaCode(newCode)) {
+            setEditorCodeCorrect(() => true);
+            formulaStore.updateFormula(deriveAugmentedFormula(newCode));
+          } else {
+            setEditorCodeCorrect(() => false);
+          }
+        }
+      });
 
       const newEditorView = new EditorView({
         state: EditorState.create({
@@ -376,6 +378,7 @@ const FullStyleEditor = observer(() => {
             basicSetup,
             EditorView.lineWrapping,
             StreamLanguage.define(stex),
+            codeUpdateListener,
           ],
           doc: formulaStore.latexWithStyling,
         }),
@@ -390,6 +393,11 @@ const FullStyleEditor = observer(() => {
           console.log("Synchronizing editor with new formula", latex);
           setEditorCodeCorrect(() => true);
 
+          if (suppressCodeUpdateRef.current) {
+            console.log("Suppressing code update");
+            return;
+          }
+
           newEditorView.dispatch([
             newEditorView.state.update({
               changes: {
@@ -402,15 +410,32 @@ const FullStyleEditor = observer(() => {
         }
       );
 
+      // Suppress updates to the formula when changing the editor code
+      newEditorView.contentDOM.addEventListener("focus", () => {
+        setSuppressCodeUpdate(() => true);
+      });
+
       // Automatically update the formula when the editor code changes
       newEditorView.contentDOM.addEventListener("blur", () => {
-        const newCode = newEditorView.state.doc.toString();
-        if (checkFormulaCode(newCode)) {
-          setEditorCodeCorrect(() => true);
-          formulaStore.updateFormula(deriveAugmentedFormula(newCode));
-        } else {
-          setEditorCodeCorrect(() => false);
-        }
+        setSuppressCodeUpdate(() => false);
+
+        // Synchronize the editor with the current formula
+        newEditorView.dispatch([
+          newEditorView.state.update({
+            changes: {
+              from: 0,
+              to: newEditorView.state.doc.length,
+              insert: formulaStore.latexWithStyling,
+            },
+          }),
+        ]);
+        // const newCode = newEditorView.state.doc.toString();
+        // if (checkFormulaCode(newCode)) {
+        //   setEditorCodeCorrect(() => true);
+        //   formulaStore.updateFormula(deriveAugmentedFormula(newCode));
+        // } else {
+        //   setEditorCodeCorrect(() => false);
+        // }
       });
 
       return () => {
