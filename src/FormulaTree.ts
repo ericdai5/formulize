@@ -480,7 +480,12 @@ export class Color extends AugmentedFormulaNodeBase {
       new StyledRange(
         this.id,
         String.raw`\textcolor{${this.color}}{`,
-        this.children.flatMap((child) => child.toStyledRanges()),
+        this.children.flatMap((child, i) =>
+          child.toStyledRanges().concat(
+            // Add a space between children
+            i < this.children.length - 1 ? new UnstyledRange(" ") : []
+          )
+        ),
         "}",
         {
           color: this.color,

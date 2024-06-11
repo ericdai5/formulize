@@ -151,7 +151,7 @@ const styledRangeViewExtension = ViewPlugin.fromClass(
 
 // Manages the cursor/selection state for styled ranges
 const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
-  console.log("Some transaction", tr);
+  // console.log("Some transaction", tr);
   const newSelection = tr.selection;
   if (newSelection && !tr.docChanged) {
     const prevSelection = tr.startState.selection;
@@ -172,6 +172,20 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
         styledRanges,
         prevSelection.ranges[0].from
       ).filter((range): range is StyledRange => range instanceof StyledRange);
+
+      if (
+        Math.abs(newSelection.ranges[0].from - prevSelection.ranges[0].from) > 1
+      ) {
+        // "Jump" due to mouse or ctrl+arrow key movement
+        return {
+          ...tr,
+          effects: [
+            setStyledRangeSelections.of(
+              new Set(touchedRanges.map((r) => r.id))
+            ),
+          ],
+        };
+      }
 
       // We calculate the ranges both including and excluding the edges because
       // for entering ranges, we want to exclude the edges (so the cursor can be
@@ -216,7 +230,8 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
         const newActiveRanges = new Set(
           Array.from(currentActiveRanges).filter(
             (range) =>
-              range !== lostActiveRanges[lostActiveRanges.length - 1].id
+              range !== lostActiveRanges[lostActiveRanges.length - 1].id &&
+              inclusiveTouchedRanges.some((r) => r.id === range)
           )
         );
         return {
@@ -277,7 +292,7 @@ const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
       }
     });
   } else {
-    console.log("Non-doc transaction", tr);
+    // console.log("Non-doc transaction", tr);
   }
   return tr;
 });
@@ -495,3 +510,32 @@ const ContentOnlyEditor = observer(() => {
     ></div>
   );
 });
+
+(window as any).testPositionRanges = (
+  includeEdges: boolean = false,
+  position?: number
+) => {
+  const ranges = formulaStore.augmentedFormula.toStyledRanges();
+  console.log(formulaStore.augmentedFormula.toStyledRanges());
+  if (position !== undefined) {
+    console.log(
+      position,
+      formulaStore.latexWithoutStyling[position],
+      getPositionRanges(ranges, position, includeEdges)
+        .filter((r): r is StyledRange => r instanceof StyledRange)
+        .map((r) => r.id)
+        .join(", ")
+    );
+  } else {
+    console.table(
+      formulaStore.latexWithoutStyling.split("").map((c, i) => [
+        i,
+        c,
+        getPositionRanges(ranges, i, includeEdges)
+          .filter((r): r is StyledRange => r instanceof StyledRange)
+          .map((r) => r.id)
+          .join(", "),
+      ])
+    );
+  }
+};

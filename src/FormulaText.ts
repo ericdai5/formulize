@@ -76,12 +76,35 @@ export const getPositionRanges = (
   includeEdges: boolean = false
 ): FormulaLatexRange[] => {
   const containingRanges: FormulaLatexRange[] = [];
+
   const findPosition = (
     range: FormulaLatexRange,
     offset: number,
     position: number
   ): [boolean, number] => {
     if (range instanceof UnstyledRange) {
+      /*
+        `offset` and `position` are measured at the _left_ of a character
+        e.g. a|b c
+              ^
+              1
+        Including edges means that for a given range,
+            _____
+        a b c d e f g
+        
+        We include the cursor positions at both edges
+            _____
+        a b|c|d|e|f g
+           ^ ^ ^ ^
+
+        Excluding edges means that we don't;
+            _____
+        a b c|d|e f g
+             ^ ^  
+
+        A range covering n characters includes (n+1) positions
+        when including edges, and (n-1 positions when not.
+      */
       if (
         (position > offset && position < offset + range.length) ||
         (includeEdges &&
@@ -93,15 +116,29 @@ export const getPositionRanges = (
         return [false, offset + range.length];
       }
     } else {
+      const baseOffset = offset;
+      let inChildren = false;
       for (const child of range.children) {
         const [found, newOffset] = findPosition(child, offset, position);
         offset = newOffset;
-        if (found) {
-          containingRanges.push(range);
-          return [true, offset];
-        }
+        inChildren ||= found;
       }
-      return [false, offset];
+      if (inChildren) {
+        containingRanges.push(range);
+        return [true, offset];
+      }
+
+      // When not including edges, we might have skipped the position because
+      // it's at the edge of a child range
+      if (
+        (position > baseOffset && position < offset) ||
+        (includeEdges && (position === baseOffset || position === offset))
+      ) {
+        containingRanges.push(range);
+        return [true, offset];
+      } else {
+        return [false, offset];
+      }
     }
   };
 
