@@ -3,14 +3,14 @@
 // import * as estreePlugin from "prettier/plugins/estree";
 // import katex from "katex";
 import {
-  FormulaLatexRange,
+  FormulaLatexRangeNode,
+  FormulaLatexRanges,
   StyledRange,
   UnstyledRange,
-  combineUnstyledRanges,
 } from "./FormulaText";
 
 export const debugLatex = async (latex: string) => {
-  const mathjaxRendered: Element = MathJax.tex2chtml(latex);
+  // const mathjaxRendered: Element = MathJax.tex2chtml(latex);
   // const formattedHtml = await prettier.format(html.outerHTML, {
   //   parser: "babel",
   //   plugins: [babelPlugin, estreePlugin],
@@ -220,8 +220,8 @@ export class AugmentedFormula {
     return this.toLatex("no-id") === other.toLatex("no-id");
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
-    return combineUnstyledRanges(
+  toStyledRanges(): FormulaLatexRanges {
+    return new FormulaLatexRanges(
       this.children.flatMap((child, i) =>
         i < this.children.length - 1
           ? child.toStyledRanges().concat(new UnstyledRange(" "))
@@ -267,7 +267,7 @@ abstract class AugmentedFormulaNodeBase {
 
   abstract toLatex(mode: LatexMode): string;
   abstract get children(): AugmentedFormulaNode[];
-  abstract toStyledRanges(): FormulaLatexRange[];
+  abstract toStyledRanges(): FormulaLatexRangeNode[];
 }
 
 export class Script extends AugmentedFormulaNodeBase {
@@ -322,7 +322,7 @@ export class Script extends AugmentedFormulaNodeBase {
     ];
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return [
       new UnstyledRange("{"),
       ...this.base.toStyledRanges(),
@@ -380,7 +380,7 @@ export class Fraction extends AugmentedFormulaNodeBase {
     return [this.numerator, this.denominator];
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return [
       new UnstyledRange(String.raw`\frac{`),
       ...this.numerator.toStyledRanges(),
@@ -422,7 +422,7 @@ export class MathSymbol extends AugmentedFormulaNodeBase {
     return [];
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return [new UnstyledRange(this.value)];
   }
 }
@@ -475,7 +475,7 @@ export class Color extends AugmentedFormulaNodeBase {
     return this.body;
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return [
       new StyledRange(
         this.id,
@@ -532,7 +532,7 @@ export class Group extends AugmentedFormulaNodeBase {
     return this.body;
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return this.body.length === 1
       ? this.body[0].toStyledRanges()
       : [
@@ -600,13 +600,13 @@ export class Box extends AugmentedFormulaNodeBase {
     return [this.body];
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return [
       new StyledRange(
         this.id,
-        String.raw`\fcolorbox{${this.borderColor}}{${this.backgroundColor}}{`,
+        String.raw`\fcolorbox{${this.borderColor}}{${this.backgroundColor}}{$`,
         this.body.toStyledRanges(),
-        "}",
+        "$}",
         {
           color: this.borderColor,
           tooltip: `Box: ${this.borderColor}`,
@@ -661,7 +661,7 @@ export class Brace extends AugmentedFormulaNodeBase {
     return [this.base];
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     // TODO: This is wrong because we don't have the information locally for the script.
     // We should refactor Brace to include the annotation and avoid creating a Script node.
     return [
@@ -709,7 +709,7 @@ export class Text extends AugmentedFormulaNodeBase {
     return this.body;
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return [
       // TODO: This interacts with Brace. Brace should really own the script and annotation and return the appropriate ranges.
       // new StyledRange(
@@ -733,7 +733,7 @@ export class Space extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
+  toLatex(_: LatexMode): string {
     return this.text;
   }
 
@@ -755,7 +755,7 @@ export class Space extends AugmentedFormulaNodeBase {
     return [];
   }
 
-  toStyledRanges(): FormulaLatexRange[] {
+  toStyledRanges(): FormulaLatexRangeNode[] {
     return [new UnstyledRange(this.text)];
   }
 }

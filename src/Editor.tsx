@@ -7,11 +7,9 @@ import useStateRef from "react-usestateref";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { history, historyField, historyKeymap } from "@codemirror/commands";
 import { StreamLanguage } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 import {
-  EditorSelection,
   EditorState,
   RangeSetBuilder,
   StateEffect,
@@ -22,15 +20,15 @@ import {
   DecorationSet,
   ViewPlugin,
   ViewUpdate,
-  keymap,
 } from "@codemirror/view";
 import { EditorView, basicSetup } from "codemirror";
 
 import {
-  FormulaLatexRange,
+  ContentChange,
+  FormulaLatexRangeNode,
+  FormulaLatexRanges,
   StyledRange,
   UnstyledRange,
-  getPositionRanges,
 } from "./FormulaText";
 import {
   type AugmentedFormula,
@@ -44,12 +42,11 @@ type DecorationRange = { to: number; from: number; decoration: Decoration };
 // Calculates the decorations for the styled ranges in the formula
 const styledRanges = (view: EditorView) => {
   const builder = new RangeSetBuilder<Decoration>();
-  const doc = view.state.doc;
 
   const styledRanges = formulaStore.augmentedFormula.toStyledRanges();
 
   const buildDecoration = (
-    range: FormulaLatexRange,
+    range: FormulaLatexRangeNode,
     baseOffset: number,
     nestingDepth: number
   ): [DecorationRange[], number] => {
@@ -106,7 +103,7 @@ const styledRanges = (view: EditorView) => {
 
   let offset = 0;
   let decorations: DecorationRange[] = [];
-  for (const range of styledRanges) {
+  for (const range of styledRanges.ranges) {
     const [newDecorations, newOffset] = buildDecoration(range, offset, 0);
     offset = newOffset;
     // CodeMirror requires that calls to builder.add be in order of increasing start position
@@ -165,14 +162,12 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
       prevSelection.ranges[0].from === prevSelection.ranges[0].to
     ) {
       const styledRanges = formulaStore.augmentedFormula.toStyledRanges();
-      const touchedRanges = getPositionRanges(
-        styledRanges,
-        newSelection.ranges[0].from
-      ).filter((range): range is StyledRange => range instanceof StyledRange);
-      const prevTouchedRanges = getPositionRanges(
-        styledRanges,
-        prevSelection.ranges[0].from
-      ).filter((range): range is StyledRange => range instanceof StyledRange);
+      const touchedRanges = styledRanges
+        .getPositionRanges(newSelection.ranges[0].from)
+        .filter((range): range is StyledRange => range instanceof StyledRange);
+      const prevTouchedRanges = styledRanges
+        .getPositionRanges(prevSelection.ranges[0].from)
+        .filter((range): range is StyledRange => range instanceof StyledRange);
 
       if (
         Math.abs(newSelection.ranges[0].from - prevSelection.ranges[0].from) > 1
@@ -193,16 +188,12 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
       // placed against the edge of the range without entering), but for exiting
       // ranges, we want to include the edges (so the cursor can be placed at
       // the edge of the range without exiting).
-      const inclusiveTouchedRanges = getPositionRanges(
-        styledRanges,
-        newSelection.ranges[0].from,
-        true
-      ).filter((range): range is StyledRange => range instanceof StyledRange);
-      const inclusivePrevTouchedRanges = getPositionRanges(
-        styledRanges,
-        prevSelection.ranges[0].from,
-        true
-      ).filter((range): range is StyledRange => range instanceof StyledRange);
+      const inclusiveTouchedRanges = styledRanges
+        .getPositionRanges(newSelection.ranges[0].from, true)
+        .filter((range): range is StyledRange => range instanceof StyledRange);
+      const inclusivePrevTouchedRanges = styledRanges
+        .getPositionRanges(prevSelection.ranges[0].from, true)
+        .filter((range): range is StyledRange => range instanceof StyledRange);
 
       console.log(
         "Cursor move",
@@ -283,17 +274,30 @@ const styledRangeSelectionState = StateField.define({
 
 const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
   if (tr.docChanged) {
+    const changes: ContentChange[] = [];
     tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
       if (fromA < toA) {
         console.log("Deletion:", fromA, toA);
+        changes.push({
+          type: "delete",
+          from: fromA,
+          to: toA,
+        });
       }
 
       if (fromB < toB) {
         console.log("Insertion:", fromB, toB, inserted);
+        changes.push({
+          type: "insert",
+          from: fromB,
+          to: toB,
+          inserted: inserted.toString(),
+        });
       }
     });
-  } else {
-    // console.log("Non-doc transaction", tr);
+
+    // BAD: Suppress changes that we don't support
+    // return [];
   }
   return tr;
 });
@@ -355,7 +359,6 @@ const FullStyleEditor = observer(() => {
     if (container && (!editorView || editorView.contentDOM !== container)) {
       // Automatically update the formula when the editor code changes
       const codeUpdateListener = EditorView.updateListener.of((update) => {
-        console.log("Editor update:", update);
         if (
           update.docChanged &&
           update.state.doc.toString() !== formulaStore.latexWithStyling
@@ -546,7 +549,8 @@ const ContentOnlyEditor = observer(() => {
     console.log(
       position,
       formulaStore.latexWithoutStyling[position],
-      getPositionRanges(ranges, position, includeEdges)
+      ranges
+        .getPositionRanges(position, includeEdges)
         .filter((r): r is StyledRange => r instanceof StyledRange)
         .map((r) => r.id)
         .join(", ")
@@ -556,11 +560,22 @@ const ContentOnlyEditor = observer(() => {
       formulaStore.latexWithoutStyling.split("").map((c, i) => [
         i,
         c,
-        getPositionRanges(ranges, i, includeEdges)
+        ranges
+          .getPositionRanges(i, includeEdges)
           .filter((r): r is StyledRange => r instanceof StyledRange)
           .map((r) => r.id)
           .join(", "),
       ])
     );
   }
+};
+
+(window as any).testStyledToLatex = () => {
+  console.log(
+    formulaStore.augmentedFormula
+      .toStyledRanges()
+      .ranges.map((r) => r.toLatex())
+      .join("")
+  );
+  console.log(formulaStore.augmentedFormula.toLatex("no-id"));
 };

@@ -9,7 +9,6 @@ import { formulaStore, selectionStore } from "./store";
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
-import BracketListOption from "./Icons/BracketListOption.svg";
 import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
 import LineDivideIcon from "./Icons/LineDivideIcon.svg";
 import LogoIcon from "./Icons/LogoIcon.svg";
