@@ -6,6 +6,7 @@ import {
   observable,
 } from "mobx";
 
+import { FormulaLatexRanges } from "./FormulaText";
 import { AugmentedFormula, RenderSpec, updateFormula } from "./FormulaTree";
 
 class FormulaStore {
@@ -13,6 +14,7 @@ class FormulaStore {
   @observable accessor augmentedFormula: AugmentedFormula =
     new AugmentedFormula([]);
   @observable accessor suppressEditorUpdate = false;
+  @observable accessor styledRangesOverride: FormulaLatexRanges | null = null;
 
   @action
   updateFormula(newFormula: AugmentedFormula) {
@@ -25,6 +27,12 @@ class FormulaStore {
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
     selectionStore.clearSelection();
+    this.styledRangesOverride = null;
+  }
+
+  @action
+  overrideStyledRanges(styledRanges: FormulaLatexRanges | null) {
+    this.styledRangesOverride = styledRanges;
   }
 
   @computed
@@ -35,6 +43,11 @@ class FormulaStore {
   @computed
   get latexWithoutStyling() {
     return this.augmentedFormula.toLatex("content-only");
+  }
+
+  @computed
+  get styledRanges() {
+    return this.styledRangesOverride ?? this.augmentedFormula.toStyledRanges();
   }
 }
 export const formulaStore = new FormulaStore();

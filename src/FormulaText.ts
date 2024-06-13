@@ -131,8 +131,77 @@ export class FormulaLatexRanges {
     return containingRanges.reverse();
   }
 
-  public applyContentChange(change: ContentChange): FormulaLatexRanges {
-    return this;
+  public toLatex() {
+    return this.ranges.map((range) => range.toLatex()).join("");
+  }
+
+  public withContentChange(
+    change: ContentChange,
+    activeRanges: Set<string>
+  ): FormulaLatexRanges {
+    const newRanges: FormulaLatexRangeNode[] = [];
+    const modifyRange = (
+      range: FormulaLatexRangeNode,
+      offset: number
+    ): [FormulaLatexRangeNode, number] => {
+      console.log("modifyRange", "id" in range ? range.id : range.text, offset);
+      if (range instanceof UnstyledRange) {
+        if (change.to <= offset || offset + range.length <= change.from) {
+          // Change is completely outside of this node's range
+          return [range, offset + range.length];
+        }
+
+        if (change.type === "delete") {
+          console.log(
+            "Deleting from",
+            range.text,
+            "at",
+            change.from - offset,
+            "to",
+            change.to - offset
+          );
+          const left = range.text.substring(0, change.from - offset);
+          const right = range.text.substring(change.to - offset);
+          return [new UnstyledRange(left + right), offset + range.length];
+        } else {
+          console.log("Inserting into", range.text, "at", change.from - offset);
+          const left = range.text.substring(0, change.from - offset);
+          const right = range.text.substring(change.from - offset);
+          return [
+            new UnstyledRange(left + change.inserted + right),
+            offset + range.length,
+          ];
+        }
+      } else {
+        // Recurse into StyledRange children
+        const newChildren: FormulaLatexRangeNode[] = [];
+        for (const child of range.children) {
+          const [newChild, newOffset] = modifyRange(child, offset);
+          newChildren.push(newChild);
+          offset = newOffset;
+        }
+        return [
+          new StyledRange(
+            range.id,
+            range.left,
+            newChildren,
+            range.right,
+            range.hints
+          ),
+          offset,
+        ];
+      }
+    };
+
+    let offset = 0;
+    for (const range of this.ranges) {
+      const [newRange, newOffset] = modifyRange(range, offset);
+      offset = newOffset;
+      console.log("offset is now", offset);
+      newRanges.push(newRange);
+    }
+
+    return new FormulaLatexRanges(newRanges);
   }
 }
 

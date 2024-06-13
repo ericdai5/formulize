@@ -274,6 +274,12 @@ const styledRangeSelectionState = StateField.define({
 
 const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
   if (tr.docChanged) {
+    if (tr.newDoc.toString() === formulaStore.latexWithoutStyling) {
+      // Full document replacement, ignore
+      return tr;
+    }
+
+    console.log("Document changed", tr);
     const changes: ContentChange[] = [];
     tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
       if (fromA < toA) {
@@ -296,8 +302,26 @@ const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
       }
     });
 
-    // BAD: Suppress changes that we don't support
-    // return [];
+    const activeRanges = tr.state.field(styledRangeSelectionState);
+    let newRanges = formulaStore.styledRanges;
+    for (const change of changes) {
+      newRanges = newRanges.withContentChange(change, activeRanges);
+    }
+
+    if (!checkFormulaCode(newRanges.toLatex())) {
+      console.log("New content latex is invalid:", newRanges.toLatex());
+      requestAnimationFrame(() => {
+        formulaStore.overrideStyledRanges(newRanges);
+      });
+    } else {
+      console.log("Valid content latex, updating formula");
+      requestAnimationFrame(() => {
+        formulaStore.updateFormula(deriveAugmentedFormula(newRanges.toLatex()));
+      });
+    }
+
+    // Suppress the actual document changes, they'll appear after the formulaStore update
+    return [];
   }
   return tr;
 });
@@ -571,11 +595,6 @@ const ContentOnlyEditor = observer(() => {
 };
 
 (window as any).testStyledToLatex = () => {
-  console.log(
-    formulaStore.augmentedFormula
-      .toStyledRanges()
-      .ranges.map((r) => r.toLatex())
-      .join("")
-  );
+  console.log(formulaStore.augmentedFormula.toStyledRanges().toLatex());
   console.log(formulaStore.augmentedFormula.toLatex("no-id"));
 };
