@@ -140,14 +140,20 @@ export class FormulaLatexRanges {
     activeRanges: Set<string>
   ): FormulaLatexRanges {
     const newRanges: FormulaLatexRangeNode[] = [];
+
     const modifyRange = (
       range: FormulaLatexRangeNode,
+      change: ContentChange | null,
       offset: number
-    ): [FormulaLatexRangeNode, number] => {
+    ): [FormulaLatexRangeNode, ContentChange | null, number] => {
+      if (change === null) {
+        return [range, null, offset + range.length];
+      }
+
       if (range instanceof UnstyledRange) {
         if (change.to <= offset || offset + range.length <= change.from) {
           // Change is completely outside of this node's range
-          return [range, offset + range.length];
+          return [range, change, offset + range.length];
         }
 
         if (change.type === "delete") {
@@ -161,23 +167,122 @@ export class FormulaLatexRanges {
           );
           const left = range.text.substring(0, change.from - offset);
           const right = range.text.substring(change.to - offset);
-          return [new UnstyledRange(left + right), offset + range.length];
+          // TODO: Should check if the deletion is completely contained in this range
+          return [new UnstyledRange(left + right), null, offset + range.length];
         } else {
           console.log("Inserting into", range.text, "at", change.from - offset);
           const left = range.text.substring(0, change.from - offset);
           const right = range.text.substring(change.from - offset);
           return [
             new UnstyledRange(left + change.inserted + right),
+            null,
             offset + range.length,
           ];
         }
       } else {
+        if (
+          change.type === "insert" &&
+          change.from === offset &&
+          activeRanges.has(range.id) &&
+          range.children.every(
+            (child) =>
+              child instanceof UnstyledRange || !activeRanges.has(child.id)
+          )
+        ) {
+          // The change is an insert at the left edge of this styled range
+          const leftChild = range.children[0];
+          const endOffset =
+            offset +
+            range.children.reduce((acc, child) => acc + child.length, 0);
+          if (leftChild instanceof UnstyledRange) {
+            // If the left child is already an unstyled range, we can just modify it
+            const newChild = new UnstyledRange(
+              change.inserted + leftChild.text
+            );
+            return [
+              new StyledRange(
+                range.id,
+                range.left,
+                [newChild, ...range.children.slice(1)],
+                range.right,
+                range.hints
+              ),
+              null,
+              endOffset,
+            ];
+          } else {
+            // Otherwise, we need to add a new unstyled range to the left of the left child
+            const newChild = new UnstyledRange(change.inserted);
+            return [
+              new StyledRange(
+                range.id,
+                range.left,
+                [newChild, ...range.children],
+                range.right,
+                range.hints
+              ),
+              null,
+              endOffset,
+            ];
+          }
+        }
+
         // Recurse into StyledRange children
         const newChildren: FormulaLatexRangeNode[] = [];
         for (const child of range.children) {
-          const [newChild, newOffset] = modifyRange(child, offset);
+          const [newChild, newChange, newOffset] = modifyRange(
+            child,
+            change,
+            offset
+          );
           newChildren.push(newChild);
           offset = newOffset;
+          change = newChange;
+        }
+
+        if (
+          change !== null &&
+          change.type === "insert" &&
+          change.from === offset &&
+          activeRanges.has(range.id) &&
+          range.children.every(
+            (child) =>
+              child instanceof UnstyledRange || !activeRanges.has(child.id)
+          )
+        ) {
+          // The change is an insert at the right edge of this styled range
+          const rightChild = range.children[range.children.length - 1];
+          if (rightChild instanceof UnstyledRange) {
+            // If the right child is already an unstyled range, we can just modify it
+            const newChild = new UnstyledRange(
+              rightChild.text + change.inserted
+            );
+            return [
+              new StyledRange(
+                range.id,
+                range.left,
+                [...range.children.slice(0, -1), newChild],
+                range.right,
+                range.hints
+              ),
+              null,
+              offset,
+            ];
+          } else {
+            // Otherwise, we need to add a new unstyled range to the right of the right child
+            const newChild = new UnstyledRange(change.inserted);
+            return [
+              new StyledRange(
+                range.id,
+                range.left,
+                [...range.children, newChild],
+                range.right,
+                range.hints
+              ),
+              null,
+              offset,
+            ];
+          }
         }
         return [
           new StyledRange(
@@ -187,15 +292,22 @@ export class FormulaLatexRanges {
             range.right,
             range.hints
           ),
+          updatedChange,
           offset,
         ];
       }
     };
 
     let offset = 0;
+    let updatedChange: ContentChange | null = change;
     for (const range of this.ranges) {
-      const [newRange, newOffset] = modifyRange(range, offset);
+      const [newRange, newChange, newOffset] = modifyRange(
+        range,
+        updatedChange,
+        offset
+      );
       offset = newOffset;
+      updatedChange = newChange;
       newRanges.push(newRange);
     }
 
