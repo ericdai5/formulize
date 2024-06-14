@@ -43,7 +43,7 @@ type DecorationRange = { to: number; from: number; decoration: Decoration };
 const styledRanges = (view: EditorView) => {
   const builder = new RangeSetBuilder<Decoration>();
 
-  const styledRanges = formulaStore.augmentedFormula.toStyledRanges();
+  const styledRanges = formulaStore.styledRanges;
 
   const buildDecoration = (
     range: FormulaLatexRangeNode,
@@ -161,7 +161,7 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
       newSelection.ranges[0].from === newSelection.ranges[0].to &&
       prevSelection.ranges[0].from === prevSelection.ranges[0].to
     ) {
-      const styledRanges = formulaStore.augmentedFormula.toStyledRanges();
+      const styledRanges = formulaStore.styledRanges;
       const touchedRanges = styledRanges
         .getPositionRanges(newSelection.ranges[0].from)
         .filter((range): range is StyledRange => range instanceof StyledRange);
@@ -292,7 +292,7 @@ const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
       }
 
       if (fromB < toB) {
-        console.log("Insertion:", fromB, toB, inserted);
+        console.log("Insertion:", fromB, toB, inserted.toString());
         changes.push({
           type: "insert",
           from: fromB,
@@ -304,24 +304,22 @@ const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
 
     const activeRanges = tr.state.field(styledRangeSelectionState);
     let newRanges = formulaStore.styledRanges;
+    console.log("Styled ranges before edit:", newRanges.toLatex());
     for (const change of changes) {
       newRanges = newRanges.withContentChange(change, activeRanges);
     }
+    console.log("Styled ranges after edit:", newRanges.toLatex());
 
-    if (!checkFormulaCode(newRanges.toLatex())) {
-      console.log("New content latex is invalid:", newRanges.toLatex());
-      requestAnimationFrame(() => {
-        formulaStore.overrideStyledRanges(newRanges);
-      });
-    } else {
+    formulaStore.overrideStyledRanges(newRanges);
+
+    if (checkFormulaCode(newRanges.toLatex())) {
       console.log("Valid content latex, updating formula");
       requestAnimationFrame(() => {
         formulaStore.updateFormula(deriveAugmentedFormula(newRanges.toLatex()));
       });
     }
 
-    // Suppress the actual document changes, they'll appear after the formulaStore update
-    return [];
+    return tr;
   }
   return tr;
 });
@@ -445,6 +443,7 @@ const FullStyleEditor = observer(() => {
       // Automatically update the formula when the editor code changes
       newEditorView.contentDOM.addEventListener("blur", () => {
         setSuppressCodeUpdate(() => false);
+        formulaStore.overrideStyledRanges(null);
 
         // Synchronize the editor with the current formula
         newEditorView.dispatch([
@@ -488,9 +487,24 @@ const ContentOnlyEditor = observer(() => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [editorCodeCorrect, setEditorCodeCorrect] = useState(true);
+  const [, setSuppressCodeUpdate, suppressCodeUpdateRef] = useStateRef(false);
 
   useEffect(() => {
     if (container && (!editorView || editorView.contentDOM !== container)) {
+      const codeUpdateListener = EditorView.updateListener.of((update) => {
+        if (
+          update.docChanged &&
+          update.state.doc.toString() !== formulaStore.latexWithStyling
+        ) {
+          const newCode = update.state.doc.toString();
+          if (checkFormulaCode(newCode)) {
+            setEditorCodeCorrect(() => true);
+          } else {
+            setEditorCodeCorrect(() => false);
+          }
+        }
+      });
+
       const newEditorView = new EditorView({
         state: EditorState.create({
           extensions: [
@@ -500,6 +514,7 @@ const ContentOnlyEditor = observer(() => {
             // keymap.of(historyKeymap),
             EditorView.lineWrapping,
             StreamLanguage.define(stex),
+            codeUpdateListener,
             styledRangeViewExtension,
             styledRangeSelectionState,
             styledRangeCursorExtension,
@@ -518,6 +533,11 @@ const ContentOnlyEditor = observer(() => {
           formulaStore.latexWithoutStyling,
         ],
         ([, latex]) => {
+          if (suppressCodeUpdateRef.current) {
+            console.log("Suppressing code update");
+            return;
+          }
+
           console.log("Synchronizing editor with new formula", latex);
           setEditorCodeCorrect(() => true);
           newEditorView.dispatch([
@@ -532,17 +552,27 @@ const ContentOnlyEditor = observer(() => {
         }
       );
 
+      // Suppress updates to the formula when changing the editor code
+      newEditorView.contentDOM.addEventListener("focus", () => {
+        setSuppressCodeUpdate(() => true);
+      });
+
       // Automatically update the formula when the editor code changes
-      // TODO: temporarily suppressed while developing content-only editor
-      // newEditorView.contentDOM.addEventListener("blur", () => {
-      //   const newCode = newEditorView.state.doc.toString();
-      //   if (checkFormulaCode(newCode)) {
-      //     setEditorCodeCorrect(() => true);
-      //     formulaStore.updateFormula(deriveAugmentedFormula(newCode));
-      //   } else {
-      //     setEditorCodeCorrect(() => false);
-      //   }
-      // });
+      newEditorView.contentDOM.addEventListener("blur", () => {
+        setSuppressCodeUpdate(() => false);
+        formulaStore.overrideStyledRanges(null);
+
+        // Synchronize the editor with the current formula
+        newEditorView.dispatch([
+          newEditorView.state.update({
+            changes: {
+              from: 0,
+              to: newEditorView.state.doc.length,
+              insert: formulaStore.latexWithoutStyling,
+            },
+          }),
+        ]);
+      });
 
       return () => {
         disposeReaction();

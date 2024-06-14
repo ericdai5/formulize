@@ -144,7 +144,6 @@ export class FormulaLatexRanges {
       range: FormulaLatexRangeNode,
       offset: number
     ): [FormulaLatexRangeNode, number] => {
-      console.log("modifyRange", "id" in range ? range.id : range.text, offset);
       if (range instanceof UnstyledRange) {
         if (change.to <= offset || offset + range.length <= change.from) {
           // Change is completely outside of this node's range
@@ -197,7 +196,6 @@ export class FormulaLatexRanges {
     for (const range of this.ranges) {
       const [newRange, newOffset] = modifyRange(range, offset);
       offset = newOffset;
-      console.log("offset is now", offset);
       newRanges.push(newRange);
     }
 

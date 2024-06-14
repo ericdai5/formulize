@@ -27,11 +27,11 @@ class FormulaStore {
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
     selectionStore.clearSelection();
-    this.styledRangesOverride = null;
   }
 
   @action
   overrideStyledRanges(styledRanges: FormulaLatexRanges | null) {
+    console.log("Overriding styled ranges", styledRanges);
     this.styledRangesOverride = styledRanges;
   }
 
@@ -47,6 +47,17 @@ class FormulaStore {
 
   @computed
   get styledRanges() {
+    if (this.styledRangesOverride !== null) {
+      console.log(
+        "Using styled ranges override",
+        this.styledRangesOverride.toLatex()
+      );
+    } else {
+      console.log(
+        "Using styled ranges from formula",
+        this.augmentedFormula.toStyledRanges().toLatex()
+      );
+    }
     return this.styledRangesOverride ?? this.augmentedFormula.toStyledRanges();
   }
 }
