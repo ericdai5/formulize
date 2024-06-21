@@ -65,12 +65,15 @@ const styledRanges = (view: EditorView) => {
         decorations = decorations.concat(newDecorations);
       }
       return [
-        decorations.concat([
-          {
-            from: baseOffset,
-            to: offset,
-            decoration: Decoration.mark({
-              class: classname`
+        decorations.concat(
+          range.hints?.noMark
+            ? []
+            : [
+                {
+                  from: baseOffset,
+                  to: offset,
+                  decoration: Decoration.mark({
+                    class: classname`
                 position: relative;
                 pointer-events: none;
                 /* border: 1px solid ${range.hints?.color || "black"}; */
@@ -97,18 +100,19 @@ const styledRanges = (view: EditorView) => {
                   background-color: ${range.hints?.color || "black"};
                 }
               `,
-              // This isn't actually very good: perfectly overlapping ranges will be obscured
-              // by the innermost range's tooltip. But doing otherwise requires injecting HTML
-              // via CodeMirror's "Widget" decorations
-              // TODO: doesn't work anyway, span pointer events break clicking to move cursor
-              // attributes: range.hints?.tooltip
-              //   ? {
-              //       title: range.hints.tooltip,
-              //     }
-              //   : {},
-            }),
-          },
-        ]),
+                    // This isn't actually very good: perfectly overlapping ranges will be obscured
+                    // by the innermost range's tooltip. But doing otherwise requires injecting HTML
+                    // via CodeMirror's "Widget" decorations
+                    // TODO: doesn't work anyway, span pointer events break clicking to move cursor
+                    // attributes: range.hints?.tooltip
+                    //   ? {
+                    //       title: range.hints.tooltip,
+                    //     }
+                    //   : {},
+                  }),
+                },
+              ]
+        ),
         offset,
       ];
     }

@@ -145,15 +145,15 @@ export class FormulaLatexRanges {
       range: FormulaLatexRangeNode,
       change: ContentChange | null,
       offset: number
-    ): [FormulaLatexRangeNode, ContentChange | null, number] => {
+    ): [FormulaLatexRangeNode[], ContentChange | null, number] => {
       if (change === null) {
-        return [range, null, offset + range.length];
+        return [[range], null, offset + range.length];
       }
 
       if (range instanceof UnstyledRange) {
         if (change.to <= offset || offset + range.length <= change.from) {
           // Change is completely outside of this node's range
-          return [range, change, offset + range.length];
+          return [[range], change, offset + range.length];
         }
 
         if (change.type === "delete") {
@@ -168,13 +168,17 @@ export class FormulaLatexRanges {
           const left = range.text.substring(0, change.from - offset);
           const right = range.text.substring(change.to - offset);
           // TODO: Should check if the deletion is completely contained in this range
-          return [new UnstyledRange(left + right), null, offset + range.length];
+          return [
+            [new UnstyledRange(left + right)],
+            null,
+            offset + range.length,
+          ];
         } else {
           console.log("Inserting into", range.text, "at", change.from - offset);
           const left = range.text.substring(0, change.from - offset);
           const right = range.text.substring(change.from - offset);
           return [
-            new UnstyledRange(left + change.inserted + right),
+            [new UnstyledRange(left + change.inserted + right)],
             null,
             offset + range.length,
           ];
@@ -189,6 +193,7 @@ export class FormulaLatexRanges {
               child instanceof UnstyledRange || !activeRanges.has(child.id)
           )
         ) {
+          console.log("Left edge of active range");
           // The change is an insert at the left edge of this styled range
           const leftChild = range.children[0];
           const endOffset =
@@ -200,13 +205,15 @@ export class FormulaLatexRanges {
               change.inserted + leftChild.text
             );
             return [
-              new StyledRange(
-                range.id,
-                range.left,
-                [newChild, ...range.children.slice(1)],
-                range.right,
-                range.hints
-              ),
+              [
+                new StyledRange(
+                  range.id,
+                  range.left,
+                  [newChild, ...range.children.slice(1)],
+                  range.right,
+                  range.hints
+                ),
+              ],
               null,
               endOffset,
             ];
@@ -214,17 +221,31 @@ export class FormulaLatexRanges {
             // Otherwise, we need to add a new unstyled range to the left of the left child
             const newChild = new UnstyledRange(change.inserted);
             return [
-              new StyledRange(
-                range.id,
-                range.left,
-                [newChild, ...range.children],
-                range.right,
-                range.hints
-              ),
+              [
+                new StyledRange(
+                  range.id,
+                  range.left,
+                  [newChild, ...range.children],
+                  range.right,
+                  range.hints
+                ),
+              ],
               null,
               endOffset,
             ];
           }
+        } else if (
+          change.type === "insert" &&
+          change.from === offset &&
+          !activeRanges.has(range.id)
+        ) {
+          // Left edge of inactive range
+          return [
+            [new UnstyledRange(change.inserted), range],
+            null,
+            offset +
+              range.children.reduce((acc, child) => acc + child.length, 0),
+          ];
         }
 
         // Recurse into StyledRange children
@@ -235,7 +256,7 @@ export class FormulaLatexRanges {
             change,
             offset
           );
-          newChildren.push(newChild);
+          newChildren.push(...newChild);
           offset = newOffset;
           change = newChange;
         }
@@ -250,6 +271,7 @@ export class FormulaLatexRanges {
               child instanceof UnstyledRange || !activeRanges.has(child.id)
           )
         ) {
+          console.log("Right edge of active range");
           // The change is an insert at the right edge of this styled range
           const rightChild = range.children[range.children.length - 1];
           if (rightChild instanceof UnstyledRange) {
@@ -258,13 +280,15 @@ export class FormulaLatexRanges {
               rightChild.text + change.inserted
             );
             return [
-              new StyledRange(
-                range.id,
-                range.left,
-                [...range.children.slice(0, -1), newChild],
-                range.right,
-                range.hints
-              ),
+              [
+                new StyledRange(
+                  range.id,
+                  range.left,
+                  [...range.children.slice(0, -1), newChild],
+                  range.right,
+                  range.hints
+                ),
+              ],
               null,
               offset,
             ];
@@ -272,26 +296,30 @@ export class FormulaLatexRanges {
             // Otherwise, we need to add a new unstyled range to the right of the right child
             const newChild = new UnstyledRange(change.inserted);
             return [
-              new StyledRange(
-                range.id,
-                range.left,
-                [...range.children, newChild],
-                range.right,
-                range.hints
-              ),
+              [
+                new StyledRange(
+                  range.id,
+                  range.left,
+                  [...range.children, newChild],
+                  range.right,
+                  range.hints
+                ),
+              ],
               null,
               offset,
             ];
           }
         }
         return [
-          new StyledRange(
-            range.id,
-            range.left,
-            newChildren,
-            range.right,
-            range.hints
-          ),
+          [
+            new StyledRange(
+              range.id,
+              range.left,
+              newChildren,
+              range.right,
+              range.hints
+            ),
+          ],
           updatedChange,
           offset,
         ];
@@ -308,7 +336,7 @@ export class FormulaLatexRanges {
       );
       offset = newOffset;
       updatedChange = newChange;
-      newRanges.push(newRange);
+      newRanges.push(...newRange);
     }
 
     return new FormulaLatexRanges(newRanges);
@@ -324,6 +352,7 @@ export class StyledRange {
     public hints?: {
       color?: string;
       tooltip?: string;
+      noMark?: boolean;
     }
   ) {}
 

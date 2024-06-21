@@ -52,17 +52,6 @@ class FormulaStore {
 
   @computed
   get styledRanges() {
-    if (this.styledRangesOverride !== null) {
-      console.log(
-        "Using styled ranges override",
-        this.styledRangesOverride.toLatex()
-      );
-    } else {
-      console.log(
-        "Using styled ranges from formula",
-        this.augmentedFormula.toStyledRanges().toLatex()
-      );
-    }
     return this.styledRangesOverride ?? this.augmentedFormula.toStyledRanges();
   }
 

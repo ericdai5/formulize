@@ -832,7 +832,10 @@ export class Aligned extends AugmentedFormulaNodeBase {
                 : []
             )
         ),
-        String.raw`\end{aligned}`
+        String.raw`\end{aligned}`,
+        {
+          noMark: true,
+        }
       ),
     ];
   }
