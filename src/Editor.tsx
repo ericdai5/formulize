@@ -357,6 +357,9 @@ export const Editor = observer(() => {
             height: 100%;
             font-size: 1.5rem;
           }
+          .cm-line {
+            padding: 10px 2px 10px 6px !important;
+          }
         `}
       />
       <div

@@ -1,4 +1,4 @@
-import { AugmentedFormula, AugmentedFormulaNode } from "./FormulaTree";
+import { AugmentedFormula, AugmentedFormulaNode, Group } from "./FormulaTree";
 
 const assertUnreachable = (x: never): never => {
   throw new Error("Non-exhaustive match for " + x);
@@ -10,8 +10,10 @@ export const replaceNodes = (
 ): AugmentedFormula => {
   return fixParents(
     normalizeIds(
-      new AugmentedFormula(
-        formula.children.map((node) => replaceNode(node, replacer))
+      removeEmptyGroups(
+        new AugmentedFormula(
+          formula.children.map((node) => replaceNode(node, replacer))
+        )
       )
     )
   );
@@ -180,6 +182,95 @@ const fixParent = (
         parent,
         body: node.body.map((row) => row.map((cell) => fixParent(cell, node))),
       });
+  }
+  return assertUnreachable(node);
+};
+
+export const removeEmptyGroups = (
+  formula: AugmentedFormula
+): AugmentedFormula => {
+  return new AugmentedFormula(
+    formula.children.flatMap((node) => removeEmptyGroup(node))
+  );
+};
+
+const exactlyOne = <T>(arr: T[]): T | undefined => {
+  if (arr.length === 1) {
+    return arr[0];
+  }
+
+  throw new Error("Expected exactly one element, got " + arr.length);
+};
+
+const atLeastOne = <T>(arr: T[]): T[] => {
+  if (arr.length >= 1) {
+    return arr;
+  }
+
+  throw new Error("Expected at least one element, got " + arr.length);
+};
+
+export const removeEmptyGroup = (
+  node: AugmentedFormulaNode
+): AugmentedFormulaNode[] => {
+  switch (node.type) {
+    case "group":
+      if (node.body.length === 0) {
+        return [];
+      }
+      return [
+        node.withChanges({
+          body: atLeastOne(node.body.flatMap(removeEmptyGroup)),
+        }),
+      ];
+    case "script":
+      return [
+        node.withChanges({
+          base: exactlyOne(removeEmptyGroup(node.base)),
+          sub: node.sub ? exactlyOne(removeEmptyGroup(node.sub)) : undefined,
+          sup: node.sup ? exactlyOne(removeEmptyGroup(node.sup)) : undefined,
+        }),
+      ];
+    case "frac":
+      return [
+        node.withChanges({
+          numerator: exactlyOne(removeEmptyGroup(node.numerator)),
+          denominator: exactlyOne(removeEmptyGroup(node.denominator)),
+        }),
+      ];
+    case "symbol":
+    case "space":
+      return [node];
+    case "color":
+    case "text":
+      return [
+        node.withChanges({
+          body: atLeastOne(node.body.flatMap(removeEmptyGroup)),
+        }),
+      ];
+    case "box":
+      return [
+        node.withChanges({ body: exactlyOne(removeEmptyGroup(node.body)) }),
+      ];
+    case "brace":
+      return [
+        node.withChanges({ base: exactlyOne(removeEmptyGroup(node.base)) }),
+      ];
+    case "array":
+      return [
+        node.withChanges({
+          body: node.body.map((row) =>
+            atLeastOne(
+              row.flatMap((cell) =>
+                // We want to preserve empty groups in the array to mark empty columns
+                cell instanceof Group && cell.body.length === 0
+                  ? [cell]
+                  : removeEmptyGroup(cell)
+              )
+            )
+          ),
+        }),
+      ];
   }
   return assertUnreachable(node);
 };

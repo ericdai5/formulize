@@ -8,6 +8,7 @@ import {
   StyledRange,
   UnstyledRange,
 } from "./FormulaText";
+import { removeEmptyGroups } from "./formulaTransformations";
 
 export const debugLatex = async (latex: string) => {
   // const mathjaxRendered: Element = MathJax.tex2chtml(latex);
@@ -90,7 +91,7 @@ export const deriveAugmentedFormula = (latex: string): AugmentedFormula => {
   const augmentedTrees = katexTrees.map((katexTree, i) =>
     buildAugmentedFormula(katexTree, `${i}`)
   );
-  return new AugmentedFormula(augmentedTrees);
+  return removeEmptyGroups(new AugmentedFormula(augmentedTrees));
 };
 
 const buildAugmentedFormula = (

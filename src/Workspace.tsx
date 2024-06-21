@@ -210,13 +210,15 @@ const AlignmentGuides = observer(() => {
       {columnTargets?.map((targets, col) => (
         <div
           style={{
+            zIndex: "100",
             position: "absolute",
             left: `${Math.min(...targets.map((target) => target!.left - left))}px`,
             top: "0",
             bottom: "0",
             // top: `${Math.min(...targets.map((target) => target!.top - top))}px`,
             // height: `${Math.max(...targets.map((target) => target!.top + target!.height)) - top}px`,
-            border: "2px solid cyan",
+            borderLeft: "2px dotted black",
+            // cursor: "col-resize",
           }}
           key={col}
         ></div>
