@@ -26,7 +26,6 @@ import { EditorView, basicSetup } from "codemirror";
 import {
   ContentChange,
   FormulaLatexRangeNode,
-  FormulaLatexRanges,
   StyledRange,
   UnstyledRange,
 } from "./FormulaText";

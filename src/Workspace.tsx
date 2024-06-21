@@ -204,7 +204,7 @@ const AlignmentGuides = observer(() => {
     return null;
   }
 
-  const { left, top } = selectionStore.workspaceBBox;
+  const { left } = selectionStore.workspaceBBox;
   return (
     <>
       {columnTargets?.map((targets, col) => (
