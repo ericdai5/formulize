@@ -815,19 +815,26 @@ export class Aligned extends AugmentedFormulaNodeBase {
   }
 
   toStyledRanges(): FormulaLatexRangeNode[] {
-    return this.body.flatMap((row, i) =>
-      row
-        .flatMap((cell, i) =>
-          cell
-            .toStyledRanges()
-            .concat(i < row.length - 1 ? new UnstyledRange(" & ") : [])
-        )
-        .concat(
-          i < this.body.length - 1
-            ? new UnstyledRange(String.raw` \\` + "\n")
-            : []
-        )
-    );
+    return [
+      new StyledRange(
+        this.id,
+        String.raw`\begin{aligned}`,
+        this.body.flatMap((row, i) =>
+          row
+            .flatMap((cell, i) =>
+              cell
+                .toStyledRanges()
+                .concat(i < row.length - 1 ? new UnstyledRange(" & ") : [])
+            )
+            .concat(
+              i < this.body.length - 1
+                ? new UnstyledRange(String.raw` \\` + "\n")
+                : []
+            )
+        ),
+        String.raw`\end{aligned}`
+      ),
+    ];
   }
 }
 

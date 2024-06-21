@@ -244,9 +244,14 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
       }
 
       // Move into the shallowest new range, if any
-      const gainedRanges = touchedRanges.filter(
-        (range) => !prevTouchedRanges.find((r) => r.equals(range))
-      );
+      const gainedRanges = touchedRanges
+        .filter((range) => !prevTouchedRanges.find((r) => r.equals(range)))
+        .concat(
+          // Include 1-wide ranges that we "step over"
+          inclusiveTouchedRanges.filter((range) =>
+            inclusivePrevTouchedRanges.some((r) => r.equals(range))
+          )
+        );
       const gainedInactiveRanges = gainedRanges.filter(
         (range) => !currentActiveRanges.has(range.id)
       );
