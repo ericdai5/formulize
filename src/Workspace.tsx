@@ -12,7 +12,7 @@ import { observer } from "mobx-react-lite";
 
 import { Debug } from "./Debug";
 import { RenderedFormula } from "./RenderedFormula";
-import { selectionStore } from "./store";
+import { formulaStore, selectionStore } from "./store";
 
 export const Workspace = observer(() => {
   const [showDebug, setShowDebug] = useState(false);
@@ -137,6 +137,7 @@ export const Workspace = observer(() => {
       </div>
       <SelectionRect />
       <SelectionBorders />
+      <AlignmentGuides />
       <RenderedFormula />
       {showDebug && <Debug />}
     </div>
@@ -188,6 +189,38 @@ const SelectionBorders = observer(() => {
           ></div>
         );
       })}
+    </>
+  );
+});
+
+const AlignmentGuides = observer(() => {
+  const columnTargets = formulaStore.alignColumnIds?.map((colIds) =>
+    colIds
+      .map((colId) => selectionStore.screenSpaceTargets.get(colId))
+      .filter((target) => target !== undefined)
+  );
+
+  if (selectionStore.workspaceBBox === null || columnTargets === null) {
+    return null;
+  }
+
+  const { left, top } = selectionStore.workspaceBBox;
+  return (
+    <>
+      {columnTargets?.map((targets, col) => (
+        <div
+          style={{
+            position: "absolute",
+            left: `${Math.min(...targets.map((target) => target!.left - left))}px`,
+            top: "0",
+            bottom: "0",
+            // top: `${Math.min(...targets.map((target) => target!.top - top))}px`,
+            // height: `${Math.max(...targets.map((target) => target!.top + target!.height)) - top}px`,
+            border: "2px solid cyan",
+          }}
+          key={col}
+        ></div>
+      ))}
     </>
   );
 });

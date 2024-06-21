@@ -7,7 +7,12 @@ import {
 } from "mobx";
 
 import { FormulaLatexRanges } from "./FormulaText";
-import { AugmentedFormula, RenderSpec, updateFormula } from "./FormulaTree";
+import {
+  Aligned,
+  AugmentedFormula,
+  RenderSpec,
+  updateFormula,
+} from "./FormulaTree";
 
 class FormulaStore {
   @observable accessor renderSpec: RenderSpec | null = null;
@@ -59,6 +64,24 @@ class FormulaStore {
       );
     }
     return this.styledRangesOverride ?? this.augmentedFormula.toStyledRanges();
+  }
+
+  @computed
+  get alignColumnIds(): string[][] | null {
+    // TODO: For now, only caring if the align environment is the root of the formula
+    if (this.augmentedFormula.children.length !== 1) {
+      return null;
+    }
+
+    const rootNode = this.augmentedFormula.children[0];
+    if (rootNode instanceof Aligned) {
+      console.log("Found align columns", rootNode.body[0].length, rootNode);
+      return [...Array(rootNode.body[0].length).keys()].map((col) =>
+        rootNode.body.map((row) => row[col].id)
+      );
+    }
+
+    return null;
   }
 }
 export const formulaStore = new FormulaStore();

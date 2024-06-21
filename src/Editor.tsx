@@ -72,7 +72,19 @@ const styledRanges = (view: EditorView) => {
             decoration: Decoration.mark({
               class: classname`
                 position: relative;
+                pointer-events: none;
                 /* border: 1px solid ${range.hints?.color || "black"}; */
+
+                &::before {
+                  content: "";
+                  position: absolute;
+                  top: 0;
+                  bottom: 0;
+                  left: 0;
+                  right: 0;
+                  opacity: ${view.state.field(styledRangeSelectionState).has(range.id) ? 0.1 : 0};
+                  background-color: ${range.hints?.color || "black"};
+                }
 
                 &::after {
                   content: "";
@@ -81,18 +93,19 @@ const styledRanges = (view: EditorView) => {
                   top: ${-4 + 4 * nestingDepth}px;
                   left: 0;
                   width: 100%;
-                  height: ${view.state.field(styledRangeSelectionState).has(range.id) ? 4 : 2}px;
+                  height: ${view.state.field(styledRangeSelectionState).has(range.id) ? "4px" : "2px"};
                   background-color: ${range.hints?.color || "black"};
                 }
               `,
               // This isn't actually very good: perfectly overlapping ranges will be obscured
               // by the innermost range's tooltip. But doing otherwise requires injecting HTML
               // via CodeMirror's "Widget" decorations
-              attributes: range.hints?.tooltip
-                ? {
-                    title: range.hints.tooltip,
-                  }
-                : {},
+              // TODO: doesn't work anyway, span pointer events break clicking to move cursor
+              // attributes: range.hints?.tooltip
+              //   ? {
+              //       title: range.hints.tooltip,
+              //     }
+              //   : {},
             }),
           },
         ]),
@@ -154,7 +167,6 @@ const styledRangeCursorExtension = EditorState.transactionFilter.of((tr) => {
   if (newSelection && !tr.docChanged) {
     const prevSelection = tr.startState.selection;
 
-    // TODO: We currently only handle between-character cursor movement, not multi-character selections
     if (
       newSelection.ranges.length === 1 &&
       prevSelection.ranges.length === 1 &&

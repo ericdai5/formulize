@@ -60,6 +60,14 @@ const replaceNode = (
           base: replaceNode(node.base, replacer),
         })
       );
+    case "array":
+      return replacer(
+        node.withChanges({
+          body: node.body.map((row) =>
+            row.map((cell) => replaceNode(cell, replacer))
+          ),
+        })
+      );
   }
   return assertUnreachable(node);
 };
@@ -109,6 +117,15 @@ const reassignIds = (
         id,
         base: reassignIds(node.base, `${id}.base`),
       });
+    case "array":
+      return node.withChanges({
+        id,
+        body: node.body.map((row, rowNum) =>
+          row.map((cell, colNum) =>
+            reassignIds(cell, `${id}.${rowNum}.${colNum}`)
+          )
+        ),
+      });
   }
   return assertUnreachable(node);
 };
@@ -157,6 +174,11 @@ const fixParent = (
       return node.withChanges({
         parent,
         base: fixParent(node.base, node),
+      });
+    case "array":
+      return node.withChanges({
+        parent,
+        body: node.body.map((row) => row.map((cell) => fixParent(cell, node))),
       });
   }
   return assertUnreachable(node);

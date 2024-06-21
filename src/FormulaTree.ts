@@ -186,6 +186,13 @@ const buildAugmentedFormula = (
     }
     case "spacing":
       return new Space(id, katexTree.text);
+    case "array":
+      return new Aligned(
+        id,
+        katexTree.body.map((row, r) =>
+          row.map((cell, c) => buildAugmentedFormula(cell, `${id}.${r}.${c}`))
+        )
+      );
   }
 
   console.log("Failed to build:", katexTree);
@@ -240,7 +247,8 @@ export type AugmentedFormulaNode =
   | Box
   | Brace
   | Text
-  | Space;
+  | Space
+  | Aligned;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -757,6 +765,68 @@ export class Space extends AugmentedFormulaNodeBase {
 
   toStyledRanges(): FormulaLatexRangeNode[] {
     return [new UnstyledRange(this.text)];
+  }
+}
+
+export class Aligned extends AugmentedFormulaNodeBase {
+  type = "array" as const;
+  constructor(
+    public id: string,
+    public body: AugmentedFormulaNode[][]
+    // TODO: This type is used for more than `aligned`, e.g. array, gather
+    // public mode?: "align" | "alignat" | "gather" | "small" | "CD",
+    // public columnAlignment: ("l" | "c" | "r")[],
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    const rowsLatex = this.body
+      .map((row) => row.map((cell) => cell.toLatex(mode)).join(" & "))
+      .join(String.raw` \\` + "\n");
+
+    if (mode === "content-only") {
+      return rowsLatex;
+    }
+
+    return this.latexWithId(
+      mode,
+      `\\begin{aligned}\n${rowsLatex}\n\\end{aligned}`
+    );
+  }
+
+  withChanges({
+    id,
+    parent,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    body?: AugmentedFormulaNode[][];
+  }): Aligned {
+    const aligned = new Aligned(id ?? this.id, body ?? this.body);
+    aligned._parent = parent ?? this._parent;
+    return aligned;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return this.body.flat();
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return this.body.flatMap((row, i) =>
+      row
+        .flatMap((cell, i) =>
+          cell
+            .toStyledRanges()
+            .concat(i < row.length - 1 ? new UnstyledRange(" & ") : [])
+        )
+        .concat(
+          i < this.body.length - 1
+            ? new UnstyledRange(String.raw` \\` + "\n")
+            : []
+        )
+    );
   }
 }
 
