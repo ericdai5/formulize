@@ -41,6 +41,7 @@ const replaceNode = (
       );
     case "symbol":
     case "space":
+    case "op":
       return replacer(node.withChanges({}));
     case "color":
     case "group":
@@ -68,6 +69,15 @@ const replaceNode = (
           body: node.body.map((row) =>
             row.map((cell) => replaceNode(cell, replacer))
           ),
+        })
+      );
+    case "root":
+      return replacer(
+        node.withChanges({
+          body: replaceNode(node.body, replacer),
+          ...(node.index !== undefined && {
+            index: replaceNode(node.index, replacer),
+          }),
         })
       );
   }
@@ -101,6 +111,7 @@ const reassignIds = (
       });
     case "symbol":
     case "space":
+    case "op":
       return node.withChanges({ id });
     case "color":
     case "group":
@@ -127,6 +138,14 @@ const reassignIds = (
             reassignIds(cell, `${id}.${rowNum}.${colNum}`)
           )
         ),
+      });
+    case "root":
+      return node.withChanges({
+        id,
+        body: reassignIds(node.body, `${id}.body`),
+        ...(node.index !== undefined && {
+          index: reassignIds(node.index, `${id}.index`),
+        }),
       });
   }
   return assertUnreachable(node);
@@ -159,6 +178,7 @@ const fixParent = (
       });
     case "symbol":
     case "space":
+    case "op":
       return node.withChanges({ parent });
     case "color":
     case "group":
@@ -181,6 +201,14 @@ const fixParent = (
       return node.withChanges({
         parent,
         body: node.body.map((row) => row.map((cell) => fixParent(cell, node))),
+      });
+    case "root":
+      return node.withChanges({
+        parent,
+        body: fixParent(node.body, node),
+        ...(node.index !== undefined && {
+          index: fixParent(node.index, node),
+        }),
       });
   }
   return assertUnreachable(node);
@@ -240,6 +268,7 @@ export const removeEmptyGroup = (
       ];
     case "symbol":
     case "space":
+    case "op":
       return [node];
     case "color":
     case "text":
@@ -269,6 +298,15 @@ export const removeEmptyGroup = (
               )
             )
           ),
+        }),
+      ];
+    case "root":
+      return [
+        node.withChanges({
+          body: exactlyOne(removeEmptyGroup(node.body)),
+          ...(node.index !== undefined && {
+            index: exactlyOne(removeEmptyGroup(node.index)),
+          }),
         }),
       ];
   }

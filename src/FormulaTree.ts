@@ -11,7 +11,7 @@ import {
 import { removeEmptyGroups } from "./formulaTransformations";
 
 export const debugLatex = async (latex: string) => {
-  // const mathjaxRendered: Element = MathJax.tex2chtml(latex);
+  const mathjaxRendered: Element = MathJax.tex2chtml(latex);
   // const formattedHtml = await prettier.format(html.outerHTML, {
   //   parser: "babel",
   //   plugins: [babelPlugin, estreePlugin],
@@ -146,7 +146,10 @@ const buildAugmentedFormula = (
     }
     case "styling":
     case "ordgroup": {
-      if (katexTree.body.length === 1) {
+      if (
+        katexTree.body.length === 1 &&
+        !(katexTree.body[0].type === "color")
+      ) {
         return buildAugmentedFormula(katexTree.body[0], id);
       }
       const children = katexTree.body.map((child, i) =>
@@ -194,6 +197,21 @@ const buildAugmentedFormula = (
           row.map((cell, c) => buildAugmentedFormula(cell, `${id}.${r}.${c}`))
         )
       );
+    case "op":
+      if (katexTree.symbol) {
+        return new Op(id, katexTree.name, katexTree.limits);
+      }
+      break;
+    case "sqrt": {
+      const body = buildAugmentedFormula(katexTree.body, `${id}.body`);
+      const index = katexTree.index
+        ? buildAugmentedFormula(katexTree.index, `${id}.index`)
+        : undefined;
+      const root = new Root(id, body, index);
+      body._parent = root;
+      index && (index._parent = root);
+      return root;
+    }
   }
 
   console.log("Failed to build:", katexTree);
@@ -249,7 +267,9 @@ export type AugmentedFormulaNode =
   | Brace
   | Text
   | Space
-  | Aligned;
+  | Aligned
+  | Root
+  | Op;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -518,9 +538,7 @@ export class Group extends AugmentedFormulaNodeBase {
     const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
-    return this.body.length === 1
-      ? this.latexWithId(mode, childrenLatex)
-      : this.latexWithId(mode, String.raw`{${childrenLatex}}`);
+    return this.latexWithId(mode, String.raw`{${childrenLatex}}`);
   }
 
   withChanges({
@@ -542,18 +560,16 @@ export class Group extends AugmentedFormulaNodeBase {
   }
 
   toStyledRanges(): FormulaLatexRangeNode[] {
-    return this.body.length === 1
-      ? this.body[0].toStyledRanges()
-      : [
-          new UnstyledRange("{"),
-          ...this.children.flatMap((child, i) =>
-            child.toStyledRanges().concat(
-              // Add a space between children
-              i < this.children.length - 1 ? new UnstyledRange(" ") : []
-            )
-          ),
-          new UnstyledRange("}"),
-        ];
+    return [
+      new UnstyledRange("{"),
+      ...this.children.flatMap((child, i) =>
+        child.toStyledRanges().concat(
+          // Add a space between children
+          i < this.children.length - 1 ? new UnstyledRange(" ") : []
+        )
+      ),
+      new UnstyledRange("}"),
+    ];
   }
 }
 
@@ -838,6 +854,113 @@ export class Aligned extends AugmentedFormulaNodeBase {
         }
       ),
     ];
+  }
+}
+
+export class Root extends AugmentedFormulaNodeBase {
+  type = "root" as const;
+  constructor(
+    public id: string,
+    public body: AugmentedFormulaNode,
+    public index?: AugmentedFormulaNode
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    const bodyLatex = this.body.toLatex(mode);
+    const indexLatex = this.index ? `[${this.index.toLatex(mode)}]` : "";
+
+    return this.latexWithId(mode, String.raw`\sqrt${indexLatex}{${bodyLatex}}`);
+  }
+
+  withChanges({
+    id,
+    parent,
+    body,
+    index,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    body?: AugmentedFormulaNode;
+    index?: AugmentedFormulaNode;
+  }): Root {
+    const root = new Root(
+      id ?? this.id,
+      body ?? this.body,
+      index ?? this.index
+    );
+    root._parent = parent ?? this._parent;
+    return root;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [this.body, ...(this.index ? [this.index] : [])];
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return this.index
+      ? [
+          new UnstyledRange(String.raw`\sqrt[`),
+          ...this.index.toStyledRanges(),
+          new UnstyledRange("]{"),
+          ...this.body.toStyledRanges(),
+          new UnstyledRange("}"),
+        ]
+      : [
+          new UnstyledRange(String.raw`\sqrt{`),
+          ...this.body.toStyledRanges(),
+          new UnstyledRange("}"),
+        ];
+  }
+}
+
+export class Op extends AugmentedFormulaNodeBase {
+  type = "op" as const;
+  constructor(
+    public id: string,
+    public operator: string,
+    public limits: boolean
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    return this.latexWithId(
+      mode,
+      this.limits ? String.raw`${this.operator}\limits` : this.operator
+    );
+  }
+
+  withChanges({
+    id,
+    parent,
+    operator,
+    limits,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    operator?: string;
+    limits?: boolean;
+    body?: AugmentedFormulaNode;
+  }): Op {
+    const op = new Op(
+      id ?? this.id,
+      operator ?? this.operator,
+      limits ?? this.limits
+    );
+    op._parent = parent ?? this._parent;
+    return op;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [];
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return this.limits
+      ? [new UnstyledRange(String.raw`${this.operator}\limits`)]
+      : [new UnstyledRange(this.operator)];
   }
 }
 
