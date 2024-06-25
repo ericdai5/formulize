@@ -65,8 +65,10 @@ class FormulaStore {
     const rootNode = this.augmentedFormula.children[0];
     if (rootNode instanceof Aligned) {
       console.log("Found align columns", rootNode.body[0].length, rootNode);
-      return [...Array(rootNode.body[0].length).keys()].map((col) =>
-        rootNode.body.map((row) => row[col].id)
+      return [
+        ...Array(Math.max(...rootNode.body.map((row) => row.length))).keys(),
+      ].map((col) =>
+        rootNode.body.flatMap((row) => (col < row.length ? [row[col].id] : []))
       );
     }
 

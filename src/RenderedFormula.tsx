@@ -10,7 +10,7 @@ export const RenderedFormula = observer(() => {
   useEffect(() => {
     formulaStore.updateFormula(
       deriveAugmentedFormula(
-        String.raw`{a^2} \fcolorbox{#000000}{white}{$ {+ {\textcolor{blue}{{b^2}} =}}$} {c^2}`
+        String.raw`{a^2} + \fcolorbox{#000000}{white}{$ \textcolor{blue}{{b^2}}$} = {c^2}`
       )
     );
   }, []);
