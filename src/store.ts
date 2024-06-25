@@ -56,6 +56,18 @@ class FormulaStore {
   }
 
   @computed
+  get alignIds(): string[][] | null {
+    if (this.augmentedFormula.children.length !== 1) {
+      return null;
+    }
+    const rootNode = this.augmentedFormula.children[0];
+    if (rootNode instanceof Aligned) {
+      return rootNode.body.map((row) => row.map((node) => node.id));
+    }
+    return null;
+  }
+
+  @computed
   get alignColumnIds(): string[][] | null {
     // TODO: For now, only caring if the align environment is the root of the formula
     if (this.augmentedFormula.children.length !== 1) {
@@ -77,7 +89,7 @@ class FormulaStore {
 }
 export const formulaStore = new FormulaStore();
 
-type DimensionBox = {
+export type DimensionBox = {
   left: number;
   top: number;
   width: number;

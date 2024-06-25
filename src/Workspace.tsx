@@ -12,7 +12,7 @@ import { observer } from "mobx-react-lite";
 
 import { Debug } from "./Debug";
 import { RenderedFormula } from "./RenderedFormula";
-import { formulaStore, selectionStore } from "./store";
+import { DimensionBox, formulaStore, selectionStore } from "./store";
 
 export const Workspace = observer(() => {
   const [showDebug, setShowDebug] = useState(false);
@@ -194,35 +194,89 @@ const SelectionBorders = observer(() => {
 });
 
 const AlignmentGuides = observer(() => {
-  const columnTargets = formulaStore.alignColumnIds?.map((colIds) =>
-    colIds
-      .map((colId) => selectionStore.screenSpaceTargets.get(colId))
-      .filter((target) => target !== undefined)
+  // const columnTargets = formulaStore.alignColumnIds?.map((colIds) =>
+  //   colIds
+  //     .map((colId) => selectionStore.screenSpaceTargets.get(colId))
+  //     .filter((target) => target !== undefined)
+  // );
+  const alignTargets = formulaStore.alignIds?.map((rowIds) =>
+    rowIds
+      .map((rowId) => selectionStore.screenSpaceTargets.get(rowId))
+      .filter(
+        (target): target is { id: string } & DimensionBox =>
+          target !== undefined
+      )
   );
 
-  if (selectionStore.workspaceBBox === null || columnTargets === null) {
+  if (selectionStore.workspaceBBox === null || alignTargets === undefined) {
     return null;
   }
 
-  const { left } = selectionStore.workspaceBBox;
+  const { left, top } = selectionStore.workspaceBBox;
+
+  const lastMarkerLeft = Math.max(
+    ...alignTargets.flatMap((rowTargets) => {
+      const lastTarget = rowTargets[rowTargets.length - 1];
+      return lastTarget !== undefined
+        ? [lastTarget.left + lastTarget.width - left]
+        : [];
+    })
+  );
   return (
     <>
-      {columnTargets?.map((targets, col) => (
-        <div
-          style={{
-            zIndex: "100",
-            position: "absolute",
-            left: `${Math.min(...targets.map((target) => target!.left - left))}px`,
-            top: "0",
-            bottom: "0",
-            // top: `${Math.min(...targets.map((target) => target!.top - top))}px`,
-            // height: `${Math.max(...targets.map((target) => target!.top + target!.height)) - top}px`,
-            borderLeft: "2px dotted black",
-            // cursor: "col-resize",
-          }}
-          key={col}
-        ></div>
-      ))}
+      {alignTargets.flatMap((rowTargets, row) => {
+        // We want all markers in a row to have the same height
+        const markerTop = Math.min(
+          ...rowTargets.map((rowTarget) => rowTarget.top - top)
+        );
+        const markerBottom = Math.max(
+          ...rowTargets.map(
+            (rowTarget) => rowTarget.top + rowTarget.height - top
+          )
+        );
+
+        return (
+          <>
+            {rowTargets.map((target, col) => {
+              // We want to align markers in a column at the leftmost edge of any element in the column
+              const columnTargets = alignTargets.flatMap((rowTargets) =>
+                col < rowTargets.length ? [rowTargets[col]] : []
+              );
+              const markerLeft = Math.min(
+                ...columnTargets.map((colTarget) => colTarget.left - left)
+              );
+
+              return (
+                <div
+                  style={{
+                    zIndex: "100",
+                    position: "absolute",
+                    left: `${markerLeft}px`,
+                    top: `${markerTop}px`,
+                    height: `${markerBottom - markerTop}px`,
+                    borderLeft: "2px dotted black",
+                    cursor: "col-resize",
+                  }}
+                ></div>
+              );
+            })}
+            {
+              // Add a marker to the right of the last element
+              <div
+                style={{
+                  zIndex: "100",
+                  position: "absolute",
+                  left: `${lastMarkerLeft}px`,
+                  top: `${markerTop}px`,
+                  height: `${markerBottom - markerTop}px`,
+                  borderLeft: "2px dotted black",
+                  cursor: "col-resize",
+                }}
+              ></div>
+            }
+          </>
+        );
+      })}
     </>
   );
 });
