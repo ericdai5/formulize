@@ -194,11 +194,12 @@ const SelectionBorders = observer(() => {
 });
 
 const AlignmentGuides = observer(() => {
-  // const columnTargets = formulaStore.alignColumnIds?.map((colIds) =>
-  //   colIds
-  //     .map((colId) => selectionStore.screenSpaceTargets.get(colId))
-  //     .filter((target) => target !== undefined)
-  // );
+  const [dragState, setDragState] = useState<{
+    markerRow: number;
+    markerCol: number;
+    x: number;
+  } | null>(null);
+
   const alignTargets = formulaStore.alignIds?.map((rowIds) =>
     rowIds
       .map((rowId) => selectionStore.screenSpaceTargets.get(rowId))
@@ -222,6 +223,42 @@ const AlignmentGuides = observer(() => {
         : [];
     })
   );
+
+  let dragTarget: number | null = null;
+  if (dragState) {
+    const rowInternalTargets =
+      formulaStore.alignRowInternalTargets![dragState.markerRow];
+    const leftmost = selectionStore.screenSpaceTargets.get(
+      rowInternalTargets[0].id
+    )!;
+    const rightmost = selectionStore.screenSpaceTargets.get(
+      rowInternalTargets[rowInternalTargets.length - 1].id
+    )!;
+    if (dragState.x < leftmost.left - left) {
+      dragTarget = leftmost.left - left;
+    } else if (dragState.x > rightmost.left + rightmost.width - left) {
+      dragTarget = rightmost.left + rightmost.width - left;
+    } else {
+      for (let i = 0; i < rowInternalTargets.length - 2; i++) {
+        const leftTarget = selectionStore.screenSpaceTargets.get(
+          rowInternalTargets[i].id
+        )!;
+        const rightTarget = selectionStore.screenSpaceTargets.get(
+          rowInternalTargets[i + 1].id
+        )!;
+        const intervalWidth = rightTarget.left - leftTarget.left;
+        const score = (dragState.x - (leftTarget.left - left)) / intervalWidth;
+        if (score >= 0 && score <= 1) {
+          if (score < 0.5) {
+            dragTarget = leftTarget.left - left;
+          } else {
+            dragTarget = rightTarget.left - left;
+          }
+        }
+      }
+    }
+  }
+
   return (
     <>
       {alignTargets.flatMap((rowTargets, row) => {
@@ -247,17 +284,71 @@ const AlignmentGuides = observer(() => {
               );
 
               return (
-                <div
-                  style={{
-                    zIndex: "100",
-                    position: "absolute",
-                    left: `${markerLeft}px`,
-                    top: `${markerTop}px`,
-                    height: `${markerBottom - markerTop}px`,
-                    borderLeft: "2px dotted black",
-                    cursor: "col-resize",
-                  }}
-                ></div>
+                <>
+                  <div
+                    style={{
+                      zIndex: "100",
+                      position: "absolute",
+                      left: `${markerLeft}px`,
+                      top: `${markerTop}px`,
+                      height: `${markerBottom - markerTop}px`,
+                      borderLeft:
+                        dragState !== null &&
+                        dragState.markerRow === row &&
+                        dragState.markerCol === col
+                          ? "2px dotted black"
+                          : "4px dotted black",
+                      opacity:
+                        dragState === null || dragState.markerCol === col
+                          ? "1"
+                          : "0.2",
+                      cursor: "col-resize",
+                    }}
+                    onMouseDown={(e) => {
+                      setDragState({
+                        markerRow: row,
+                        markerCol: col,
+                        x: e.clientX - left,
+                      });
+                      e.stopPropagation();
+
+                      const mouseMoveCallback = (e: globalThis.MouseEvent) => {
+                        setDragState((dragState) =>
+                          dragState
+                            ? {
+                                ...dragState,
+                                x: e.clientX - left,
+                              }
+                            : null
+                        );
+                      };
+
+                      const mouseUpCallback = () => {
+                        window.removeEventListener(
+                          "mousemove",
+                          mouseMoveCallback
+                        );
+                        window.removeEventListener("mouseup", mouseUpCallback);
+                        setDragState(() => null);
+                      };
+
+                      window.addEventListener("mousemove", mouseMoveCallback);
+                      window.addEventListener("mouseup", mouseUpCallback);
+                    }}
+                  ></div>
+                  {dragState && dragState.markerRow === row && (
+                    <div
+                      style={{
+                        zIndex: "100",
+                        position: "absolute",
+                        left: `${dragTarget}px`,
+                        top: `${markerTop}px`,
+                        height: `${markerBottom - markerTop}px`,
+                        borderLeft: "4px dotted magenta",
+                      }}
+                    ></div>
+                  )}
+                </>
               );
             })}
             {
@@ -277,6 +368,17 @@ const AlignmentGuides = observer(() => {
           </>
         );
       })}
+      {dragState !== null && (
+        <div
+          style={{
+            position: "absolute",
+            left: `${dragState.x}px`,
+            top: "0",
+            height: "100%",
+            borderLeft: "4px dotted cyan",
+          }}
+        ></div>
+      )}
     </>
   );
 });

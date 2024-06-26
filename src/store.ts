@@ -10,6 +10,7 @@ import { FormulaLatexRanges } from "./FormulaText";
 import {
   Aligned,
   AugmentedFormula,
+  Group,
   RenderSpec,
   updateFormula,
 } from "./FormulaTree";
@@ -81,6 +82,26 @@ class FormulaStore {
         ...Array(Math.max(...rootNode.body.map((row) => row.length))).keys(),
       ].map((col) =>
         rootNode.body.flatMap((row) => (col < row.length ? [row[col].id] : []))
+      );
+    }
+
+    return null;
+  }
+
+  @computed
+  get alignRowInternalTargets(): { id: string; col: number }[][] | null {
+    if (this.augmentedFormula.children.length !== 1) {
+      return null;
+    }
+
+    const rootNode = this.augmentedFormula.children[0];
+    if (rootNode instanceof Aligned) {
+      return rootNode.body.map((row) =>
+        row.flatMap((node, col) =>
+          node instanceof Group
+            ? node.body.map((child) => ({ id: child.id, col }))
+            : [{ id: node.id, col }]
+        )
       );
     }
 
