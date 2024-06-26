@@ -1,8 +1,14 @@
+import { css } from "@emotion/react";
 import { Fragment, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { DimensionBox, formulaStore, selectionStore } from "./store";
+import {
+  DimensionBox,
+  debugStore,
+  formulaStore,
+  selectionStore,
+} from "./store";
 
 export const AlignmentGuides = observer(() => {
   const [dragState, setDragState] = useState<{
@@ -46,11 +52,21 @@ export const AlignmentGuides = observer(() => {
       rowInternalTargets[rowInternalTargets.length - 1].id
     )!;
     if (dragState.x < leftmost.left - left) {
+      console.log("Left of leftmost");
       dragTarget = leftmost.left - left;
     } else if (dragState.x > rightmost.left + rightmost.width - left) {
+      console.log("Right of rightmost");
       dragTarget = rightmost.left + rightmost.width - left;
+    } else if (dragState.x > rightmost.left - left) {
+      const score = (dragState.x - (rightmost.left - left)) / rightmost.width;
+      console.log("In rightmost", score);
+      if (score > 0.5) {
+        dragTarget = rightmost.left + rightmost.width - left;
+      } else {
+        dragTarget = rightmost.left - left;
+      }
     } else {
-      for (let i = 0; i < rowInternalTargets.length - 2; i++) {
+      for (let i = 0; i < rowInternalTargets.length - 1; i++) {
         const leftTarget = selectionStore.screenSpaceTargets.get(
           rowInternalTargets[i].id
         )!;
@@ -60,6 +76,7 @@ export const AlignmentGuides = observer(() => {
         const intervalWidth = rightTarget.left - leftTarget.left;
         const score = (dragState.x - (leftTarget.left - left)) / intervalWidth;
         if (score >= 0 && score <= 1) {
+          console.log("In between", score);
           if (score < 0.5) {
             dragTarget = leftTarget.left - left;
           } else {
@@ -71,7 +88,18 @@ export const AlignmentGuides = observer(() => {
   }
 
   return (
-    <>
+    <div
+      css={css`
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: ${dragState === null ? "none" : "auto"};
+        cursor: ${dragState === null ? "auto" : "col-resize"};
+        z-index: 1000;
+      `}
+    >
       {alignTargets.flatMap((rowTargets, row) => {
         // We want all markers in a row to have the same height
         const markerTop = Math.min(
@@ -109,10 +137,12 @@ export const AlignmentGuides = observer(() => {
                         dragState.markerCol === col
                           ? "2px dotted black"
                           : "4px dotted black",
+                      transform: `translateX(-50%)`,
                       opacity:
                         dragState === null || dragState.markerCol === col
                           ? "1"
                           : "0.2",
+                      pointerEvents: "auto",
                       cursor: "col-resize",
                     }}
                     onMouseDown={(e) => {
@@ -122,6 +152,7 @@ export const AlignmentGuides = observer(() => {
                         x: e.clientX - left,
                       });
                       e.stopPropagation();
+                      e.preventDefault();
 
                       const mouseMoveCallback = (e: globalThis.MouseEvent) => {
                         setDragState((dragState) =>
@@ -150,15 +181,32 @@ export const AlignmentGuides = observer(() => {
                   {dragState && dragState.markerRow === row && (
                     <div
                       style={{
-                        zIndex: "100",
+                        zIndex: "200",
                         position: "absolute",
                         left: `${dragTarget}px`,
                         top: `${markerTop}px`,
                         height: `${markerBottom - markerTop}px`,
                         borderLeft: "4px dotted magenta",
+                        transform: `translateX(-50%)`,
                       }}
                     ></div>
                   )}
+                  {debugStore.showAlignGuides &&
+                    formulaStore.alignRowInternalTargets![row].flatMap(
+                      ({ id }) => (
+                        <div
+                          style={{
+                            zIndex: "100",
+                            position: "absolute",
+                            left: `${selectionStore.screenSpaceTargets.get(id)!.left - left}px`,
+                            top: `${markerTop}px`,
+                            height: `${markerBottom - markerTop}px`,
+                            borderLeft: "1px dotted red",
+                            transform: `translateX(-50%)`,
+                          }}
+                        ></div>
+                      )
+                    )}
                 </Fragment>
               );
             })}
@@ -179,17 +227,17 @@ export const AlignmentGuides = observer(() => {
           </Fragment>
         );
       })}
-      {dragState !== null && (
+      {dragState !== null && debugStore.showAlignGuides && (
         <div
           style={{
             position: "absolute",
             left: `${dragState.x}px`,
             top: "0",
             height: "100%",
-            borderLeft: "4px dotted cyan",
+            borderLeft: "1px dotted cyan",
           }}
         ></div>
       )}
-    </>
+    </div>
   );
 });

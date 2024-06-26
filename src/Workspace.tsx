@@ -13,10 +13,9 @@ import { observer } from "mobx-react-lite";
 import { AlignmentGuides } from "./AlignmentGuides";
 import { Debug } from "./Debug";
 import { RenderedFormula } from "./RenderedFormula";
-import { selectionStore } from "./store";
+import { debugStore, selectionStore } from "./store";
 
 export const Workspace = observer(() => {
-  const [showDebug, setShowDebug] = useState(false);
   const [dragState, setDragState] = useState<
     | { state: "none" }
     | { state: "leftdown"; x: number; y: number }
@@ -69,12 +68,6 @@ export const Workspace = observer(() => {
   const handleSetRef = useCallback((ref: Element | null) => {
     selectionStore.initializeWorkspace(ref);
   }, []);
-  const handleToggleShowDebug = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      setShowDebug(e.target.checked);
-    },
-    [setShowDebug]
-  );
 
   useEffect(() => {
     const resizeHandler = () => {
@@ -109,38 +102,11 @@ export const Workspace = observer(() => {
       onWheel={handleScroll}
       ref={handleSetRef}
     >
-      <div
-        css={css`
-          position: absolute;
-          top: 0.5rem;
-          right: 1rem;
-          z-index: 1000;
-        `}
-      >
-        <input
-          id="showDebug"
-          css={css`
-            margin-right: 0.5rem;
-          `}
-          type="checkbox"
-          checked={showDebug}
-          onChange={handleToggleShowDebug}
-        />
-        <label
-          css={css`
-            user-select: none;
-            font-family: monospace;
-          `}
-          htmlFor="showDebug"
-        >
-          Show debug menu
-        </label>
-      </div>
       <SelectionRect />
       <SelectionBorders />
       <AlignmentGuides />
       <RenderedFormula />
-      {showDebug && <Debug />}
+      <Debug />
     </div>
   );
 });

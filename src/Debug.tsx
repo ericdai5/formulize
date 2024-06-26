@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 
 import { observer } from "mobx-react-lite";
 
-import { formulaStore, selectionStore } from "./store";
+import { debugStore, formulaStore, selectionStore } from "./store";
 
 function formatCoordinate(n: number) {
   return Math.round(n).toString().padStart(3, " ");
@@ -16,29 +16,90 @@ const CoordinateCell = styled.td`
 
 export const Debug = observer(() => {
   return (
-    <div
-      onMouseDown={(e) => e.stopPropagation()}
-      onScroll={(e) => e.stopPropagation()}
-      css={css`
-        position: fixed;
-        top: 2rem;
-        right: 0;
-        padding: 1rem;
-        max-height: calc(100vh - 2rem);
-        overflow-y: auto;
-        overflow-x: hidden;
-        display: flex;
-        flex-direction: column;
-        background: rgba(255, 255, 255, 0.8);
-      `}
-    >
-      <Viewport />
-      <Targets />
-      <Drag />
-      <Selected />
-    </div>
+    <>
+      <div
+        css={css`
+          position: fixed;
+          top: 2rem;
+          right: 1rem;
+          z-index: 1000;
+        `}
+      >
+        <input
+          id="showDebug"
+          css={css`
+            margin-right: 0.5rem;
+          `}
+          type="checkbox"
+          checked={debugStore.showDebugPanel}
+          onChange={(e) => {
+            debugStore.setShowDebugPanel(e.target.checked);
+          }}
+        />
+        <label
+          css={css`
+            user-select: none;
+            font-family: monospace;
+          `}
+          htmlFor="showDebug"
+        >
+          Show debug menu
+        </label>
+      </div>
+      {debugStore.showDebugPanel && (
+        <div
+          onMouseDown={(e) => e.stopPropagation()}
+          onScroll={(e) => e.stopPropagation()}
+          css={css`
+            position: fixed;
+            top: 2rem;
+            right: 0;
+            padding: 1rem;
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.8);
+          `}
+        >
+          <DebugOptions />
+          <Viewport />
+          <Targets />
+          <Drag />
+          <Selected />
+        </div>
+      )}
+    </>
   );
 });
+
+const DebugOptions = observer(() => (
+  <>
+    <span>
+      <input
+        id="showAlign"
+        css={css`
+          margin-right: 0.5rem;
+        `}
+        type="checkbox"
+        checked={debugStore.showAlignGuides}
+        onChange={(e) => {
+          debugStore.setShowAlignGuides(e.target.checked);
+        }}
+      />
+      <label
+        css={css`
+          user-select: none;
+          font-family: monospace;
+        `}
+        htmlFor="showAlign"
+      >
+        Show alignment guides
+      </label>
+    </span>
+  </>
+));
 
 const Viewport = observer(() => (
   <>

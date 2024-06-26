@@ -16,11 +16,14 @@ import {
 } from "./FormulaTree";
 
 class FormulaStore {
-  @observable accessor renderSpec: RenderSpec | null = null;
-  @observable accessor augmentedFormula: AugmentedFormula =
-    new AugmentedFormula([]);
-  @observable accessor suppressEditorUpdate = false;
-  @observable accessor styledRangesOverride: FormulaLatexRanges | null = null;
+  @observable
+  accessor renderSpec: RenderSpec | null = null;
+  @observable
+  accessor augmentedFormula: AugmentedFormula = new AugmentedFormula([]);
+  @observable
+  accessor suppressEditorUpdate = false;
+  @observable
+  accessor styledRangesOverride: FormulaLatexRanges | null = null;
 
   @action
   updateFormula(newFormula: AugmentedFormula) {
@@ -139,16 +142,23 @@ export const toDimensionBox = (box: BoundingBox): DimensionBox => ({
 });
 
 class SelectionStore {
-  @observable accessor workspaceBBox: DimensionBox | null = null;
-  @observable accessor formulaRootBBox: DimensionBox | null = null;
-  @observable accessor selected: IObservableArray<string> = observable.array();
-  @observable accessor targets: ObservableMap<
+  @observable
+  accessor workspaceBBox: DimensionBox | null = null;
+  @observable
+  accessor formulaRootBBox: DimensionBox | null = null;
+  @observable
+  accessor selected: IObservableArray<string> = observable.array();
+  @observable
+  accessor targets: ObservableMap<
     string,
     { id: string; isLeaf: boolean } & DimensionBox
   > = observable.map();
-  @observable accessor selectionRect: BoundingBox | null = null;
-  @observable accessor zoom = 4;
-  @observable accessor pan = { x: 0, y: 0 };
+  @observable
+  accessor selectionRect: BoundingBox | null = null;
+  @observable
+  accessor zoom = 4;
+  @observable
+  accessor pan = { x: 0, y: 0 };
 
   workspaceRef: Element | null = null;
   formulaRootRef: Element | null = null;
@@ -493,3 +503,22 @@ export const selectionStore = new SelectionStore();
 //   () => formulaStore.renderSpec,
 //   () => selectionStore.clearTargets()
 // );
+
+class DebugStore {
+  @observable
+  accessor showDebugPanel = false;
+  @observable
+  accessor showAlignGuides = false;
+
+  @action
+  setShowDebugPanel(show: boolean) {
+    this.showDebugPanel = show;
+  }
+
+  @action
+  setShowAlignGuides(show: boolean) {
+    this.showAlignGuides = show;
+  }
+}
+
+export const debugStore = new DebugStore();

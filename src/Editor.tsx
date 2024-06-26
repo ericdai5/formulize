@@ -354,7 +354,7 @@ const EditorTab = styled.button<{ selected: boolean }>`
 
 export const Editor = observer(() => {
   const [currentEditor, setCurrentEditor] = useState<"full" | "content-only">(
-    "content-only"
+    "full"
   );
 
   return (
