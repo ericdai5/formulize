@@ -72,8 +72,9 @@ const Targets = observer(() => (
         </tr>
       </thead>
       <tbody>
-        {Array.from(selectionStore.screenSpaceTargets.values()).map(
-          (target) => (
+        {Array.from(selectionStore.screenSpaceTargets.values())
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map((target) => (
             <tr key={target.id}>
               <CoordinateCell>{target.id}</CoordinateCell>
               <CoordinateCell>
@@ -84,8 +85,7 @@ const Targets = observer(() => (
               <CoordinateCell>{formatCoordinate(target.width)}</CoordinateCell>
               <CoordinateCell>{formatCoordinate(target.height)}</CoordinateCell>
             </tr>
-          )
-        )}
+          ))}
       </tbody>
     </table>
   </>
