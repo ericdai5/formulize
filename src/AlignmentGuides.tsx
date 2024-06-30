@@ -30,13 +30,13 @@ export const AlignmentGuides = observer(() => {
     return null;
   }
 
-  const { left, top } = selectionStore.workspaceBBox;
+  const { left: canvasLeft, top: canvasTop } = selectionStore.workspaceBBox;
 
   const lastMarkerLeft = Math.max(
     ...alignTargets.flatMap((rowTargets) => {
       const lastTarget = rowTargets[rowTargets.length - 1];
       return lastTarget !== undefined
-        ? [lastTarget.left + lastTarget.width - left]
+        ? [lastTarget.left + lastTarget.width - canvasLeft]
         : [];
     })
   );
@@ -51,19 +51,20 @@ export const AlignmentGuides = observer(() => {
     const rightmost = selectionStore.screenSpaceTargets.get(
       rowInternalTargets[rowInternalTargets.length - 1].id
     )!;
-    if (dragState.x < leftmost.left - left) {
+    if (dragState.x < leftmost.left - canvasLeft) {
       console.log("Left of leftmost");
-      dragTarget = leftmost.left - left;
-    } else if (dragState.x > rightmost.left + rightmost.width - left) {
+      dragTarget = leftmost.left - canvasLeft;
+    } else if (dragState.x > rightmost.left + rightmost.width - canvasLeft) {
       console.log("Right of rightmost");
-      dragTarget = rightmost.left + rightmost.width - left;
-    } else if (dragState.x > rightmost.left - left) {
-      const score = (dragState.x - (rightmost.left - left)) / rightmost.width;
+      dragTarget = rightmost.left + rightmost.width - canvasLeft;
+    } else if (dragState.x > rightmost.left - canvasLeft) {
+      const score =
+        (dragState.x - (rightmost.left - canvasLeft)) / rightmost.width;
       console.log("In rightmost", score);
       if (score > 0.5) {
-        dragTarget = rightmost.left + rightmost.width - left;
+        dragTarget = rightmost.left + rightmost.width - canvasLeft;
       } else {
-        dragTarget = rightmost.left - left;
+        dragTarget = rightmost.left - canvasLeft;
       }
     } else {
       for (let i = 0; i < rowInternalTargets.length - 1; i++) {
@@ -74,13 +75,14 @@ export const AlignmentGuides = observer(() => {
           rowInternalTargets[i + 1].id
         )!;
         const intervalWidth = rightTarget.left - leftTarget.left;
-        const score = (dragState.x - (leftTarget.left - left)) / intervalWidth;
+        const score =
+          (dragState.x - (leftTarget.left - canvasLeft)) / intervalWidth;
         if (score >= 0 && score <= 1) {
           console.log("In between", score);
           if (score < 0.5) {
-            dragTarget = leftTarget.left - left;
+            dragTarget = leftTarget.left - canvasLeft;
           } else {
-            dragTarget = rightTarget.left - left;
+            dragTarget = rightTarget.left - canvasLeft;
           }
         }
       }
@@ -103,11 +105,11 @@ export const AlignmentGuides = observer(() => {
       {alignTargets.flatMap((rowTargets, row) => {
         // We want all markers in a row to have the same height
         const markerTop = Math.min(
-          ...rowTargets.map((rowTarget) => rowTarget.top - top)
+          ...rowTargets.map((rowTarget) => rowTarget.top - canvasTop)
         );
         const markerBottom = Math.max(
           ...rowTargets.map(
-            (rowTarget) => rowTarget.top + rowTarget.height - top
+            (rowTarget) => rowTarget.top + rowTarget.height - canvasTop
           )
         );
 
@@ -119,110 +121,71 @@ export const AlignmentGuides = observer(() => {
                 col < rowTargets.length ? [rowTargets[col]] : []
               );
               const markerLeft = Math.min(
-                ...columnTargets.map((colTarget) => colTarget.left - left)
+                ...columnTargets.map((colTarget) => colTarget.left - canvasLeft)
               );
 
               return (
                 <Fragment key={`${row}-${col}`}>
-                  <div
-                    style={{
-                      zIndex: "100",
-                      position: "absolute",
-                      left: `${markerLeft}px`,
-                      top: `${markerTop}px`,
-                      height: `${markerBottom - markerTop}px`,
-                      borderLeft:
-                        dragState !== null &&
-                        dragState.markerRow === row &&
-                        dragState.markerCol === col
-                          ? "2px dotted black"
-                          : "4px dotted black",
-                      transform: `translateX(-50%)`,
-                      opacity:
-                        dragState === null || dragState.markerCol === col
-                          ? "1"
-                          : "0.2",
-                      pointerEvents: "auto",
-                      cursor: "col-resize",
-                    }}
-                    onMouseDown={(e) => {
-                      setDragState({
-                        markerRow: row,
-                        markerCol: col,
-                        x: e.clientX - left,
-                      });
-                      e.stopPropagation();
-                      e.preventDefault();
-
-                      const mouseMoveCallback = (e: globalThis.MouseEvent) => {
-                        setDragState((dragState) =>
-                          dragState
-                            ? {
-                                ...dragState,
-                                x: e.clientX - left,
-                              }
-                            : null
-                        );
-                      };
-
-                      const mouseUpCallback = () => {
-                        window.removeEventListener(
-                          "mousemove",
-                          mouseMoveCallback
-                        );
-                        window.removeEventListener("mouseup", mouseUpCallback);
-                        setDragState(() => null);
-                      };
-
-                      window.addEventListener("mousemove", mouseMoveCallback);
-                      window.addEventListener("mouseup", mouseUpCallback);
-                    }}
-                  ></div>
-                  {dragState && dragState.markerRow === row && (
-                    <div
-                      style={{
-                        zIndex: "200",
-                        position: "absolute",
-                        left: `${dragTarget}px`,
-                        top: `${markerTop}px`,
-                        height: `${markerBottom - markerTop}px`,
-                        borderLeft: "4px dotted magenta",
-                        transform: `translateX(-50%)`,
-                      }}
-                    ></div>
-                  )}
-                  {debugStore.showAlignGuides &&
-                    formulaStore.alignRowInternalTargets![row].flatMap(
-                      ({ id }) => (
-                        <div
-                          style={{
-                            zIndex: "100",
-                            position: "absolute",
-                            left: `${selectionStore.screenSpaceTargets.get(id)!.left - left}px`,
-                            top: `${markerTop}px`,
-                            height: `${markerBottom - markerTop}px`,
-                            borderLeft: "1px dotted red",
-                            transform: `translateX(-50%)`,
-                          }}
-                        ></div>
+                  <DraggableMarker
+                    row={row}
+                    col={col}
+                    markerLeft={markerLeft}
+                    markerTop={markerTop}
+                    markerBottom={markerBottom}
+                    dragState={dragState}
+                    setDragState={setDragState}
+                    canvasLeft={canvasLeft}
+                  />
+                  {
+                    // Marker if this is the current internal drag target
+                    dragState && dragState.markerRow === row && (
+                      <div
+                        style={{
+                          zIndex: "200",
+                          position: "absolute",
+                          left: `${dragTarget}px`,
+                          top: `${markerTop}px`,
+                          height: `${markerBottom - markerTop}px`,
+                          borderLeft: "4px dotted magenta",
+                          transform: `translateX(-50%)`,
+                        }}
+                      ></div>
+                    )
+                  }
+                  {
+                    // Debug markers for internal targets
+                    debugStore.showAlignGuides &&
+                      formulaStore.alignRowInternalTargets![row].flatMap(
+                        ({ id }) => (
+                          <div
+                            style={{
+                              zIndex: "100",
+                              position: "absolute",
+                              left: `${selectionStore.screenSpaceTargets.get(id)!.left - canvasLeft}px`,
+                              top: `${markerTop}px`,
+                              height: `${markerBottom - markerTop}px`,
+                              borderLeft: "1px dotted red",
+                              transform: `translateX(-50%)`,
+                            }}
+                          ></div>
+                        )
                       )
-                    )}
+                  }
                 </Fragment>
               );
             })}
             {
               // Add a marker to the right of the last element
-              <div
-                style={{
-                  zIndex: "100",
-                  position: "absolute",
-                  left: `${lastMarkerLeft}px`,
-                  top: `${markerTop}px`,
-                  height: `${markerBottom - markerTop}px`,
-                  borderLeft: "2px dotted black",
-                  cursor: "col-resize",
-                }}
-              ></div>
+              <DraggableMarker
+                row={row}
+                col={rowTargets.length}
+                markerLeft={lastMarkerLeft}
+                markerTop={markerTop}
+                markerBottom={markerBottom}
+                dragState={dragState}
+                setDragState={setDragState}
+                canvasLeft={canvasLeft}
+              />
             }
           </Fragment>
         );
@@ -241,3 +204,84 @@ export const AlignmentGuides = observer(() => {
     </div>
   );
 });
+
+type DraggableMarkerProps = {
+  row: number;
+  col: number;
+  markerLeft: number;
+  markerTop: number;
+  markerBottom: number;
+  dragState: {
+    markerRow: number;
+    markerCol: number;
+    x: number;
+  } | null;
+  setDragState: React.Dispatch<
+    React.SetStateAction<{
+      markerRow: number;
+      markerCol: number;
+      x: number;
+    } | null>
+  >;
+  canvasLeft: number;
+};
+
+const DraggableMarker = ({
+  row,
+  col,
+  markerLeft,
+  markerTop,
+  markerBottom,
+  dragState,
+  setDragState,
+  canvasLeft,
+}: DraggableMarkerProps) => (
+  <div
+    style={{
+      zIndex: "100",
+      position: "absolute",
+      left: `${markerLeft}px`,
+      top: `${markerTop}px`,
+      height: `${markerBottom - markerTop}px`,
+      borderLeft:
+        dragState !== null &&
+        dragState.markerRow === row &&
+        dragState.markerCol === col
+          ? "2px dotted black"
+          : "4px dotted black",
+      transform: `translateX(-50%)`,
+      opacity: dragState === null || dragState.markerCol === col ? "1" : "0.2",
+      pointerEvents: "auto",
+      cursor: "col-resize",
+    }}
+    onMouseDown={(e) => {
+      setDragState({
+        markerRow: row,
+        markerCol: col,
+        x: e.clientX - canvasLeft,
+      });
+      e.stopPropagation();
+      e.preventDefault();
+
+      const mouseMoveCallback = (e: globalThis.MouseEvent) => {
+        setDragState((dragState) =>
+          dragState
+            ? {
+                ...dragState,
+                x: e.clientX - canvasLeft,
+              }
+            : null
+        );
+      };
+
+      const mouseUpCallback = () => {
+        window.removeEventListener("mousemove", mouseMoveCallback);
+        window.removeEventListener("mouseup", mouseUpCallback);
+        setDragState(() => null);
+      };
+
+      window.addEventListener("mousemove", mouseMoveCallback);
+      window.addEventListener("mouseup", mouseUpCallback);
+    }}
+  ></div>
+);
