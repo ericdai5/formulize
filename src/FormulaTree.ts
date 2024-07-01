@@ -294,6 +294,10 @@ abstract class AugmentedFormulaNodeBase {
     return [this._parent, ...this._parent.ancestors];
   }
 
+  public contains(id: string): boolean {
+    return this.id === id || this.children.some((child) => child.contains(id));
+  }
+
   abstract toLatex(mode: LatexMode): string;
   abstract get children(): AugmentedFormulaNode[];
   abstract toStyledRanges(): FormulaLatexRangeNode[];

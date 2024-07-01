@@ -68,6 +68,7 @@ export const Debug = observer(() => {
           <Targets />
           <Drag />
           <Selected />
+          <AlignGuides />
         </div>
       )}
     </>
@@ -178,3 +179,18 @@ const Selected = observer(() => (
     <pre>{Array.from(selectionStore.resolvedSelection).join(",\n")}</pre>
   </>
 ));
+
+const AlignGuides = observer(() =>
+  debugStore.alignDragState ? (
+    <>
+      <pre>Alignment drag row: {debugStore.alignDragState.row}</pre>
+      <pre>Alignment drag col: {debugStore.alignDragState.col}</pre>
+      <pre>
+        Alignment drag target:{" "}
+        {debugStore.alignDragState.currentDropTargetId ?? "none"}
+      </pre>
+    </>
+  ) : (
+    <pre>Alignment drag: none</pre>
+  )
+);

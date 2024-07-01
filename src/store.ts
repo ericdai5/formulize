@@ -509,6 +509,12 @@ class DebugStore {
   accessor showDebugPanel = false;
   @observable
   accessor showAlignGuides = false;
+  @observable
+  accessor alignDragState: {
+    row: number;
+    col: number;
+    currentDropTargetId: string | null;
+  } | null = null;
 
   @action
   setShowDebugPanel(show: boolean) {
@@ -518,6 +524,11 @@ class DebugStore {
   @action
   setShowAlignGuides(show: boolean) {
     this.showAlignGuides = show;
+  }
+
+  @action
+  setAlignDragState(state: typeof this.alignDragState) {
+    this.alignDragState = state;
   }
 }
 
