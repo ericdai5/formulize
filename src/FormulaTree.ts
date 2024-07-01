@@ -8,10 +8,10 @@ import {
   StyledRange,
   UnstyledRange,
 } from "./FormulaText";
-import { removeEmptyGroups } from "./formulaTransformations";
+import { canonicalizeFormula } from "./formulaTransformations";
 
 export const debugLatex = async (latex: string) => {
-  const mathjaxRendered: Element = MathJax.tex2chtml(latex);
+  // const mathjaxRendered: Element = (MathJax as any).tex2chtml(latex);
   // const formattedHtml = await prettier.format(html.outerHTML, {
   //   parser: "babel",
   //   plugins: [babelPlugin, estreePlugin],
@@ -91,7 +91,7 @@ export const deriveAugmentedFormula = (latex: string): AugmentedFormula => {
   const augmentedTrees = katexTrees.map((katexTree, i) =>
     buildAugmentedFormula(katexTree, `${i}`)
   );
-  return removeEmptyGroups(new AugmentedFormula(augmentedTrees));
+  return canonicalizeFormula(new AugmentedFormula(augmentedTrees));
 };
 
 const buildAugmentedFormula = (
@@ -226,7 +226,6 @@ export class AugmentedFormula {
   private idToNode: { [id: string]: AugmentedFormulaNode } = {};
 
   constructor(public children: AugmentedFormulaNode[]) {
-    console.log("New formula from:", children);
     const collectIds = (node: AugmentedFormulaNode) => {
       this.idToNode[node.id] = node;
       node.children.forEach(collectIds);

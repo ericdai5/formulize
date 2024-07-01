@@ -4,17 +4,19 @@ const assertUnreachable = (x: never): never => {
   throw new Error("Non-exhaustive match for " + x);
 };
 
+export const canonicalizeFormula = (
+  formula: AugmentedFormula
+): AugmentedFormula => {
+  return fixParents(normalizeIds(removeEmptyGroups(formula)));
+};
+
 export const replaceNodes = (
   formula: AugmentedFormula,
   replacer: (node: AugmentedFormulaNode) => AugmentedFormulaNode
 ): AugmentedFormula => {
-  return fixParents(
-    normalizeIds(
-      removeEmptyGroups(
-        new AugmentedFormula(
-          formula.children.map((node) => replaceNode(node, replacer))
-        )
-      )
+  return canonicalizeFormula(
+    new AugmentedFormula(
+      formula.children.map((node) => replaceNode(node, replacer))
     )
   );
 };
@@ -246,9 +248,22 @@ export const removeEmptyGroup = (
       if (node.body.length === 0) {
         return [];
       }
+
+      if (node.body.length === 1 && node.body[0] instanceof Group) {
+        // {{x}} -> {x}
+        return removeEmptyGroup(node.body[0]);
+      }
+
       return [
         node.withChanges({
-          body: atLeastOne(node.body.flatMap(removeEmptyGroup)),
+          body: atLeastOne(
+            node.body.flatMap((child) =>
+              // {a {b c}} -> {a b c}
+              child instanceof Group
+                ? child.body.flatMap((child) => removeEmptyGroup(child))
+                : removeEmptyGroup(child)
+            )
+          ),
         }),
       ];
     case "script":
