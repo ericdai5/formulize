@@ -249,15 +249,11 @@ export const removeEmptyGroup = (
         return [];
       }
 
-      if (node.body.length === 1 && node.body[0] instanceof Group) {
-        // {{x}} -> {x}
-        return removeEmptyGroup(node.body[0]);
-      }
-
       return [
         node.withChanges({
           body: atLeastOne(
             node.body.flatMap((child) =>
+              // {{x}} -> {x}
               // {a {b c}} -> {a b c}
               child instanceof Group
                 ? child.body.flatMap((child) => removeEmptyGroup(child))

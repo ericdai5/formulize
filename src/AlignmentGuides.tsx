@@ -260,10 +260,7 @@ const AlignmentGuidesInternal = observer(
                         ];
                       } else {
                         // We can shift the left side of the column to the previous column
-                        const before = row.slice(
-                          0,
-                          Math.max(dragState.markerCol - 2, 0)
-                        );
+                        const before = row.slice(0, dragState.markerCol - 1);
                         const leftCol = row[dragState.markerCol - 1];
                         const after = row.slice(dragState.markerCol + 1);
 
@@ -285,10 +282,7 @@ const AlignmentGuidesInternal = observer(
                     } else if (insertColIdx > dragState.markerCol) {
                       // Marker is moving right
                       console.log("Moving marker right");
-                      const before = row.slice(
-                        0,
-                        Math.max(dragState.markerCol - 2, 0)
-                      );
+                      const before = row.slice(0, dragState.markerCol - 1);
                       const leftCol = row[dragState.markerCol - 1];
                       const between = row.slice(
                         dragState.markerCol,

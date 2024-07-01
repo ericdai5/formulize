@@ -12,7 +12,7 @@ export const RenderedFormula = observer(() => {
       deriveAugmentedFormula(
         String.raw`
         \begin{aligned}
-        {0 1 2} & {3} & {4 5} & {6 7} \\
+        {0 1} & {2 3} & {4 5} & {6 7} \\
         {0 1} & {2 3} & {4 5} & {6 7}
         \end{aligned}
         `
