@@ -230,123 +230,93 @@ const AlignmentGuidesInternal = observer(
                     if (rowIdx !== dragState.markerRow) {
                       return row;
                     }
-                    const insertCol = row.findIndex((cell) =>
+                    const insertColIdx = row.findIndex((cell) =>
                       cell.contains(dragTargetId!)
                     );
-                    if (insertCol === dragState.markerCol) {
-                      // Marker is in the same column, but may be targeting a different element
-                      const col = row[insertCol];
-                      if (!(col instanceof Group) || col.body.length === 1) {
-                        // Only groups of multiple nodes can be split
-                        return row;
-                      }
-
-                      if (col.body[0].id === dragTargetId) {
-                        // Marker hasn't moved
-                        return row;
-                      }
-
-                      console.log("Moving marker within the same column");
-
-                      // Marker has moved right within the same column
-                      const splitIndex = col.body.findIndex(
-                        (node) => node.id === dragTargetId
-                      );
-                      const [left, right] = [
-                        col.body.slice(0, splitIndex),
-                        col.body.slice(splitIndex),
-                      ];
-
-                      if (insertCol === 0) {
-                        // We need to insert a new column on the left
+                    const insertTarget = row[insertColIdx];
+                    if (
+                      !(insertTarget instanceof Group) ||
+                      insertColIdx === -1
+                    ) {
+                      // Only multi-cell groups can be split
+                      return row;
+                    }
+                    const splitIndex = insertTarget.body.findIndex(
+                      (node) => node.id === dragTargetId
+                    );
+                    const [left, right] = [
+                      insertTarget.body.slice(0, splitIndex),
+                      insertTarget.body.slice(splitIndex),
+                    ];
+                    if (insertColIdx === dragState.markerCol) {
+                      // We just need to shift the left side of this column to the previous column
+                      if (dragState.markerCol === 0) {
+                        console.log("Moving leftmost marker");
+                        // We need to add a new column on the left
                         return [
                           new Group("", left),
                           new Group("", right),
                           ...row.slice(1),
                         ];
                       } else {
-                        // We need to shift the left part of the group to the previous column
-                        // and insert a new column on the right
-                        return row.flatMap((cell, colIdx) => {
-                          if (colIdx === insertCol - 1) {
-                            return new Group("", [cell, ...left]);
-                          } else if (colIdx === insertCol) {
-                            return new Group("", right);
-                          } else {
-                            return [cell];
-                          }
-                        });
-                      }
-                    } else if (insertCol > dragState.markerCol) {
-                      // Marker is moving right
-                      if (insertCol === dragState.markerCol + 1) {
-                        console.log("Moving marker right one column");
-                        // Marker is moving one column right
-                        const insertTarget = row[insertCol];
-                        if (
-                          !(insertTarget instanceof Group) ||
-                          insertTarget.body.length === 1
-                        ) {
-                          // Only groups of multiple nodes can be split
-                          return row;
-                        }
-
-                        const splitIndex = insertTarget.body.findIndex(
-                          (node) => node.id === dragTargetId
+                        // We can shift the left side of the column to the previous column
+                        const before = row.slice(
+                          0,
+                          Math.max(dragState.markerCol - 2, 0)
                         );
-                        const [left, right] = [
-                          insertTarget.body.slice(0, splitIndex),
-                          insertTarget.body.slice(splitIndex),
-                        ];
-                        return [
-                          ...row.slice(0, dragState.markerCol),
-                          new Group("", [row[dragState.markerCol], ...left]),
-                          new Group("", right),
-                          ...row.slice(dragState.markerCol + 1),
-                        ];
-                      } else {
-                        console.log("Moving marker right multiple columns");
-                        // Since we're moving an existing marker, we know the marker column is > 0
-                        const before = row.slice(0, dragState.markerCol - 1);
-                        // And we know that the distance between the marker and the insert target is > 1
-                        const between = row.slice(
-                          dragState.markerCol + 1,
-                          insertCol - 1
+                        const leftCol = row[dragState.markerCol - 1];
+                        const after = row.slice(dragState.markerCol + 1);
+
+                        console.log(
+                          "Moving marker right within column",
+                          before,
+                          leftCol,
+                          left,
+                          right,
+                          after
                         );
-
-                        const insertTarget = row[insertCol];
-                        if (
-                          !(insertTarget instanceof Group) ||
-                          insertTarget.body.length === 1
-                        ) {
-                          // Only groups of multiple nodes can be split
-                          return row;
-                        }
-                        const splitIndex = insertTarget.body.findIndex(
-                          (node) => node.id === dragTargetId
-                        );
-                        const [left, right] = [
-                          insertTarget.body.slice(0, splitIndex),
-                          insertTarget.body.slice(splitIndex),
-                        ];
-
-                        const after = row.slice(insertCol);
-
                         return [
                           ...before,
-                          new Group("", [
-                            row[dragState.markerCol - 1],
-                            row[dragState.markerCol],
-                          ]),
-                          ...between,
-                          new Group("", [row[insertCol - 1], ...left]),
+                          new Group("", [leftCol, ...left]),
                           new Group("", right),
                           ...after,
                         ];
                       }
+                    } else if (insertColIdx > dragState.markerCol) {
+                      // Marker is moving right
+                      console.log("Moving marker right");
+                      const before = row.slice(
+                        0,
+                        Math.max(dragState.markerCol - 2, 0)
+                      );
+                      const leftCol = row[dragState.markerCol - 1];
+                      const between = row.slice(
+                        dragState.markerCol,
+                        insertColIdx
+                      );
+                      const after = row.slice(insertColIdx + 1);
+                      return [
+                        ...before,
+                        new Group("", [leftCol, ...between, ...left]),
+                        new Group("", right),
+                        ...after,
+                      ];
                     } else {
+                      console.log("Moving marker left");
                       // Marker is moving left
-                      return row;
+                      const before = row.slice(0, insertColIdx);
+                      const between = row.slice(
+                        insertColIdx + 1,
+                        dragState.markerCol
+                      );
+                      const rightCol = row[dragState.markerCol];
+                      const after = row.slice(dragState.markerCol + 1);
+                      return [
+                        ...before,
+                        ...(left.length > 0 ? [new Group("", [...left])] : []),
+                        new Group("", [...right, ...between, rightCol]),
+                        ...after,
+                      ];
                     }
                   }),
                 });
@@ -435,7 +405,10 @@ const AlignmentGuidesInternal = observer(
                               style={{
                                 zIndex: "100",
                                 position: "absolute",
-                                left: `${selectionStore.screenSpaceTargets.get(id)!.left - canvasLeft}px`,
+                                left: `${
+                                  selectionStore.screenSpaceTargets.get(id)!
+                                    .left - canvasLeft
+                                }px`,
                                 top: `${markerTop}px`,
                                 height: `${markerBottom - markerTop}px`,
                                 borderLeft: "1px dotted red",
@@ -450,6 +423,7 @@ const AlignmentGuidesInternal = observer(
               })}
               {
                 // Add a marker to the right of the last element
+
                 <DraggableMarker
                   row={row}
                   col={rowTargets.length}
