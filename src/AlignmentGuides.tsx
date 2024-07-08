@@ -3,7 +3,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { AugmentedFormulaNode, Group } from "./FormulaTree";
+import { Group } from "./FormulaTree";
 import { replaceNodes } from "./formulaTransformations";
 import {
   DimensionBox,
@@ -350,7 +350,7 @@ const AlignmentGuidesInternal = observer(
 
           return (
             <Fragment key={`${row}`}>
-              {rowTargets.map((target, col) => {
+              {rowTargets.map((_, col) => {
                 // We want to align markers in a column at the leftmost edge of any element in the column
                 const columnTargets = alignTargets.flatMap((rowTargets) =>
                   col < rowTargets.length ? [rowTargets[col]] : []

@@ -1,6 +1,5 @@
 import { css } from "@emotion/react";
 import {
-  ChangeEvent,
   MouseEvent,
   WheelEvent,
   useCallback,
@@ -13,7 +12,7 @@ import { observer } from "mobx-react-lite";
 import { AlignmentGuides } from "./AlignmentGuides";
 import { Debug } from "./Debug";
 import { RenderedFormula } from "./RenderedFormula";
-import { debugStore, selectionStore } from "./store";
+import { selectionStore } from "./store";
 
 export const Workspace = observer(() => {
   const [dragState, setDragState] = useState<
