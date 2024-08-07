@@ -263,15 +263,7 @@ const StrikethroughMenu = () => {
 };
 
 const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
-  const colors = [
-    "#000000",
-    "#FF0000",
-    "#00FF00",
-    "#0000FF",
-    "#FFFF00",
-    "#00FFFF",
-    "#FF00FF",
-  ];
+  const colors = ["black", "red", "green", "blue", "yellow", "cyan", "magenta"];
 
   return (
     <SubMenu
@@ -332,15 +324,7 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
 };
 
 const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
-  const colors = [
-    "#000000",
-    "#FF0000",
-    "#00FF00",
-    "#0000FF",
-    "#FFFF00",
-    "#00FFFF",
-    "#FF00FF",
-  ];
+  const colors = ["black", "red", "green", "blue", "yellow", "cyan", "magenta"];
 
   return (
     <SubMenu
