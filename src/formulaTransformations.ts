@@ -227,7 +227,7 @@ export const removeEmptyGroups = (
   );
 };
 
-const exactlyOne = <T>(arr: T[]): T | undefined => {
+const exactlyOne = <T>(arr: T[]): T => {
   if (arr.length === 1) {
     return arr[0];
   }
@@ -241,6 +241,17 @@ const atLeastOne = <T>(arr: T[]): T[] => {
   }
 
   throw new Error("Expected at least one element, got " + arr.length);
+};
+
+// Removes the outermost group, if it exists.
+// This is safe and useful when the enclosing node wraps this child in braces.
+const stripOuterGroup = (
+  node: AugmentedFormulaNode
+): AugmentedFormulaNode[] => {
+  if (node.type === "group") {
+    return node.body;
+  }
+  return [node];
 };
 
 export const removeEmptyGroup = (
@@ -276,8 +287,12 @@ export const removeEmptyGroup = (
     case "frac":
       return [
         node.withChanges({
-          numerator: exactlyOne(removeEmptyGroup(node.numerator)),
-          denominator: exactlyOne(removeEmptyGroup(node.denominator)),
+          numerator: exactlyOne(
+            stripOuterGroup(exactlyOne(removeEmptyGroup(node.numerator)))
+          ),
+          denominator: exactlyOne(
+            stripOuterGroup(exactlyOne(removeEmptyGroup(node.denominator)))
+          ),
         }),
       ];
     case "symbol":
@@ -288,17 +303,23 @@ export const removeEmptyGroup = (
     case "text":
       return [
         node.withChanges({
-          body: atLeastOne(node.body.flatMap(removeEmptyGroup)),
+          body: atLeastOne(
+            node.body.flatMap(removeEmptyGroup).flatMap(stripOuterGroup)
+          ),
         }),
       ];
     case "box":
     case "strikethrough":
       return [
-        node.withChanges({ body: exactlyOne(removeEmptyGroup(node.body)) }),
+        node.withChanges({
+          body: exactlyOne(removeEmptyGroup(node.body)),
+        }),
       ];
     case "brace":
       return [
-        node.withChanges({ base: exactlyOne(removeEmptyGroup(node.base)) }),
+        node.withChanges({
+          base: exactlyOne(removeEmptyGroup(node.base)),
+        }),
       ];
     case "array":
       return [

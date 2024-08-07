@@ -138,7 +138,10 @@ const SelectionBorders = observer(() => {
   return (
     <>
       {Array.from(selectionStore.resolvedSelection).map((id) => {
-        const target = selectionStore.screenSpaceTargets.get(id)!;
+        const target = selectionStore.screenSpaceTargets.get(id);
+        if (!target) {
+          return null;
+        }
         const { left, top } = selectionStore.workspaceBBox!;
         return (
           <div

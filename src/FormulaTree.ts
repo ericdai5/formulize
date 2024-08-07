@@ -168,7 +168,7 @@ const buildAugmentedFormula = (
         const strikethrough = new Strikethrough(id, child);
         child._parent = strikethrough;
         return strikethrough;
-      } else if (katexTree.label === String.raw`fcolorbox`) {
+      } else if (katexTree.label === String.raw`\fcolorbox`) {
         const child = buildAugmentedFormula(katexTree.body, `${id}.body`);
         const box = new Box(
           id,
@@ -327,9 +327,10 @@ export class Script extends AugmentedFormulaNodeBase {
     const baseLatex = String.raw`${this.base.toLatex(mode)}`;
     const subLatex = this.sub ? String.raw`_${this.sub.toLatex(mode)}` : "";
     const supLatex = this.sup ? String.raw`^${this.sup.toLatex(mode)}` : "";
+
     return this.latexWithId(
       mode,
-      String.raw`{${baseLatex}${subLatex}${supLatex}}`
+      String.raw`${baseLatex}${subLatex}${supLatex}`
     );
   }
 
@@ -551,6 +552,19 @@ export class Group extends AugmentedFormulaNodeBase {
     const childrenLatex = this.body
       .map((child) => child.toLatex(mode))
       .join(" ");
+    if (
+      this._parent === null ||
+      this._parent.type === "array" ||
+      this._parent.type === "root" ||
+      this._parent.type === "brace"
+    ) {
+      // Avoid adding extra braces at the top level and in array environments
+      //
+      // TODO: We also make Group aware when it is the child of nodes with single-child bodies
+      // but this is a bit of a hack. We should have a more generic mechanism for detecting whether
+      // the Group's braces are necessary.
+      return this.latexWithId(mode, childrenLatex);
+    }
     return this.latexWithId(mode, String.raw`{${childrenLatex}}`);
   }
 

@@ -467,6 +467,7 @@ const FullStyleEditor = observer(() => {
       newEditorView.contentDOM.addEventListener("blur", () => {
         setSuppressCodeUpdate(() => false);
         formulaStore.overrideStyledRanges(null);
+        setEditorCodeCorrect(() => true);
 
         // Synchronize the editor with the current formula
         newEditorView.dispatch([
