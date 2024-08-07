@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { RenderSpec, deriveAugmentedFormula } from "./FormulaTree";
+import {
+  RenderSpec,
+  /* deriveAugmentedFormula*/
+} from "./FormulaTree";
 import { formulaStore, selectionStore } from "./store";
 
 export const RenderedFormula = observer(() => {

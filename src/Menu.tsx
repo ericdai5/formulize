@@ -207,22 +207,6 @@ const LogoMenu = () => {
   );
 };
 
-const SaveMenu = () => {
-  return (
-    <div
-      css={css`
-        height: 2rem;
-        width: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      `}
-    >
-      <Icon>save</Icon>
-    </div>
-  );
-};
-
 const UndoMenu = () => {
   return (
     <div
@@ -252,64 +236,6 @@ const RedoMenu = () => {
     >
       <Icon>redo</Icon>
     </div>
-  );
-};
-
-const ZoomMenu = () => {
-  return (
-    <div
-      css={css`
-        height: 2rem;
-        width: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      `}
-    >
-      <Icon>zoom_in</Icon>
-    </div>
-  );
-};
-
-const BoldMenu = () => {
-  return (
-    <MenuItem onClick={() => {}}>
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <Icon>format_bold</Icon>
-      </div>
-    </MenuItem>
-  );
-};
-
-const ItalicsMenu = () => {
-  return (
-    <MenuItem onClick={() => {}}>
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <Icon>format_italic</Icon>
-      </div>
-    </MenuItem>
-  );
-};
-
-const UnderlineMenu = () => {
-  return (
-    <MenuItem onClick={() => {}}>
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <Icon>format_underline</Icon>
-      </div>
-    </MenuItem>
   );
 };
 
@@ -465,48 +391,6 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
             }}
           >
             <ColorSwatch key={color} color={color} />
-          </div>
-        ))}
-      </div>
-    </SubMenu>
-  );
-};
-
-const LineWeightMenu = ({
-  open,
-  onMenuOpen,
-  onMenuClose,
-}: DismissableMenuProps) => {
-  const weights = ["Thin", "Normal", "Thick"];
-
-  return (
-    <SubMenu
-      menuButton={<Icon>line_weight</Icon>}
-      open={open}
-      onMenuOpen={onMenuOpen}
-      onMenuClose={onMenuClose}
-    >
-      <div
-        css={css`
-          padding: 0.5rem;
-          width: 5rem;
-          display: flex;
-          flex-direction: column;
-          flex-wrap: wrap;
-          justify-content: flex-start;
-        `}
-      >
-        {weights.map((weight) => (
-          <div
-            key={weight}
-            css={css`
-              margin: 0.25rem;
-            `}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            {weight}
           </div>
         ))}
       </div>
