@@ -163,16 +163,25 @@ const buildAugmentedFormula = (
       // const children = katexTree.body.map((child, i) =>
       //   buildAugmentedFormula(child, `${id}.${i}`)
       // );
-      const child = buildAugmentedFormula(katexTree.body, `${id}.body`);
-      const box = new Box(
-        id,
-        katexTree.borderColor!,
-        katexTree.backgroundColor!,
-        child
-      );
-      // children.forEach((child) => (child._parent = box));
-      child._parent = box;
-      return box;
+      if (katexTree.label === String.raw`\cancel`) {
+        const child = buildAugmentedFormula(katexTree.body, `${id}.body`);
+        const strikethrough = new Strikethrough(id, child);
+        child._parent = strikethrough;
+        return strikethrough;
+      } else if (katexTree.label === String.raw`fcolorbox`) {
+        const child = buildAugmentedFormula(katexTree.body, `${id}.body`);
+        const box = new Box(
+          id,
+          katexTree.borderColor!,
+          katexTree.backgroundColor!,
+          child
+        );
+        // children.forEach((child) => (child._parent = box));
+        child._parent = box;
+        return box;
+      } else {
+        throw new Error(`Unsupported enclose type: ${katexTree.label}`);
+      }
     }
     case "horizBrace": {
       const base = buildAugmentedFormula(katexTree.base, `${id}.base`);
@@ -268,7 +277,8 @@ export type AugmentedFormulaNode =
   | Space
   | Aligned
   | Root
-  | Op;
+  | Op
+  | Strikethrough;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -869,7 +879,6 @@ export class Root extends AugmentedFormulaNodeBase {
   ) {
     super(id);
   }
-
   toLatex(mode: LatexMode): string {
     const bodyLatex = this.body.toLatex(mode);
     const indexLatex = this.index ? `[${this.index.toLatex(mode)}]` : "";
@@ -964,6 +973,55 @@ export class Op extends AugmentedFormulaNodeBase {
     return this.limits
       ? [new UnstyledRange(String.raw`${this.operator}\limits`)]
       : [new UnstyledRange(this.operator)];
+  }
+}
+
+export class Strikethrough extends AugmentedFormulaNodeBase {
+  type = "strikethrough" as const;
+  constructor(
+    public id: string,
+    public body: AugmentedFormulaNode
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode): string {
+    const bodyLatex = this.body.toLatex(mode);
+
+    if (mode === "content-only") {
+      return bodyLatex;
+    }
+
+    return this.latexWithId(mode, String.raw`\cancel{${bodyLatex}}`);
+  }
+
+  withChanges({
+    id,
+    parent,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    body?: AugmentedFormulaNode;
+  }): Strikethrough {
+    const strikethrough = new Strikethrough(id ?? this.id, body ?? this.body);
+    strikethrough._parent = parent ?? this._parent;
+    return strikethrough;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [this.body];
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return [
+      new StyledRange(
+        this.id,
+        String.raw`\cancel{`,
+        this.body.toStyledRanges(),
+        "}"
+      ),
+    ];
   }
 }
 

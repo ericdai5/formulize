@@ -54,6 +54,7 @@ const replaceNode = (
         })
       );
     case "box":
+    case "strikethrough":
       return replacer(
         node.withChanges({
           body: replaceNode(node.body, replacer),
@@ -123,6 +124,7 @@ const reassignIds = (
         body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
       });
     case "box":
+    case "strikethrough":
       return node.withChanges({
         id,
         body: reassignIds(node.body, `${id}.body`),
@@ -190,6 +192,7 @@ const fixParent = (
         body: node.body.map((child) => fixParent(child, node)),
       });
     case "box":
+    case "strikethrough":
       return node.withChanges({
         parent,
         body: fixParent(node.body, node),
@@ -289,6 +292,7 @@ export const removeEmptyGroup = (
         }),
       ];
     case "box":
+    case "strikethrough":
       return [
         node.withChanges({ body: exactlyOne(removeEmptyGroup(node.body)) }),
       ];
