@@ -3,7 +3,15 @@ import { default as React } from "react";
 
 import Icon from "@mui/material/Icon";
 
-import { Box, Brace, Color, MathSymbol, Script, Text } from "./FormulaTree";
+import {
+  Box,
+  Brace,
+  Color,
+  MathSymbol,
+  Script,
+  Strikethrough,
+  Text,
+} from "./FormulaTree";
 import { replaceNodes } from "./formulaTransformations";
 import { formulaStore, selectionStore } from "./store";
 
@@ -32,15 +40,10 @@ export const Menu = () => {
       <LogoMenu />
       <LineDivideMenu />
 
-      <SaveMenu />
       <UndoMenu />
       <RedoMenu />
-      <ZoomMenu />
       <LineDivideMenu />
 
-      <BoldMenu />
-      <ItalicsMenu />
-      <UnderlineMenu />
       <StrikethroughMenu />
       <ColorMenu
         open={openMenu === "color"}
@@ -56,15 +59,6 @@ export const Menu = () => {
         onMenuOpen={() => setOpenMenu("box")}
         onMenuClose={() => {
           if (openMenu === "box") {
-            setOpenMenu(null);
-          }
-        }}
-      />
-      <LineWeightMenu
-        open={openMenu === "line"}
-        onMenuOpen={() => setOpenMenu("line")}
-        onMenuClose={() => {
-          if (openMenu === "line") {
             setOpenMenu(null);
           }
         }}
@@ -165,9 +159,10 @@ const SubMenu = ({
     <div
       css={css`
         position: relative;
-        height: 2rem;
+        height: ${open ? "1.8rem" : "2rem"};
         display: flex;
         align-items: center;
+        background: ${open ? "#e0e0e0" : "#f0f0f0"};
         &:hover {
           height: 1.8rem;
         }
@@ -180,6 +175,7 @@ const SubMenu = ({
           <div
             css={css`
               position: absolute;
+              cursor: default;
               top: 2rem;
               left: 0;
               display: flex;
@@ -322,6 +318,15 @@ const StrikethroughMenu = () => {
     <MenuItem onClick={() => {}}>
       <div
         onClick={(e) => {
+          formulaStore.updateFormula(
+            replaceNodes(formulaStore.augmentedFormula, (node) => {
+              if (selectionStore.resolvedSelection.has(node.id)) {
+                console.log("Applying strikethrough to", node);
+                return new Strikethrough(node.id, node);
+              }
+              return node;
+            })
+          );
           e.stopPropagation();
         }}
       >
@@ -363,6 +368,7 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
             key={color}
             css={css`
               margin: 0.25rem;
+              cursor: pointer;
             `}
             onClick={(e) => {
               formulaStore.updateFormula(
@@ -430,6 +436,7 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
           <div
             key={color}
             css={css`
+              cursor: pointer;
               margin: 0.25rem;
             `}
             onClick={(e) => {
@@ -551,7 +558,6 @@ const AnnotateMenu = ({
     >
       <div
         css={css`
-          padding: 0.5rem;
           width: 2rem;
           display: flex;
           flex-direction: column;
@@ -561,8 +567,17 @@ const AnnotateMenu = ({
       >
         <div
           css={css`
-            margin: 0.25rem;
-            transform: rotate(90deg) translateY(0.2rem);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.25rem;
+            transform: rotate(90deg);
+            width: 100%;
+            cursor: pointer;
+
+            &:hover {
+              background: #e0e0e0;
+            }
           `}
           onClick={makeAnnotationCallback(true)}
         >
@@ -570,8 +585,17 @@ const AnnotateMenu = ({
         </div>
         <div
           css={css`
-            margin: 0.25rem;
-            transform: rotate(-90deg) translateY(0.2rem);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.25rem;
+            transform: rotate(-90deg);
+            width: 100%;
+            cursor: pointer;
+
+            &:hover {
+              background: #e0e0e0;
+            }
           `}
           onClick={makeAnnotationCallback(false)}
         >

@@ -7,18 +7,14 @@ import { RenderSpec, deriveAugmentedFormula } from "./FormulaTree";
 import { formulaStore, selectionStore } from "./store";
 
 export const RenderedFormula = observer(() => {
-  useEffect(() => {
-    formulaStore.updateFormula(
-      deriveAugmentedFormula(
-        String.raw`
-        \begin{aligned}
-        {0 1} & {2 3} & {4 5} & {6 7} \\
-        {0 1} & {2 3} & {4 5} & {6 7}
-        \end{aligned}
-        `
-      )
-    );
-  }, []);
+  // For development, hardcode a formula to reset to when code changes
+  // useEffect(() => {
+  //   formulaStore.updateFormula(
+  //     deriveAugmentedFormula(
+  //       String.raw`a^2`
+  //     )
+  //   );
+  // }, []);
 
   useEffect(() => {
     const resizeHandler = () => {
