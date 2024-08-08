@@ -229,7 +229,7 @@ const buildAugmentedFormula = (
 
 // TODO: eventually this will also cover alternative code presentations (content
 // only, with augmentations)
-type LatexMode = "render" | "ast" | "no-id" | "content-only";
+type LatexMode = "render" | "no-id" | "content-only";
 
 export class AugmentedFormula {
   private idToNode: { [id: string]: AugmentedFormulaNode } = {};
@@ -286,8 +286,6 @@ abstract class AugmentedFormulaNodeBase {
 
   protected latexWithId(mode: LatexMode, latex: string): string {
     switch (mode) {
-      case "ast":
-        return String.raw`\htmlId{${this.id}}{${latex}}`;
       case "render":
         return String.raw`\cssId{${this.id}}{${latex}}`;
       case "no-id":
@@ -553,17 +551,18 @@ export class Group extends AugmentedFormulaNodeBase {
       .map((child) => child.toLatex(mode))
       .join(" ");
     if (
-      this._parent === null ||
-      this._parent.type === "array" ||
-      this._parent.type === "root" ||
-      this._parent.type === "brace"
+      (mode === "no-id" || mode === "content-only") &&
+      (this._parent === null ||
+        this._parent.type === "array" ||
+        this._parent.type === "root" ||
+        this._parent.type === "brace")
     ) {
-      // Avoid adding extra braces at the top level and in array environments
+      // Avoid adding extra braces in the code editor at the top level and in array environments
       //
       // TODO: We also make Group aware when it is the child of nodes with single-child bodies
       // but this is a bit of a hack. We should have a more generic mechanism for detecting whether
       // the Group's braces are necessary.
-      return this.latexWithId(mode, childrenLatex);
+      return childrenLatex;
     }
     return this.latexWithId(mode, String.raw`{${childrenLatex}}`);
   }

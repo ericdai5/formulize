@@ -263,6 +263,10 @@ export const removeEmptyGroup = (
         return [];
       }
 
+      if (node.body.length === 1) {
+        return removeEmptyGroup(node.body[0]);
+      }
+
       return [
         node.withChanges({
           body: atLeastOne(
