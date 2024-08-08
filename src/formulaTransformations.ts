@@ -7,7 +7,8 @@ const assertUnreachable = (x: never): never => {
 export const canonicalizeFormula = (
   formula: AugmentedFormula
 ): AugmentedFormula => {
-  return fixParents(normalizeIds(removeEmptyGroups(formula)));
+  // fixSiblings mutates the nodes instead of returning new ones, so it has to go last
+  return fixSiblings(fixParents(normalizeIds(removeEmptyGroups(formula))));
 };
 
 export const replaceNodes = (
@@ -349,6 +350,83 @@ export const removeEmptyGroup = (
           }),
         }),
       ];
+  }
+  return assertUnreachable(node);
+};
+
+export const fixSiblings = (formula: AugmentedFormula): AugmentedFormula => {
+  // console.log("Fixing parents", formula);
+  const trees = formula.children.map((node) => fixSibling(node));
+  trees.forEach((tree, i) => {
+    if (i > 0) {
+      tree._leftSibling = trees[i - 1];
+    }
+
+    if (i < trees.length - 1) {
+      tree._rightSibling = trees[i + 1];
+    }
+  });
+  return new AugmentedFormula(trees);
+};
+
+const fixSibling = (node: AugmentedFormulaNode): AugmentedFormulaNode => {
+  switch (node.type) {
+    case "script":
+      return node.withChanges({
+        base: fixSibling(node.base),
+        sub: node.sub ? fixSibling(node.sub) : undefined,
+        sup: node.sup ? fixSibling(node.sup) : undefined,
+      });
+    case "frac":
+      return node.withChanges({
+        numerator: fixSibling(node.numerator),
+        denominator: fixSibling(node.denominator),
+      });
+    case "symbol":
+    case "space":
+    case "op":
+      return node;
+    case "box":
+    case "strikethrough":
+      return node.withChanges({
+        body: fixSibling(node.body),
+      });
+    case "brace":
+      return node.withChanges({
+        base: fixSibling(node.base),
+      });
+    case "root":
+      return node.withChanges({
+        body: fixSibling(node.body),
+        ...(node.index !== undefined && {
+          index: fixSibling(node.index),
+        }),
+      });
+    case "color":
+    case "group":
+    case "text": {
+      // These are the only nodes whose children might have siblings
+      const newChildren = node.body.map((child) => fixSibling(child));
+      newChildren.forEach((child, i) => {
+        if (i > 0) {
+          child._leftSibling = newChildren[i - 1];
+        }
+
+        if (i < newChildren.length - 1) {
+          child._rightSibling = newChildren[i + 1];
+        }
+      });
+      return node.withChanges({
+        body: newChildren,
+      });
+    }
+    case "array":
+      // Adjacent nodes in an array environment are not valid siblings
+      // because they cannot be joined into a Group without removing a column.
+      // The & column dividers must be at the top level of the Array.
+      return node.withChanges({
+        body: node.body.map((row) => row.map((cell) => fixSibling(cell))),
+      });
   }
   return assertUnreachable(node);
 };

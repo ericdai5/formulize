@@ -489,6 +489,86 @@ class SelectionStore {
     }
     return frontier;
   }
+
+  @computed({
+    equals: (a: string[][], b: string[][]) =>
+      a.length === b.length &&
+      Array.from(a).every((siblings) =>
+        b.some(
+          (s) =>
+            siblings.length === s.length &&
+            s.every((id, i) => siblings[i] === id)
+        )
+      ),
+  })
+  get siblingSelections(): string[][] {
+    const selections = this.resolvedSelection;
+    const siblingRangesUnderParent: { [parentId: string]: string[][] } = {};
+
+    // Initialize siblingRangesUnderParent by having all current selections separate
+    for (const id of selections) {
+      const node = formulaStore.augmentedFormula.findNode(id);
+      if (!node) {
+        continue;
+      }
+
+      // _TOP is arbitrary as longn as it doesn't collide with any generated IDs
+      const parentId = node._parent?.id ?? "_TOP";
+      if (!siblingRangesUnderParent[parentId]) {
+        siblingRangesUnderParent[parentId] = [];
+      }
+
+      siblingRangesUnderParent[parentId].push([id]);
+    }
+
+    // Merge adjacent sibling ranges until no more merges can be made
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const [parentId, ranges] of Object.entries(
+        siblingRangesUnderParent
+      )) {
+        if (ranges.length === 1) {
+          continue;
+        }
+
+        for (let i = 0; i < ranges.length; i++) {
+          const currentRange = ranges[i];
+          const maybeLeftSibling = formulaStore.augmentedFormula.findNode(
+            currentRange[currentRange.length - 1]
+          );
+          if (maybeLeftSibling === null) {
+            continue;
+          }
+
+          for (let j = 0; j < ranges.length; j++) {
+            const maybeJoinedRange = ranges[j];
+            const maybeRightSibling = formulaStore.augmentedFormula.findNode(
+              maybeJoinedRange[0]
+            );
+            if (maybeLeftSibling._rightSibling === maybeRightSibling) {
+              const joinedRanges = currentRange.concat(maybeJoinedRange);
+              siblingRangesUnderParent[parentId] = ranges
+                .filter((_, k) => k !== i && k !== j)
+                .concat([joinedRanges]);
+              changed = true;
+              break;
+            }
+          }
+
+          if (changed) {
+            break;
+          }
+        }
+
+        if (changed) {
+          break;
+        }
+      }
+    }
+
+    return Object.values(siblingRangesUnderParent).flatMap((ranges) => ranges);
+  }
 }
 
 export const selectionStore = new SelectionStore();

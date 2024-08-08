@@ -142,6 +142,14 @@ const buildAugmentedFormula = (
       );
       const color = new Color(id, katexTree.color, children);
       children.forEach((child) => (child._parent = color));
+      children.forEach((child, i) => {
+        if (i > 0) {
+          child._leftSibling = children[i - 1];
+        }
+        if (i < children.length - 1) {
+          child._rightSibling = children[i + 1];
+        }
+      });
       return color;
     }
     case "styling":
@@ -157,6 +165,14 @@ const buildAugmentedFormula = (
       );
       const group = new Group(id, children);
       children.forEach((child) => (child._parent = group));
+      children.forEach((child, i) => {
+        if (i > 0) {
+          child._leftSibling = children[i - 1];
+        }
+        if (i < children.length - 1) {
+          child._rightSibling = children[i + 1];
+        }
+      });
       return group;
     }
     case "enclose": {
@@ -195,6 +211,14 @@ const buildAugmentedFormula = (
       );
       const text = new Text(id, children);
       children.forEach((child) => (child._parent = text));
+      children.forEach((child, i) => {
+        if (i > 0) {
+          child._leftSibling = children[i - 1];
+        }
+        if (i < children.length - 1) {
+          child._rightSibling = children[i + 1];
+        }
+      });
       return text;
     }
     case "spacing":
@@ -282,6 +306,8 @@ export type AugmentedFormulaNode =
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
+  public _leftSibling: AugmentedFormulaNode | null = null;
+  public _rightSibling: AugmentedFormulaNode | null = null;
   constructor(public id: string) {}
 
   protected latexWithId(mode: LatexMode, latex: string): string {
@@ -335,12 +361,16 @@ export class Script extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     base,
     sub,
     sup,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     base?: AugmentedFormulaNode;
     sub?: AugmentedFormulaNode;
     sup?: AugmentedFormulaNode;
@@ -352,6 +382,8 @@ export class Script extends AugmentedFormulaNodeBase {
       sup ?? this.sup
     );
     script._parent = parent ?? this._parent;
+    script._leftSibling = leftSibling ?? this._leftSibling;
+    script._rightSibling = rightSibling ?? this._rightSibling;
     return script;
   }
 
@@ -400,11 +432,15 @@ export class Fraction extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     numerator,
     denominator,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     numerator?: AugmentedFormulaNode;
     denominator?: AugmentedFormulaNode;
   }): Fraction {
@@ -414,6 +450,8 @@ export class Fraction extends AugmentedFormulaNodeBase {
       denominator ?? this.denominator
     );
     fraction._parent = parent ?? this._parent;
+    fraction._leftSibling = leftSibling ?? this._leftSibling;
+    fraction._rightSibling = rightSibling ?? this._rightSibling;
     return fraction;
   }
 
@@ -448,14 +486,20 @@ export class MathSymbol extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     value,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     value?: string;
   }): MathSymbol {
     const symbol = new MathSymbol(id ?? this.id, value ?? this.value);
     symbol._parent = parent ?? this._parent;
+    symbol._leftSibling = leftSibling ?? this._leftSibling;
+    symbol._rightSibling = rightSibling ?? this._rightSibling;
     return symbol;
   }
 
@@ -495,11 +539,15 @@ export class Color extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     color,
     body,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     color?: string;
     body?: AugmentedFormulaNode[];
   }): Color {
@@ -509,6 +557,8 @@ export class Color extends AugmentedFormulaNodeBase {
       body ?? this.body
     );
     colorNode._parent = parent ?? this._parent;
+    colorNode._leftSibling = leftSibling ?? this._leftSibling;
+    colorNode._rightSibling = rightSibling ?? this._rightSibling;
     return colorNode;
   }
 
@@ -570,14 +620,20 @@ export class Group extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     body,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     body?: AugmentedFormulaNode[];
   }): Group {
     const group = new Group(id ?? this.id, body ?? this.body);
     group._parent = parent ?? this._parent;
+    group._leftSibling = leftSibling ?? this._leftSibling;
+    group._rightSibling = rightSibling ?? this._rightSibling;
     return group;
   }
 
@@ -627,12 +683,16 @@ export class Box extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     borderColor,
     backgroundColor,
     body,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     borderColor?: string;
     backgroundColor?: string;
     body?: AugmentedFormulaNode;
@@ -644,6 +704,8 @@ export class Box extends AugmentedFormulaNodeBase {
       body ?? this.body
     );
     box._parent = parent ?? this._parent;
+    box._leftSibling = leftSibling ?? this._leftSibling;
+    box._rightSibling = rightSibling ?? this._rightSibling;
     return box;
   }
 
@@ -691,11 +753,15 @@ export class Brace extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     over,
     base,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     over?: boolean;
     base?: AugmentedFormulaNode;
   }): Brace {
@@ -705,6 +771,8 @@ export class Brace extends AugmentedFormulaNodeBase {
       base ?? this.base
     );
     brace._parent = parent ?? this._parent;
+    brace._leftSibling = leftSibling ?? this._leftSibling;
+    brace._rightSibling = rightSibling ?? this._rightSibling;
     return brace;
   }
 
@@ -745,14 +813,20 @@ export class Text extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     body,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     body?: AugmentedFormulaNode[];
   }): Text {
     const t = new Text(id ?? this.id, body ?? this.body);
     t._parent = parent ?? this._parent;
+    t._leftSibling = leftSibling ?? this._leftSibling;
+    t._rightSibling = rightSibling ?? this._rightSibling;
     return t;
   }
 
@@ -791,14 +865,20 @@ export class Space extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     text,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     text?: string;
   }): Space {
     const space = new Space(id ?? this.id, text ?? this.text);
     space._parent = parent ?? this._parent;
+    space._leftSibling = leftSibling ?? this._leftSibling;
+    space._rightSibling = rightSibling ?? this._rightSibling;
     return space;
   }
 
@@ -841,14 +921,20 @@ export class Aligned extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     body,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     body?: AugmentedFormulaNode[][];
   }): Aligned {
     const aligned = new Aligned(id ?? this.id, body ?? this.body);
     aligned._parent = parent ?? this._parent;
+    aligned._leftSibling = leftSibling ?? this._leftSibling;
+    aligned._rightSibling = rightSibling ?? this._rightSibling;
     return aligned;
   }
 
@@ -902,11 +988,15 @@ export class Root extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     body,
     index,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     body?: AugmentedFormulaNode;
     index?: AugmentedFormulaNode;
   }): Root {
@@ -916,6 +1006,8 @@ export class Root extends AugmentedFormulaNodeBase {
       index ?? this.index
     );
     root._parent = parent ?? this._parent;
+    root._leftSibling = leftSibling ?? this._leftSibling;
+    root._rightSibling = rightSibling ?? this._rightSibling;
     return root;
   }
 
@@ -960,11 +1052,15 @@ export class Op extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     operator,
     limits,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     operator?: string;
     limits?: boolean;
     body?: AugmentedFormulaNode;
@@ -975,6 +1071,8 @@ export class Op extends AugmentedFormulaNodeBase {
       limits ?? this.limits
     );
     op._parent = parent ?? this._parent;
+    op._leftSibling = leftSibling ?? this._leftSibling;
+    op._rightSibling = rightSibling ?? this._rightSibling;
     return op;
   }
 
@@ -1011,14 +1109,20 @@ export class Strikethrough extends AugmentedFormulaNodeBase {
   withChanges({
     id,
     parent,
+    leftSibling,
+    rightSibling,
     body,
   }: {
     id?: string;
     parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
     body?: AugmentedFormulaNode;
   }): Strikethrough {
     const strikethrough = new Strikethrough(id ?? this.id, body ?? this.body);
     strikethrough._parent = parent ?? this._parent;
+    strikethrough._leftSibling = leftSibling ?? this._leftSibling;
+    strikethrough._rightSibling = rightSibling ?? this._rightSibling;
     return strikethrough;
   }
 

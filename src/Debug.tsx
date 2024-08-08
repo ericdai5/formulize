@@ -177,6 +177,12 @@ const Selected = observer(() => (
     <pre>{selectionStore.selected.join(",\n")}</pre>
     <pre>Resolved selection:</pre>
     <pre>{Array.from(selectionStore.resolvedSelection).join(",\n")}</pre>
+    <pre>Sibling resolved selection:</pre>
+    <pre>
+      {Array.from(selectionStore.siblingSelections)
+        .map((range) => range.join(", "))
+        .join("\n")}
+    </pre>
   </>
 ));
 
