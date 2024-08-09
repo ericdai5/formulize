@@ -292,12 +292,8 @@ export const removeEmptyGroup = (
     case "frac":
       return [
         node.withChanges({
-          numerator: exactlyOne(
-            stripOuterGroup(exactlyOne(removeEmptyGroup(node.numerator)))
-          ),
-          denominator: exactlyOne(
-            stripOuterGroup(exactlyOne(removeEmptyGroup(node.denominator)))
-          ),
+          numerator: exactlyOne(removeEmptyGroup(node.numerator)),
+          denominator: exactlyOne(removeEmptyGroup(node.denominator)),
         }),
       ];
     case "symbol":
@@ -452,7 +448,8 @@ export const consolidateGroups = (
       }
     }
   }
-  return canonicalizeFormula(new AugmentedFormula(trees));
+  // We don't want to `canonicalizeFormula` because it might delete the group we just added
+  return fixSiblings(fixParents(normalizeIds(new AugmentedFormula(trees))));
 };
 
 const consolidateGroup = (

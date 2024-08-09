@@ -605,7 +605,8 @@ export class Group extends AugmentedFormulaNodeBase {
       (this._parent === null ||
         this._parent.type === "array" ||
         this._parent.type === "root" ||
-        this._parent.type === "brace")
+        this._parent.type === "brace" ||
+        this._parent.type === "frac")
     ) {
       // Avoid adding extra braces in the code editor at the top level and in array environments
       //
