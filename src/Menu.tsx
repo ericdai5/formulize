@@ -12,7 +12,7 @@ import {
   Strikethrough,
   Text,
 } from "./FormulaTree";
-import { replaceNodes } from "./formulaTransformations";
+import { consolidateGroups, replaceNodes } from "./formulaTransformations";
 import { formulaStore, selectionStore } from "./store";
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
@@ -245,13 +245,24 @@ const StrikethroughMenu = () => {
       <div
         onClick={(e) => {
           formulaStore.updateFormula(
-            replaceNodes(formulaStore.augmentedFormula, (node) => {
-              if (selectionStore.resolvedSelection.has(node.id)) {
-                console.log("Applying strikethrough to", node);
-                return new Strikethrough(node.id, node);
+            replaceNodes(
+              consolidateGroups(
+                formulaStore.augmentedFormula,
+                selectionStore.siblingSelections
+              ),
+
+              (node) => {
+                if (
+                  selectionStore.siblingSelections.some(
+                    (siblingIds) => siblingIds[0] === node.id
+                  )
+                ) {
+                  console.log("Applying strikethrough to", node);
+                  return new Strikethrough(node.id, node);
+                }
+                return node;
               }
-              return node;
-            })
+            )
           );
           e.stopPropagation();
         }}
@@ -290,26 +301,38 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
             `}
             onClick={(e) => {
               formulaStore.updateFormula(
-                replaceNodes(formulaStore.augmentedFormula, (node) => {
-                  if (
-                    node.type === "color" &&
-                    (selectionStore.resolvedSelection.has(node.id) ||
-                      node.body.some((child) =>
-                        selectionStore.resolvedSelection.has(child.id)
-                      ))
-                  ) {
-                    console.log("Modifying existing color node", node);
-                    return new Color(node.id, color, node.body);
-                  } else if (
-                    selectionStore.resolvedSelection.has(node.id) &&
-                    (node.ancestors.length === 0 ||
-                      node.ancestors[0].type !== "color")
-                  ) {
-                    console.log("Applying new color node to", node);
-                    return new Color(node.id, color, [node]);
+                replaceNodes(
+                  consolidateGroups(
+                    formulaStore.augmentedFormula,
+                    selectionStore.siblingSelections
+                  ),
+                  (node) => {
+                    if (
+                      node.type === "color" &&
+                      (selectionStore.siblingSelections.some(
+                        (siblingIds) => siblingIds[0] === node.id
+                      ) ||
+                        node.body.some((child) =>
+                          selectionStore.siblingSelections.some(
+                            (siblingIds) => siblingIds[0] === child.id
+                          )
+                        ))
+                    ) {
+                      console.log("Modifying existing color node", node);
+                      return new Color(node.id, color, node.body);
+                    } else if (
+                      selectionStore.siblingSelections.some(
+                        (siblingIds) => siblingIds[0] === node.id
+                      ) &&
+                      (node.ancestors.length === 0 ||
+                        node.ancestors[0].type !== "color")
+                    ) {
+                      console.log("Applying new color node to", node);
+                      return new Color(node.id, color, [node]);
+                    }
+                    return node;
                   }
-                  return node;
-                })
+                )
               );
               e.stopPropagation();
               onMenuClose();
@@ -351,24 +374,36 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
             `}
             onClick={(e) => {
               formulaStore.updateFormula(
-                replaceNodes(formulaStore.augmentedFormula, (node) => {
-                  if (
-                    node.type === "box" &&
-                    (selectionStore.resolvedSelection.has(node.id) ||
-                      selectionStore.resolvedSelection.has(node.body.id))
-                  ) {
-                    console.log("Modifying existing box node", node);
-                    return new Box(node.id, color, "white", node.body);
-                  } else if (
-                    selectionStore.resolvedSelection.has(node.id) &&
-                    (node.ancestors.length === 0 ||
-                      node.ancestors[0].type !== "box")
-                  ) {
-                    console.log("Applying new box node to", node);
-                    return new Box(node.id, color, "white", node);
+                replaceNodes(
+                  consolidateGroups(
+                    formulaStore.augmentedFormula,
+                    selectionStore.siblingSelections
+                  ),
+                  (node) => {
+                    if (
+                      node.type === "box" &&
+                      (selectionStore.siblingSelections.some(
+                        (siblingIds) => siblingIds[0] === node.id
+                      ) ||
+                        selectionStore.siblingSelections.some(
+                          (siblingIds) => siblingIds[0] === node.body.id
+                        ))
+                    ) {
+                      console.log("Modifying existing box node", node);
+                      return new Box(node.id, color, "white", node.body);
+                    } else if (
+                      selectionStore.siblingSelections.some(
+                        (siblingIds) => siblingIds[0] === node.id
+                      ) &&
+                      (node.ancestors.length === 0 ||
+                        node.ancestors[0].type !== "box")
+                    ) {
+                      console.log("Applying new box node to", node);
+                      return new Box(node.id, color, "white", node);
+                    }
+                    return node;
                   }
-                  return node;
-                })
+                )
               );
               e.stopPropagation();
               onMenuClose();
@@ -389,30 +424,40 @@ const AnnotateMenu = ({
 }: DismissableMenuProps) => {
   const makeAnnotationCallback = (over: boolean) => (e: React.MouseEvent) => {
     formulaStore.updateFormula(
-      replaceNodes(formulaStore.augmentedFormula, (node) => {
-        if (
-          node.type === "brace" &&
-          selectionStore.resolvedSelection.has(node.id)
-        ) {
-          console.log("Modifying existing brace node", node);
-        } else if (
-          selectionStore.resolvedSelection.has(node.id) &&
-          (node.ancestors.length === 0 || node.ancestors[0].type !== "brace")
-        ) {
-          console.log("Applying new brace node to", node);
-          const caption = new Text(
-            "",
-            Array.from("caption").map((c) => new MathSymbol("", c))
-          );
-          return new Script(
-            "",
-            new Brace("", over, node),
-            over ? undefined : caption,
-            over ? caption : undefined
-          );
+      replaceNodes(
+        consolidateGroups(
+          formulaStore.augmentedFormula,
+          selectionStore.siblingSelections
+        ),
+        (node) => {
+          if (
+            node.type === "brace" &&
+            selectionStore.siblingSelections.some(
+              (siblingIds) => siblingIds[0] === node.id
+            )
+          ) {
+            console.log("Modifying existing brace node", node);
+          } else if (
+            selectionStore.siblingSelections.some(
+              (siblingIds) => siblingIds[0] === node.id
+            ) &&
+            (node.ancestors.length === 0 || node.ancestors[0].type !== "brace")
+          ) {
+            console.log("Applying new brace node to", node);
+            const caption = new Text(
+              "",
+              Array.from("caption").map((c) => new MathSymbol("", c))
+            );
+            return new Script(
+              "",
+              new Brace("", over, node),
+              over ? undefined : caption,
+              over ? caption : undefined
+            );
+          }
+          return node;
         }
-        return node;
-      })
+      )
     );
     e.stopPropagation();
     onMenuClose();

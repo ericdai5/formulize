@@ -430,3 +430,95 @@ const fixSibling = (node: AugmentedFormulaNode): AugmentedFormulaNode => {
   }
   return assertUnreachable(node);
 };
+
+/**
+ * For each group of siblings, consolidate them into a single Group node.
+ */
+export const consolidateGroups = (
+  formula: AugmentedFormula,
+  siblingGroups: string[][]
+) => {
+  let trees = formula.children.map((node) =>
+    consolidateGroup(node, siblingGroups)
+  );
+  // Check to see if any top-level trees are being joined
+  for (const group of siblingGroups) {
+    for (let i = 0; i < trees.length; i++) {
+      if (group.includes(trees[i].id)) {
+        trees = trees
+          .slice(0, i)
+          .concat([new Group(trees[i].id, trees.slice(i, i + group.length))])
+          .concat(trees.slice(i + group.length));
+      }
+    }
+  }
+  return canonicalizeFormula(new AugmentedFormula(trees));
+};
+
+const consolidateGroup = (
+  node: AugmentedFormulaNode,
+  siblingGroups: string[][]
+): AugmentedFormulaNode => {
+  switch (node.type) {
+    case "script":
+      return node.withChanges({
+        base: consolidateGroup(node.base, siblingGroups),
+        sub: node.sub ? consolidateGroup(node.sub, siblingGroups) : undefined,
+        sup: node.sup ? consolidateGroup(node.sup, siblingGroups) : undefined,
+      });
+    case "frac":
+      return node.withChanges({
+        numerator: consolidateGroup(node.numerator, siblingGroups),
+        denominator: consolidateGroup(node.denominator, siblingGroups),
+      });
+    case "symbol":
+    case "space":
+    case "op":
+      return node;
+    case "box":
+    case "strikethrough":
+      return node.withChanges({
+        body: consolidateGroup(node.body, siblingGroups),
+      });
+    case "brace":
+      return node.withChanges({
+        base: consolidateGroup(node.base, siblingGroups),
+      });
+    case "root":
+      return node.withChanges({
+        body: consolidateGroup(node.body, siblingGroups),
+        ...(node.index !== undefined && {
+          index: consolidateGroup(node.index, siblingGroups),
+        }),
+      });
+    case "array":
+      return node.withChanges({
+        body: node.body.map((row) =>
+          row.map((cell) => consolidateGroup(cell, siblingGroups))
+        ),
+      });
+    case "color":
+    case "group":
+    case "text": {
+      let body = node.body.map((child) =>
+        consolidateGroup(child, siblingGroups)
+      );
+
+      for (const group of siblingGroups) {
+        for (let i = 0; i < body.length; i++) {
+          if (group.includes(body[i].id)) {
+            body = body
+              .slice(0, i)
+              .concat([new Group(body[i].id, body.slice(i, i + group.length))])
+              .concat(body.slice(i + group.length));
+          }
+        }
+      }
+      return node.withChanges({
+        body,
+      });
+    }
+  }
+
+  assertUnreachable(node);
+};
