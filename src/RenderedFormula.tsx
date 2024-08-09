@@ -3,21 +3,16 @@ import { useCallback, useEffect, useState } from "react";
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import {
-  RenderSpec,
-  /* deriveAugmentedFormula*/
-} from "./FormulaTree";
+import { RenderSpec, deriveAugmentedFormula } from "./FormulaTree";
 import { formulaStore, selectionStore } from "./store";
 
 export const RenderedFormula = observer(() => {
   // For development, hardcode a formula to reset to when code changes
-  // useEffect(() => {
-  //   formulaStore.updateFormula(
-  //     deriveAugmentedFormula(
-  //       String.raw`a^2`
-  //     )
-  //   );
-  // }, []);
+  useEffect(() => {
+    formulaStore.updateFormula(
+      deriveAugmentedFormula(String.raw`a + b + c + d`)
+    );
+  }, []);
 
   useEffect(() => {
     const resizeHandler = () => {

@@ -137,24 +137,43 @@ const SELECTION_PADDING = 0.4;
 const SelectionBorders = observer(() => {
   return (
     <>
-      {Array.from(selectionStore.resolvedSelection).map((id) => {
-        const target = selectionStore.screenSpaceTargets.get(id);
-        if (!target) {
-          return null;
-        }
+      {Array.from(selectionStore.siblingSelections).map((range) => {
+        const leftEdge = Math.min(
+          ...range.map((id) => selectionStore.screenSpaceTargets.get(id)!.left)
+        );
+        const rightEdge = Math.max(
+          ...range.map(
+            (id) =>
+              selectionStore.screenSpaceTargets.get(id)!.left +
+              selectionStore.screenSpaceTargets.get(id)!.width
+          )
+        );
+        const topEdge = Math.min(
+          ...range.map((id) => selectionStore.screenSpaceTargets.get(id)!.top)
+        );
+        const bottomEdge = Math.max(
+          ...range.map(
+            (id) =>
+              selectionStore.screenSpaceTargets.get(id)!.top +
+              selectionStore.screenSpaceTargets.get(id)!.height
+          )
+        );
+        const width = rightEdge - leftEdge;
+        const height = bottomEdge - topEdge;
+
         const { left, top } = selectionStore.workspaceBBox!;
         return (
           <div
             style={{
               position: "absolute",
-              left: `calc(${target.left - left}px - ${SELECTION_PADDING}rem)`,
-              top: `calc(${target.top - top}px - ${SELECTION_PADDING}rem)`,
-              width: `calc((${target.width}px + ${2 * SELECTION_PADDING}rem)`,
-              height: `calc(${target.height}px + ${2 * SELECTION_PADDING}rem)`,
+              left: `calc(${leftEdge - left}px - ${SELECTION_PADDING}rem)`,
+              top: `calc(${topEdge - top}px - ${SELECTION_PADDING}rem)`,
+              width: `calc((${width}px + ${2 * SELECTION_PADDING}rem)`,
+              height: `calc(${height}px + ${2 * SELECTION_PADDING}rem)`,
               border: "2px dashed black",
               zIndex: "1000",
             }}
-            key={id}
+            key={range.join(",")}
           ></div>
         );
       })}
