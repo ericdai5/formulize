@@ -19,8 +19,8 @@ export const Debug = observer(() => {
     <>
       <div
         css={css`
-          position: fixed;
-          top: 2rem;
+          position: absolute;
+          top: 0;
           right: 1rem;
           z-index: 1000;
         `}
@@ -51,8 +51,8 @@ export const Debug = observer(() => {
           onMouseDown={(e) => e.stopPropagation()}
           onScroll={(e) => e.stopPropagation()}
           css={css`
-            position: fixed;
-            top: 2rem;
+            position: absolute;
+            top: 0;
             right: 0;
             padding: 1rem;
             max-height: calc(100vh - 2rem);

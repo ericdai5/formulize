@@ -1,6 +1,7 @@
 import { Global, css } from "@emotion/react";
 
 import { Editor } from "./Editor";
+import { ElementPane } from "./ElementPane";
 import { Menu } from "./Menu";
 import { Workspace } from "./Workspace";
 
@@ -55,6 +56,16 @@ function App() {
         >
           <Menu />
           <Workspace />
+        </div>
+        <div
+          css={css`
+            width: 30%;
+            height: 100%;
+            background: #f0f0f0;
+            border-left: 2px solid black;
+          `}
+        >
+          <ElementPane />
         </div>
       </div>
     </>

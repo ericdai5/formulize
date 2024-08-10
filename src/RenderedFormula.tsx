@@ -10,7 +10,9 @@ export const RenderedFormula = observer(() => {
   // For development, hardcode a formula to reset to when code changes
   useEffect(() => {
     formulaStore.updateFormula(
-      deriveAugmentedFormula(String.raw`a + b + c + d`)
+      deriveAugmentedFormula(
+        String.raw`\frac{a + b + c}{d + e + f} + \sqrt{g + h + i}`
+      )
     );
   }, []);
 
