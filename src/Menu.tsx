@@ -111,12 +111,27 @@ const MenuItem = ({
   );
 };
 
+const COLORS = [
+  "black",
+  "grey",
+  "darkgrey",
+  "purple",
+  "red",
+  "magenta",
+  "violet",
+  "orange",
+  "green",
+  "teal",
+  "blue",
+  "cyan",
+];
+
 type ColorSwatchProps = {
   color: string;
   onClick?: (event: React.MouseEvent<HTMLElement, MouseEvent>) => void;
 };
 
-const ColorSwatch = ({ color, onClick }: ColorSwatchProps) => {
+export const ColorSwatch = ({ color, onClick }: ColorSwatchProps) => {
   return (
     <div
       onClick={onClick}
@@ -129,6 +144,38 @@ const ColorSwatch = ({ color, onClick }: ColorSwatchProps) => {
     ></div>
   );
 };
+
+export const ColorPicker = ({
+  onSelect,
+}: {
+  onSelect: (color: string) => void;
+}) => (
+  <div
+    css={css`
+      padding: 0.5rem;
+      width: 7rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    `}
+  >
+    {COLORS.map((color) => (
+      <div
+        key={color}
+        css={css`
+          margin: 0.25rem;
+          cursor: pointer;
+        `}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(color);
+        }}
+      >
+        <ColorSwatch key={color} color={color} />
+      </div>
+    ))}
+  </div>
+);
 
 type DismissableMenuProps = {
   open: boolean;
@@ -274,8 +321,6 @@ const StrikethroughMenu = () => {
 };
 
 const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
-  const colors = ["black", "red", "green", "blue", "yellow", "cyan", "magenta"];
-
   return (
     <SubMenu
       menuButton={<Icon>format_color_text</Icon>}
@@ -292,63 +337,51 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
           justify-content: flex-start;
         `}
       >
-        {colors.map((color) => (
-          <div
-            key={color}
-            css={css`
-              margin: 0.25rem;
-              cursor: pointer;
-            `}
-            onClick={(e) => {
-              formulaStore.updateFormula(
-                replaceNodes(
-                  consolidateGroups(
-                    formulaStore.augmentedFormula,
-                    selectionStore.siblingSelections
-                  ),
-                  (node) => {
-                    if (
-                      node.type === "color" &&
-                      (selectionStore.siblingSelections.some(
-                        (siblingIds) => siblingIds[0] === node.id
-                      ) ||
-                        node.body.some((child) =>
-                          selectionStore.siblingSelections.some(
-                            (siblingIds) => siblingIds[0] === child.id
-                          )
-                        ))
-                    ) {
-                      console.log("Modifying existing color node", node);
-                      return new Color(node.id, color, node.body);
-                    } else if (
-                      selectionStore.siblingSelections.some(
-                        (siblingIds) => siblingIds[0] === node.id
-                      ) &&
-                      (node.ancestors.length === 0 ||
-                        node.ancestors[0].type !== "color")
-                    ) {
-                      console.log("Applying new color node to", node);
-                      return new Color(node.id, color, [node]);
-                    }
-                    return node;
+        <ColorPicker
+          onSelect={(color) => {
+            formulaStore.updateFormula(
+              replaceNodes(
+                consolidateGroups(
+                  formulaStore.augmentedFormula,
+                  selectionStore.siblingSelections
+                ),
+                (node) => {
+                  if (
+                    node.type === "color" &&
+                    (selectionStore.siblingSelections.some(
+                      (siblingIds) => siblingIds[0] === node.id
+                    ) ||
+                      node.body.some((child) =>
+                        selectionStore.siblingSelections.some(
+                          (siblingIds) => siblingIds[0] === child.id
+                        )
+                      ))
+                  ) {
+                    console.log("Modifying existing color node", node);
+                    return new Color(node.id, color, node.body);
+                  } else if (
+                    selectionStore.siblingSelections.some(
+                      (siblingIds) => siblingIds[0] === node.id
+                    ) &&
+                    (node.ancestors.length === 0 ||
+                      node.ancestors[0].type !== "color")
+                  ) {
+                    console.log("Applying new color node to", node);
+                    return new Color(node.id, color, [node]);
                   }
-                )
-              );
-              e.stopPropagation();
-              onMenuClose();
-            }}
-          >
-            <ColorSwatch key={color} color={color} />
-          </div>
-        ))}
+                  return node;
+                }
+              )
+            );
+            onMenuClose();
+          }}
+        />
       </div>
     </SubMenu>
   );
 };
 
 const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
-  const colors = ["black", "red", "green", "blue", "yellow", "cyan", "magenta"];
-
   return (
     <SubMenu
       menuButton={<img src={BoxIcon} />}
@@ -365,53 +398,43 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
           justify-content: flex-start;
         `}
       >
-        {colors.map((color) => (
-          <div
-            key={color}
-            css={css`
-              cursor: pointer;
-              margin: 0.25rem;
-            `}
-            onClick={(e) => {
-              formulaStore.updateFormula(
-                replaceNodes(
-                  consolidateGroups(
-                    formulaStore.augmentedFormula,
-                    selectionStore.siblingSelections
-                  ),
-                  (node) => {
-                    if (
-                      node.type === "box" &&
-                      (selectionStore.siblingSelections.some(
-                        (siblingIds) => siblingIds[0] === node.id
-                      ) ||
-                        selectionStore.siblingSelections.some(
-                          (siblingIds) => siblingIds[0] === node.body.id
-                        ))
-                    ) {
-                      console.log("Modifying existing box node", node);
-                      return new Box(node.id, color, "white", node.body);
-                    } else if (
+        <ColorPicker
+          onSelect={(color) => {
+            formulaStore.updateFormula(
+              replaceNodes(
+                consolidateGroups(
+                  formulaStore.augmentedFormula,
+                  selectionStore.siblingSelections
+                ),
+                (node) => {
+                  if (
+                    node.type === "box" &&
+                    (selectionStore.siblingSelections.some(
+                      (siblingIds) => siblingIds[0] === node.id
+                    ) ||
                       selectionStore.siblingSelections.some(
-                        (siblingIds) => siblingIds[0] === node.id
-                      ) &&
-                      (node.ancestors.length === 0 ||
-                        node.ancestors[0].type !== "box")
-                    ) {
-                      console.log("Applying new box node to", node);
-                      return new Box(node.id, color, "white", node);
-                    }
-                    return node;
+                        (siblingIds) => siblingIds[0] === node.body.id
+                      ))
+                  ) {
+                    console.log("Modifying existing box node", node);
+                    return new Box(node.id, color, "white", node.body);
+                  } else if (
+                    selectionStore.siblingSelections.some(
+                      (siblingIds) => siblingIds[0] === node.id
+                    ) &&
+                    (node.ancestors.length === 0 ||
+                      node.ancestors[0].type !== "box")
+                  ) {
+                    console.log("Applying new box node to", node);
+                    return new Box(node.id, color, "white", node);
                   }
-                )
-              );
-              e.stopPropagation();
-              onMenuClose();
-            }}
-          >
-            <ColorSwatch key={color} color={color} />
-          </div>
-        ))}
+                  return node;
+                }
+              )
+            );
+            onMenuClose();
+          }}
+        />
       </div>
     </SubMenu>
   );

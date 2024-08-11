@@ -11,7 +11,7 @@ export const RenderedFormula = observer(() => {
   useEffect(() => {
     formulaStore.updateFormula(
       deriveAugmentedFormula(
-        String.raw`\frac{a + b + c}{d + e + f} + \sqrt{g + h + i}`
+        String.raw`\textcolor{red}{\frac{a + \cancel{{b + c}}}{\underbrace{d + e}_\text{caption} + f}} + \sqrt{\fcolorbox{black}{white}{$ {g + h} $} + i}`
       )
     );
   }, []);
