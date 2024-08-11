@@ -6,7 +6,7 @@ import { observer } from "mobx-react-lite";
 import Icon from "@mui/material/Icon";
 
 import { AugmentedFormulaNode, Box, Color, Group } from "./FormulaTree";
-import { assertUnreachable } from "./formulaTransformations";
+import { assertUnreachable, replaceNodes } from "./formulaTransformations";
 import { formulaStore, selectionStore } from "./store";
 
 const ElementPaneContext = createContext<{
@@ -228,6 +228,17 @@ const LabeledNode = ({
         css={css`
           visibility: ${deletable ? "visible" : "hidden"};
         `}
+        onClick={(e) => {
+          e.stopPropagation();
+          formulaStore.updateFormula(
+            replaceNodes(formulaStore.augmentedFormula, (node) => {
+              if (node.id === tree.id) {
+                return new Group(tree.id, tree.children);
+              }
+              return node;
+            })
+          );
+        }}
       >
         <Icon
           css={css`
@@ -237,7 +248,6 @@ const LabeledNode = ({
               color: red;
             }
           `}
-          onClick={() => {}}
         >
           close
         </Icon>
@@ -264,7 +274,7 @@ const ColorNode = ({ tree }: { tree: Color }) => {
           margin-right: 0.5rem;
         `}
       />
-      <LabeledNode label="Color" />
+      <LabeledNode tree={tree} label="Color" deletable />
     </div>
   );
 };
@@ -287,7 +297,7 @@ const BoxNode = ({ tree }: { tree: Box }) => {
           margin-right: 0.5rem;
         `}
       />
-      <LabeledNode label="Box" />
+      <LabeledNode tree={tree} label="Box" deletable />
     </div>
   );
 };
