@@ -252,6 +252,11 @@ class SelectionStore {
   }
 
   @action
+  selectOnly(id: string) {
+    this.selected.replace([id]);
+  }
+
+  @action
   updateTargets() {
     if (this.workspaceRef) {
       const { left, top, width, height } =
