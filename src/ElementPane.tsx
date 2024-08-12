@@ -5,7 +5,14 @@ import { observer } from "mobx-react-lite";
 
 import Icon from "@mui/material/Icon";
 
-import { AugmentedFormulaNode, Box, Brace, Color, Group } from "./FormulaTree";
+import {
+  AugmentedFormulaNode,
+  Box,
+  Brace,
+  Color,
+  Group,
+  Script,
+} from "./FormulaTree";
 import { ColorPicker, ColorSwatch } from "./Menu";
 import { assertUnreachable, replaceNodes } from "./formulaTransformations";
 import { formulaStore, selectionStore } from "./store";
@@ -289,7 +296,17 @@ const BraceNode = ({ tree }: { tree: Brace }) => {
         onClick={() => {
           formulaStore.updateFormula(
             replaceNodes(formulaStore.augmentedFormula, (node) => {
-              if (node.type === "brace" && node.id === tree.id) {
+              if (
+                node.type === "script" &&
+                node.children.find((n) => n.id === tree.id)
+              ) {
+                return new Script(
+                  node.id,
+                  node.base,
+                  tree.over ? node.sup : undefined,
+                  tree.over ? undefined : node.sub
+                );
+              } else if (node.type === "brace" && node.id === tree.id) {
                 return node.withChanges({ over: !tree.over });
               }
               return node;
@@ -305,7 +322,51 @@ const BraceNode = ({ tree }: { tree: Brace }) => {
           src={CurlyBraceListOption}
         />
       </div>
-      <LabeledNode tree={tree} label="Brace" deletable />
+      <div
+        css={css`
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+        `}
+        onClick={() => {
+          selectionStore.selectOnly(tree.id);
+        }}
+      >
+        Brace
+        <div
+          css={css`
+            visibility: visible;
+          `}
+          onClick={(e) => {
+            e.stopPropagation();
+            formulaStore.updateFormula(
+              replaceNodes(formulaStore.augmentedFormula, (node) => {
+                const maybeBraceNode = node.children.find(
+                  (n) => n.id === tree.id
+                );
+                if (node.type === "script" && maybeBraceNode !== undefined) {
+                  return new Group(node.id, maybeBraceNode.children);
+                }
+                return node;
+              })
+            );
+          }}
+        >
+          <Icon
+            css={css`
+              cursor: pointer;
+              margin-right: 0.5rem;
+              &:hover {
+                color: red;
+              }
+            `}
+          >
+            close
+          </Icon>
+        </div>
+      </div>
     </div>
   );
 };
