@@ -1,6 +1,8 @@
 import { css } from "@emotion/react";
 import { default as React } from "react";
 
+import { observer } from "mobx-react-lite";
+
 import Icon from "@mui/material/Icon";
 
 import {
@@ -13,7 +15,7 @@ import {
   Text,
 } from "./FormulaTree";
 import { consolidateGroups, replaceNodes } from "./formulaTransformations";
-import { formulaStore, selectionStore } from "./store";
+import { formulaStore, selectionStore, undoStore } from "./store";
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
@@ -254,7 +256,7 @@ const LogoMenu = () => {
   );
 };
 
-const UndoMenu = () => {
+const UndoMenu = observer(() => {
   return (
     <div
       css={css`
@@ -263,14 +265,21 @@ const UndoMenu = () => {
         display: flex;
         align-items: center;
         justify-content: center;
+        cursor: ${undoStore.canUndo ? "pointer" : "default"};
+        color: ${undoStore.canUndo ? "black" : "grey"};
       `}
+      onClick={() => {
+        if (undoStore.canUndo) {
+          undoStore.undo();
+        }
+      }}
     >
       <Icon>undo</Icon>
     </div>
   );
-};
+});
 
-const RedoMenu = () => {
+const RedoMenu = observer(() => {
   return (
     <div
       css={css`
@@ -279,12 +288,19 @@ const RedoMenu = () => {
         display: flex;
         align-items: center;
         justify-content: center;
+        cursor: ${undoStore.canRedo ? "pointer" : "default"};
+        color: ${undoStore.canRedo ? "black" : "grey"};
       `}
+      onClick={() => {
+        if (undoStore.canRedo) {
+          undoStore.redo();
+        }
+      }}
     >
       <Icon>redo</Icon>
     </div>
   );
-};
+});
 
 const StrikethroughMenu = () => {
   return (

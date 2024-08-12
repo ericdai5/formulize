@@ -70,7 +70,7 @@ const RenderedFormulaComponent = observer(({ spec }: { spec: RenderSpec }) => {
       selectionStore.addTarget(
         spec.id,
         ref,
-        ["mjx-mi", "mjx-mn", "mjx-mo"].includes(spec.tagName)
+        ["mjx-mi", "mjx-mn", "mjx-mo", "mjx-mtext"].includes(spec.tagName)
       );
     }
 

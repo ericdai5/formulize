@@ -12,6 +12,7 @@ import {
   AugmentedFormula,
   Group,
   RenderSpec,
+  deriveAugmentedFormula,
   updateFormula,
 } from "./FormulaTree";
 
@@ -32,6 +33,20 @@ class FormulaStore {
       return;
     }
 
+    const { renderSpec } = updateFormula(newFormula);
+    this.renderSpec = renderSpec;
+    this.augmentedFormula = newFormula;
+    selectionStore.clearSelection();
+    undoStore.checkpoint();
+  }
+
+  /**
+   *
+   * @param latex
+   */
+  @action
+  restoreFormulaState(latex: string) {
+    const newFormula = deriveAugmentedFormula(latex);
     const { renderSpec } = updateFormula(newFormula);
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
@@ -618,3 +633,49 @@ class DebugStore {
 }
 
 export const debugStore = new DebugStore();
+
+class UndoStore {
+  @observable
+  accessor history: string[] = [];
+  @observable
+  accessor currentIdx = -1;
+
+  @action
+  checkpoint() {
+    if (this.currentIdx < this.history.length - 1) {
+      this.history = this.history.slice(0, this.currentIdx + 1);
+    }
+    this.history.push(formulaStore.augmentedFormula.toLatex("no-id"));
+    this.currentIdx++;
+    console.log("New checkpoint:", this.history, this.currentIdx);
+  }
+
+  @action
+  undo() {
+    if (this.canUndo) {
+      this.currentIdx--;
+      formulaStore.restoreFormulaState(this.history[this.currentIdx]);
+    }
+  }
+
+  @action
+  redo() {
+    if (this.canRedo) {
+      this.currentIdx++;
+      formulaStore.restoreFormulaState(this.history[this.currentIdx]);
+    }
+  }
+
+  @computed
+  get canUndo() {
+    console.log("Can undo?", this.currentIdx > 0);
+    return this.currentIdx > 0;
+  }
+
+  @computed
+  get canRedo() {
+    return this.currentIdx < this.history.length - 1;
+  }
+}
+
+export const undoStore = new UndoStore();

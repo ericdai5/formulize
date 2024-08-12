@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 
 import { observer } from "mobx-react-lite";
 
-import { debugStore, formulaStore, selectionStore } from "./store";
+import { debugStore, formulaStore, selectionStore, undoStore } from "./store";
 
 function formatCoordinate(n: number) {
   return Math.round(n).toString().padStart(3, " ");
@@ -64,6 +64,7 @@ export const Debug = observer(() => {
           `}
         >
           <DebugOptions />
+          <History />
           <Viewport />
           <Targets />
           <Drag />
@@ -200,3 +201,10 @@ const AlignGuides = observer(() =>
     <pre>Alignment drag: none</pre>
   )
 );
+
+const History = observer(() => (
+  <>
+    <pre>History entries: {undoStore.history.length}</pre>
+    <pre>History index: {undoStore.currentIdx}</pre>
+  </>
+));
