@@ -39,8 +39,8 @@ export const Menu = () => {
         e.stopPropagation();
       }}
     >
-      <LogoMenu />
-      <LineDivideMenu />
+      {/* <LogoMenu /> */}
+      {/* <LineDivideMenu /> */}
 
       <UndoMenu />
       <RedoMenu />
