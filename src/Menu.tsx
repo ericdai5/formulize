@@ -21,7 +21,8 @@ import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
 import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
 import LineDivideIcon from "./Icons/LineDivideIcon.svg";
-import LogoIcon from "./Icons/LogoIcon.svg";
+
+// import LogoIcon from "./Icons/LogoIcon.svg";
 
 export const Menu = () => {
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
@@ -240,21 +241,21 @@ const SubMenu = ({
   );
 };
 
-const LogoMenu = () => {
-  return (
-    <div
-      css={css`
-        height: 2.25rem;
-        width: 2.25rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      `}
-    >
-      <img src={LogoIcon} />
-    </div>
-  );
-};
+// const LogoMenu = () => {
+//   return (
+//     <div
+//       css={css`
+//         height: 2.25rem;
+//         width: 2.25rem;
+//         display: flex;
+//         align-items: center;
+//         justify-content: center;
+//       `}
+//     >
+//       <img src={LogoIcon} />
+//     </div>
+//   );
+// };
 
 const UndoMenu = observer(() => {
   return (

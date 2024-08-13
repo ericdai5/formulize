@@ -3,18 +3,20 @@ import { useCallback, useEffect, useState } from "react";
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { RenderSpec, deriveAugmentedFormula } from "./FormulaTree";
+import {
+  RenderSpec, // deriveAugmentedFormula
+} from "./FormulaTree";
 import { formulaStore, selectionStore } from "./store";
 
 export const RenderedFormula = observer(() => {
   // For development, hardcode a formula to reset to when code changes
-  useEffect(() => {
-    formulaStore.updateFormula(
-      deriveAugmentedFormula(
-        String.raw`\textcolor{red}{\frac{a + \cancel{{b + c}}}{\underbrace{d + e}_\text{caption} + f}} + \sqrt{\fcolorbox{black}{white}{$ {g + h} $} + i}`
-      )
-    );
-  }, []);
+  // useEffect(() => {
+  //   formulaStore.updateFormula(
+  //     deriveAugmentedFormula(
+  //       String.raw`\textcolor{red}{\frac{a + \cancel{{b + c}}}{\underbrace{d + e}_\text{caption} + f}} + \sqrt{\fcolorbox{black}{white}{$ {g + h} $} + i}`
+  //     )
+  //   );
+  // }, []);
 
   useEffect(() => {
     const resizeHandler = () => {
