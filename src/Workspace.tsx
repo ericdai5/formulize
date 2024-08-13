@@ -139,23 +139,27 @@ const SelectionBorders = observer(() => {
     <>
       {Array.from(selectionStore.siblingSelections).map((range) => {
         const leftEdge = Math.min(
-          ...range.map((id) => selectionStore.screenSpaceTargets.get(id)!.left)
+          ...range.map(
+            (id) => selectionStore.screenSpaceTargets.get(id)?.left ?? 0
+          )
         );
         const rightEdge = Math.max(
           ...range.map(
             (id) =>
-              selectionStore.screenSpaceTargets.get(id)!.left +
-              selectionStore.screenSpaceTargets.get(id)!.width
+              (selectionStore.screenSpaceTargets.get(id)?.left ?? 0) +
+              (selectionStore.screenSpaceTargets.get(id)?.width ?? 0)
           )
         );
         const topEdge = Math.min(
-          ...range.map((id) => selectionStore.screenSpaceTargets.get(id)!.top)
+          ...range.map(
+            (id) => selectionStore.screenSpaceTargets.get(id)?.top ?? 0
+          )
         );
         const bottomEdge = Math.max(
           ...range.map(
             (id) =>
-              selectionStore.screenSpaceTargets.get(id)!.top +
-              selectionStore.screenSpaceTargets.get(id)!.height
+              (selectionStore.screenSpaceTargets.get(id)?.top ?? 0) +
+              (selectionStore.screenSpaceTargets.get(id)?.height ?? 0)
           )
         );
         const width = rightEdge - leftEdge;

@@ -6,16 +6,19 @@ import { observer } from "mobx-react-lite";
 import Icon from "@mui/material/Icon";
 
 import {
+  Aligned,
+  AugmentedFormula,
   Box,
   Brace,
   Color,
+  Group,
   MathSymbol,
   Script,
   Strikethrough,
   Text,
 } from "./FormulaTree";
 import { consolidateGroups, replaceNodes } from "./formulaTransformations";
-import { formulaStore, selectionStore, undoStore } from "./store";
+import { editingStore, formulaStore, selectionStore, undoStore } from "./store";
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
@@ -77,6 +80,9 @@ export const Menu = () => {
           }
         }}
       />
+
+      <LineDivideMenu />
+      <AlignMenu />
     </div>
   );
 };
@@ -345,55 +351,45 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
     >
-      <div
-        css={css`
-          padding: 0.5rem;
-          width: 7rem;
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: flex-start;
-        `}
-      >
-        <ColorPicker
-          onSelect={(color) => {
-            formulaStore.updateFormula(
-              replaceNodes(
-                consolidateGroups(
-                  formulaStore.augmentedFormula,
-                  selectionStore.siblingSelections
-                ),
-                (node) => {
-                  if (
-                    node.type === "color" &&
-                    (selectionStore.siblingSelections.some(
-                      (siblingIds) => siblingIds[0] === node.id
-                    ) ||
-                      node.body.some((child) =>
-                        selectionStore.siblingSelections.some(
-                          (siblingIds) => siblingIds[0] === child.id
-                        )
-                      ))
-                  ) {
-                    console.log("Modifying existing color node", node);
-                    return new Color(node.id, color, node.body);
-                  } else if (
-                    selectionStore.siblingSelections.some(
-                      (siblingIds) => siblingIds[0] === node.id
-                    ) &&
-                    (node.ancestors.length === 0 ||
-                      node.ancestors[0].type !== "color")
-                  ) {
-                    console.log("Applying new color node to", node);
-                    return new Color(node.id, color, [node]);
-                  }
-                  return node;
+      <ColorPicker
+        onSelect={(color) => {
+          formulaStore.updateFormula(
+            replaceNodes(
+              consolidateGroups(
+                formulaStore.augmentedFormula,
+                selectionStore.siblingSelections
+              ),
+              (node) => {
+                if (
+                  node.type === "color" &&
+                  (selectionStore.siblingSelections.some(
+                    (siblingIds) => siblingIds[0] === node.id
+                  ) ||
+                    node.body.some((child) =>
+                      selectionStore.siblingSelections.some(
+                        (siblingIds) => siblingIds[0] === child.id
+                      )
+                    ))
+                ) {
+                  console.log("Modifying existing color node", node);
+                  return new Color(node.id, color, node.body);
+                } else if (
+                  selectionStore.siblingSelections.some(
+                    (siblingIds) => siblingIds[0] === node.id
+                  ) &&
+                  (node.ancestors.length === 0 ||
+                    node.ancestors[0].type !== "color")
+                ) {
+                  console.log("Applying new color node to", node);
+                  return new Color(node.id, color, [node]);
                 }
-              )
-            );
-            onMenuClose();
-          }}
-        />
-      </div>
+                return node;
+              }
+            )
+          );
+          onMenuClose();
+        }}
+      />
     </SubMenu>
   );
 };
@@ -406,53 +402,43 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
     >
-      <div
-        css={css`
-          padding: 0.5rem;
-          width: 7rem;
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: flex-start;
-        `}
-      >
-        <ColorPicker
-          onSelect={(color) => {
-            formulaStore.updateFormula(
-              replaceNodes(
-                consolidateGroups(
-                  formulaStore.augmentedFormula,
-                  selectionStore.siblingSelections
-                ),
-                (node) => {
-                  if (
-                    node.type === "box" &&
-                    (selectionStore.siblingSelections.some(
-                      (siblingIds) => siblingIds[0] === node.id
-                    ) ||
-                      selectionStore.siblingSelections.some(
-                        (siblingIds) => siblingIds[0] === node.body.id
-                      ))
-                  ) {
-                    console.log("Modifying existing box node", node);
-                    return new Box(node.id, color, "white", node.body);
-                  } else if (
+      <ColorPicker
+        onSelect={(color) => {
+          formulaStore.updateFormula(
+            replaceNodes(
+              consolidateGroups(
+                formulaStore.augmentedFormula,
+                selectionStore.siblingSelections
+              ),
+              (node) => {
+                if (
+                  node.type === "box" &&
+                  (selectionStore.siblingSelections.some(
+                    (siblingIds) => siblingIds[0] === node.id
+                  ) ||
                     selectionStore.siblingSelections.some(
-                      (siblingIds) => siblingIds[0] === node.id
-                    ) &&
-                    (node.ancestors.length === 0 ||
-                      node.ancestors[0].type !== "box")
-                  ) {
-                    console.log("Applying new box node to", node);
-                    return new Box(node.id, color, "white", node);
-                  }
-                  return node;
+                      (siblingIds) => siblingIds[0] === node.body.id
+                    ))
+                ) {
+                  console.log("Modifying existing box node", node);
+                  return new Box(node.id, color, "white", node.body);
+                } else if (
+                  selectionStore.siblingSelections.some(
+                    (siblingIds) => siblingIds[0] === node.id
+                  ) &&
+                  (node.ancestors.length === 0 ||
+                    node.ancestors[0].type !== "box")
+                ) {
+                  console.log("Applying new box node to", node);
+                  return new Box(node.id, color, "white", node);
                 }
-              )
-            );
-            onMenuClose();
-          }}
-        />
-      </div>
+                return node;
+              }
+            )
+          );
+          onMenuClose();
+        }}
+      />
     </SubMenu>
   );
 };
@@ -574,3 +560,34 @@ const LineDivideMenu = () => {
     </div>
   );
 };
+
+const AlignMenu = observer(() => {
+  return (
+    <div
+      css={css`
+        min-width: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        background: ${editingStore.showAlignMode ? "#e0e0e0" : "#transparent"};
+        &:hover {
+          height: 2rem;
+        }
+        font-family: "Source Sans 3", sans-serif;
+      `}
+      onClick={(e) => {
+        if (formulaStore.alignIds === null) {
+          const cell = new Group("", formulaStore.augmentedFormula.children);
+          formulaStore.updateFormula(
+            new AugmentedFormula([new Aligned("", [[cell]])])
+          );
+        }
+        editingStore.setShowAlignMode(!editingStore.showAlignMode);
+        e.stopPropagation();
+      }}
+    >
+      <Icon>format_align_justify</Icon>
+    </div>
+  );
+});

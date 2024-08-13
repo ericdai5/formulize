@@ -10,6 +10,7 @@ import { FormulaLatexRanges } from "./FormulaText";
 import {
   Aligned,
   AugmentedFormula,
+  AugmentedFormulaNode,
   Group,
   RenderSpec,
   deriveAugmentedFormula,
@@ -268,7 +269,20 @@ class SelectionStore {
 
   @action
   selectOnly(id: string) {
-    this.selected.replace([id]);
+    // Walk the subtree and collect all leaf nodes
+    const node = formulaStore.augmentedFormula.findNode(id);
+    if (!node) {
+      console.error(`Node with id ${id} not found`);
+      return;
+    }
+    const collectLeaves = (node: AugmentedFormulaNode): string[] => {
+      if (node.children.length === 0 && this.targets.has(node.id)) {
+        return [node.id];
+      }
+      return node.children.flatMap((child) => collectLeaves(child));
+    };
+    const selectedLeaves = collectLeaves(node);
+    this.selected.replace(selectedLeaves);
   }
 
   @action
@@ -679,3 +693,15 @@ class UndoStore {
 }
 
 export const undoStore = new UndoStore();
+
+class EditingStore {
+  @observable
+  accessor showAlignMode: boolean = false;
+
+  @action
+  setShowAlignMode(show: boolean) {
+    this.showAlignMode = show;
+  }
+}
+
+export const editingStore = new EditingStore();

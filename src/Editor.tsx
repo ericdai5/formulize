@@ -382,12 +382,12 @@ export const Editor = observer(() => {
         >
           Full LaTeX
         </EditorTab>
-        <EditorTab
+        {/* <EditorTab
           onClick={() => setCurrentEditor("content-only")}
           selected={currentEditor === "content-only"}
         >
           Content-Only
-        </EditorTab>
+        </EditorTab> */}
       </div>
       {currentEditor === "full" ? <FullStyleEditor /> : <ContentOnlyEditor />}
     </>

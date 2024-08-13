@@ -913,9 +913,13 @@ export class Aligned extends AugmentedFormulaNodeBase {
       return rowsLatex;
     }
 
+    const numCols = Math.max(...this.body.map((row) => row.length));
+    const columnAlignment =
+      numCols === 2 ? ["r", "l"] : Array(numCols).fill("l");
+
     return this.latexWithId(
       mode,
-      `\\begin{aligned}\n${rowsLatex}\n\\end{aligned}`
+      `\\begin{array}{${columnAlignment.join("")}}\n${rowsLatex}\n\\end{array}`
     );
   }
 

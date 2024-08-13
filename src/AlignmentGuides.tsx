@@ -8,6 +8,7 @@ import { replaceNodes } from "./formulaTransformations";
 import {
   DimensionBox,
   debugStore,
+  editingStore,
   formulaStore,
   selectionStore,
 } from "./store";
@@ -22,7 +23,11 @@ export const AlignmentGuides = observer(() => {
       )
   );
 
-  if (selectionStore.workspaceBBox === null || alignTargets === undefined) {
+  if (
+    selectionStore.workspaceBBox === null ||
+    alignTargets === undefined ||
+    !editingStore.showAlignMode
+  ) {
     return null;
   }
   return selectionStore.workspaceBBox === null ||
