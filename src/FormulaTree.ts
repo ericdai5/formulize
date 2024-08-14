@@ -381,9 +381,11 @@ export class Script extends AugmentedFormulaNodeBase {
       sub ?? this.sub,
       sup ?? this.sup
     );
-    script._parent = parent ?? this._parent;
-    script._leftSibling = leftSibling ?? this._leftSibling;
-    script._rightSibling = rightSibling ?? this._rightSibling;
+    script._parent = parent === undefined ? this._parent : parent;
+    script._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    script._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return script;
   }
 
@@ -449,9 +451,11 @@ export class Fraction extends AugmentedFormulaNodeBase {
       numerator ?? this.numerator,
       denominator ?? this.denominator
     );
-    fraction._parent = parent ?? this._parent;
-    fraction._leftSibling = leftSibling ?? this._leftSibling;
-    fraction._rightSibling = rightSibling ?? this._rightSibling;
+    fraction._parent = parent === undefined ? this._parent : parent;
+    fraction._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    fraction._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return fraction;
   }
 
@@ -497,9 +501,11 @@ export class MathSymbol extends AugmentedFormulaNodeBase {
     value?: string;
   }): MathSymbol {
     const symbol = new MathSymbol(id ?? this.id, value ?? this.value);
-    symbol._parent = parent ?? this._parent;
-    symbol._leftSibling = leftSibling ?? this._leftSibling;
-    symbol._rightSibling = rightSibling ?? this._rightSibling;
+    symbol._parent = parent === undefined ? this._parent : parent;
+    symbol._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    symbol._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return symbol;
   }
 
@@ -556,9 +562,11 @@ export class Color extends AugmentedFormulaNodeBase {
       color ?? this.color,
       body ?? this.body
     );
-    colorNode._parent = parent ?? this._parent;
-    colorNode._leftSibling = leftSibling ?? this._leftSibling;
-    colorNode._rightSibling = rightSibling ?? this._rightSibling;
+    colorNode._parent = parent === undefined ? this._parent : parent;
+    colorNode._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    colorNode._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return colorNode;
   }
 
@@ -632,9 +640,11 @@ export class Group extends AugmentedFormulaNodeBase {
     body?: AugmentedFormulaNode[];
   }): Group {
     const group = new Group(id ?? this.id, body ?? this.body);
-    group._parent = parent ?? this._parent;
-    group._leftSibling = leftSibling ?? this._leftSibling;
-    group._rightSibling = rightSibling ?? this._rightSibling;
+    group._parent = parent === undefined ? this._parent : parent;
+    group._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    group._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return group;
   }
 
@@ -704,9 +714,11 @@ export class Box extends AugmentedFormulaNodeBase {
       backgroundColor ?? this.backgroundColor,
       body ?? this.body
     );
-    box._parent = parent ?? this._parent;
-    box._leftSibling = leftSibling ?? this._leftSibling;
-    box._rightSibling = rightSibling ?? this._rightSibling;
+    box._parent = parent === undefined ? this._parent : parent;
+    box._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    box._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return box;
   }
 
@@ -771,9 +783,11 @@ export class Brace extends AugmentedFormulaNodeBase {
       over ?? this.over,
       base ?? this.base
     );
-    brace._parent = parent ?? this._parent;
-    brace._leftSibling = leftSibling ?? this._leftSibling;
-    brace._rightSibling = rightSibling ?? this._rightSibling;
+    brace._parent = parent === undefined ? this._parent : parent;
+    brace._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    brace._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return brace;
   }
 
@@ -825,9 +839,11 @@ export class Text extends AugmentedFormulaNodeBase {
     body?: AugmentedFormulaNode[];
   }): Text {
     const t = new Text(id ?? this.id, body ?? this.body);
-    t._parent = parent ?? this._parent;
-    t._leftSibling = leftSibling ?? this._leftSibling;
-    t._rightSibling = rightSibling ?? this._rightSibling;
+    t._parent = parent === undefined ? this._parent : parent;
+    t._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    t._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return t;
   }
 
@@ -877,9 +893,11 @@ export class Space extends AugmentedFormulaNodeBase {
     text?: string;
   }): Space {
     const space = new Space(id ?? this.id, text ?? this.text);
-    space._parent = parent ?? this._parent;
-    space._leftSibling = leftSibling ?? this._leftSibling;
-    space._rightSibling = rightSibling ?? this._rightSibling;
+    space._parent = parent === undefined ? this._parent : parent;
+    space._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    space._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return space;
   }
 
@@ -937,9 +955,11 @@ export class Aligned extends AugmentedFormulaNodeBase {
     body?: AugmentedFormulaNode[][];
   }): Aligned {
     const aligned = new Aligned(id ?? this.id, body ?? this.body);
-    aligned._parent = parent ?? this._parent;
-    aligned._leftSibling = leftSibling ?? this._leftSibling;
-    aligned._rightSibling = rightSibling ?? this._rightSibling;
+    aligned._parent = parent === undefined ? this._parent : parent;
+    aligned._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    aligned._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return aligned;
   }
 
@@ -1010,9 +1030,11 @@ export class Root extends AugmentedFormulaNodeBase {
       body ?? this.body,
       index ?? this.index
     );
-    root._parent = parent ?? this._parent;
-    root._leftSibling = leftSibling ?? this._leftSibling;
-    root._rightSibling = rightSibling ?? this._rightSibling;
+    root._parent = parent === undefined ? this._parent : parent;
+    root._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    root._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return root;
   }
 
@@ -1075,9 +1097,11 @@ export class Op extends AugmentedFormulaNodeBase {
       operator ?? this.operator,
       limits ?? this.limits
     );
-    op._parent = parent ?? this._parent;
-    op._leftSibling = leftSibling ?? this._leftSibling;
-    op._rightSibling = rightSibling ?? this._rightSibling;
+    op._parent = parent === undefined ? this._parent : parent;
+    op._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    op._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return op;
   }
 
@@ -1125,9 +1149,11 @@ export class Strikethrough extends AugmentedFormulaNodeBase {
     body?: AugmentedFormulaNode;
   }): Strikethrough {
     const strikethrough = new Strikethrough(id ?? this.id, body ?? this.body);
-    strikethrough._parent = parent ?? this._parent;
-    strikethrough._leftSibling = leftSibling ?? this._leftSibling;
-    strikethrough._rightSibling = rightSibling ?? this._rightSibling;
+    strikethrough._parent = parent === undefined ? this._parent : parent;
+    strikethrough._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    strikethrough._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
     return strikethrough;
   }
 

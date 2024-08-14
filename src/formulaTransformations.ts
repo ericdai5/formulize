@@ -168,13 +168,16 @@ const fixParent = (
   parent: AugmentedFormulaNode | null
 ): AugmentedFormulaNode => {
   switch (node.type) {
-    case "script":
-      return node.withChanges({
+    case "script": {
+      const changed = node.withChanges({
         parent,
         base: fixParent(node.base, node),
         sub: node.sub ? fixParent(node.sub, node) : undefined,
         sup: node.sup ? fixParent(node.sup, node) : undefined,
       });
+      console.log("Changed", changed);
+      return changed;
+    }
     case "frac":
       return node.withChanges({
         parent,

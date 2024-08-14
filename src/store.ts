@@ -16,6 +16,7 @@ import {
   deriveAugmentedFormula,
   updateFormula,
 } from "./FormulaTree";
+import { canonicalizeFormula } from "./formulaTransformations";
 
 class FormulaStore {
   @observable
@@ -34,9 +35,10 @@ class FormulaStore {
       return;
     }
 
-    const { renderSpec } = updateFormula(newFormula);
+    const canonicalized = canonicalizeFormula(newFormula);
+    const { renderSpec } = updateFormula(canonicalized);
     this.renderSpec = renderSpec;
-    this.augmentedFormula = newFormula;
+    this.augmentedFormula = canonicalized;
     selectionStore.clearSelection();
     undoStore.checkpoint();
   }
@@ -682,7 +684,6 @@ class UndoStore {
 
   @computed
   get canUndo() {
-    console.log("Can undo?", this.currentIdx > 0);
     return this.currentIdx > 0;
   }
 
