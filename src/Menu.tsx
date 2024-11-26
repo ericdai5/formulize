@@ -19,6 +19,7 @@ import {
 } from "./FormulaTree";
 import { consolidateGroups, replaceNodes } from "./formulaTransformations";
 import { editingStore, formulaStore, selectionStore, undoStore } from "./store";
+import { computationStore } from './computation';
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
@@ -83,6 +84,16 @@ export const Menu = () => {
 
       <LineDivideMenu />
       <AlignMenu />
+      <LineDivideMenu />
+      <EnlivenMenu 
+        open={openMenu === "enliven"}
+        onMenuOpen={() => setOpenMenu("enliven")}
+        onMenuClose={() => {
+          if (openMenu === "enliven") {
+            setOpenMenu(null);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -589,5 +600,77 @@ const AlignMenu = observer(() => {
     >
       <Icon>format_align_justify</Icon>
     </div>
+  );
+});
+
+const EnlivenMenu = observer(({ 
+  open, 
+  onMenuOpen, 
+  onMenuClose 
+}: DismissableMenuProps) => {
+  console.log("EnlivenMenu rendering, variables:", 
+    Array.from(computationStore.variables.entries())
+      .map(([id, v]) => `${id}: ${v.symbol}`)
+  );
+  
+  return (
+    <SubMenu
+      menuButton={
+        <div css={css`display: flex; align-items: center; gap: 4px;`}>
+          <Icon>electric_bolt</Icon>
+          <span>Enliven</span>
+        </div>
+      }
+      open={open}
+      onMenuOpen={() => {
+        console.log("Enliven menu opening");
+        onMenuOpen();
+      }}
+      onMenuClose={onMenuClose}
+    >
+      <div 
+        css={css`
+          padding: 0.5rem;
+          min-width: 200px;
+        `}
+        onClick={(e) => e.stopPropagation()} // Prevent menu from closing on click
+      >
+        {Array.from(computationStore.variables.entries()).length > 0 ? (
+          Array.from(computationStore.variables.entries()).map(([id, variable]) => (
+            <div key={id} css={css`
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 4px;
+            `}>
+              <span>{variable.symbol}</span>
+              <select 
+                value={variable.type || 'none'}
+                onChange={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  console.log("Setting variable type:", id, e.target.value);
+                  computationStore.setVariableType(
+                    id, 
+                    e.target.value as 'fixed' | 'slidable' | 'dependent' | 'none'
+                  );
+                }}
+              >
+                <option value="none">Not Interactive</option>
+                <option value="fixed">Fixed</option>
+                <option value="slidable">Slidable</option>
+                <option value="dependent">Dependent</option>
+              </select>
+            </div>
+          ))
+        ) : (
+          <div css={css`
+            padding: 8px;
+            color: #666;
+          `}>
+            No variables detected in formula
+          </div>
+        )}
+      </div>
+    </SubMenu>
   );
 });

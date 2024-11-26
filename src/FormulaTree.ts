@@ -293,6 +293,7 @@ export type AugmentedFormulaNode =
   | Script
   | Fraction
   | MathSymbol
+  
   | Color
   | Group
   | Box
@@ -329,6 +330,10 @@ abstract class AugmentedFormulaNodeBase {
 
   public contains(id: string): boolean {
     return this.id === id || this.children.some((child) => child.contains(id));
+  }
+
+  toMathML(): string {
+    return `<mrow>${this.children.map(c => c.toMathML()).join('')}</mrow>`;
   }
 
   abstract toLatex(mode: LatexMode): string;
@@ -474,11 +479,16 @@ export class Fraction extends AugmentedFormulaNodeBase {
   }
 }
 
+export type VariableState = {
+  isFixed: boolean;
+  value: number; // this is the number value of the variable (what will be dragged)
+};
+
 export class MathSymbol extends AugmentedFormulaNodeBase {
   public type = "symbol" as const;
   constructor(
     public id: string,
-    public value: string
+    public value: string // this is the LaTeX symbol (e.g. "x")
   ) {
     super(id);
   }
@@ -1207,4 +1217,27 @@ export const extractStyle = (node: Element): Record<string, string> => {
       node.style[prop],
     ])
   );
+};
+
+// NEW: converting Latex to MathML using MathJax
+export const convertLatexToMathML = async (latex: string): Promise<string> => {
+  console.log("convertLatexToMathML called with:", latex);
+  
+  if (!window.MathJax?.tex2mmlPromise) {
+    console.error("MathJax tex2mmlPromise not available");
+    return '';
+  }
+
+  try {
+    const mml = await window.MathJax.tex2mmlPromise(latex);
+    console.log("MathML conversion successful:", mml);
+    return mml;
+  } catch (error) {
+    console.error("MathML conversion failed:", error);
+    return `<math xmlns="http://www.w3.org/1998/Math/MathML">
+              <merror>
+                <mtext>Error converting LaTeX to MathML</mtext>
+              </merror>
+            </math>`;
+  }
 };

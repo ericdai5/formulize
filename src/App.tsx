@@ -4,6 +4,7 @@ import { Editor } from "./Editor";
 import { ElementPane } from "./ElementPane";
 import { Menu } from "./Menu";
 import { Workspace } from "./Workspace";
+import { InteractiveFormula } from "./InteractiveFormula";
 
 function App() {
   return (
@@ -55,7 +56,28 @@ function App() {
           `}
         >
           <Menu />
-          <Workspace />
+          <div css={css`
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+          `}>
+            <div css={css`
+              flex: 1;
+              position: relative;
+              overflow: auto;
+            `}>
+              <Workspace />
+            </div>
+            <div css={css`
+              flex: 0.5;
+              min-height: 200px;
+              border-top: 2px solid black;
+              overflow: auto;
+            `}>
+              <InteractiveFormula />
+            </div>
+          </div>
         </div>
         <div
           css={css`

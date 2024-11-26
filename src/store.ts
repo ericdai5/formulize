@@ -15,6 +15,7 @@ import {
   RenderSpec,
   deriveAugmentedFormula,
   updateFormula,
+  convertLatexToMathML // NEW: importing MathML conversion
 } from "./FormulaTree";
 import { canonicalizeFormula } from "./formulaTransformations";
 
@@ -127,6 +128,17 @@ class FormulaStore {
     }
 
     return null;
+  }
+
+  // NEW: MathML conversion
+  @computed
+  get mathML() {
+    console.log("mathML getter called");
+    const latex = this.augmentedFormula.toLatex("content-only");
+    console.log("Getting MathML for LaTeX:", latex);
+    const result = convertLatexToMathML(latex);
+    console.log("MathML result:", result);
+    return result;
   }
 }
 export const formulaStore = new FormulaStore();
