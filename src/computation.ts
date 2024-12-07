@@ -117,13 +117,15 @@ class ComputationStore {
 
     private async generateEvaluationFunction(formula: string, dependentVars: string[]): Promise<string> {
         console.log("🔵 Generating evaluation function for:", {formula, dependentVars});
+        const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+        console.log('API Key:', apiKey);
 
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ${process.env.REACT_APP_OPENAI_API_KEY'
+                    'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
                     model: "gpt-4",
