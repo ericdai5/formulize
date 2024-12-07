@@ -722,6 +722,9 @@ class EditingStore {
   @action 
   setShowEnlivenMode(show: boolean) {
     this.showEnlivenMode = show;
+    if (!show) {
+      selectionStore.clearSelection();
+    }
   }
 }
 

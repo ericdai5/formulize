@@ -19,7 +19,6 @@ import {
 } from "./FormulaTree";
 import { consolidateGroups, replaceNodes } from "./formulaTransformations";
 import { editingStore, formulaStore, selectionStore, undoStore } from "./store";
-import { computationStore } from './computation';
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
@@ -85,15 +84,7 @@ export const Menu = () => {
       <LineDivideMenu />
       <AlignMenu />
       <LineDivideMenu />
-      <EnlivenToggle 
-        open={openMenu === "enliven"}
-        onMenuOpen={() => setOpenMenu("enliven")}
-        onMenuClose={() => {
-          if (openMenu === "enliven") {
-            setOpenMenu(null);
-          }
-        }}
-      />
+      <EnlivenToggle />
     </div>
   );
 };
@@ -603,61 +594,28 @@ const AlignMenu = observer(() => {
   );
 });
 
-const EnlivenToggle = observer(({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
+const EnlivenToggle = observer(() => {
   return (
-    <SubMenu
-      menuButton={<Icon>flash_on</Icon>}
-      open={open}
-      onMenuOpen={onMenuOpen}
-      onMenuClose={onMenuClose}
-    >
-      <div css={css`
-        width: auto;
+    <div
+      css={css`
+        min-width: 2rem;
         display: flex;
-        flex-direction: row;
-        padding: 0.5rem;
-        gap: 0.5rem;
-      `}>
-        {[
-          { type: 'fixed', icon: '📌', label: 'Fixed' },
-          { type: 'slidable', icon: '↔️', label: 'Slidable' },
-          { type: 'dependent', icon: '🔄', label: 'Dependent' }
-        ].map(({ type, icon, label }) => (
-          <div
-            key={type}
-            css={css`
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              padding: 0.5rem;
-              cursor: pointer;
-              &:hover {
-                background: #e0e0e0;
-              }
-            `}
-            onClick={(e) => {
-              if (selectionStore.siblingSelections.length > 0) {
-                const selection = selectionStore.siblingSelections[0];
-                if (selection && selection.length > 0) {
-                  // getting actual node from formulaStore
-                  const node = formulaStore.augmentedFormula.findNode(selection[0]);
-                  if (node && node.type === 'symbol') {
-                    const symbol = node.value;
-                    const id = `var-${symbol}`;
-                    computationStore.addVariable(id, symbol);
-                    computationStore.setVariableType(id, type as any);
-                  }
-                }
-              }
-              onMenuClose();
-              e.stopPropagation();
-            }}
-          >
-            <span css={css`font-size: 1.5rem;`}>{icon}</span>
-            <span css={css`font-size: 0.8rem;`}>{label}</span>
-          </div>
-        ))}
-      </div>
-    </SubMenu>
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        background: ${editingStore.showEnlivenMode ? "#e0e0e0" : "transparent"};
+        height: 2rem;
+        &:hover {
+          height: 1.8rem;
+          background: #e0e0e0;
+        }
+        font-family: "Source Sans 3", sans-serif;
+      `}
+      onClick={() => {
+        editingStore.setShowEnlivenMode(!editingStore.showEnlivenMode);
+      }}
+    >
+      <Icon>flash_on</Icon>
+    </div>
   );
 });

@@ -12,7 +12,9 @@ import { observer } from "mobx-react-lite";
 import { AlignmentGuides } from "./AlignmentGuides";
 import { Debug } from "./Debug";
 import { RenderedFormula } from "./RenderedFormula";
-import { selectionStore } from "./store";
+import { editingStore, selectionStore, formulaStore } from "./store";
+import VariableTooltip from './VariableTooltip';
+import { computationStore } from './computation'
 
 export const Workspace = observer(() => {
   const [dragState, setDragState] = useState<
@@ -79,19 +81,73 @@ export const Workspace = observer(() => {
     };
   }, []);
 
+  // NEW
+
+  useEffect(() => {
+    if (editingStore.showEnlivenMode && selectionStore.siblingSelections.length > 0) {
+      console.log('Debug Tooltip State:', {
+        showEnlivenMode: editingStore.showEnlivenMode,
+        selections: selectionStore.siblingSelections,
+        firstSelection: selectionStore.siblingSelections[0]?.[0],
+        target: selectionStore.siblingSelections[0]?.[0] ? 
+          selectionStore.screenSpaceTargets.get(selectionStore.siblingSelections[0][0]) : null,
+        workspaceBBox: selectionStore.workspaceBBox
+      });
+    }
+  }, [editingStore.showEnlivenMode, selectionStore.siblingSelections]);
+
+  const getTooltipPosition = () => {
+    console.log('Calculating tooltip position...');
+
+    const selection = selectionStore.siblingSelections[0]?.[0];
+    if (!selection) return { x: 0, y: 0 };
+    
+    const target = selectionStore.screenSpaceTargets.get(selection);
+    const workspaceBBox = selectionStore.workspaceBBox;
+    
+    if (!target || !workspaceBBox) return { x: 0, y: 0 };
+    
+    return {
+      x: target.left - workspaceBBox.left + (target.width / 2),
+      y: target.top - workspaceBBox.top
+    };
+  };
+
+  const getCurrentVariableType = () => {
+    const selection = selectionStore.siblingSelections[0]?.[0];
+    if (!selection) return 'none';
+    
+    const node = formulaStore.augmentedFormula.findNode(selection);
+    if (!node || node.type !== 'symbol') return 'none';
+    
+    return computationStore.variables.get(`var-${node.value}`)?.type || 'none';
+  };
+
+  const handleVariableTypeSelect = (type: 'fixed' | 'slidable' | 'dependent') => {
+    const selection = selectionStore.siblingSelections[0]?.[0];
+    if (!selection) return;
+
+    const node = formulaStore.augmentedFormula.findNode(selection);
+    if (node?.type === 'symbol') {
+      const symbol = node.value;
+      const id = `var-${symbol}`;
+      console.log('Setting variable type:', { id, symbol, type });
+      computationStore.addVariable(id, symbol);
+      computationStore.setVariableType(id, type);
+      selectionStore.clearSelection();
+    }
+  };
+
   return (
     <div
       css={css`
         width: 100%;
         height: 100%;
         position: relative;
-
-        /* TODO: Temporary, work out actual formula box placement */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-
         overflow: hidden;
       `}
       onDoubleClick={handleDoubleClick}
@@ -105,11 +161,33 @@ export const Workspace = observer(() => {
       <SelectionBorders />
       <AlignmentGuides />
       <RenderedFormula />
+      
+      {/* Tooltip Container with Debug Info */}
+      <div css={css`
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      `}>
+        {editingStore.showEnlivenMode && selectionStore.siblingSelections.length > 0 && (
+          <>       
+            <VariableTooltip 
+              position={getTooltipPosition()}
+              onSelect={handleVariableTypeSelect}
+              currentType={getCurrentVariableType()}
+            />
+          </>
+        )}
+      </div>
       <Debug />
     </div>
   );
 });
 
+export default Workspace;
+              
 const SelectionRect = observer(() => {
   if (!selectionStore.selectionRectDimensions) {
     return null;
@@ -182,5 +260,53 @@ const SelectionBorders = observer(() => {
         );
       })}
     </>
+  );
+});
+
+export const EnlivenMode = observer(() => {
+  const [tooltipPosition, setTooltipPosition] = useState<{x: number, y: number} | null>(null);
+  
+  // Watch for selections when in enliven mode
+  useEffect(() => {
+    if (editingStore.showEnlivenMode && selectionStore.siblingSelections.length > 0) {
+      const selection = selectionStore.siblingSelections[0];
+      if (selection && selection.length > 0 && selectionStore.workspaceBBox) {
+        // Get the actual target from screenspace coordinates
+        const target = selectionStore.screenSpaceTargets.get(selection[0]);
+        if (target) {
+          setTooltipPosition({
+            x: target.left - selectionStore.workspaceBBox.left,
+            y: target.top - selectionStore.workspaceBBox.top
+          });
+        }
+      }
+    } else {
+      setTooltipPosition(null);
+    }
+  }, [editingStore.showEnlivenMode, selectionStore.siblingSelections]);
+
+  const handleVariableTypeSelect = (type: 'fixed' | 'slidable' | 'dependent') => {
+    const selection = selectionStore.siblingSelections[0];
+    if (selection && selection.length > 0) {
+      const node = formulaStore.augmentedFormula.findNode(selection[0]);
+      if (node && node.type === 'symbol') {
+        const symbol = node.value;
+        const id = `var-${symbol}`;
+        computationStore.addVariable(id, symbol);
+        computationStore.setVariableType(id, type);
+        setTooltipPosition(null);
+        selectionStore.clearSelection();
+      }
+    }
+  };
+
+  if (!tooltipPosition) return null;
+
+  return (
+    <VariableTooltip
+      position={tooltipPosition}
+      onSelect={handleVariableTypeSelect}
+      currentType={computationStore.variables.get(`var-${selectionStore.siblingSelections[0]?.[0]}`)?.type || 'none'}
+    />
   );
 });
