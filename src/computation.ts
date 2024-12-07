@@ -1,5 +1,4 @@
 import { observable, action, computed } from "mobx";
-import { evaluateFormula, parseFormula, validateFormula, findDependencies } from "./mathParser";
 
 export type VariableType = 'fixed' | 'slidable' | 'dependent' | 'none';
 
@@ -10,8 +9,8 @@ export type VariableState = {
     type: VariableType;
     min?: number;
     max?: number;
-    dependencies?: Set<string>; // variables this one depends on
-    error?: string; // for storing evaluation errors
+    dependencies?: Set<string>;
+    error?: string;
 };
 
 class ComputationStore {
@@ -27,24 +26,169 @@ class ComputationStore {
     @observable
     accessor formulaError: string | null = null;
 
+    @observable
+    accessor lastGeneratedCode: string | null = null;
+
+    private evaluationFunction: Function | null = null;
     private isUpdatingDependents = false;
 
     @action
-    setFormula(formula: string) {
+    setLastGeneratedCode(code: string | null) {
+        this.lastGeneratedCode = code;
+    }
+
+    @action
+    setFormulaError(error: string | null) {
+        this.formulaError = error;
+    }
+
+    @action
+    updateVariableValue(id: string, value: number) {
+        const variable = this.variables.get(id);
+        if (variable) {
+            variable.value = value;
+            variable.error = undefined;
+        }
+    }
+
+    @action
+    updateVariableError(id: string, error: string) {
+        const variable = this.variables.get(id);
+        if (variable) {
+            variable.error = error;
+        }
+    }
+
+    @action
+    async setFormula(formula: string) {
+        console.log("🔵 Setting formula:", formula);
         this.formula = formula;
-        if (validateFormula(formula)) {
-            this.formulaError = null;
-            this.updateDependencies();
-            this.updateDependentVariables();
-        } else {
-            this.formulaError = "Invalid formula syntax";
+        
+        try {
+            // getting all dependent variables
+            const dependentVars = Array.from(this.variables.values())
+                .filter(v => v.type === 'dependent')
+                .map(v => v.symbol);
+
+            if (dependentVars.length > 0) {
+                console.log("🔵 Dependent variables:", dependentVars);
+                
+                // now using LLM to generate function
+                const functionCode = await this.generateEvaluationFunction(formula, dependentVars);
+                this.setLastGeneratedCode(functionCode);
+                console.log("🔵 Generated function code:", functionCode);
+                
+                // creating the function based on the generated code
+                try {
+                    this.evaluationFunction = new Function(
+                        'variables', 
+                        `"use strict";
+                         ${functionCode}
+                         return evaluate(variables);`
+                    );
+                    console.log("🔵 Successfully created evaluation function");
+                    
+                    // // testing the function with current values
+                    // const testValues = Object.fromEntries(
+                    //     Array.from(this.variables.entries())
+                    //         .filter(([_, v]) => v.type !== 'dependent')
+                    //         .map(([_, v]) => [v.symbol, v.value])
+                    // );
+                    // console.log("🔵 Testing function with values:", testValues);
+                    // const testResult = this.evaluationFunction(testValues);
+                    // console.log("🔵 Test evaluation result:", testResult);
+                } catch (evalError) {
+                    console.error("🔴 Error creating function:", evalError);
+                    const errorMessage = evalError instanceof Error ? evalError.message : String(evalError);
+                    this.setFormulaError(`Error creating evaluation function: ${errorMessage}`);
+                    return;
+                }
+                
+                this.setFormulaError(null);
+                this.updateDependentVariables();
+            } else {
+                console.log("🔵 No dependent variables to evaluate");
+            }
+        } catch (error) {
+            console.error("🔴 Error setting formula:", error);
+            this.setFormulaError("Invalid formula syntax");
+        }
+    }
+
+    private async generateEvaluationFunction(formula: string, dependentVars: string[]): Promise<string> {
+        console.log("🔵 Generating evaluation function for:", {formula, dependentVars});
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ${process.env.REACT_APP_OPENAI_API_KEY'
+                },
+                body: JSON.stringify({
+                    model: "gpt-4",
+                    messages: [{
+                        role: "system",
+                        content: `You are a precise code generator that creates JavaScript functions to evaluate mathematical formulas. 
+                                 Return ONLY the function code without any explanation or markdown.`
+                    }, {
+                        role: "user",
+                        content: `
+                            Create a JavaScript function that evaluates this formula: ${formula}
+                            Dependent variables: ${dependentVars.join(', ')}
+                            Requirements:
+                            1. Function must be named 'evaluate'
+                            2. Takes a single parameter 'variables' containing variable values as numbers
+                            3. Returns an object with computed values for ALL dependent variables
+                            4. Must handle division by zero and invalid operations
+                            5. Return ONLY the function code, no explanation
+                            
+                            Example format:
+                            function evaluate(variables) {
+                              try {
+                                return {
+                                  y: variables.x * 2 + variables.z
+                                };
+                              } catch (error) {
+                                return {
+                                  y: NaN
+                                };
+                              }
+                            }
+                        `
+                    }],
+                    temperature: 0.1
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("🔴 OpenAI API error:", errorData);
+                throw new Error(`API error: ${errorData.error?.message || 'Unknown error'}`);
+            }
+
+            const result = await response.json();
+            console.log("🔵 OpenAI API response:", result);
+
+            const generatedCode = result.choices[0].message.content.trim();
+            
+            if (!generatedCode.includes('function evaluate')) {
+                console.error("🔴 Invalid generated code - missing evaluate function");
+                throw new Error("Generated code does not contain evaluate function");
+            }
+
+            return generatedCode;
+
+        } catch (error) {
+            console.error("🔴 Error generating function:", error);
+            throw error;
         }
     }
 
     @action
     addVariable(id: string, symbol: string) {
-        console.log(`Adding variable: ${id} (${symbol})`);
         if (!this.variables.has(id)) {
+            console.log("🔵 Adding new variable:", {id, symbol});
             this.variables.set(id, {
                 isFixed: false,
                 value: 0,
@@ -52,12 +196,15 @@ class ComputationStore {
                 type: 'none',
                 dependencies: new Set()
             });
+        } else {
+            console.log("🔵 Variable exists, preserving state:", {id, symbol});
         }
     }
 
-    // removing variables that are no longer in the formula
     @action
     cleanup(currentVariables: Set<string>) {
+        console.log("🔵 Cleaning up variables. Current:", Array.from(currentVariables));
+        
         const variablesToRemove = new Set<string>();
         
         for (const [id, variable] of this.variables.entries()) {
@@ -66,45 +213,36 @@ class ComputationStore {
             }
         }
 
-        variablesToRemove.forEach(id => {
-            this.variables.delete(id);
-        });
-
-        console.log("Cleanup completed. Removed variables:", 
-            Array.from(variablesToRemove));
-        console.log("Remaining variables:", 
-            Array.from(this.variables.entries())
-                .map(([id, v]) => `${id}: ${v.symbol}`));
+        if (variablesToRemove.size > 0) {
+            console.log("🔵 Removing variables:", Array.from(variablesToRemove));
+            variablesToRemove.forEach(id => {
+                this.variables.delete(id);
+            });
+        }
     }
 
     @action
     setVariableType(id: string, type: VariableType) {
-        console.log(`Setting variable type: ${id} -> ${type}`);
+        console.log("🔵 Setting variable type:", {id, type});
         const variable = this.variables.get(id);
-        if (!variable) return;
-
-        if (type === 'dependent') {
-            try {
-                const tempDeps = this.calculateDependencies(variable.symbol);
-                if (this.wouldCreateCircularDependency(variable.symbol, tempDeps)) {
-                    console.error("Cannot set as dependent - would create circular dependency");
-                    return;
-                }
-            } catch (error) {
-                console.error("Error checking dependencies:", error);
-                return;
-            }
+        if (!variable) {
+            console.log("🔴 Variable not found:", id);
+            return;
         }
 
         variable.type = type;
+        variable.error = undefined;
+
         if (type === 'slidable') {
             variable.min = -100;
             variable.max = 100;
         }
 
-        variable.error = undefined;
+        // need to regenerate evaluation function if changing a variable's type to/from dependent
+        if (type === 'dependent' || variable.type === 'dependent') {
+            this.setFormula(this.formula);
+        }
 
-        this.updateDependencies();
         if (type !== 'dependent') {
             this.updateDependentVariables();
         }
@@ -112,12 +250,15 @@ class ComputationStore {
 
     @action
     setValue(id: string, value: number) {
-        console.log(`Setting value: ${id} -> ${value}`);
+        console.log("🔵 Setting value:", {id, value});
         const variable = this.variables.get(id);
-        if (!variable) return;
+        if (!variable) {
+            console.log("🔴 Variable not found:", id);
+            return;
+        }
 
         if (variable.type === 'dependent' && !this.isUpdatingDependents) {
-            console.log('Attempted to set dependent variable directly');
+            console.log("🔴 Attempted to set dependent variable directly");
             return;
         }
 
@@ -129,134 +270,55 @@ class ComputationStore {
         }
     }
 
-    private calculateDependencies(symbol: string): Set<string> {
-        try {
-            const ast = parseFormula(this.formula);
-            return findDependencies(ast, symbol);
-        } catch (error) {
-            console.error("Error calculating dependencies:", error);
-            return new Set();
-        }
-    }
-
-    private wouldCreateCircularDependency(
-        symbol: string, 
-        newDeps: Set<string>
-    ): boolean {
-        const visited = new Set<string>();
-        const recursionStack = new Set<string>();
-
-        const checkVariable = (currentSymbol: string): boolean => {
-            if (recursionStack.has(currentSymbol)) return true;
-            if (visited.has(currentSymbol)) return false;
-
-            visited.add(currentSymbol);
-            recursionStack.add(currentSymbol);
-
-            const dependencies = currentSymbol === symbol ? 
-                newDeps : 
-                this.variables.get(`var-${currentSymbol}`)?.dependencies ?? new Set();
-
-            for (const dep of dependencies) {
-                if (checkVariable(dep)) return true;
-            }
-
-            recursionStack.delete(currentSymbol);
-            return false;
-        };
-
-        return checkVariable(symbol);
-    }
-
-    private updateDependencies() {
-        if (!this.formula) return;
-
-        try {
-            const ast = parseFormula(this.formula);
-            
-            for (const [_, variable] of this.variables.entries()) {
-                if (variable.type === 'dependent') {
-                    variable.dependencies = findDependencies(ast, variable.symbol);
-                } else {
-                    variable.dependencies = new Set();
-                }
-            }
-
-            this.validateDependencies();
-            
-        } catch (error) {
-            console.error("Error updating dependencies:", error);
-            this.formulaError = "Error updating variable dependencies";
-        }
-    }
-
-    private validateDependencies() {
-        const visited = new Set<string>();
-        const recursionStack = new Set<string>();
-
-        const checkVariable = (symbol: string): boolean => {
-            if (recursionStack.has(symbol)) {
-                throw new Error(`Circular dependency detected involving ${symbol}`);
-            }
-            if (visited.has(symbol)) return false;
-
-            visited.add(symbol);
-            recursionStack.add(symbol);
-
-            const variable = Array.from(this.variables.values())
-                .find(v => v.symbol === symbol);
-            
-            if (variable?.dependencies) {
-                for (const dep of variable.dependencies) {
-                    if (checkVariable(dep)) return true;
-                }
-            }
-
-            recursionStack.delete(symbol);
-            return false;
-        };
-
-        for (const variable of this.variables.values()) {
-            if (variable.type === 'dependent') {
-                checkVariable(variable.symbol);
-            }
-        }
-    }
-
     @action
     private updateDependentVariables() {
-        if (this.isUpdatingDependents || !this.formula) return;
+        if (this.isUpdatingDependents || !this.formula || !this.evaluationFunction) {
+            console.log("🔵 Skipping dependent variable update:", {
+                isUpdating: this.isUpdatingDependents,
+                hasFormula: !!this.formula,
+                hasFunction: !!this.evaluationFunction
+            });
+            return;
+        }
         
         try {
+            console.log("🔵 Updating dependent variables");
             this.isUpdatingDependents = true;
 
-            const values = new Map<string, number>();
-            for (const [_, variable] of this.variables.entries()) {
-                values.set(variable.symbol, variable.value);
-            }
+            const values = Object.fromEntries(
+                Array.from(this.variables.entries())
+                    .filter(([_, v]) => v.type !== 'dependent')
+                    .map(([_, v]) => [v.symbol, v.value])
+            );
+            console.log("🔵 Current variable values:", values);
+
+            // evaluating using the generated function
+            const results = this.evaluationFunction(values);
+            console.log("🔵 Evaluation results:", results);
 
             for (const [id, variable] of this.variables.entries()) {
                 if (variable.type === 'dependent') {
-                    try {
-                        const result = evaluateFormula(
-                            this.formula,
-                            variable.symbol,
-                            values
-                        );
-                        
-                        if (isNaN(result)) {
-                            variable.error = "Cannot evaluate formula";
-                        } else {
-                            variable.value = result;
-                            variable.error = undefined;
-                        }
-                    } catch (error) {
-                        console.error(
-                            `Error evaluating dependent variable ${variable.symbol}:`,
-                            error
-                        );
-                        variable.error = "Evaluation error";
+                    const result = results[variable.symbol];
+                    if (typeof result === 'number' && !isNaN(result)) {
+                        console.log("🔵 Updating dependent variable:", {
+                            symbol: variable.symbol,
+                            value: result
+                        });
+                        this.updateVariableValue(id, result);
+                    } else {
+                        console.log("🔴 Invalid result for variable:", {
+                            symbol: variable.symbol,
+                            result
+                        });
+                        this.updateVariableError(id, "Invalid computation result");
                     }
+                }
+            }
+        } catch (error) {
+            console.error("🔴 Error updating dependent variables:", error);
+            for (const [id, variable] of this.variables.entries()) {
+                if (variable.type === 'dependent') {
+                    this.updateVariableError(id, "Evaluation error");
                 }
             }
         } finally {
@@ -270,21 +332,23 @@ class ComputationStore {
     }
 
     @computed
-    get dependencyGraph() {
-        const graph: Record<string, string[]> = {};
-        for (const [_, variable] of this.variables.entries()) {
-            if (variable.dependencies) {
-                graph[variable.symbol] = Array.from(variable.dependencies);
-            }
-        }
-        return graph;
-    }
-
-    @computed 
     get hasErrors(): boolean {
         return !!this.formulaError || 
             Array.from(this.variables.values()).some(v => !!v.error);
     }
+
+    getDebugState() {
+        return {
+            variables: Array.from(this.variables.entries()),
+            formula: this.formula,
+            formulaError: this.formulaError,
+            lastGeneratedCode: this.lastGeneratedCode,
+            hasFunction: !!this.evaluationFunction
+        };
+    }
 }
 
 export const computationStore = new ComputationStore();
+
+// window for debugging
+(window as any).computationStore = computationStore;

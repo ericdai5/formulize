@@ -710,10 +710,18 @@ export const undoStore = new UndoStore();
 class EditingStore {
   @observable
   accessor showAlignMode: boolean = false;
+  
+  @observable 
+  accessor showEnlivenMode: boolean = false;
 
   @action
   setShowAlignMode(show: boolean) {
     this.showAlignMode = show;
+  }
+
+  @action 
+  setShowEnlivenMode(show: boolean) {
+    this.showEnlivenMode = show;
   }
 }
 

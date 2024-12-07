@@ -5,23 +5,128 @@ import { formulaStore } from "./store";
 import { computationStore } from './computation';
 
 const extractVariablesFromMathML = (mathml: string): Set<string> => {
+    console.log("🔍 Extracting variables from MathML:", mathml);
     const parser = new DOMParser();
     const doc = parser.parseFromString(mathml, 'application/xml');
     
-    // finding all <mi> elements (mathematical identifiers)
     const variables = new Set<string>();
     const miElements = doc.getElementsByTagName('mi');
     
     for (const mi of Array.from(miElements)) {
         const text = mi.textContent?.trim();
-        // right now, only considering single-letter variables
+        // assuming variables are single letters for now
         if (text && text.length === 1 && /[a-zA-Z]/.test(text)) {
+            console.log("🔍 Found variable:", text);
             variables.add(text);
         }
     }
     
+    console.log("🔍 Final extracted variables:", Array.from(variables));
     return variables;
 };
+
+export const InteractiveFormula = observer(() => {
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // initializing variables from MathML
+    useEffect(() => {
+        console.log("🔍 Formula effect running");
+        
+        formulaStore.mathML.then(mathml => {
+            console.log("🔍 Received MathML:", mathml);
+            
+            if (containerRef.current) {
+                containerRef.current.innerHTML = mathml;
+                
+                const variables = extractVariablesFromMathML(mathml);
+                console.log("🔍 Extracted variables:", Array.from(variables));
+                
+                computationStore.cleanup(variables);
+                
+                const latex = formulaStore.latexWithoutStyling;
+                console.log("🔍 Setting formula:", latex);
+                computationStore.setFormula(latex);
+    
+                variables.forEach(symbol => {
+                    const id = `var-${symbol}`;
+                    console.log("🔍 Adding variable:", {id, symbol});
+                    computationStore.addVariable(id, symbol);
+                });
+            }
+    
+            console.log("🔍 ComputationStore state after initialization:", 
+                computationStore.getDebugState()
+            );
+        });
+    }, [formulaStore.augmentedFormula]);
+
+    // monitoring variable type changes
+    useEffect(() => {
+        const dependentVars = Array.from(computationStore.variables.values())
+            .filter(v => v.type === 'dependent');
+        
+        console.log("🔍 Dependent variables changed:", dependentVars);
+        
+        if (dependentVars.length > 0) {
+            const latex = formulaStore.latexWithoutStyling;
+            console.log("🔍 Updating formula for dependent variables:", latex);
+            computationStore.setFormula(latex);
+        }
+    }, [Array.from(computationStore.variables.values())
+           .filter(v => v.type === 'dependent')
+           .map(v => v.symbol)
+           .join(',')]);
+
+    return (
+        <div css={css`
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-top: 2px solid #ccc;
+            background: #f8f8f8;
+            gap: 20px;
+        `}>
+            {computationStore.formulaError && (
+                <div css={css`
+                    color: #ff0000;
+                    padding: 8px;
+                    background: #fff;
+                    border: 1px solid #ff0000;
+                    border-radius: 4px;
+                `}>
+                    Formula Error: {computationStore.formulaError}
+                </div>
+            )}
+
+            <div css={css`
+                font-size: 1.2em;
+                padding: 16px;
+                background: white;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+            `} ref={containerRef} />
+
+            {computationStore.hasInteractiveVariables && (
+                <div css={css`
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 16px;
+                `}>
+                    {Array.from(computationStore.variables.entries())
+                        .filter(([_, v]) => v.type !== 'none')
+                        .map(([id, variable]) => (
+                            <InteractiveVariable 
+                                key={id} 
+                                id={id} 
+                                variable={variable}
+                            />
+                        ))}
+                </div>
+            )}
+        </div>
+    );
+});
+
 
 const InteractiveVariable = observer(({ id, variable }: { 
     id: string, 
@@ -120,133 +225,6 @@ const InteractiveVariable = observer(({ id, variable }: {
                     margin-top: 4px;
                 `}>
                     {variable.error}
-                </div>
-            )}
-        </div>
-    );
-});
-
-export const InteractiveFormula = observer(() => {
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // initializing variables from MathML
-    useEffect(() => {
-        console.log("Initializing variables from MathML");
-        formulaStore.mathML.then(mathml => {
-            console.log("MathML received:", mathml);
-            
-            const variables = extractVariablesFromMathML(mathml);
-            console.log("Found variables:", Array.from(variables));
-
-            computationStore.cleanup(variables);
-
-            computationStore.setFormula(formulaStore.latexWithoutStyling);
-
-            variables.forEach(symbol => {
-                const id = `var-${symbol}`;
-                console.log("Adding variable to store:", id, symbol);
-                computationStore.addVariable(id, symbol);
-            });
-        });
-    }, [formulaStore.augmentedFormula]);
-
-    // handling MathML rendering and interactive setup
-    useEffect(() => {
-        if (!containerRef.current || !computationStore.hasInteractiveVariables) {
-            return;
-        }
-
-        formulaStore.mathML.then(mathml => {
-            if (!containerRef.current) return;
-            
-            containerRef.current.innerHTML = mathml;
-
-            const miElements = containerRef.current.getElementsByTagName('mi');
-            Array.from(miElements).forEach(el => {
-                const symbol = el.textContent?.trim();
-                if (!symbol) return;
-                
-                const variable = Array.from(computationStore.variables.entries())
-                    .find(([_, v]) => v.symbol === symbol)?.[1];
-                    
-                if (variable) {
-                    el.setAttribute('data-type', variable.type);
-                    el.setAttribute('title', `${symbol} = ${variable.value.toFixed(1)}`);
-                    if (variable.error) {
-                        el.setAttribute('data-error', 'true');
-                    }
-                }
-            });
-        });
-    }, [
-        computationStore.hasInteractiveVariables,
-        Array.from(computationStore.variables.entries())
-            .map(([id, v]) => `${id}:${v.value}:${v.type}:${v.error}`)
-            .join(',')
-    ]);
-
-    const hasVariables = computationStore.variables.size > 0;
-    if (!hasVariables) {
-        console.log("No variables found, returning null");
-        return null;
-    }
-
-    return (
-        <div css={css`
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            border-top: 2px solid #ccc;
-            background: #f8f8f8;
-            gap: 20px;
-        `}>
-            {computationStore.formulaError && (
-                <div css={css`
-                    color: #ff0000;
-                    padding: 8px;
-                    background: #fff;
-                    border: 1px solid #ff0000;
-                    border-radius: 4px;
-                `}>
-                    Formula Error: {computationStore.formulaError}
-                </div>
-            )}
-
-            <div css={css`
-                font-size: 1.2em;
-                padding: 16px;
-                background: white;
-                border-radius: 4px;
-                border: 1px solid #ddd;
-                
-                mi {
-                    cursor: pointer;
-                    &:hover { color: blue; }
-                    &[data-type="dependent"] { color: green; }
-                    &[data-type="fixed"] { color: #666; }
-                    &[data-type="slidable"] { color: blue; }
-                    &[data-error="true"] { 
-                        color: #ff0000;
-                        text-decoration: wavy underline #ff0000;
-                    }
-                }
-            `} ref={containerRef} />
-
-            {computationStore.hasInteractiveVariables && (
-                <div css={css`
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                    gap: 16px;
-                `}>
-                    {Array.from(computationStore.variables.entries())
-                        .filter(([_, v]) => v.type !== 'none')
-                        .map(([id, variable]) => (
-                            <InteractiveVariable 
-                                key={id} 
-                                id={id} 
-                                variable={variable}
-                            />
-                        ))}
                 </div>
             )}
         </div>

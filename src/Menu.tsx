@@ -85,7 +85,7 @@ export const Menu = () => {
       <LineDivideMenu />
       <AlignMenu />
       <LineDivideMenu />
-      <EnlivenMenu 
+      <EnlivenToggle 
         open={openMenu === "enliven"}
         onMenuOpen={() => setOpenMenu("enliven")}
         onMenuClose={() => {
@@ -603,73 +603,60 @@ const AlignMenu = observer(() => {
   );
 });
 
-const EnlivenMenu = observer(({ 
-  open, 
-  onMenuOpen, 
-  onMenuClose 
-}: DismissableMenuProps) => {
-  console.log("EnlivenMenu rendering, variables:", 
-    Array.from(computationStore.variables.entries())
-      .map(([id, v]) => `${id}: ${v.symbol}`)
-  );
-  
+const EnlivenToggle = observer(({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   return (
     <SubMenu
-      menuButton={
-        <div css={css`display: flex; align-items: center; gap: 4px;`}>
-          <Icon>electric_bolt</Icon>
-          <span>Enliven</span>
-        </div>
-      }
+      menuButton={<Icon>flash_on</Icon>}
       open={open}
-      onMenuOpen={() => {
-        console.log("Enliven menu opening");
-        onMenuOpen();
-      }}
+      onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
     >
-      <div 
-        css={css`
-          padding: 0.5rem;
-          min-width: 200px;
-        `}
-        onClick={(e) => e.stopPropagation()} // Prevent menu from closing on click
-      >
-        {Array.from(computationStore.variables.entries()).length > 0 ? (
-          Array.from(computationStore.variables.entries()).map(([id, variable]) => (
-            <div key={id} css={css`
+      <div css={css`
+        width: auto;
+        display: flex;
+        flex-direction: row;
+        padding: 0.5rem;
+        gap: 0.5rem;
+      `}>
+        {[
+          { type: 'fixed', icon: '📌', label: 'Fixed' },
+          { type: 'slidable', icon: '↔️', label: 'Slidable' },
+          { type: 'dependent', icon: '🔄', label: 'Dependent' }
+        ].map(({ type, icon, label }) => (
+          <div
+            key={type}
+            css={css`
               display: flex;
+              flex-direction: column;
               align-items: center;
-              gap: 8px;
-              padding: 4px;
-            `}>
-              <span>{variable.symbol}</span>
-              <select 
-                value={variable.type || 'none'}
-                onChange={(e) => {
-                  e.stopPropagation(); // Prevent event bubbling
-                  console.log("Setting variable type:", id, e.target.value);
-                  computationStore.setVariableType(
-                    id, 
-                    e.target.value as 'fixed' | 'slidable' | 'dependent' | 'none'
-                  );
-                }}
-              >
-                <option value="none">Not Interactive</option>
-                <option value="fixed">Fixed</option>
-                <option value="slidable">Slidable</option>
-                <option value="dependent">Dependent</option>
-              </select>
-            </div>
-          ))
-        ) : (
-          <div css={css`
-            padding: 8px;
-            color: #666;
-          `}>
-            No variables detected in formula
+              padding: 0.5rem;
+              cursor: pointer;
+              &:hover {
+                background: #e0e0e0;
+              }
+            `}
+            onClick={(e) => {
+              if (selectionStore.siblingSelections.length > 0) {
+                const selection = selectionStore.siblingSelections[0];
+                if (selection && selection.length > 0) {
+                  // getting actual node from formulaStore
+                  const node = formulaStore.augmentedFormula.findNode(selection[0]);
+                  if (node && node.type === 'symbol') {
+                    const symbol = node.value;
+                    const id = `var-${symbol}`;
+                    computationStore.addVariable(id, symbol);
+                    computationStore.setVariableType(id, type as any);
+                  }
+                }
+              }
+              onMenuClose();
+              e.stopPropagation();
+            }}
+          >
+            <span css={css`font-size: 1.5rem;`}>{icon}</span>
+            <span css={css`font-size: 0.8rem;`}>{label}</span>
           </div>
-        )}
+        ))}
       </div>
     </SubMenu>
   );
