@@ -15,14 +15,42 @@ import { RenderedFormula } from "./RenderedFormula";
 import { editingStore, selectionStore, formulaStore } from "./store";
 import VariableTooltip from './VariableTooltip';
 import { computationStore } from './computation'
+import { MathSymbol } from './FormulaTree';
 
 export const Workspace = observer(() => {
+  const [selectedVar, setSelectedVar] = useState<string | null>(null);
   const [dragState, setDragState] = useState<
     | { state: "none" }
     | { state: "leftdown"; x: number; y: number }
     | { state: "selecting" }
     | { state: "panning"; lastX: number; lastY: number }
   >({ state: "none" });
+
+  const getActiveVariable = useCallback(() => {
+    if (!editingStore.showEnlivenMode) return null;
+    
+    const selections = selectionStore.siblingSelections;
+    if (selections.length !== 1 || selections[0].length !== 1) return null;
+
+    const selectedId = selections[0][0];
+    const node = formulaStore.augmentedFormula.findNode(selectedId);
+    
+    if (!node || node.type !== 'symbol') return null;
+    
+    const symbol = (node as MathSymbol).value;
+    return {
+      id: `var-${symbol}`,
+      symbol,
+      selectedId
+    };
+  }, []);
+  
+  // Clear selection when enliven mode is turned off
+  useEffect(() => {
+    if (!editingStore.showEnlivenMode) {
+      selectionStore.clearSelection();
+    }
+  }, [editingStore.showEnlivenMode]);
 
   const handleDoubleClick = useCallback((_: MouseEvent<HTMLDivElement>) => {
     selectionStore.clearSelection();
@@ -81,62 +109,45 @@ export const Workspace = observer(() => {
     };
   }, []);
 
-  // NEW
+  const getTooltipPosition = useCallback(() => {
+    if (!selectionStore.workspaceBBox) return null;
 
-  useEffect(() => {
-    if (editingStore.showEnlivenMode && selectionStore.siblingSelections.length > 0) {
-      console.log('Debug Tooltip State:', {
-        showEnlivenMode: editingStore.showEnlivenMode,
-        selections: selectionStore.siblingSelections,
-        firstSelection: selectionStore.siblingSelections[0]?.[0],
-        target: selectionStore.siblingSelections[0]?.[0] ? 
-          selectionStore.screenSpaceTargets.get(selectionStore.siblingSelections[0][0]) : null,
-        workspaceBBox: selectionStore.workspaceBBox
-      });
-    }
-  }, [editingStore.showEnlivenMode, selectionStore.siblingSelections]);
+    const selections = selectionStore.siblingSelections;
+    if (selections.length !== 1 || selections[0].length !== 1) return null;
 
-  const getTooltipPosition = () => {
-    console.log('Calculating tooltip position...');
+    const selectedId = selections[0][0];
+    const target = selectionStore.screenSpaceTargets.get(selectedId);
+    
+    if (!target) return null;
 
-    const selection = selectionStore.siblingSelections[0]?.[0];
-    if (!selection) return { x: 0, y: 0 };
-    
-    const target = selectionStore.screenSpaceTargets.get(selection);
-    const workspaceBBox = selectionStore.workspaceBBox;
-    
-    if (!target || !workspaceBBox) return { x: 0, y: 0 };
-    
     return {
-      x: target.left - workspaceBBox.left + (target.width / 2),
-      y: target.top - workspaceBBox.top
+      x: target.left - selectionStore.workspaceBBox.left + (target.width / 2),
+      y: target.top - selectionStore.workspaceBBox.top
     };
-  };
+  }, []);
 
-  const getCurrentVariableType = () => {
-    const selection = selectionStore.siblingSelections[0]?.[0];
-    if (!selection) return 'none';
+  // Get current variable type for tooltip
+  const getCurrentVariableType = useCallback(() => {
+    const activeVar = getActiveVariable();
+    if (!activeVar) return 'none';
     
-    const node = formulaStore.augmentedFormula.findNode(selection);
-    if (!node || node.type !== 'symbol') return 'none';
+    return computationStore.variables.get(activeVar.id)?.type || 'none';
+  }, [getActiveVariable]);
+
+  const handleVariableTypeSelect = useCallback((type: 'fixed' | 'slidable' | 'dependent') => {
+    const activeVar = getActiveVariable();
+    if (!activeVar) return;
+
+    console.log("🔍 Setting variable type:", { id: activeVar.id, symbol: activeVar.symbol, type });
     
-    return computationStore.variables.get(`var-${node.value}`)?.type || 'none';
-  };
-
-  const handleVariableTypeSelect = (type: 'fixed' | 'slidable' | 'dependent') => {
-    const selection = selectionStore.siblingSelections[0]?.[0];
-    if (!selection) return;
-
-    const node = formulaStore.augmentedFormula.findNode(selection);
-    if (node?.type === 'symbol') {
-      const symbol = node.value;
-      const id = `var-${symbol}`;
-      console.log('Setting variable type:', { id, symbol, type });
-      computationStore.addVariable(id, symbol);
-      computationStore.setVariableType(id, type);
+    computationStore.addVariable(activeVar.id, activeVar.symbol);
+    computationStore.setVariableType(activeVar.id, type);
+    
+    // Only keep selection for fixed variables
+    if (type !== 'fixed') {
       selectionStore.clearSelection();
     }
-  };
+  }, [getActiveVariable]);
 
   return (
     <div
@@ -162,7 +173,7 @@ export const Workspace = observer(() => {
       <AlignmentGuides />
       <RenderedFormula />
       
-      {/* Tooltip Container with Debug Info */}
+      {/* Tooltip Container */}
       <div css={css`
         position: absolute;
         top: 0;
@@ -171,14 +182,13 @@ export const Workspace = observer(() => {
         height: 100%;
         pointer-events: none;
       `}>
-        {editingStore.showEnlivenMode && selectionStore.siblingSelections.length > 0 && (
-          <>       
-            <VariableTooltip 
-              position={getTooltipPosition()}
-              onSelect={handleVariableTypeSelect}
-              currentType={getCurrentVariableType()}
-            />
-          </>
+        {editingStore.showEnlivenMode && getActiveVariable() && (
+          <VariableTooltip 
+            position={getTooltipPosition() || {x: 0, y: 0}}
+            onSelect={handleVariableTypeSelect}
+            currentType={getCurrentVariableType()}
+            id={getActiveVariable()?.id || ''}
+          />
         )}
       </div>
       <Debug />
@@ -265,13 +275,12 @@ const SelectionBorders = observer(() => {
 
 export const EnlivenMode = observer(() => {
   const [tooltipPosition, setTooltipPosition] = useState<{x: number, y: number} | null>(null);
+  const [selectedVar, setSelectedVar] = useState<string | null>(null);
   
-  // Watch for selections when in enliven mode
   useEffect(() => {
     if (editingStore.showEnlivenMode && selectionStore.siblingSelections.length > 0) {
       const selection = selectionStore.siblingSelections[0];
       if (selection && selection.length > 0 && selectionStore.workspaceBBox) {
-        // Get the actual target from screenspace coordinates
         const target = selectionStore.screenSpaceTargets.get(selection[0]);
         if (target) {
           setTooltipPosition({
@@ -285,28 +294,48 @@ export const EnlivenMode = observer(() => {
     }
   }, [editingStore.showEnlivenMode, selectionStore.siblingSelections]);
 
+  const getCurrentVariableId = () => {
+    const selection = selectionStore.siblingSelections[0]?.[0];
+    if (!selection) return null;
+    
+    const node = formulaStore.augmentedFormula.findNode(selection);
+    if (!node || node.type !== 'symbol') return null;
+    
+    return `var-${(node as MathSymbol).value}`;
+  };
+
   const handleVariableTypeSelect = (type: 'fixed' | 'slidable' | 'dependent') => {
-    const selection = selectionStore.siblingSelections[0];
-    if (selection && selection.length > 0) {
-      const node = formulaStore.augmentedFormula.findNode(selection[0]);
-      if (node && node.type === 'symbol') {
-        const symbol = node.value;
-        const id = `var-${symbol}`;
-        computationStore.addVariable(id, symbol);
-        computationStore.setVariableType(id, type);
-        setTooltipPosition(null);
+    const selection = selectionStore.siblingSelections[0]?.[0];
+    if (!selection) return;
+
+    const node = formulaStore.augmentedFormula.findNode(selection);
+    if (node?.type === 'symbol') {
+      const symbol = (node as MathSymbol).value;
+      const id = `var-${symbol}`;
+      console.log('Setting variable type:', { id, symbol, type });
+      computationStore.addVariable(id, symbol);
+      computationStore.setVariableType(id, type);
+      
+      if (type === 'fixed') {
+        setSelectedVar(id);
+      } else {
+        setSelectedVar(null);
         selectionStore.clearSelection();
       }
     }
   };
-
+  
   if (!tooltipPosition) return null;
+
+  const variableId = selectedVar || getCurrentVariableId();
+  if (!variableId) return null;
 
   return (
     <VariableTooltip
       position={tooltipPosition}
       onSelect={handleVariableTypeSelect}
-      currentType={computationStore.variables.get(`var-${selectionStore.siblingSelections[0]?.[0]}`)?.type || 'none'}
+      currentType={computationStore.variables.get(variableId)?.type || 'none'}
+      id={variableId}
     />
   );
 });

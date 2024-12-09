@@ -1,13 +1,55 @@
+import React, { useState, useEffect } from 'react';
+import { computationStore } from './computation';
+
 const VariableTooltip = ({
   position,
   onSelect,
   currentType,
+  id  // id of the currently selected variable
 }: {
   position: {x: number, y: number},
   onSelect: (type: 'fixed' | 'slidable' | 'dependent') => void,
-  currentType: 'fixed' | 'slidable' | 'dependent' | 'none'
+  currentType: 'fixed' | 'slidable' | 'dependent' | 'none',
+  id: string
 }) => {
-  console.log('VariableTooltip rendering with:', { position, currentType }); // Debug log
+  const [value, setValue] = useState('0');
+  const variable = computationStore.variables.get(id);
+
+  // Initialize value from variable state
+  useEffect(() => {
+    if (variable) {
+      setValue(variable.value.toString());
+    }
+  }, [variable?.value]);
+
+  const handleTypeSelect = (type: 'fixed' | 'slidable' | 'dependent') => {
+    if (type === 'fixed') {
+      setShowValueInput(true);
+    } else {
+      // For non-fixed types, just update the type
+      computationStore.setVariableType(id, type);
+      onSelect(type);
+    }
+  };
+
+  const handleValueSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("🔵 Set button clicked in VariableTooltip for variable:", id);
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue)) {
+      console.log(`🔵 Setting value for variable ${id}: ${numValue}`);
+      computationStore.setValue(id, numValue);
+      onSelect('fixed');
+    } else {
+      console.log(`🔴 Invalid numeric value entered for variable ${id}: ${value}`);
+    }
+  };
+
+  const [showValueInput, setShowValueInput] = useState(currentType === 'fixed');
+
+  useEffect(() => {
+    setShowValueInput(currentType === 'fixed');
+  }, [currentType]);
 
   const options = [
     { type: 'fixed' as const, icon: '📌', label: 'Fixed' },
@@ -16,21 +58,64 @@ const VariableTooltip = ({
   ];
 
   return (
-    <div 
-      style={{
-        position: 'absolute',
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        transform: 'translate(-50%, -120%)',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        border: '1px solid #ddd',
-        padding: '8px',
-        zIndex: 9999,
-        pointerEvents: 'auto',
-      }}
-    >
+    <div style={{
+      position: 'absolute',
+      left: `${position.x}px`,
+      top: `${position.y}px`,
+      transform: 'translate(-50%, -120%)',
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+      border: '1px solid #ddd',
+      padding: '8px',
+      zIndex: 9999,
+      pointerEvents: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      {showValueInput && (
+        <form 
+          onSubmit={handleValueSubmit}
+          style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '4px'
+          }}
+        >
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            style={{
+              width: '80px',
+              padding: '4px',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+            step="0.1"
+            autoFocus
+          />
+          <button
+            type="submit"
+            style={{
+              padding: '4px 8px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Set
+          </button>
+        </form>
+      )}
+
       <div style={{
         display: 'flex',
         gap: '8px',
@@ -38,7 +123,7 @@ const VariableTooltip = ({
         {options.map(({type, icon, label}) => (
           <button
             key={type}
-            onClick={() => onSelect(type)}
+            onClick={() => handleTypeSelect(type)}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -57,7 +142,7 @@ const VariableTooltip = ({
           </button>
         ))}
       </div>
-      {/* Arrow pointer */}
+
       <div style={{
         position: 'absolute',
         left: '50%',

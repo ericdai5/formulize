@@ -4,7 +4,7 @@ import { Editor } from "./Editor";
 import { ElementPane } from "./ElementPane";
 import { Menu } from "./Menu";
 import { Workspace } from "./Workspace";
-import { InteractiveFormula } from "./InteractiveFormula";
+import InteractiveFormula from './InteractiveFormula';
 import LLMFunction from './LLMFunction';
 
 

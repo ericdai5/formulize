@@ -3,7 +3,6 @@ import { observable, action, computed } from "mobx";
 export type VariableType = 'fixed' | 'slidable' | 'dependent' | 'none';
 
 export type VariableState = {
-    isFixed: boolean;
     value: number;
     symbol: string;
     type: VariableType;
@@ -11,14 +10,20 @@ export type VariableState = {
     max?: number;
     dependencies?: Set<string>;
     error?: string;
-};
+  };
 
 class ComputationStore {
-    @observable
-    accessor variables = new Map<string, VariableState>();
+    @observable 
+    accessor variables = new Map<string, {
+        value: number;
+        symbol: string;
+        type: VariableType;
+        min?: number;
+        max?: number;
+        dependencies?: Set<string>;
+        error?: string;
+    }>();
 
-    @observable
-    accessor isInteractive = false;
 
     @observable
     accessor formula: string = "";
@@ -31,6 +36,10 @@ class ComputationStore {
 
     private evaluationFunction: Function | null = null;
     private isUpdatingDependents = false;
+    private dependentVariableTypes = new Set<string>();
+
+    @observable
+    accessor variableTypesChanged = 0;
 
     @action
     setLastGeneratedCode(code: string | null) {
@@ -48,6 +57,11 @@ class ComputationStore {
         if (variable) {
             variable.value = value;
             variable.error = undefined;
+            
+            // Update dependent variables if this is an input variable
+            if (!this.isUpdatingDependents && variable.type !== 'dependent') {
+                this.updateDependentVariables();
+            }
         }
     }
 
@@ -60,66 +74,85 @@ class ComputationStore {
     }
 
     @action
+    setValue(id: string, value: number) {
+        console.log(`🔵 ComputationStore: Setting value for ${id}: ${value}`);
+        const variable = this.variables.get(id);
+        if (!variable) {
+            console.log(`🔴 ComputationStore: Variable not found: ${id}`);
+            return;
+        }
+
+        // Update the value
+        variable.value = value;
+        variable.error = undefined;
+
+        console.log(`🔵 ComputationStore: Value set for ${id}: ${value}`);
+        
+        // Only update dependent variables if we're not already in an update cycle
+        if (!this.isUpdatingDependents) {
+            console.log(`🔵 ComputationStore: Updating dependent variables`);
+            this.updateDependentVariables();
+        }
+    }
+
+    @action
     async setFormula(formula: string) {
-        console.log("🔵 Setting formula:", formula);
+        const prevFormula = this.formula;
         this.formula = formula;
         
-        try {
-            // getting all dependent variables
-            const dependentVars = Array.from(this.variables.values())
-                .filter(v => v.type === 'dependent')
-                .map(v => v.symbol);
+        // Clear existing code if formula changed
+        if (prevFormula !== formula) {
+            this.setLastGeneratedCode(null);
+            this.evaluationFunction = null;
+        }
+        
+        // Only regenerate the evaluation function if there are dependent variables 
+        // AND either:
+        // 1. We don't have an evaluation function yet, or
+        // 2. The formula has changed
+        if (this.dependentVariableTypes.size > 0 && 
+            (!this.evaluationFunction || formula !== this.formula)) {
+            try {
+                const dependentVars = Array.from(this.dependentVariableTypes)
+                    .map(id => this.variables.get(id)?.symbol)
+                    .filter((symbol): symbol is string => symbol !== undefined);
 
-            if (dependentVars.length > 0) {
-                console.log("🔵 Dependent variables:", dependentVars);
-                
-                // now using LLM to generate function
+                // Generate and set up evaluation function
                 const functionCode = await this.generateEvaluationFunction(formula, dependentVars);
                 this.setLastGeneratedCode(functionCode);
-                console.log("🔵 Generated function code:", functionCode);
                 
-                // creating the function based on the generated code
-                try {
-                    this.evaluationFunction = new Function(
-                        'variables', 
-                        `"use strict";
-                         ${functionCode}
-                         return evaluate(variables);`
-                    );
-                    console.log("🔵 Successfully created evaluation function");
-                    
-                    // // testing the function with current values
-                    // const testValues = Object.fromEntries(
-                    //     Array.from(this.variables.entries())
-                    //         .filter(([_, v]) => v.type !== 'dependent')
-                    //         .map(([_, v]) => [v.symbol, v.value])
-                    // );
-                    // console.log("🔵 Testing function with values:", testValues);
-                    // const testResult = this.evaluationFunction(testValues);
-                    // console.log("🔵 Test evaluation result:", testResult);
-                } catch (evalError) {
-                    console.error("🔴 Error creating function:", evalError);
-                    const errorMessage = evalError instanceof Error ? evalError.message : String(evalError);
-                    this.setFormulaError(`Error creating evaluation function: ${errorMessage}`);
-                    return;
-                }
+                this.evaluationFunction = new Function(
+                    'variables',
+                    `"use strict";\n${functionCode}\nreturn evaluate(variables);`
+                );
                 
                 this.setFormulaError(null);
-                this.updateDependentVariables();
-            } else {
-                console.log("🔵 No dependent variables to evaluate");
+            } catch (error) {
+                console.error("Error setting formula:", error);
+                this.setFormulaError(String(error));
             }
-        } catch (error) {
-            console.error("🔴 Error setting formula:", error);
-            this.setFormulaError("Invalid formula syntax");
+        }
+        
+        // Always update dependent variables when formula changes
+        if (this.dependentVariableTypes.size > 0) {
+            this.updateDependentVariables();
         }
     }
 
     private async generateEvaluationFunction(formula: string, dependentVars: string[]): Promise<string> {
-        console.log("🔵 Generating evaluation function for:", {formula, dependentVars});
+        // Get all non-dependent variables and their current values
+        const inputVars = Array.from(this.variables.entries())
+            .filter(([_, v]) => v.type !== 'dependent')
+            .map(([_, v]) => v.symbol);
+    
+        console.log("🔵 Generating evaluation function for:", {
+            formula,
+            dependentVars,
+            inputVars
+        });
+    
         const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        console.log('API Key:', apiKey);
-
+    
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -137,23 +170,29 @@ class ComputationStore {
                         role: "user",
                         content: `
                             Create a JavaScript function that evaluates this formula: ${formula}
-                            Dependent variables: ${dependentVars.join(', ')}
+                            Input variables: ${inputVars.join(', ')}
+                            Dependent variables to calculate: ${dependentVars.join(', ')}
+                            
                             Requirements:
                             1. Function must be named 'evaluate'
-                            2. Takes a single parameter 'variables' containing variable values as numbers
-                            3. Returns an object with computed values for ALL dependent variables
-                            4. Must handle division by zero and invalid operations
-                            5. Return ONLY the function code, no explanation
+                            2. Takes a single parameter 'variables' containing input variable values as numbers
+                            3. Must use ONLY the specified input variables
+                            4. Returns object with computed values for dependent variables
+                            5. Must handle division by zero and invalid operations
+                            6. Return ONLY the function code
                             
-                            Example format:
+                            Input Formula: ${formula}
+                            Parse this formula and create a corresponding JavaScript function.
+                            DO NOT use the example format below - it's just to show the structure.
+                            Example structure (NOT the formula to implement):
                             function evaluate(variables) {
                               try {
                                 return {
-                                  y: variables.x * 2 + variables.z
+                                  output: someCalculation
                                 };
                               } catch (error) {
                                 return {
-                                  y: NaN
+                                  output: NaN
                                 };
                               }
                             }
@@ -162,25 +201,41 @@ class ComputationStore {
                     temperature: 0.1
                 })
             });
-
+    
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("🔴 OpenAI API error:", errorData);
                 throw new Error(`API error: ${errorData.error?.message || 'Unknown error'}`);
             }
-
+    
             const result = await response.json();
             console.log("🔵 OpenAI API response:", result);
-
+    
             const generatedCode = result.choices[0].message.content.trim();
             
+            // Validate the code
             if (!generatedCode.includes('function evaluate')) {
                 console.error("🔴 Invalid generated code - missing evaluate function");
                 throw new Error("Generated code does not contain evaluate function");
             }
-
+    
+            // Validate all input vars are used
+            for (const inputVar of inputVars) {
+                if (!generatedCode.includes(`variables.${inputVar}`)) {
+                    console.warn(`⚠️ Generated code not using input variable: ${inputVar}`);
+                }
+            }
+    
+            // Validate all dependent vars are calculated
+            for (const depVar of dependentVars) {
+                if (!generatedCode.includes(`${depVar}:`)) {
+                    console.error(`🔴 Generated code missing dependent variable: ${depVar}`);
+                    throw new Error(`Generated code missing dependent variable: ${depVar}`);
+                }
+            }
+    
             return generatedCode;
-
+    
         } catch (error) {
             console.error("🔴 Error generating function:", error);
             throw error;
@@ -192,11 +247,9 @@ class ComputationStore {
         if (!this.variables.has(id)) {
             console.log("🔵 Adding new variable:", {id, symbol});
             this.variables.set(id, {
-                isFixed: false,
                 value: 0,
                 symbol: symbol,
                 type: 'none',
-                dependencies: new Set()
             });
         } else {
             console.log("🔵 Variable exists, preserving state:", {id, symbol});
@@ -208,30 +261,45 @@ class ComputationStore {
         console.log("🔵 Cleaning up variables. Current:", Array.from(currentVariables));
         
         const variablesToRemove = new Set<string>();
+        let dependentVariablesChanged = false;
         
+        // Check which variables need to be removed
         for (const [id, variable] of this.variables.entries()) {
             if (!currentVariables.has(variable.symbol)) {
                 variablesToRemove.add(id);
+                if (this.dependentVariableTypes.has(id)) {
+                    dependentVariablesChanged = true;
+                }
             }
         }
 
         if (variablesToRemove.size > 0) {
             console.log("🔵 Removing variables:", Array.from(variablesToRemove));
             variablesToRemove.forEach(id => {
+                this.dependentVariableTypes.delete(id);
                 this.variables.delete(id);
             });
+
+            // Clear generated code if no dependent variables remain
+            if (this.dependentVariableTypes.size === 0) {
+                this.setLastGeneratedCode(null);
+                this.evaluationFunction = null;
+            }
+        }
+
+        // Only set formula if dependent variables were affected
+        if (dependentVariablesChanged && this.formula) {
+            console.log("🔵 Dependent variables changed during cleanup, updating formula");
+            this.setFormula(this.formula);
         }
     }
 
     @action
     setVariableType(id: string, type: VariableType) {
-        console.log("🔵 Setting variable type:", {id, type});
         const variable = this.variables.get(id);
-        if (!variable) {
-            console.log("🔴 Variable not found:", id);
-            return;
-        }
+        if (!variable) return;
 
+        const wasDependentBefore = this.dependentVariableTypes.has(id);
         variable.type = type;
         variable.error = undefined;
 
@@ -240,88 +308,82 @@ class ComputationStore {
             variable.max = 100;
         }
 
-        // need to regenerate evaluation function if changing a variable's type to/from dependent
-        if (type === 'dependent' || variable.type === 'dependent') {
-            this.setFormula(this.formula);
+        // Handle dependent variable updates
+        if (type === 'dependent') {
+            this.dependentVariableTypes.add(id);
+            if (!wasDependentBefore) {
+                this.setFormula(this.formula);
+            }
+        } else {
+            if (wasDependentBefore) {
+                this.dependentVariableTypes.delete(id);
+                if (this.dependentVariableTypes.size > 0) {
+                    this.setFormula(this.formula);
+                } else {
+                    this.evaluationFunction = null;
+                    this.lastGeneratedCode = null;
+                }
+            }
         }
-
-        if (type !== 'dependent') {
-            this.updateDependentVariables();
-        }
+        
+        this.variableTypesChanged++;
+        this.updateDependentVariables();
     }
 
-    @action
-    setValue(id: string, value: number) {
-        console.log("🔵 Setting value:", {id, value});
-        const variable = this.variables.get(id);
-        if (!variable) {
-            console.log("🔴 Variable not found:", id);
-            return;
-        }
+    // @action
+    // setValue(id: string, value: number) {
+    //     console.log("🔵 Setting value:", {id, value});
+    //     const variable = this.variables.get(id);
+    //     if (!variable) {
+    //         console.log("🔴 Variable not found:", id);
+    //         return;
+    //     }
 
-        if (variable.type === 'dependent' && !this.isUpdatingDependents) {
-            console.log("🔴 Attempted to set dependent variable directly");
-            return;
-        }
+    //     if (variable.type === 'dependent' && !this.isUpdatingDependents) {
+    //         console.log("🔴 Attempted to set dependent variable directly");
+    //         return;
+    //     }
 
-        variable.value = value;
-        variable.error = undefined;
-
-        if (!this.isUpdatingDependents) {
-            this.updateDependentVariables();
-        }
-    }
+    //     variable.value = value;
+    //     variable.error = undefined;
+    //     console.log(`🔵 Value set for ${id}: ${value}`);
+    //     if (variable.type === 'fixed') {
+    //         this.setDisplayValue(id, value);
+    //     }
+    //     if (!this.isUpdatingDependents) {
+    //       console.log(`🔵 Updating dependent variables`);
+    //       this.updateDependentVariables();
+    //     }
+    // }
 
     @action
     private updateDependentVariables() {
-        if (this.isUpdatingDependents || !this.formula || !this.evaluationFunction) {
-            console.log("🔵 Skipping dependent variable update:", {
-                isUpdating: this.isUpdatingDependents,
-                hasFormula: !!this.formula,
-                hasFunction: !!this.evaluationFunction
-            });
-            return;
-        }
-        
+        if (!this.formula || !this.evaluationFunction) return;
+
         try {
-            console.log("🔵 Updating dependent variables");
             this.isUpdatingDependents = true;
-
             const values = Object.fromEntries(
-                Array.from(this.variables.entries())
-                    .filter(([_, v]) => v.type !== 'dependent')
-                    .map(([_, v]) => [v.symbol, v.value])
+            Array.from(this.variables.entries())
+                .map(([_, v]) => [v.symbol, v.value])
             );
-            console.log("🔵 Current variable values:", values);
-
-            // evaluating using the generated function
             const results = this.evaluationFunction(values);
-            console.log("🔵 Evaluation results:", results);
-
+            
             for (const [id, variable] of this.variables.entries()) {
-                if (variable.type === 'dependent') {
-                    const result = results[variable.symbol];
-                    if (typeof result === 'number' && !isNaN(result)) {
-                        console.log("🔵 Updating dependent variable:", {
-                            symbol: variable.symbol,
-                            value: result
-                        });
-                        this.updateVariableValue(id, result);
-                    } else {
-                        console.log("🔴 Invalid result for variable:", {
-                            symbol: variable.symbol,
-                            result
-                        });
-                        this.updateVariableError(id, "Invalid computation result");
-                    }
+            if (variable.type === 'dependent') {
+                const result = results[variable.symbol];
+                if (typeof result === 'number' && !isNaN(result)) {
+                this.updateVariableValue(id, result);
+                } else {
+                variable.error = "Invalid computation result";
                 }
             }
+            }
         } catch (error) {
-            console.error("🔴 Error updating dependent variables:", error);
+            console.error("Error updating dependent variables:", error);
             for (const [id, variable] of this.variables.entries()) {
-                if (variable.type === 'dependent') {
-                    this.updateVariableError(id, "Evaluation error");
-                }
+            if (variable.type === 'dependent') {
+                variable.error = "Evaluation error";
+            }
             }
         } finally {
             this.isUpdatingDependents = false;
