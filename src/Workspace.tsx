@@ -18,7 +18,6 @@ import { computationStore } from './computation'
 import { MathSymbol } from './FormulaTree';
 
 export const Workspace = observer(() => {
-  const [selectedVar, setSelectedVar] = useState<string | null>(null);
   const [dragState, setDragState] = useState<
     | { state: "none" }
     | { state: "leftdown"; x: number; y: number }

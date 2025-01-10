@@ -58,7 +58,6 @@ class ComputationStore {
             variable.value = value;
             variable.error = undefined;
             
-            // Update dependent variables if this is an input variable
             if (!this.isUpdatingDependents && variable.type !== 'dependent') {
                 this.updateDependentVariables();
             }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { css } from '@emotion/react';
-import { computationStore, VariableType } from './computation';
+import { computationStore } from './computation';
 import { formulaStore } from './store';
 import { reaction } from 'mobx';
 
@@ -182,7 +182,7 @@ const InteractiveOverlay = ({
   </div>
 );
 
-const processVariableElement = (miElement: Element, symbol: string, varId: string) => {
+const processVariableElement = (miElement: Element, varId: string) => {
   const variable = computationStore.variables.get(varId);
   if (!variable) return;
 
