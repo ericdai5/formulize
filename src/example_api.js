@@ -1,3 +1,14 @@
+defineEquation({
+  formula: "T = a + b * log((2 * D) / W)",
+  variables: {
+    "$a$": { type: "constant", value: 0.1 },
+    "$b$": { type: "constant", value: 0.5 },
+    "$D$": { type: "input", range: [0, 10], round: 1, units: "in." },
+    "$W$": { type: "input", range: [0.01, 2], round: 2, units: "in." },
+    "$T$": { type: "output", round: 2, units: "s" }
+  }
+});
+
 createFormula("kinetic-energy")
   .equation("K = \\frac{1}{2}mv^2")
   .dependent({
