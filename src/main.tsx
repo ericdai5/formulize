@@ -1,21 +1,26 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+
 import App from "./App.tsx";
+import "./index.css";
 
 const loadMathJax = () => {
   return new Promise((resolve) => {
     window.MathJax = {
       loader: {
         load: [
-          'input/tex',
-          'output/chtml',
-          '[tex]/html',
-          '[tex]/color',
-          '[tex]/cancel'
-        ]
+          "input/tex",
+          "output/chtml",
+          "[tex]/html",
+          "[tex]/color",
+          "[tex]/cancel",
+        ],
       },
       tex: {
-        packages: {'[+]': ['html', 'color', 'cancel']}
+        packages: { "[+]": ["html", "color", "cancel"] },
+      },
+      chtml: {
+        scale: 2.0,
       },
       // @ts-expect-error This is valid, MathJax types are incomplete
       startup: {
@@ -26,8 +31,8 @@ const loadMathJax = () => {
             // @ts-expect-error
             resolve();
           });
-        }
-      }
+        },
+      },
     };
 
     const script = document.createElement("script");

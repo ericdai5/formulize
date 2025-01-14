@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { computationStore } from './computation';
+import React, { useEffect, useState } from "react";
+
+import { computationStore } from "./computation";
 
 const VariableTooltip = ({
   position,
   onSelect,
   currentType,
-  id  // id of the currently selected variable
+  id, // id of the currently selected variable
 }: {
-  position: {x: number, y: number},
-  onSelect: (type: 'fixed' | 'slidable' | 'dependent') => void,
-  currentType: 'fixed' | 'slidable' | 'dependent' | 'none',
-  id: string
+  position: { x: number; y: number };
+  onSelect: (type: "fixed" | "slidable" | "dependent") => void;
+  currentType: "fixed" | "slidable" | "dependent" | "none";
+  id: string;
 }) => {
-  const [value, setValue] = useState('0');
+  const [value, setValue] = useState("0");
   const variable = computationStore.variables.get(id);
 
   // Initialize value from variable state
@@ -22,8 +23,8 @@ const VariableTooltip = ({
     }
   }, [variable?.value]);
 
-  const handleTypeSelect = (type: 'fixed' | 'slidable' | 'dependent') => {
-    if (type === 'fixed') {
+  const handleTypeSelect = (type: "fixed" | "slidable" | "dependent") => {
+    if (type === "fixed") {
       setShowValueInput(true);
     } else {
       // For non-fixed types, just update the type
@@ -39,122 +40,89 @@ const VariableTooltip = ({
     if (!isNaN(numValue)) {
       console.log(`🔵 Setting value for variable ${id}: ${numValue}`);
       computationStore.setValue(id, numValue);
-      onSelect('fixed');
+      onSelect("fixed");
     } else {
-      console.log(`🔴 Invalid numeric value entered for variable ${id}: ${value}`);
+      console.log(
+        `🔴 Invalid numeric value entered for variable ${id}: ${value}`
+      );
     }
   };
 
-  const [showValueInput, setShowValueInput] = useState(currentType === 'fixed');
+  const [showValueInput, setShowValueInput] = useState(currentType === "fixed");
 
   useEffect(() => {
-    setShowValueInput(currentType === 'fixed');
+    setShowValueInput(currentType === "fixed");
   }, [currentType]);
 
   const options = [
-    { type: 'fixed' as const, icon: '📌', label: 'Fixed' },
-    { type: 'slidable' as const, icon: '↔️', label: 'Slidable' },
-    { type: 'dependent' as const, icon: '🔄', label: 'Dependent' }
+    { type: "fixed" as const, icon: "📌", label: "Fixed" },
+    { type: "slidable" as const, icon: "↔️", label: "Slidable" },
+    { type: "dependent" as const, icon: "🔄", label: "Dependent" },
   ];
 
   return (
-    <div style={{
-      position: 'absolute',
-      left: `${position.x}px`,
-      top: `${position.y}px`,
-      transform: 'translate(-50%, -120%)',
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-      border: '1px solid #ddd',
-      padding: '8px',
-      zIndex: 9999,
-      pointerEvents: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px'
-    }}>
+    <div
+      className="
+        absolute z-[9999] pointer-events-auto
+        flex flex-col gap-1 p-1
+        bg-white border border-slate-200 rounded-xl
+        shadow-md
+        transform -translate-x-1/2 -translate-y-[150%]
+      "
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+      }}
+    >
       {showValueInput && (
-        <form 
+        <form
           onSubmit={handleValueSubmit}
-          style={{
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '4px'
-          }}
+          className="flex gap-2 items-center justify-center p-2 bg-slate-100 rounded-md"
         >
           <input
             type="number"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            style={{
-              width: '80px',
-              padding: '4px',
-              border: '1px solid #ddd',
-              borderRadius: '4px'
-            }}
+            className="w-20 p-1 border border-slate-200 rounded-md"
             step="0.1"
             autoFocus
           />
           <button
             type="submit"
-            style={{
-              padding: '4px 8px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
+            className="px-3 py-1 bg-slate-700 text-white cursor-pointer flex items-center justify-center rounded-md"
           >
             Set
           </button>
         </form>
       )}
 
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-      }}>
-        {options.map(({type, icon, label}) => (
-          <button
-            key={type}
-            onClick={() => handleTypeSelect(type)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px',
-              border: `1px solid ${currentType === type ? '#3b82f6' : '#ddd'}`,
-              borderRadius: '6px',
-              background: currentType === type ? '#e5efff' : 'white',
-              minWidth: '64px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>{icon}</span>
-            <span style={{ fontSize: '12px', marginTop: '4px' }}>{label}</span>
-          </button>
+      <div className="flex items-center">
+        {options.map(({ type, icon, label }, index) => (
+          <div key={type} className="flex items-center">
+            <button
+              onClick={() => handleTypeSelect(type)}
+              className={`
+                flex flex-row gap-2 items-center
+                px-2 py-1 min-w-16 cursor-pointer
+                border rounded-lg transition-all duration-200
+                ${
+                  currentType === type
+                    ? "border-blue-300 bg-blue-50"
+                    : "border-1 border-white bg-white hover:bg-slate-100"
+                }
+              `}
+            >
+              <span className="text-sm">{icon}</span>
+              <span className="text-sm font-light">{label}</span>
+            </button>
+            {index < options.length - 1 && (
+              <div className="mx-1 h-4 border-r border-slate-200" />
+            )}
+          </div>
         ))}
       </div>
 
-      <div style={{
-        position: 'absolute',
-        left: '50%',
-        bottom: '-5px',
-        width: '10px',
-        height: '10px',
-        background: 'white',
-        border: '1px solid #ddd',
-        borderTop: 'none',
-        borderLeft: 'none',
-        transform: 'translateX(-50%) rotate(45deg)',
-      }} />
+      {/* <div className="absolute left-1/2 bottom-[-5px] w-[10px] h-[10px] bg-white border border-gray-300 border-t-0 border-l-0 transform -translate-x-1/2 rotate-45"></div> */}
     </div>
   );
 };

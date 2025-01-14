@@ -51,7 +51,7 @@ export const RenderedFormula = observer(() => {
     <div
       ref={handleSetRef}
       style={{
-        transform: `translate(${selectionStore.pan.x}px, ${selectionStore.pan.y}px) scale(${selectionStore.zoom})`,
+        transform: `translate(${selectionStore.pan.x}px, ${selectionStore.pan.y}px)`,
       }}
     >
       {formulaStore.renderSpec !== null && (

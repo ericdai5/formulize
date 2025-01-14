@@ -38,6 +38,47 @@
       integrity="sha384-IolEJdmwZJpJkyCvXBnmGt8wXcP3nvRjxBjPv7/PWW7oODJhZ+qiY1sDpwgjcKLT"
       crossorigin="anonymous"
     ></script>
+
+    <!-- MathJax Configuration -->
+    <script>
+      MathJax = {
+        loader: {
+          load: ["[tex]/color", "[tex]/html"],
+        },
+        tex: {
+          packages: { "[+]": ["color", "html"] },
+          inlineMath: [
+            ["$", "$"],
+            ["\\(", "\\)"],
+          ],
+          displayMath: [
+            ["$$", "$$"],
+            ["\\[", "\\]"],
+          ],
+          processEscapes: true,
+          processEnvironments: true,
+          processRefs: true,
+          macros: {
+            class: ["\\html{class}{#1}{#2}", 2],
+            cssId: ["\\html{id}{#1}{#2}", 2],
+          },
+        },
+        options: {
+          enableMenu: false,
+          skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"],
+        },
+        startup: {
+          ready: () => {
+            MathJax.startup.defaultReady();
+          },
+        },
+      };
+    </script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
+    ></script>
   </head>
   <body>
     <div id="root"></div>

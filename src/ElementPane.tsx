@@ -1,9 +1,11 @@
-import { css } from "@emotion/react";
 import { createContext, useContext, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
 import Icon from "@mui/material/Icon";
+import { ChevronRight } from "lucide-react";
+import { ChevronsDownUp } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 
 import {
   AugmentedFormulaNode,
@@ -31,90 +33,50 @@ export const ElementPane = observer(() => {
   };
 
   return (
-    <div
-      css={css`
-        padding-top: 0;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        padding-bottom: 1rem;
-        font-family: "Source Sans 3", sans-serif;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        overflow: hidden;
-        user-select: none;
-      `}
-    >
-      <h1
-        css={css`
-          font-size: 1.5rem;
-          cursor: default;
-        `}
-      >
-        Elements
-      </h1>
-      <div
-        css={css`
-          display: flex;
-          flex-direction: row;
-          margin-bottom: 0.5rem;
-        `}
-      >
-        <div
-          title="Expand all"
-          css={css`
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            &:hover {
-              background: #ffffff;
-            }
-          `}
-          onClick={() => {
-            setCollapsed({});
-          }}
-        >
-          <Icon>unfold_more</Icon>
-        </div>
-        <div
-          title="Collapse all"
-          css={css`
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            &:hover {
-              background: #ffffff;
-            }
-          `}
-          onClick={() => {
-            const newCollapsed: { [key: string]: boolean } = {};
-            const collapse = (node: AugmentedFormulaNode) => {
-              if (node.children.length > 0) {
-                newCollapsed[node.id] = true;
-                node.children.forEach(collapse);
-              }
-            };
-            formulaStore.augmentedFormula.children.forEach(collapse);
-            setCollapsed(newCollapsed);
-          }}
-        >
-          <Icon>unfold_less</Icon>
+    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+      <div className="flex flex-row justify-between items-center">
+        <h1 className="text-base">Elements</h1>
+        <div className="flex flex-row">
+          <div
+            title="Expand all"
+            className="flex justify-center items-center cursor-pointer hover:bg-gray-100 rounded-md p-1"
+            onClick={() => {
+              setCollapsed({});
+            }}
+          >
+            <ChevronsUpDown
+              size={16}
+              className="text-slate-600 hover:text-slate-900"
+            />
+          </div>
+          <div
+            title="Collapse all"
+            className="flex justify-center items-center cursor-pointer hover:bg-gray-100 rounded-md p-1"
+            onClick={() => {
+              const newCollapsed: { [key: string]: boolean } = {};
+              const collapse = (node: AugmentedFormulaNode) => {
+                if (node.children.length > 0) {
+                  newCollapsed[node.id] = true;
+                  node.children.forEach(collapse);
+                }
+              };
+              formulaStore.augmentedFormula.children.forEach(collapse);
+              setCollapsed(newCollapsed);
+            }}
+          >
+            <ChevronsDownUp
+              size={16}
+              className="text-slate-600 hover:text-slate-900"
+            />
+          </div>
         </div>
       </div>
-      <div
-        css={css`
-          border: 1px solid;
-          overflow-y: auto;
-          flex-grow: 1;
-        `}
-      >
+      <div className="overflow-y-auto flex-grow">
         <ElementPaneContext.Provider
           value={{ collapsed: collapsed, onCollapse: onCollapse }}
         >
           {formulaStore.augmentedFormula.children.map((tree) => (
-            <div css={css``} key={tree.id}>
+            <div key={tree.id}>
               <ElementTree tree={tree} />
             </div>
           ))}
@@ -129,41 +91,31 @@ const ElementTree = observer(({ tree }: { tree: AugmentedFormulaNode }) => {
 
   return (
     <div
-      css={css`
-        background: ${selectionStore.siblingSelections.some((siblingIds) =>
+      className={`${
+        selectionStore.siblingSelections.some((siblingIds) =>
           siblingIds.includes(tree.id)
         )
-          ? "#cceeff"
-          : "transparent"};
-        border-left: 1px solid #00000030;
-      `}
+          ? "bg-slate-100 rounded-lg h-fit"
+          : "bg-transparent rounded-lg"
+      }`}
     >
-      <div
-        css={css`
-          display: flex;
-          flex-direction: row;
-          justify-content: flex-start;
-          align-items: center;
-          padding: 0.2rem 0;
-          cursor: default;
-        `}
-      >
+      <div className="flex flex-row justify-start items-center hover:bg-slate-100 rounded-lg bg-transparent mb-0.5">
         <div
-          css={css`
-            visibility: ${tree.children.length === 0 ? "hidden" : "visible"};
-            cursor: pointer;
-          `}
+          className={`${
+            tree.children.length === 0 ? "hidden" : "visible"
+          } cursor-pointer flex justify-center items-center hover:bg-slate-200 rounded-md p-1 ml-1`}
           onClick={() => onCollapse(tree.id, !collapsed[tree.id])}
         >
-          <Icon>{collapsed[tree.id] ? "chevron_right" : "expand_more"}</Icon>
+          <ChevronRight
+            size={16}
+            className={`${collapsed[tree.id] ? "rotate-0" : "rotate-90"} text-slate-600 hover:text-slate-900 transition-transform duration-300 ease-in-out`}
+          />
         </div>
-        <TreeElement tree={tree} />
+        <div className="pl-3 p-1 hover:bg-slate-100 rounded-lg w-full">
+          <TreeElement tree={tree} />
+        </div>
       </div>
-      <div
-        css={css`
-          margin-left: 1rem;
-        `}
-      >
+      <div className="ml-8">
         {!collapsed[tree.id] &&
           tree.children.map((child) => (
             <ElementTree tree={child} key={child.id} />
@@ -224,22 +176,14 @@ const LabeledNode = ({
 }) => {
   return (
     <div
-      css={css`
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-      `}
+      className="flex flex-row justify-between items-center w-full"
       onClick={() => {
         selectionStore.selectOnly(tree.id);
       }}
     >
       {label}
       <div
-        css={css`
-          visibility: ${deletable ? "visible" : "hidden"};
-        `}
+        className={`${deletable ? "visible" : "hidden"}`}
         onClick={(e) => {
           e.stopPropagation();
           formulaStore.updateFormula(
@@ -252,17 +196,7 @@ const LabeledNode = ({
           );
         }}
       >
-        <Icon
-          css={css`
-            cursor: pointer;
-            margin-right: 0.5rem;
-            &:hover {
-              color: red;
-            }
-          `}
-        >
-          close
-        </Icon>
+        <Icon className="cursor-pointer mr-2 hover:text-red-500">close</Icon>
       </div>
     </div>
   );
@@ -270,28 +204,9 @@ const LabeledNode = ({
 
 const BraceNode = ({ tree }: { tree: Brace }) => {
   return (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        width: 100%;
-      `}
-    >
+    <div className="flex flex-row justify-between items-center w-full">
       <div
-        css={css`
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          transform: ${tree.over ? "rotate(90deg)" : "rotate(-90deg)"};
-          cursor: pointer;
-          padding: 0.2rem;
-          margin-right: 0.5rem;
-
-          &:hover {
-            background: #e0e0e0;
-          }
-        `}
+        className={`flex justify-center items-center cursor-pointer p-0.5 mr-2 hover:bg-gray-200 transition-transform duration-300 ease-in-out ${tree.over ? "rotate-90" : "-rotate-90"}`}
         title={tree.over ? "Make underbrace" : "Make overbrace"}
         onClick={() => {
           formulaStore.updateFormula(
@@ -314,31 +229,17 @@ const BraceNode = ({ tree }: { tree: Brace }) => {
           );
         }}
       >
-        <img
-          css={css`
-            width: 1rem;
-            height: 1rem;
-          `}
-          src={CurlyBraceListOption}
-        />
+        <img className="w-4 h-4" src={CurlyBraceListOption} />
       </div>
       <div
-        css={css`
-          display: flex;
-          flex-direction: row;
-          justify-content: space-between;
-          align-items: center;
-          width: 100%;
-        `}
+        className="flex flex-row justify-between items-center w-full"
         onClick={() => {
           selectionStore.selectOnly(tree.id);
         }}
       >
         Brace
         <div
-          css={css`
-            visibility: visible;
-          `}
+          className="visible"
           onClick={(e) => {
             e.stopPropagation();
             formulaStore.updateFormula(
@@ -354,17 +255,7 @@ const BraceNode = ({ tree }: { tree: Brace }) => {
             );
           }}
         >
-          <Icon
-            css={css`
-              cursor: pointer;
-              margin-right: 0.5rem;
-              &:hover {
-                color: red;
-              }
-            `}
-          >
-            close
-          </Icon>
+          <Icon className="cursor-pointer mr-2 hover:text-red-500">close</Icon>
         </div>
       </div>
     </div>
@@ -383,25 +274,9 @@ const ColorNode = ({ tree }: { tree: Color }) => {
   }, [setOpen]);
 
   return (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        width: 100%;
-      `}
-    >
-      <div
-        css={css`
-          position: relative;
-          margin-right: 0.5rem;
-        `}
-      >
-        <div
-          css={css`
-            cursor: pointer;
-          `}
-        >
+    <div className="flex flex-row justify-between items-center w-full">
+      <div className="relative mr-2">
+        <div className="cursor-pointer">
           <ColorSwatch
             color={tree.color}
             onClick={(e) => {
@@ -411,16 +286,7 @@ const ColorNode = ({ tree }: { tree: Color }) => {
           />
         </div>
         {open && (
-          <div
-            css={css`
-              position: absolute;
-              top: 1rem;
-              left: 0;
-              z-index: 1;
-              background: #f0f0f0;
-              border: 1px solid #000000;
-            `}
-          >
+          <div className="absolute top-4 left-0 z-10 bg-gray-100 border border-gray-200">
             <ColorPicker
               onSelect={(color) => {
                 formulaStore.updateFormula(
@@ -454,25 +320,9 @@ const BoxNode = ({ tree }: { tree: Box }) => {
   }, [setOpen]);
 
   return (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        width: 100%;
-      `}
-    >
-      <div
-        css={css`
-          position: relative;
-          margin-right: 0.5rem;
-        `}
-      >
-        <div
-          css={css`
-            cursor: pointer;
-          `}
-        >
+    <div className="flex flex-row justify-between items-center w-full">
+      <div className="relative mr-2">
+        <div className="cursor-pointer">
           <ColorSwatch
             color={tree.borderColor}
             onClick={(e) => {
@@ -482,16 +332,7 @@ const BoxNode = ({ tree }: { tree: Box }) => {
           />
         </div>
         {open && (
-          <div
-            css={css`
-              position: absolute;
-              top: 1rem;
-              left: 0;
-              z-index: 1;
-              background: #f0f0f0;
-              border: 1px solid #000000;
-            `}
-          >
+          <div className="absolute top-4 left-0 z-10 bg-gray-100 border border-gray-200">
             <ColorPicker
               onSelect={(borderColor) => {
                 formulaStore.updateFormula(

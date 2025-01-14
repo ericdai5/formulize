@@ -1,6 +1,5 @@
 import { css as classname } from "@emotion/css";
 import { Global, css } from "@emotion/react";
-import styled from "@emotion/styled";
 import { useEffect, useState } from "react";
 import useStateRef from "react-usestateref";
 
@@ -344,50 +343,39 @@ const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
   return tr;
 });
 
-const EditorTab = styled.button<{ selected: boolean }>`
-  height: 100%;
-  background-color: ${(props) => (props.selected ? "white" : "#f0f0f0")};
-  border: none;
-  border-bottom: ${(props) => (props.selected ? "2px solid black" : "none")};
-  padding: 0 1rem;
-`;
+const EditorTab = ({
+  selected,
+  children,
+  onClick,
+}: {
+  selected: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`
+      h-full px-4 border-b-2
+      ${selected ? "bg-white border-black" : "bg-gray-100 border-transparent"}
+    `}
+  >
+    {children}
+  </button>
+);
 
 export const Editor = observer(() => {
   const [currentEditor, setCurrentEditor] = useState<"full" | "content-only">(
     "full"
   );
-
   return (
     <>
-      <Global
-        styles={css`
-          .cm-editor {
-            height: 100%;
-            font-size: 1.5rem;
-          }
-          .cm-line {
-            padding: 10px 2px 10px 6px !important;
-          }
-        `}
-      />
-      <div
-        css={css`
-          height: 2rem;
-          background-color: #f0f0f0;
-        `}
-      >
+      <div className="h-8 bg-gray-100">
         <EditorTab
           onClick={() => setCurrentEditor("full")}
           selected={currentEditor === "full"}
         >
           Full LaTeX
         </EditorTab>
-        {/* <EditorTab
-          onClick={() => setCurrentEditor("content-only")}
-          selected={currentEditor === "content-only"}
-        >
-          Content-Only
-        </EditorTab> */}
       </div>
       {currentEditor === "full" ? <FullStyleEditor /> : <ContentOnlyEditor />}
     </>
@@ -497,11 +485,7 @@ const FullStyleEditor = observer(() => {
 
   return (
     <div
-      css={css`
-        width: 100%;
-        height: calc(100% - 2rem);
-        border: 2px solid ${editorCodeCorrect ? "transparent" : "red"};
-      `}
+      className={`w-full h-[calc(100%-2rem)] border ${editorCodeCorrect ? "border-transparent" : "border-red-500"}`}
       ref={(ref) => setContainer(ref)}
     ></div>
   );
@@ -607,11 +591,7 @@ const ContentOnlyEditor = observer(() => {
 
   return (
     <div
-      css={css`
-        width: 100%;
-        height: calc(100% - 2rem);
-        border: 2px solid ${editorCodeCorrect ? "transparent" : "red"};
-      `}
+      className={`w-full h-[calc(100%-2rem)] border ${editorCodeCorrect ? "border-transparent" : "border-red-500"}`}
       ref={(ref) => setContainer(ref)}
     ></div>
   );

@@ -1,10 +1,10 @@
-import { css } from "@emotion/react";
 import { default as React } from "react";
 
 import { observer } from "mobx-react-lite";
 
 import Icon from "@mui/material/Icon";
 
+import { Debug } from "./Debug";
 import {
   Aligned,
   AugmentedFormula,
@@ -23,7 +23,6 @@ import { editingStore, formulaStore, selectionStore, undoStore } from "./store";
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
 import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
-import LineDivideIcon from "./Icons/LineDivideIcon.svg";
 
 // import LogoIcon from "./Icons/LogoIcon.svg";
 
@@ -32,24 +31,14 @@ export const Menu = () => {
 
   return (
     <div
-      css={css`
-        height: 2rem;
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-start;
-        background: #f0f0f0;
-      `}
+      className="absolute z-50 top-2 left-1/2 -translate-x-1/2 w-fit h-11 p-2 flex flex-row items-center bg-white border rounded-xl shadow-sm border-slate-200 gap-1"
       onMouseDown={(e) => {
         e.stopPropagation();
       }}
     >
-      {/* <LogoMenu /> */}
-      {/* <LineDivideMenu /> */}
-
       <UndoMenu />
       <RedoMenu />
-      <LineDivideMenu />
-
+      <LineDivide />
       <StrikethroughMenu />
       <ColorMenu
         open={openMenu === "color"}
@@ -69,8 +58,7 @@ export const Menu = () => {
           }
         }}
       />
-      <LineDivideMenu />
-
+      <LineDivide />
       <AnnotateMenu
         open={openMenu === "annotate"}
         onMenuOpen={() => setOpenMenu("annotate")}
@@ -80,10 +68,9 @@ export const Menu = () => {
           }
         }}
       />
-
-      <LineDivideMenu />
+      <LineDivide />
       <AlignMenu />
-      <LineDivideMenu />
+      <LineDivide />
       <EnlivenToggle />
     </div>
   );
@@ -99,19 +86,7 @@ const MenuItem = ({
 }: React.PropsWithChildren<MenuItemProps>) => {
   return (
     <div
-      css={css`
-        height: 2.5rem;
-        min-width: 2rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        &:hover {
-          background: #e0e0e0;
-          height: 2rem;
-        }
-        font-family: "Source Sans 3", sans-serif;
-      `}
+      className="h-8 min-w-8 flex justify-center items-center rounded-md cursor-pointer hover:bg-slate-100"
       onClick={(e) => {
         onClick();
         e.stopPropagation();
@@ -145,14 +120,10 @@ type ColorSwatchProps = {
 export const ColorSwatch = ({ color, onClick }: ColorSwatchProps) => {
   return (
     <div
+      className="w-4 h-4 rounded-sm"
+      style={{ backgroundColor: color }}
       onClick={onClick}
-      css={css`
-        width: 1rem;
-        height: 1rem;
-        background-color: ${color};
-        border: 1px solid black;
-      `}
-    ></div>
+    />
   );
 };
 
@@ -161,22 +132,11 @@ export const ColorPicker = ({
 }: {
   onSelect: (color: string) => void;
 }) => (
-  <div
-    css={css`
-      padding: 0.5rem;
-      width: 7rem;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-start;
-    `}
-  >
+  <div className="p-2 w-28 flex flex-wrap justify-start">
     {COLORS.map((color) => (
       <div
         key={color}
-        css={css`
-          margin: 0.25rem;
-          cursor: pointer;
-        `}
+        className="m-1 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           onSelect(color);
@@ -214,33 +174,11 @@ const SubMenu = ({
   }, [onMenuClose]);
 
   return (
-    <div
-      css={css`
-        position: relative;
-        height: ${open ? "1.8rem" : "2rem"};
-        display: flex;
-        align-items: center;
-        background: ${open ? "#e0e0e0" : "#f0f0f0"};
-        &:hover {
-          height: 1.8rem;
-        }
-        z-index: 500;
-      `}
-    >
+    <div className="relative flex items-center z-50">
       <MenuItem onClick={open ? onMenuClose : onMenuOpen}>
         {menuButton}
         {open && (
-          <div
-            css={css`
-              position: absolute;
-              cursor: default;
-              top: 2rem;
-              left: 0;
-              display: flex;
-              flex-direction: column;
-              background: #f0f0f0;
-            `}
-          >
+          <div className="absolute cursor-default top-8 left-0 flex flex-col bg-white border border-slate-200 rounded-md translate-y-1 shadow-md">
             {children}
           </div>
         )}
@@ -268,15 +206,7 @@ const SubMenu = ({
 const UndoMenu = observer(() => {
   return (
     <div
-      css={css`
-        height: 2rem;
-        width: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: ${undoStore.canUndo ? "pointer" : "default"};
-        color: ${undoStore.canUndo ? "black" : "grey"};
-      `}
+      className={`menu-btn ${undoStore.canUndo ? "text-black" : "text-gray-500 cursor-default"}`}
       onClick={() => {
         if (undoStore.canUndo) {
           undoStore.undo();
@@ -291,15 +221,7 @@ const UndoMenu = observer(() => {
 const RedoMenu = observer(() => {
   return (
     <div
-      css={css`
-        height: 2rem;
-        width: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: ${undoStore.canRedo ? "pointer" : "default"};
-        color: ${undoStore.canRedo ? "black" : "grey"};
-      `}
+      className={`menu-btn ${undoStore.canRedo ? "text-black" : "text-gray-500 cursor-default"}`}
       onClick={() => {
         if (undoStore.canRedo) {
           undoStore.redo();
@@ -315,6 +237,7 @@ const StrikethroughMenu = () => {
   return (
     <MenuItem onClick={() => {}}>
       <div
+        className="menu-btn"
         onClick={(e) => {
           formulaStore.updateFormula(
             replaceNodes(
@@ -322,7 +245,6 @@ const StrikethroughMenu = () => {
                 formulaStore.augmentedFormula,
                 selectionStore.siblingSelections
               ),
-
               (node) => {
                 if (
                   selectionStore.siblingSelections.some(
@@ -497,47 +419,15 @@ const AnnotateMenu = ({
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
     >
-      <div
-        css={css`
-          width: 2rem;
-          display: flex;
-          flex-direction: column;
-          flex-wrap: wrap;
-          justify-content: flex-start;
-        `}
-      >
+      <div className="w-8 flex flex-col flex-wrap justify-start">
         <div
-          css={css`
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0.25rem;
-            transform: rotate(90deg);
-            width: 100%;
-            cursor: pointer;
-
-            &:hover {
-              background: #e0e0e0;
-            }
-          `}
+          className="flex justify-center items-center p-0.5 w-full cursor-pointer transform rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(true)}
         >
           <img src={CurlyBraceListOption} height={"17rem"} />
         </div>
         <div
-          css={css`
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0.25rem;
-            transform: rotate(-90deg);
-            width: 100%;
-            cursor: pointer;
-
-            &:hover {
-              background: #e0e0e0;
-            }
-          `}
+          className="flex justify-center items-center p-0.5 w-full cursor-pointer transform -rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(false)}
         >
           <img src={CurlyBraceListOption} height={"17rem"} />
@@ -547,37 +437,14 @@ const AnnotateMenu = ({
   );
 };
 
-const LineDivideMenu = () => {
-  return (
-    <div
-      css={css`
-        height: 2rem;
-        width: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      `}
-    >
-      <img src={LineDivideIcon} />
-    </div>
-  );
+const LineDivide = () => {
+  return <div className="h-4 border-r border-slate-200" />;
 };
 
 const AlignMenu = observer(() => {
   return (
     <div
-      css={css`
-        min-width: 2rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        background: ${editingStore.showAlignMode ? "#e0e0e0" : "#transparent"};
-        &:hover {
-          height: 2rem;
-        }
-        font-family: "Source Sans 3", sans-serif;
-      `}
+      className={`menu-btn ${editingStore.showAlignMode ? "bg-gray-200" : "bg-transparent"}`}
       onClick={(e) => {
         if (formulaStore.alignIds === null) {
           const cell = new Group("", formulaStore.augmentedFormula.children);
@@ -597,20 +464,7 @@ const AlignMenu = observer(() => {
 const EnlivenToggle = observer(() => {
   return (
     <div
-      css={css`
-        min-width: 2rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        background: ${editingStore.showEnlivenMode ? "#e0e0e0" : "transparent"};
-        height: 2rem;
-        &:hover {
-          height: 1.8rem;
-          background: #e0e0e0;
-        }
-        font-family: "Source Sans 3", sans-serif;
-      `}
+      className="menu-btn"
       onClick={() => {
         editingStore.setShowEnlivenMode(!editingStore.showEnlivenMode);
       }}

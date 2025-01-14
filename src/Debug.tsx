@@ -1,4 +1,3 @@
-import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 
 import { observer } from "mobx-react-lite";
@@ -17,51 +16,25 @@ const CoordinateCell = styled.td`
 export const Debug = observer(() => {
   return (
     <>
-      <div
-        css={css`
-          position: absolute;
-          top: 0;
-          right: 1rem;
-          z-index: 1000;
-        `}
-      >
+      <div className="bottom-2 right-2 absolute z-1000 py-1 px-2 border flex items-center border-slate-200 rounded-md bg-white">
         <input
           id="showDebug"
-          css={css`
-            margin-right: 0.5rem;
-          `}
+          className="mr-2"
           type="checkbox"
           checked={debugStore.showDebugPanel}
           onChange={(e) => {
             debugStore.setShowDebugPanel(e.target.checked);
           }}
         />
-        <label
-          css={css`
-            user-select: none;
-            font-family: monospace;
-          `}
-          htmlFor="showDebug"
-        >
-          Show debug menu
+        <label className="user-select-none text-sm" htmlFor="showDebug">
+          Debug
         </label>
       </div>
       {debugStore.showDebugPanel && (
         <div
           onMouseDown={(e) => e.stopPropagation()}
           onScroll={(e) => e.stopPropagation()}
-          css={css`
-            position: absolute;
-            top: 0;
-            right: 0;
-            padding: 1rem;
-            max-height: calc(100vh - 2rem);
-            overflow-y: auto;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            background: rgba(255, 255, 255, 0.8);
-          `}
+          className="absolute top-0 right-0 p-2 max-h-[calc(100vh-2rem)] overflow-y-auto overflow-x-hidden flex flex-col bg-white/80"
         >
           <DebugOptions />
           <History />
@@ -81,22 +54,14 @@ const DebugOptions = observer(() => (
     <span>
       <input
         id="showAlign"
-        css={css`
-          margin-right: 0.5rem;
-        `}
+        className="mr-2"
         type="checkbox"
         checked={debugStore.showAlignGuides}
         onChange={(e) => {
           debugStore.setShowAlignGuides(e.target.checked);
         }}
       />
-      <label
-        css={css`
-          user-select: none;
-          font-family: monospace;
-        `}
-        htmlFor="showAlign"
-      >
+      <label className="user-select-none" htmlFor="showAlign">
         Show alignment guides
       </label>
     </span>
@@ -115,16 +80,8 @@ const Viewport = observer(() => (
 const Targets = observer(() => (
   <>
     <pre>Targets:</pre>
-    <table
-      css={css`
-        font-family: monospace;
-      `}
-    >
-      <thead
-        css={css`
-          font-weight: bold;
-        `}
-      >
+    <table className="font-mono">
+      <thead className="font-bold">
         <tr>
           <CoordinateCell>Id</CoordinateCell>
           <CoordinateCell>Type</CoordinateCell>
