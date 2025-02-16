@@ -16,6 +16,7 @@ import {
 import { ColorPicker, ColorSwatch } from "./Menu";
 import { assertUnreachable, replaceNodes } from "./formulaTransformations";
 import { formulaStore, selectionStore } from "./store";
+import * as styles from "./styles";
 
 import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
 
@@ -34,30 +35,41 @@ export const ElementPane = observer(() => {
     <div
       css={css`
         padding-top: 0;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        padding-bottom: 1rem;
         font-family: "Source Sans 3", sans-serif;
         display: flex;
         flex-direction: column;
         height: 100%;
         overflow: hidden;
         user-select: none;
+        background: ${styles.COLORS.baseLight};
       `}
     >
-      <h1
+      <div
         css={css`
-          font-size: 1.5rem;
-          cursor: default;
+          height: ${styles.TOP_BAR_HEIGHT};
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+          background: ${styles.COLORS.baseDark};
+          border-bottom: ${styles.TOP_BAR_BORDER};
+          flex-shrink: 0;
         `}
       >
-        Elements
-      </h1>
+        <h1
+          css={css`
+            font-size: ${styles.TOP_BAR_HEADER_SIZE};
+            cursor: default;
+            color: ${styles.COLORS.foreground};
+            font-weight: 400;
+          `}
+        >
+          Elements
+        </h1>
+      </div>
       <div
         css={css`
           display: flex;
           flex-direction: row;
-          margin-bottom: 0.5rem;
+          margin: 0.5rem 1rem;
         `}
       >
         <div
@@ -105,9 +117,11 @@ export const ElementPane = observer(() => {
       </div>
       <div
         css={css`
-          border: 1px solid;
           overflow-y: auto;
           flex-grow: 1;
+          margin-left: 1rem;
+          margin-right: 1rem;
+          margin-bottom: 1rem;
         `}
       >
         <ElementPaneContext.Provider

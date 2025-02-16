@@ -19,6 +19,7 @@ import {
 } from "./FormulaTree";
 import { consolidateGroups, replaceNodes } from "./formulaTransformations";
 import { editingStore, formulaStore, selectionStore, undoStore } from "./store";
+import * as styles from "./styles";
 
 import AnnotateIcon from "./Icons/AnnotateIcon.svg";
 import BoxIcon from "./Icons/BoxIcon.svg";
@@ -33,11 +34,13 @@ export const Menu = () => {
   return (
     <div
       css={css`
-        height: 2rem;
+        height: ${styles.TOP_BAR_HEIGHT};
         display: flex;
         flex-direction: row;
         justify-content: flex-start;
-        background: #f0f0f0;
+        background: ${styles.COLORS.baseDark};
+        border-bottom: ${styles.TOP_BAR_BORDER};
+        flex-shrink: 0;
       `}
       onMouseDown={(e) => {
         e.stopPropagation();
@@ -98,15 +101,15 @@ const MenuItem = ({
   return (
     <div
       css={css`
-        height: 2.5rem;
+        height: 2rem;
         min-width: 2rem;
         display: flex;
         justify-content: center;
         align-items: center;
         cursor: pointer;
         &:hover {
-          background: #e0e0e0;
-          height: 2rem;
+          background: ${styles.COLORS.baseLight};
+          height: 1.8rem;
         }
         font-family: "Source Sans 3", sans-serif;
       `}
@@ -218,7 +221,7 @@ const SubMenu = ({
         height: ${open ? "1.8rem" : "2rem"};
         display: flex;
         align-items: center;
-        background: ${open ? "#e0e0e0" : "#f0f0f0"};
+        background: ${open ? styles.COLORS.baseLight : "transparent"};
         &:hover {
           height: 1.8rem;
         }
@@ -232,11 +235,11 @@ const SubMenu = ({
             css={css`
               position: absolute;
               cursor: default;
-              top: 2rem;
+              top: 100%;
               left: 0;
               display: flex;
               flex-direction: column;
-              background: #f0f0f0;
+              background: ${styles.COLORS.baseLight};
             `}
           >
             {children}
@@ -337,7 +340,13 @@ const StrikethroughMenu = () => {
           e.stopPropagation();
         }}
       >
-        <Icon>format_strikethrough</Icon>
+        <Icon
+          css={css`
+            transform: translateY(0.2rem);
+          `}
+        >
+          format_strikethrough
+        </Icon>
       </div>
     </MenuItem>
   );
@@ -515,7 +524,7 @@ const AnnotateMenu = ({
             cursor: pointer;
 
             &:hover {
-              background: #e0e0e0;
+              background: ${styles.COLORS.baseLight};
             }
           `}
           onClick={makeAnnotationCallback(true)}
@@ -533,7 +542,7 @@ const AnnotateMenu = ({
             cursor: pointer;
 
             &:hover {
-              background: #e0e0e0;
+              background: ${styles.COLORS.baseLight};
             }
           `}
           onClick={makeAnnotationCallback(false)}
@@ -565,14 +574,18 @@ const AlignMenu = observer(() => {
   return (
     <div
       css={css`
+        height: ${editingStore.showAlignMode ? "1.8rem" : "2rem"};
         min-width: 2rem;
         display: flex;
         justify-content: center;
         align-items: center;
         cursor: pointer;
-        background: ${editingStore.showAlignMode ? "#e0e0e0" : "#transparent"};
+        background: ${editingStore.showAlignMode
+          ? styles.COLORS.baseLight
+          : "#transparent"};
         &:hover {
-          height: 2rem;
+          height: 1.8rem;
+          background: ${styles.COLORS.baseLight};
         }
         font-family: "Source Sans 3", sans-serif;
       `}

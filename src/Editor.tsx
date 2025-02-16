@@ -8,6 +8,7 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { StreamLanguage } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 import {
   EditorState,
@@ -21,6 +22,7 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
+import { tags as t } from "@lezer/highlight";
 import { EditorView, basicSetup } from "codemirror";
 
 import {
@@ -35,6 +37,7 @@ import {
   deriveAugmentedFormula,
 } from "./FormulaTree";
 import { formulaStore } from "./store";
+import * as styles from "./styles";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };
 
@@ -372,17 +375,32 @@ export const Editor = observer(() => {
       />
       <div
         css={css`
-          height: 2rem;
-          background-color: #f0f0f0;
+          height: ${styles.TOP_BAR_HEIGHT};
+          background-color: ${styles.COLORS.baseDark};
+          color: ${styles.COLORS.foreground};
+          border-bottom: ${styles.TOP_BAR_BORDER};
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
         `}
       >
+        <h1
+          css={css`
+            font-family: "Source Sans 3", sans-serif;
+            font-size: ${styles.TOP_BAR_HEADER_SIZE};
+            font-weight: 400;
+            user-select: none;
+          `}
+        >
+          LaTeX
+        </h1>
+        {/* 
         <EditorTab
           onClick={() => setCurrentEditor("full")}
           selected={currentEditor === "full"}
         >
           Full LaTeX
         </EditorTab>
-        {/* <EditorTab
+        <EditorTab
           onClick={() => setCurrentEditor("content-only")}
           selected={currentEditor === "content-only"}
         >
@@ -427,6 +445,11 @@ const FullStyleEditor = observer(() => {
             EditorView.lineWrapping,
             StreamLanguage.define(stex),
             codeUpdateListener,
+            // EditorView.theme({}),
+            syntaxHighlighting(
+              // https://lezer.codemirror.net/docs/ref/#highlight.tags
+              HighlightStyle.define([{ tag: t.name, color: "#2b65bd" }])
+            ),
           ],
           doc: formulaStore.latexWithStyling,
         }),
@@ -501,6 +524,7 @@ const FullStyleEditor = observer(() => {
         width: 100%;
         height: calc(100% - 2rem);
         border: 2px solid ${editorCodeCorrect ? "transparent" : "red"};
+        background-color: #f3f3f3;
       `}
       ref={(ref) => setContainer(ref)}
     ></div>

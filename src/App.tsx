@@ -38,7 +38,6 @@ function App() {
             position: relative;
             height: 100%;
             width: 50%;
-            border-right: 2px solid black;
             overflow-x: hidden;
             overflow-y: auto;
           `}
@@ -61,8 +60,6 @@ function App() {
           css={css`
             width: 30%;
             height: 100%;
-            background: #f0f0f0;
-            border-left: 2px solid black;
           `}
         >
           <ElementPane />
