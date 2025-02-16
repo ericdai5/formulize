@@ -24,6 +24,7 @@ import {
 } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
 import { EditorView, basicSetup } from "codemirror";
+import { printPrettier as prettyLaTeX } from "prettier-plugin-latex/standalone";
 
 import {
   ContentChange,
@@ -368,8 +369,9 @@ export const Editor = observer(() => {
             height: 100%;
             font-size: 1.5rem;
           }
-          .cm-line {
-            padding: 10px 2px 10px 6px !important;
+          .cm-focused {
+            border: none;
+            outline: none !important;
           }
         `}
       />
@@ -445,7 +447,21 @@ const FullStyleEditor = observer(() => {
             EditorView.lineWrapping,
             StreamLanguage.define(stex),
             codeUpdateListener,
-            // EditorView.theme({}),
+            EditorView.theme({
+              ".cm-activeLine": {
+                "background-color": `${styles.COLORS.baseDark}44`,
+              },
+              ".cm-selectionBackground": {
+                "background-color": `#e5f0ff !important`,
+              },
+              "::selection": {
+                "background-color": `#e5f0ff !important`,
+              },
+              ".cm-focused": {
+                border: `none`,
+                outline: `none`,
+              },
+            }),
             syntaxHighlighting(
               // https://lezer.codemirror.net/docs/ref/#highlight.tags
               HighlightStyle.define([{ tag: t.name, color: "#2b65bd" }])
@@ -469,15 +485,18 @@ const FullStyleEditor = observer(() => {
             return;
           }
 
-          newEditorView.dispatch([
-            newEditorView.state.update({
-              changes: {
-                from: 0,
-                to: newEditorView.state.doc.length,
-                insert: latex,
-              },
-            }),
-          ]);
+          prettyLaTeX(latex, { printWidth: 30 }).then((pretty) => {
+            console.log("Prett LaTeX:", pretty);
+            newEditorView.dispatch([
+              newEditorView.state.update({
+                changes: {
+                  from: 0,
+                  to: newEditorView.state.doc.length,
+                  insert: pretty,
+                },
+              }),
+            ]);
+          });
         }
       );
 
@@ -493,15 +512,30 @@ const FullStyleEditor = observer(() => {
         setEditorCodeCorrect(() => true);
 
         // Synchronize the editor with the current formula
-        newEditorView.dispatch([
-          newEditorView.state.update({
-            changes: {
-              from: 0,
-              to: newEditorView.state.doc.length,
-              insert: formulaStore.latexWithStyling,
-            },
-          }),
-        ]);
+        prettyLaTeX(formulaStore.latexWithStyling, { printWidth: 30 }).then(
+          (pretty) => {
+            console.log("Prett LaTeX:", pretty);
+            newEditorView.dispatch([
+              newEditorView.state.update({
+                changes: {
+                  from: 0,
+                  to: newEditorView.state.doc.length,
+                  insert: pretty,
+                },
+              }),
+            ]);
+          }
+        );
+
+        // newEditorView.dispatch([
+        //   newEditorView.state.update({
+        //     changes: {
+        //       from: 0,
+        //       to: newEditorView.state.doc.length,
+        //       insert: formulaStore.latexWithStyling,
+        //     },
+        //   }),
+        // ]);
         // const newCode = newEditorView.state.doc.toString();
         // if (checkFormulaCode(newCode)) {
         //   setEditorCodeCorrect(() => true);

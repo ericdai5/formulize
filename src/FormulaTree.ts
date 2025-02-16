@@ -1,7 +1,8 @@
-// import * as prettier from "prettier/standalone";
-// import * as babelPlugin from "prettier/parser-babel";
-// import * as estreePlugin from "prettier/plugins/estree";
-// import katex from "katex";
+import katex from "katex";
+import * as babelPlugin from "prettier/parser-babel";
+import * as estreePlugin from "prettier/plugins/estree";
+import * as prettier from "prettier/standalone";
+
 import {
   FormulaLatexRangeNode,
   FormulaLatexRanges,
