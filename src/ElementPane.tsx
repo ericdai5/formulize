@@ -147,7 +147,7 @@ const ElementTree = observer(({ tree }: { tree: AugmentedFormulaNode }) => {
         background: ${selectionStore.siblingSelections.some((siblingIds) =>
           siblingIds.includes(tree.id)
         )
-          ? "#cceeff"
+          ? styles.COLORS.selection
           : "transparent"};
         border-left: 1px solid #00000030;
       `}

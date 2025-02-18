@@ -9,4 +9,5 @@ export const COLORS = {
   baseDark: "#e5e5e5",
   baseLight: "#f3f3f3",
   foreground: "#616161",
+  selection: "#e5f0ff",
 };

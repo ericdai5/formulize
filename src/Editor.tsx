@@ -11,6 +11,7 @@ import { StreamLanguage } from "@codemirror/language";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 import {
+  EditorSelection,
   EditorState,
   RangeSetBuilder,
   StateEffect,
@@ -37,7 +38,7 @@ import {
   checkFormulaCode,
   deriveAugmentedFormula,
 } from "./FormulaTree";
-import { formulaStore } from "./store";
+import { formulaStore, selectionStore } from "./store";
 import * as styles from "./styles";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };
@@ -88,7 +89,11 @@ const styledRanges = (view: EditorView) => {
                   bottom: 0;
                   left: 0;
                   right: 0;
-                  opacity: ${view.state.field(styledRangeSelectionState).has(range.id) ? 0.1 : 0};
+                  opacity: ${
+                    view.state.field(styledRangeSelectionState).has(range.id)
+                      ? 0.1
+                      : 0
+                  };
                   background-color: ${range.hints?.color || "black"};
                 }
 
@@ -99,7 +104,11 @@ const styledRanges = (view: EditorView) => {
                   top: ${-4 + 4 * nestingDepth}px;
                   left: 0;
                   width: 100%;
-                  height: ${view.state.field(styledRangeSelectionState).has(range.id) ? "4px" : "2px"};
+                  height: ${
+                    view.state.field(styledRangeSelectionState).has(range.id)
+                      ? "4px"
+                      : "2px"
+                  };
                   background-color: ${range.hints?.color || "black"};
                 }
               `,
@@ -395,7 +404,7 @@ export const Editor = observer(() => {
         >
           LaTeX
         </h1>
-        {/* 
+        {/*
         <EditorTab
           onClick={() => setCurrentEditor("full")}
           selected={currentEditor === "full"}
@@ -452,10 +461,10 @@ const FullStyleEditor = observer(() => {
                 "background-color": `${styles.COLORS.baseDark}44`,
               },
               ".cm-selectionBackground": {
-                "background-color": `#e5f0ff !important`,
+                "background-color": `${styles.COLORS.selection} !important`,
               },
               "::selection": {
-                "background-color": `#e5f0ff !important`,
+                "background-color": `${styles.COLORS.selection} !important`,
               },
               ".cm-focused": {
                 border: `none`,
@@ -474,7 +483,7 @@ const FullStyleEditor = observer(() => {
       setEditorView(newEditorView);
 
       // Automatically update the editor code when the formula changes due to interactions
-      const disposeReaction = reaction(
+      const disposeUpdateCodeReaction = reaction(
         () => formulaStore.latexWithStyling,
         (latex) => {
           console.log("Synchronizing editor with new formula", latex);
@@ -486,7 +495,6 @@ const FullStyleEditor = observer(() => {
           }
 
           prettyLaTeX(latex, { printWidth: 30 }).then((pretty) => {
-            console.log("Prett LaTeX:", pretty);
             newEditorView.dispatch([
               newEditorView.state.update({
                 changes: {
@@ -496,6 +504,33 @@ const FullStyleEditor = observer(() => {
                 },
               }),
             ]);
+          });
+        }
+      );
+
+      const disposeUpdateSelectionReaction = reaction(
+        () =>
+          [selectionStore.siblingSelections, formulaStore.latexRanges] as const,
+        ([selectionRanges, latexRanges]) => {
+          console.log("selection:", selectionRanges);
+          const selections = selectionRanges.flatMap((range) => {
+            const first = range[0];
+            const last = range.slice(-1)[0];
+            if (!(first in latexRanges) || !(last in latexRanges)) {
+              return [];
+            }
+
+            const [firstStart, _] = latexRanges[first];
+            const [__, lastEnd] = latexRanges[last];
+            console.log(first, firstStart, last, lastEnd);
+            return [EditorSelection.range(firstStart, lastEnd)];
+          });
+
+          newEditorView.dispatch({
+            selection:
+              selections.length > 0
+                ? EditorSelection.create(selections)
+                : EditorSelection.single(0),
           });
         }
       );
@@ -514,7 +549,6 @@ const FullStyleEditor = observer(() => {
         // Synchronize the editor with the current formula
         prettyLaTeX(formulaStore.latexWithStyling, { printWidth: 30 }).then(
           (pretty) => {
-            console.log("Prett LaTeX:", pretty);
             newEditorView.dispatch([
               newEditorView.state.update({
                 changes: {
@@ -526,27 +560,10 @@ const FullStyleEditor = observer(() => {
             ]);
           }
         );
-
-        // newEditorView.dispatch([
-        //   newEditorView.state.update({
-        //     changes: {
-        //       from: 0,
-        //       to: newEditorView.state.doc.length,
-        //       insert: formulaStore.latexWithStyling,
-        //     },
-        //   }),
-        // ]);
-        // const newCode = newEditorView.state.doc.toString();
-        // if (checkFormulaCode(newCode)) {
-        //   setEditorCodeCorrect(() => true);
-        //   formulaStore.updateFormula(deriveAugmentedFormula(newCode));
-        // } else {
-        //   setEditorCodeCorrect(() => false);
-        // }
       });
 
       return () => {
-        disposeReaction();
+        disposeUpdateCodeReaction();
         newEditorView.destroy();
       };
     }
