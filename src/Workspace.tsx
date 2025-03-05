@@ -10,7 +10,7 @@ import {
 import { observer } from "mobx-react-lite";
 
 import { AlignmentGuides } from "./AlignmentGuides";
-import { Debug } from "./Debug";
+// import { Debug } from "./Debug";
 import { RenderedFormula } from "./RenderedFormula";
 import { selectionStore } from "./store";
 
@@ -105,7 +105,7 @@ export const Workspace = observer(() => {
       <SelectionBorders />
       <AlignmentGuides />
       <RenderedFormula />
-      <Debug />
+      {/*<Debug />*/}
     </div>
   );
 });

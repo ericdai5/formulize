@@ -1,8 +1,8 @@
 import katex from "katex";
-import * as babelPlugin from "prettier/parser-babel";
-import * as estreePlugin from "prettier/plugins/estree";
-import * as prettier from "prettier/standalone";
 
+// import * as babelPlugin from "prettier/parser-babel";
+// import * as estreePlugin from "prettier/plugins/estree";
+// import * as prettier from "prettier/standalone";
 import {
   FormulaLatexRangeNode,
   FormulaLatexRanges,
@@ -836,7 +836,7 @@ export class Brace extends AugmentedFormulaNodeBase {
     const baseElement = this.base.toLatex(mode, offset);
 
     if (mode === "content-only") {
-      return consolidateRanges(baseLatex, offset, this.id);
+      return consolidateRanges([baseElement], offset, this.id);
     }
 
     const command = "\\" + (this.over ? "over" : "under") + "brace";

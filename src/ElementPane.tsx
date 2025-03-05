@@ -198,7 +198,13 @@ const TreeElement = ({ tree }: { tree: AugmentedFormulaNode }) => {
         <LabeledNode
           tree={tree}
           label={tree.body
-            .map((node) => (node.type === "symbol" ? node.value : ""))
+            .map((node) =>
+              node.type === "symbol"
+                ? node.value
+                : node.type === "space"
+                  ? node.text
+                  : ""
+            )
             .join("")}
         />
       );

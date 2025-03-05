@@ -1,6 +1,5 @@
 import { css as classname } from "@emotion/css";
 import { Global, css } from "@emotion/react";
-import styled from "@emotion/styled";
 import { useEffect, useState } from "react";
 import useStateRef from "react-usestateref";
 
@@ -357,18 +356,18 @@ const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
   return tr;
 });
 
-const EditorTab = styled.button<{ selected: boolean }>`
-  height: 100%;
-  background-color: ${(props) => (props.selected ? "white" : "#f0f0f0")};
-  border: none;
-  border-bottom: ${(props) => (props.selected ? "2px solid black" : "none")};
-  padding: 0 1rem;
-`;
+// const EditorTab = styled.button<{ selected: boolean }>`
+//   height: 100%;
+//   background-color: ${(props) => (props.selected ? "white" : "#f0f0f0")};
+//   border: none;
+//   border-bottom: ${(props) => (props.selected ? "2px solid black" : "none")};
+//   padding: 0 1rem;
+// `;
 
 export const Editor = observer(() => {
-  const [currentEditor, setCurrentEditor] = useState<"full" | "content-only">(
-    "full"
-  );
+  // const [currentEditor, setCurrentEditor] = useState<"full" | "content-only">(
+  //   "full"
+  // );
 
   return (
     <>
@@ -418,7 +417,10 @@ export const Editor = observer(() => {
           Content-Only
         </EditorTab> */}
       </div>
-      {currentEditor === "full" ? <FullStyleEditor /> : <ContentOnlyEditor />}
+      {
+        /*currentEditor === "full" ? <FullStyleEditor /> : <ContentOnlyEditor />*/
+        <FullStyleEditor />
+      }
     </>
   );
 });
@@ -494,7 +496,7 @@ const FullStyleEditor = observer(() => {
             return;
           }
 
-          prettyLaTeX(latex, { printWidth: 30 }).then((pretty) => {
+          prettyLaTeX(latex, { printWidth: 30 }).then((pretty: string) => {
             newEditorView.dispatch([
               newEditorView.state.update({
                 changes: {
@@ -512,6 +514,11 @@ const FullStyleEditor = observer(() => {
         () =>
           [selectionStore.siblingSelections, formulaStore.latexRanges] as const,
         ([selectionRanges, latexRanges]) => {
+          if (suppressCodeUpdateRef.current) {
+            console.log("Suppressing selection update");
+            return;
+          }
+
           console.log("selection:", selectionRanges);
           const selections = selectionRanges.flatMap((range) => {
             const first = range[0];
@@ -548,7 +555,7 @@ const FullStyleEditor = observer(() => {
 
         // Synchronize the editor with the current formula
         prettyLaTeX(formulaStore.latexWithStyling, { printWidth: 30 }).then(
-          (pretty) => {
+          (pretty: string) => {
             newEditorView.dispatch([
               newEditorView.state.update({
                 changes: {
@@ -564,6 +571,7 @@ const FullStyleEditor = observer(() => {
 
       return () => {
         disposeUpdateCodeReaction();
+        disposeUpdateSelectionReaction();
         newEditorView.destroy();
       };
     }
@@ -582,6 +590,7 @@ const FullStyleEditor = observer(() => {
   );
 });
 
+// @ts-expect-error Currently unused
 const ContentOnlyEditor = observer(() => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
