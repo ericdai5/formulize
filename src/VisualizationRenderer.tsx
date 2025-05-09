@@ -52,6 +52,23 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({ visualiza
           <p>
             <strong>Tip:</strong> Click anywhere on the graph to set the {visualization.config.xAxis.variable} variable to that value
           </p>
+
+          {/* Show warning if there might be a mismatch between formula and config variables */}
+          {(() => {
+            const formula = computationStore.formula;
+            const formulaMatch = formula?.match(/^\s*([A-Za-z])\s*=/);
+            const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
+
+            if (formulaDepVar && formulaDepVar !== visualization.config.yAxis.variable) {
+              return (
+                <p className="mt-2 text-amber-600">
+                  <strong>Note:</strong> Formula uses variable "{formulaDepVar}" but graph is configured for "{visualization.config.yAxis.variable}".
+                  The plot will adapt to show the correct data.
+                </p>
+              );
+            }
+            return null;
+          })()}
         </div>
 
         {/* Use the render key to force complete re-creation of the Plot2D component when config changes */}

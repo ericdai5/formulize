@@ -88,47 +88,65 @@ async function create(config: FormulizeConfig, container?: string): Promise<Form
   try {
     // For now, we only support the formula part
     const { formula } = config;
-    
+
     // Validate the formula
     if (!formula) {
       throw new Error("No formula defined in configuration");
     }
-    
+
     if (!formula.expression) {
       throw new Error("No expression defined in formula");
     }
-    
+
     if (!formula.variables) {
       throw new Error("No variables defined in formula");
     }
-    
-    // Parse the formula to get an augmented formula object
+
+    // CRITICAL: Reset all state to ensure we start fresh
+    // Clear computation store variables and state
+    computationStore.variables.clear();
+    computationStore.formula = "";
+    computationStore.setLastGeneratedCode(null);
+    computationStore.setFormulaError(null);
+    computationStore.variableTypesChanged = 0;
+
+    // Clear the formula store with an empty formula
+    formulaStore.updateFormula(new AugmentedFormula([]));
+
+    console.log("🧹 State cleared completely for new formula");
+
+    // Now parse and set up the new formula
     const augmentedFormula = deriveAugmentedFormula(formula.expression);
     const canonicalFormula = canonicalizeFormula(augmentedFormula);
-    
+
     // Set the formula in the store
     formulaStore.updateFormula(canonicalFormula);
-    
-    // Add variables to computation store
+
+    console.log("🔄 Setting up new variables from formula config");
+
+    // Add variables to computation store from the configuration
     Object.entries(formula.variables).forEach(([varName, variable]) => {
       const symbol = varName.replace(/\$/g, "");
       const varId = `var-${symbol}`;
-      
+
+      console.log(`➕ Adding variable ${varId} (${symbol}) of type ${variable.type}`);
+
       // Add variable to computation store
       computationStore.addVariable(varId, symbol);
-      
+
       // Map variable types to computation store types
       const type = mapVariableType(variable.type);
       computationStore.setVariableType(varId, type);
-      
+
       // Set initial value if provided
       if (variable.value !== undefined) {
+        console.log(`⚙️ Setting initial value for ${varId}: ${variable.value}`);
         computationStore.setValue(varId, variable.value);
       }
     });
-    
+
     // Set the formula for computation
-    console.log("Setting formula in computation store:", formula.expression);
+    console.log("📝 Setting formula in computation store:", formula.expression);
     await computationStore.setFormula(formula.expression);
     
     // Return an API object for future interactions

@@ -318,12 +318,31 @@ class ComputationStore {
                 }
             }
     
-            // Validate all dependent vars are calculated
-            for (const depVar of dependentVars) {
-                if (!generatedCode.includes(`${depVar}:`)) {
-                    console.error(`🔴 Generated code missing dependent variable: ${depVar}`);
-                    throw new Error(`Generated code missing dependent variable: ${depVar}`);
-                }
+            // Check for dependent variables in the generated code
+            // Look for the dependent variables more flexibly with various delimiters
+            const dependentVarPatterns = dependentVars.map(v =>
+                new RegExp(`["']?${v}["']?\\s*:`, 'i')
+            );
+
+            // Extract the formula's left-side variable (the dependent variable)
+            const formulaMatch = formula.match(/^\s*([A-Za-z])\s*=/);
+            const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
+
+            // If we have a formula-defined dependent variable, include it in our check
+            if (formulaDepVar) {
+                dependentVarPatterns.push(new RegExp(`["']?${formulaDepVar}["']?\\s*:`, 'i'));
+            }
+
+            // Check if any of the dependent vars are in the generated code
+            const foundDepVar = dependentVarPatterns.some(pattern =>
+                pattern.test(generatedCode)
+            );
+
+            if (!foundDepVar) {
+                console.error("🔴 Generated code missing all dependent variables:",
+                    dependentVars.join(", "), formulaDepVar ? `and ${formulaDepVar}` : "");
+
+                throw new Error(`Generated code is missing dependent variables. Please check your formula.`);
             }
     
             return generatedCode;

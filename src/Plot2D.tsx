@@ -164,7 +164,23 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // This is completely isolated from the computationStore
           // and will never trigger API calls
           const result = localEvalFunction(calculationVars);
-          const y = result[yAxis.variable];
+
+          // First try to get the Y value using the configured yAxis.variable
+          let y = result[yAxis.variable];
+
+          // If we couldn't find the value using the configured variable name,
+          // try to extract and use the actual dependent variable from the formula
+          if (y === undefined) {
+            // Parse the formula to identify the dependent variable (left side of equation)
+            const formula = computationStore.formula;
+            const formulaMatch = formula.match(/^\s*([A-Za-z])\s*=/);
+            const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
+
+            if (formulaDepVar && result[formulaDepVar] !== undefined) {
+              console.log(`📊 Using formula-defined dependent variable ${formulaDepVar} instead of configured ${yAxis.variable}`);
+              y = result[formulaDepVar];
+            }
+          }
 
           if (typeof y === 'number' && !isNaN(y)) {
             points.push({ x, y });
