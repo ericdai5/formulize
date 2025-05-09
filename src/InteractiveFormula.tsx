@@ -366,11 +366,27 @@ const InteractiveFormula = observer(() => {
           const extractedVars = extractVariablesFromMathML(updatedMathml);
           
           // Initialize variables in computation store
+          console.log("🔍 Before cleanup, variables:", Array.from(computationStore.variables.entries()));
+          console.log("🔍 Extracted variables from MathML:", extractedVars);
           computationStore.cleanup(extractedVars);
-          computationStore.setFormula(formulaStore.latexWithoutStyling);
-          
+
+          // Get the original formula expression without any processing
+          const originalLatex = formulaStore.latexWithoutStyling;
+          console.log("🔍 Original formula to be sent to computation store:", originalLatex);
+
+          // This is the critical point - passing the formula to the computation store
+          // Make sure we're using the original LaTeX, not a processed version
+          if (originalLatex && originalLatex.trim() !== "") {
+            await computationStore.setFormula(originalLatex);
+          } else {
+            console.error("❌ Unable to set formula - no original LaTeX available");
+          }
+
+          console.log("🔍 After setting formula, variables:", Array.from(computationStore.variables.entries()));
+
           extractedVars.forEach(symbol => {
             const id = `var-${symbol}`;
+            console.log(`🔍 Adding variable: ${id} (${symbol})`);
             computationStore.addVariable(id, symbol);
           });
         }

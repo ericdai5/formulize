@@ -64,7 +64,10 @@ const BlockInteractivity = observer(() => {
         }))
       );
 
-      // Process the LaTeX to include interactive elements
+      // Store the original LaTeX for computation
+      const originalLatex = latex;
+
+      // Process the LaTeX to include interactive elements (for display only)
       const processedLatex = latex.replace(/([a-zA-Z])/g, (match) => {
         const varId = `var-${match}`;
         const variable = computationStore.variables.get(varId);
@@ -84,6 +87,7 @@ const BlockInteractivity = observer(() => {
         const type = variable.type;
 
         if (type === "fixed") {
+          // For display, replace with value
           return value.toString();
         }
 
@@ -110,6 +114,10 @@ const BlockInteractivity = observer(() => {
       // Update content and typeset
       containerRef.current.innerHTML = `\\[${processedLatex}\\]`;
       await window.MathJax.typesetPromise([containerRef.current]);
+
+      // Make sure to set the original formula for computation
+      console.log("🔍 Setting initial formula for computation:", originalLatex);
+      await computationStore.setFormula(originalLatex);
 
       // Add interaction handlers
       setupInteractionHandlers();
@@ -181,8 +189,10 @@ const BlockInteractivity = observer(() => {
         // Update the value
         computationStore.setValue(varId, clampedValue);
 
-        // Ensure formula is set for computation
-        await computationStore.setFormula(formulaStore.latexWithoutStyling);
+        // Ensure formula is set for computation using the original LaTeX
+        // NOT the processed one with CSS classes
+        console.log("🔍 Setting formula for computation:", originalLatex);
+        await computationStore.setFormula(originalLatex);
 
         // Log the state after update
         console.log(

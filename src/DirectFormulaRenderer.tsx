@@ -1,49 +1,58 @@
 import { useEffect, useRef, useState } from "react";
 
 import BlockInteractivity from "./BlockInteractivity";
-import { FormulaDefinition, createFormula } from "./api/formulaAPI";
+import { Formulize, FormulizeConfig, FormulizeFormula } from "./api";
 
 interface DirectFormulaRendererProps {
-  formula?: string;
-  variables?: Record<string, any>;
+  formulizeConfig?: FormulizeConfig;
+  formulizeFormula?: FormulizeFormula;
   autoRender?: boolean;
   height?: number | string;
   width?: number | string;
+  onConfigChange?: (config: FormulizeConfig) => void;
 }
 
-const DEFAULT_FORMULA = "K = \\frac{1}{2}mv^2";
-const DEFAULT_VARIABLES = {
-  K: {
-    type: "output",
-    units: "J",
-    label: "kinetic energy",
-    round: 2,
-  },
-  m: {
-    type: "constant",
-    value: 1,
-    units: "kg",
-    label: "mass",
-  },
-  v: {
-    type: "input",
-    value: 2,
-    range: [0.1, 10],
-    units: "m/s",
-    label: "velocity",
+// Default Formulize formula configuration
+const DEFAULT_FORMULIZE_FORMULA: FormulizeFormula = {
+  expression: "K = \\frac{1}{2}mv^2",
+  variables: {
+    K: {
+      type: "dependent",
+      units: "J",
+      label: "kinetic energy",
+      precision: 2,
+    },
+    m: {
+      type: "constant",
+      value: 1,
+      units: "kg",
+      label: "mass",
+    },
+    v: {
+      type: "input",
+      value: 2,
+      range: [0.1, 10],
+      units: "m/s",
+      label: "velocity",
+    },
   },
 };
 
 const DirectFormulaRenderer = ({
-  formula = DEFAULT_FORMULA,
-  variables = DEFAULT_VARIABLES,
+  formulizeConfig = { formula: DEFAULT_FORMULIZE_FORMULA },
+  formulizeFormula = DEFAULT_FORMULIZE_FORMULA,
   autoRender = true,
   height = 300,
   width = "100%",
+  onConfigChange,
 }: DirectFormulaRendererProps) => {
-  const [formulaInput, setFormulaInput] = useState<string>(formula);
-  const [variablesInput, setVariablesInput] = useState<string>(
-    JSON.stringify(variables, null, 2)
+  // Use formulizeConfig if provided, otherwise use the formulizeFormula
+  const initialConfig = formulizeConfig?.formula ? 
+    formulizeConfig : 
+    { formula: formulizeFormula };
+  
+  const [formulizeInput, setFormulizeInput] = useState<string>(
+    JSON.stringify(initialConfig, null, 2)
   );
   const [isRendered, setIsRendered] = useState<boolean>(autoRender);
   const [error, setError] = useState<string | null>(null);
@@ -53,31 +62,39 @@ const DirectFormulaRenderer = ({
     if (autoRender) {
       renderFormula();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const renderFormula = async () => {
     try {
       setError(null);
-
-      let parsedVariables;
+      
+      // Parse the Formulize configuration
+      let parsedFormulize;
       try {
-        parsedVariables = JSON.parse(variablesInput);
+        parsedFormulize = JSON.parse(formulizeInput);
       } catch (e) {
-        setError("Invalid JSON in variables");
+        setError("Invalid JSON in Formulize configuration");
         return;
       }
 
-      const definition: FormulaDefinition = {
-        formula: formulaInput,
-        variables: parsedVariables,
-      };
+      // Create the formula using Formulize API
+      try {
+        const formulizeInstance = await Formulize.create(parsedFormulize);
 
-      const success = await createFormula(definition);
+        // Store the config globally for access by other components
+        window.__lastFormulizeConfig = parsedFormulize;
 
-      if (success) {
+        // Notify parent of config change via callback if provided
+        if (onConfigChange) {
+          console.log("📢 Notifying parent of configuration:", parsedFormulize);
+          onConfigChange(parsedFormulize);
+        }
+
         setIsRendered(true);
-      } else {
-        setError("Failed to create formula");
+      } catch (e) {
+        console.error("Formulize API error:", e);
+        setError(`Failed to create formula: ${e instanceof Error ? e.message : String(e)}`);
       }
     } catch (err) {
       console.error("Error rendering formula:", err);
@@ -89,28 +106,16 @@ const DirectFormulaRenderer = ({
     <div className="formula-renderer border border-gray-200 rounded-lg overflow-hidden">
       {!isRendered ? (
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Formula Definition</h2>
-
+          <h2 className="text-lg font-semibold mb-4">Formulize Definition</h2>
+          
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">
-              LaTeX Formula:
-            </label>
-            <input
-              type="text"
-              value={formulaInput}
-              onChange={(e) => setFormulaInput(e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              Variables (JSON):
+              Formulize Configuration (JSON):
             </label>
             <textarea
-              value={variablesInput}
-              onChange={(e) => setVariablesInput(e.target.value)}
-              className="w-full p-2 border rounded font-mono text-sm h-40"
+              value={formulizeInput}
+              onChange={(e) => setFormulizeInput(e.target.value)}
+              className="w-full p-2 border rounded font-mono text-sm h-80"
             />
           </div>
 
@@ -148,8 +153,7 @@ const DirectFormulaRenderer = ({
           </div>
 
           <div className="p-2 bg-gray-50 text-xs text-gray-500">
-            Drag sliding variables (blue) to see how they affect the output
-            (gray)
+            Drag input variables to see how they affect the dependent variables
           </div>
         </div>
       )}
