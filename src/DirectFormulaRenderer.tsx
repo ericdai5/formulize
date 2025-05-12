@@ -51,8 +51,86 @@ const DirectFormulaRenderer = ({
     formulizeConfig : 
     { formula: formulizeFormula };
   
+  // Convert the config to a JavaScript-like format for display
+  const configToJsString = (config: FormulizeConfig): string => {
+    const computation = config.formula.computation;
+    let computationStr = '';
+
+    if (computation.engine === 'symbolic-algebra') {
+      computationStr = `
+    computation: {
+      // Use symbolic algebra engine
+      engine: "symbolic-algebra",
+      formula: "${(computation as any).formula || '{K} = 0.5 * {m} * {v} * {v}'}"
+    }`;
+    } else {
+      computationStr = `
+    computation: {
+      // Use LLM engine
+      engine: "llm",
+      model: "${(computation as any).model || 'gpt-4'}"
+    }`;
+    }
+
+    return `// Formulize configuration
+const config = {
+  formula: {
+    expression: "${config.formula.expression}",
+
+    variables: {
+      K: {
+        type: "dependent",
+        units: "J",
+        label: "Kinetic Energy",
+        precision: 2
+      },
+      m: {
+        type: "input",
+        value: ${config.formula.variables.m?.value || 1},
+        range: [0.1, 10],
+        units: "kg",
+        label: "Mass"
+      },
+      v: {
+        type: "input",
+        value: ${config.formula.variables.v?.value || 2},
+        range: [0.1, 100],
+        units: "m/s",
+        label: "Velocity"
+      }
+    },${computationStr}
+  },
+
+  visualizations: [
+    {
+      type: "plot2d",
+      config: {
+        title: "Kinetic Energy vs. Velocity",
+        xAxis: {
+          variable: "v",
+          label: "Velocity (m/s)",
+          min: 0,
+          max: 20
+        },
+        yAxis: {
+          variable: "K",
+          label: "Kinetic Energy (J)",
+          min: 0,
+          max: 200
+        },
+        width: 800,
+        height: 500
+      }
+    }
+  ]
+};
+
+// Create the formula
+const formula = await Formulize.create(config);`;
+  };
+
   const [formulizeInput, setFormulizeInput] = useState<string>(
-    JSON.stringify(initialConfig, null, 2)
+    configToJsString(initialConfig)
   );
   const [isRendered, setIsRendered] = useState<boolean>(autoRender);
   const [error, setError] = useState<string | null>(null);
@@ -65,30 +143,61 @@ const DirectFormulaRenderer = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Update the formula display when the config changes
+  useEffect(() => {
+    if (formulizeConfig !== initialConfig) {
+      setFormulizeInput(configToJsString(formulizeConfig));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formulizeConfig, JSON.stringify(formulizeConfig)]);
+
   const renderFormula = async () => {
     try {
       setError(null);
-      
-      // Parse the Formulize configuration
-      let parsedFormulize;
-      try {
-        parsedFormulize = JSON.parse(formulizeInput);
-      } catch (e) {
-        setError("Invalid JSON in Formulize configuration");
-        return;
+
+      // Extract the engine type and configuration from the textarea JavaScript
+      let configToUse = { ...formulizeConfig };
+
+      // Check if the textarea contains a symbolic-algebra engine definition
+      if (formulizeInput.includes('engine: "symbolic-algebra"')) {
+        configToUse = {
+          ...configToUse,
+          formula: {
+            ...configToUse.formula,
+            computation: {
+              engine: "symbolic-algebra",
+              formula: "{K} = 0.5 * {m} * {v} * {v}"
+            }
+          }
+        };
       }
+      // Check if the textarea contains an llm engine definition
+      else if (formulizeInput.includes('engine: "llm"')) {
+        configToUse = {
+          ...configToUse,
+          formula: {
+            ...configToUse.formula,
+            computation: {
+              engine: "llm",
+              model: "gpt-4"
+            }
+          }
+        };
+      }
+
+      console.log("Using config with engine:", configToUse.formula.computation.engine);
 
       // Create the formula using Formulize API
       try {
-        const formulizeInstance = await Formulize.create(parsedFormulize);
+        const formulizeInstance = await Formulize.create(configToUse);
 
         // Store the config globally for access by other components
-        window.__lastFormulizeConfig = parsedFormulize;
+        window.__lastFormulizeConfig = configToUse;
 
         // Notify parent of config change via callback if provided
         if (onConfigChange) {
-          console.log("📢 Notifying parent of configuration:", parsedFormulize);
-          onConfigChange(parsedFormulize);
+          console.log("📢 Notifying parent of configuration:", configToUse);
+          onConfigChange(configToUse);
         }
 
         setIsRendered(true);
@@ -109,9 +218,14 @@ const DirectFormulaRenderer = ({
           <h2 className="text-lg font-semibold mb-4">Formulize Definition</h2>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              Formulize Configuration (JSON):
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium">
+                Formulize Configuration (JavaScript):
+              </label>
+              <div className="text-sm text-gray-500">
+                Edit this configuration to change the computation engine
+              </div>
+            </div>
             <textarea
               value={formulizeInput}
               onChange={(e) => setFormulizeInput(e.target.value)}

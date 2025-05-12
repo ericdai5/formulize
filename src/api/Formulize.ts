@@ -145,6 +145,17 @@ async function create(config: FormulizeConfig, container?: string): Promise<Form
       }
     });
 
+    // Set up the computation engine if specified
+    if (formula.computation) {
+      console.log(`🧮 Setting computation engine to: ${formula.computation.engine}`);
+      computationStore.computationEngine = formula.computation.engine;
+      computationStore.computationConfig = formula.computation;
+    } else {
+      // Default to LLM engine if not specified
+      computationStore.computationEngine = "llm";
+      computationStore.computationConfig = null;
+    }
+
     // Set the formula for computation
     console.log("📝 Setting formula in computation store:", formula.expression);
     await computationStore.setFormula(formula.expression);

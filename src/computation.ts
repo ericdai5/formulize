@@ -1,4 +1,6 @@
 import { observable, action, computed } from "mobx";
+import { computeWithSymbolicEngine } from "./api/SymbolicAlgebraEngine";
+import { FormulizeComputation } from "./api/Formulize";
 
 export type VariableType = 'fixed' | 'slidable' | 'dependent' | 'none';
 
@@ -33,6 +35,12 @@ class ComputationStore {
 
     @observable
     accessor lastGeneratedCode: string | null = null;
+
+    @observable
+    accessor computationEngine: "llm" | "symbolic-algebra" | "manual" = "llm";
+
+    @observable
+    accessor computationConfig: FormulizeComputation | null = null;
 
     private evaluationFunction: Function | null = null;
     private isUpdatingDependents = false;
@@ -130,8 +138,9 @@ class ComputationStore {
             return;
         }
 
-        // Check if we have this formula in our cache
-        if (this.formulaCache.has(normalizedFormula)) {
+        // Check if we have this formula in our cache but ONLY for LLM engine
+        // Never use cache for symbolic-algebra engine
+        if (this.computationEngine === "llm" && this.formulaCache.has(normalizedFormula)) {
             console.log("💾 Found cached function code for formula, avoiding API call");
             const cachedCode = this.formulaCache.get(normalizedFormula)!;
 
@@ -170,32 +179,141 @@ class ComputationStore {
         if (this.dependentVariableTypes.size > 0 &&
             (!this.evaluationFunction || normalizedFormula !== prevFormula)) {
             try {
-                // Always generate the function using the OpenAI API for all formulas
-                // This ensures we're using the OpenAI API to generate the evaluation function
-                console.log("🚀 Generating function via OpenAI API for formula:", normalizedFormula);
+                // Use the appropriate computation engine based on the configuration
+                if (this.computationEngine === "symbolic-algebra" && this.computationConfig) {
+                    console.log("🧠 Using symbolic algebra engine for formula:", normalizedFormula);
 
-                const dependentVars = Array.from(this.dependentVariableTypes)
-                    .map(id => {
-                        const variable = this.variables.get(id);
-                        return variable?.symbol;
-                    })
-                    .filter((symbol): symbol is string => symbol !== undefined);
+                    const dependentVars = Array.from(this.dependentVariableTypes)
+                        .map(id => {
+                            const variable = this.variables.get(id);
+                            return variable?.symbol;
+                        })
+                        .filter((symbol): symbol is string => symbol !== undefined);
 
-                console.log("🔎 Dependent variables for function generation:", dependentVars);
+                    console.log("🔎 Dependent variables for symbolic algebra:", dependentVars);
 
-                // Generate and set up evaluation function via API call
-                const functionCode = await this.generateEvaluationFunction(normalizedFormula, dependentVars);
+                    // Create a function that uses the symbolic algebra engine
+                    this.evaluationFunction = (variables: Record<string, any>) => {
+                        if (!this.computationConfig) return {};
 
-                // Cache the generated code for future identical formulas
-                this.formulaCache.set(normalizedFormula, functionCode);
-                this.setLastGeneratedCode(functionCode);
+                        // Reconstruct the formula object from the current state
+                        const formulaObj = {
+                            expression: normalizedFormula,
+                            variables: Object.fromEntries(
+                                Array.from(this.variables.entries()).map(([id, v]) => {
+                                    const varType = v.type === 'fixed' ? 'constant' :
+                                                    v.type === 'slidable' ? 'input' :
+                                                    v.type === 'dependent' ? 'dependent' : 'constant';
+                                    return [v.symbol, { type: varType }];
+                                })
+                            )
+                        };
 
-                this.evaluationFunction = new Function(
-                    'variables',
-                    `"use strict";\n${functionCode}\nreturn evaluate(variables);`
-                );
+                        // Compute using the symbolic algebra engine
+                        return computeWithSymbolicEngine(
+                            formulaObj,
+                            this.computationConfig,
+                            variables
+                        );
+                    };
 
-                this.setFormulaError(null);
+                    // Generate a simplified evaluation function for display
+                    const formulaRelation = this.computationConfig.formula || "";
+                    
+                    // Process the formula string for evaluation (remove the curly braces)
+                    const processedFormula = formulaRelation.replace(/\{([^}]+)\}/g, '$1');
+
+                    // Generate evaluation function that matches what's really used by SymbolicAlgebraEngine
+                    let functionCode = `function evaluate(variables) {
+  // Using math.js for symbolic evaluation
+  // const math = require('mathjs');
+
+  try {
+`;
+
+                    // Add input variable declarations
+                    const inputVars = Array.from(this.variables.entries())
+                        .filter(([_, v]) => v.type !== 'dependent')
+                        .map(([_, v]) => v.symbol);
+
+                    inputVars.forEach(varName => {
+                        functionCode += `    var ${varName} = variables.${varName};\n`;
+                    });
+
+                    // Structure the code to match the real implementation in SymbolicAlgebraEngine.ts
+                    functionCode += `    // Create a scope object with input variables
+    const scope = { ...variables };
+    const result = {};\n`;
+
+                    // For each dependent variable, generate code similar to the actual implementation
+                    dependentVars.forEach(varName => {
+                        functionCode += `
+    // Calculate ${varName}
+`;
+                        // Check if there's an explicit mapping function in the config
+                        if (this.computationConfig.mappings &&
+                            typeof this.computationConfig.mappings[varName] === 'function') {
+                            // Use the mapping function if available
+                            functionCode += `    // Using custom mapping function
+    result.${varName} = computation.mappings.${varName}(variables);\n`;
+                        } else {
+                            // Otherwise use math.js for symbolic evaluation
+                            functionCode += `    // Try to solve symbolically using math.js
+    const equationMatch = "${processedFormula}".match(/${varName}\\s*=\\s*(.+)/);
+
+    if (equationMatch) {
+      // Extract the right side of the equation and evaluate it
+      const rightSide = equationMatch[1];
+      result.${varName} = math.evaluate(rightSide, scope);
+    } else {
+      // Fall back to evaluating the full formula
+      try {
+        result.${varName} = math.evaluate("${processedFormula}", scope);
+      } catch (error) {
+        console.error("Could not solve for ${varName} symbolically", error);
+        result.${varName} = NaN;
+      }
+    }\n`;
+                        }
+                    });
+
+                    // Return the results
+                    functionCode += `    return result;
+  } catch (error) {
+    console.error("Error in symbolic algebra evaluation:", error);
+    return { ${dependentVars.map(v => `${v}: NaN`).join(', ')} };
+  }
+}`;
+                    
+                    this.setLastGeneratedCode(functionCode);
+                    this.setFormulaError(null);
+                } else {
+                    // Fallback to the OpenAI API for LLM-based computation
+                    console.log("🚀 Generating function via OpenAI API for formula:", normalizedFormula);
+
+                    const dependentVars = Array.from(this.dependentVariableTypes)
+                        .map(id => {
+                            const variable = this.variables.get(id);
+                            return variable?.symbol;
+                        })
+                        .filter((symbol): symbol is string => symbol !== undefined);
+
+                    console.log("🔎 Dependent variables for function generation:", dependentVars);
+
+                    // Generate and set up evaluation function via API call
+                    const functionCode = await this.generateEvaluationFunction(normalizedFormula, dependentVars);
+
+                    // Cache the generated code for future identical formulas
+                    this.formulaCache.set(normalizedFormula, functionCode);
+                    this.setLastGeneratedCode(functionCode);
+
+                    this.evaluationFunction = new Function(
+                        'variables',
+                        `"use strict";\n${functionCode}\nreturn evaluate(variables);`
+                    );
+
+                    this.setFormulaError(null);
+                }
             } catch (error) {
                 console.error("❌ Error setting formula:", error);
                 this.setFormulaError(String(error));
@@ -440,32 +558,6 @@ class ComputationStore {
         this.variableTypesChanged++;
         this.updateDependentVariables();
     }
-
-    // @action
-    // setValue(id: string, value: number) {
-    //     console.log("🔵 Setting value:", {id, value});
-    //     const variable = this.variables.get(id);
-    //     if (!variable) {
-    //         console.log("🔴 Variable not found:", id);
-    //         return;
-    //     }
-
-    //     if (variable.type === 'dependent' && !this.isUpdatingDependents) {
-    //         console.log("🔴 Attempted to set dependent variable directly");
-    //         return;
-    //     }
-
-    //     variable.value = value;
-    //     variable.error = undefined;
-    //     console.log(`🔵 Value set for ${id}: ${value}`);
-    //     if (variable.type === 'fixed') {
-    //         this.setDisplayValue(id, value);
-    //     }
-    //     if (!this.isUpdatingDependents) {
-    //       console.log(`🔵 Updating dependent variables`);
-    //       this.updateDependentVariables();
-    //     }
-    // }
 
     @action
     private updateDependentVariables() {
