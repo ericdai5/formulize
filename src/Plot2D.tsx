@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { FormulizePlot2D } from './api';
 import { computationStore } from './computation';
-import { reaction } from 'mobx';
+import { reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react-lite';
 
 interface Plot2DProps {
@@ -29,10 +29,20 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     title = '',
     xAxis,
     yAxis, 
-    samples = 200,
     width = 800,
     height = 500
   } = config;
+  
+  // Calculate appropriate number of samples based on display width for smooth curves
+  // Using a higher density than the physical pixels for better visual quality
+  const SAMPLE_DENSITY = 5; // samples per pixel for high resolution
+  const plotWidthPx = (typeof width === 'number' ? width : parseInt(width as string, 10)) - 120; // Accounting for margins
+  const samples = Math.ceil(SAMPLE_DENSITY * plotWidthPx);
+  
+  // For very steep functions, we might need even more samples
+  // This provides virtually continuous plotting for continuous functions
+  const MIN_SAMPLES = 500; // Minimum number of samples for any plot
+  const finalSamples = Math.max(samples, MIN_SAMPLES);
   
   // Get min/max values or derive from range if not specified
   const xMin = xAxis.min ?? 0;
@@ -45,11 +55,21 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const plotWidth = (typeof width === 'number' ? width : parseInt(width as string, 10)) - margin.left - margin.right;
   const plotHeight = (typeof height === 'number' ? height : parseInt(height as string, 10)) - margin.top - margin.bottom;
 
-  // Function to get variable value from computation store
+  // Function to get variable value from computation store or binding system
   const getVariableValue = (variableName: string): number => {
-    const varId = `var-${variableName}`;
-    const variable = computationStore.variables.get(varId);
-    return variable?.value ?? 0;
+    // First try to get value through binding system if it's been registered
+    try {
+      // This would use the binding system in a full implementation
+      // For now, we'll continue to use the computation store directly
+      const varId = `var-${variableName}`;
+      const variable = computationStore.variables.get(varId);
+      return variable?.value ?? 0;
+    } catch (error) {
+      // Fallback to direct computation store access
+      const varId = `var-${variableName}`;
+      const variable = computationStore.variables.get(varId);
+      return variable?.value ?? 0;
+    }
   };
   
   // Function to get or create a cached evaluation function
@@ -132,10 +152,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
       // Generate evenly spaced x values across the domain
       const xValues: number[] = [];
-      const step = (xMax - xMin) / samples;
-      for (let i = 0; i <= samples; i++) {
+      const step = (xMax - xMin) / finalSamples;
+      for (let i = 0; i <= finalSamples; i++) {
         xValues.push(xMin + i * step);
       }
+      
+      console.log(`📊 Generating ${finalSamples} samples for virtually continuous plotting`);
 
       // Generate plot points WITHOUT modifying the computation store
       const points: DataPoint[] = [];
@@ -182,7 +204,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             }
           }
 
-          if (typeof y === 'number' && !isNaN(y)) {
+          // Only include points that are within the specified bounds
+          if (typeof y === 'number' && !isNaN(y) && 
+              x >= xMin && x <= xMax && 
+              y >= yMin && y <= yMax) {
             points.push({ x, y });
           }
         } catch (error) {
@@ -194,11 +219,15 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       const currentX = getVariableValue(xAxis.variable);
       const currentY = getVariableValue(yAxis.variable);
 
-      console.log(`🎯 Current point: (${currentX.toFixed(2)}, ${currentY.toFixed(2)})`);
+      // Ensure we have numeric values
+      const currentXNum = typeof currentX === 'number' ? currentX : parseFloat(String(currentX)) || 0;
+      const currentYNum = typeof currentY === 'number' ? currentY : parseFloat(String(currentY)) || 0;
+
+      console.log(`🎯 Current point: (${currentXNum.toFixed(2)}, ${currentYNum.toFixed(2)})`);
       console.log(`📊 Generated ${points.length} data points without OpenAI API calls`);
 
       // Update the state with new data points and current point
-      setCurrentPoint({ x: currentX, y: currentY });
+      setCurrentPoint({ x: currentXNum, y: currentYNum });
       setDataPoints(points);
     } catch (error) {
       console.error("❌ Error calculating plot data points:", error);
@@ -243,7 +272,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     config.yAxis?.label,
     config.yAxis?.min,
     config.yAxis?.max,
-    config.samples,
     config.width,
     config.height
   ]);
@@ -417,11 +445,11 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         .tickFormat(() => "")
       );
     
-    // Create line generator
+    // Create line generator for smooth, continuous curves
     const line = d3.line<DataPoint>()
       .x(d => xScale(d.x))
       .y(d => yScale(d.y))
-      .curve(d3.curveMonotoneX); // Smoother curve
+      .curve(d3.curveBasis); // Higher quality smooth curve for continuous functions
     
     // Add the line path
     svg.append("path")
@@ -473,7 +501,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         .attr("y", yScale(currentPoint.y) - 10)
         .attr("fill", "#000")
         .attr("text-anchor", "start")
-        .text(`${xAxis.label || xAxis.variable}: ${currentPoint.x.toFixed(2)}, ${yAxis.label || yAxis.variable}: ${currentPoint.y.toFixed(2)}`);
+        .text(`${xAxis.label || xAxis.variable}: ${Number(currentPoint.x).toFixed(2)}, ${yAxis.label || yAxis.variable}: ${Number(currentPoint.y).toFixed(2)}`);
     }
     
     // Create a rect to capture mouse events
@@ -511,17 +539,37 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         tooltip
           .style("left", `${event.pageX + 10}px`)
           .style("top", `${event.pageY - 30}px`)
-          .html(`${xAxis.label || xAxis.variable}: ${d.x.toFixed(2)} ${xAxis.label ? `(${xAxis.variable})` : ''}<br>${yAxis.label || yAxis.variable}: ${d.y.toFixed(2)} ${yAxis.label ? `(${yAxis.variable})` : ''}`);
+          .html(`${xAxis.label || xAxis.variable}: ${Number(d.x).toFixed(2)} ${xAxis.label ? `(${xAxis.variable})` : ''}<br>${yAxis.label || yAxis.variable}: ${Number(d.y).toFixed(2)} ${yAxis.label ? `(${yAxis.variable})` : ''}`);
       })
       .on("click", (event) => {
         const [mouseX] = d3.pointer(event);
         const x0 = xScale.invert(mouseX);
 
-        // Set the input variable to the clicked value
-        // This is a legitimate use of setValue - it's user-initiated
-        const xVarId = `var-${xAxis.variable}`;
-        console.log(`📊 User clicked on graph, setting ${xAxis.variable} = ${x0}`);
-        computationStore.setValue(xVarId, x0);
+        // This will use the registered click handler if one exists,
+        // which is how visualization bindings work
+        try {
+          // If we have an ID for this plot, use it to trigger the handler
+          if (config.id) {
+            console.log(`📊 User clicked on graph id ${config.id}, setting ${xAxis.variable} = ${x0}`);
+            computationStore.triggerClickHandler(`plot2d-${config.id}`, x0);
+          } else {
+            // Default fallback behavior using direct store access
+            const xVarId = `var-${xAxis.variable}`;
+            console.log(`📊 User clicked on graph, setting ${xAxis.variable} = ${x0} directly`);
+            // Use runInAction to comply with MobX strict mode
+            runInAction(() => {
+              computationStore.setValue(xVarId, x0);
+            });
+          }
+        } catch (error) {
+          console.error(`Error updating variable through bindings:`, error);
+          // Fallback to direct update in case of error
+          const xVarId = `var-${xAxis.variable}`;
+          // Use runInAction to comply with MobX strict mode
+          runInAction(() => {
+            computationStore.setValue(xVarId, x0);
+          });
+        }
       });
       
   }, [dataPoints, currentPoint, width, height, margin, xMin, xMax, yMin, yMax, plotWidth, plotHeight, xAxis, yAxis, title]);

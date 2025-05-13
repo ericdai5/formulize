@@ -3,7 +3,7 @@ import { computationStore } from "../computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 import { formulaStore } from "../store";
 
-export type VariableType = "constant" | "input" | "output";
+export type VariableType = "constant" | "input" | "dependent";
 
 export interface FormulaVariable {
   type: VariableType;
@@ -74,7 +74,7 @@ function mapVariableType(
       return "fixed";
     case "input":
       return "slidable";
-    case "output":
+    case "dependent":
       return "dependent";
     default:
       return "none";

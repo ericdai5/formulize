@@ -6,7 +6,7 @@
  */
 
 import * as math from 'mathjs';
-import { FormulizeFormula, FormulizeComputation, FormulizeVariable } from './Formulize';
+import { FormulizeFormula, FormulizeComputation } from './Formulize';
 
 /**
  * Processes a formula string to replace variable names with math.js symbols

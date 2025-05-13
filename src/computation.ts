@@ -14,6 +14,9 @@ export type VariableState = {
     error?: string;
   };
 
+// Type for click handlers that receive x coordinate values
+type ClickHandler = (x: number) => void;
+
 class ComputationStore {
     @observable 
     accessor variables = new Map<string, {
@@ -25,6 +28,9 @@ class ComputationStore {
         dependencies?: Set<string>;
         error?: string;
     }>();
+    
+    // Click handlers registry for binding visualizations to formulas
+    private clickHandlers = new Map<string, ClickHandler>();
 
 
     @observable
@@ -614,6 +620,26 @@ class ComputationStore {
         };
     }
 }
+
+// Add methods for click handlers
+Object.assign(ComputationStore.prototype, {
+    // Register a click handler for a visualization component
+    registerClickHandler(id: string, handler: ClickHandler) {
+        this.clickHandlers.set(id, handler);
+        console.log(`Registered click handler for ${id}`);
+    },
+    
+    // Trigger a click handler for a visualization component
+    triggerClickHandler(id: string, x: number) {
+        const handler = this.clickHandlers.get(id);
+        if (handler) {
+            handler(x);
+            console.log(`Triggered click handler for ${id} with x=${x}`);
+        } else {
+            console.warn(`No click handler registered for ${id}`);
+        }
+    }
+});
 
 export const computationStore = new ComputationStore();
 
