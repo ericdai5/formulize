@@ -77,7 +77,6 @@ export interface FormulizePlot2D {
   };
   width?: number | string;
   height?: number | string;
-  // samples property removed - now handled implicitly based on display width
 }
 
 export interface FormulizeBinding {

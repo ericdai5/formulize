@@ -42,13 +42,6 @@ export function deriveSymbolicFunction(
   
   // Try to parse the formula with math.js
   try {
-    const parsedExpression = math.parse(processedFormula);
-    
-    // Get all input variables needed for this formula
-    const inputVarNames = Object.entries(formula.variables)
-      .filter(([_, varDef]) => varDef.type !== 'dependent')
-      .map(([varName]) => varName);
-    
     // Create a function that evaluates the expression for all dependent variables
     return function(variables: Record<string, any>): Record<string, any> {
       try {
