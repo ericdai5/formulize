@@ -4,11 +4,20 @@
  * This provides a declarative API for creating interactive formula visualizations
  * as described in the Formulize API Documentation.
  */
-
 import { AugmentedFormula, deriveAugmentedFormula } from "../FormulaTree";
 import { computationStore } from "../computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 import { formulaStore } from "../store";
+
+/**
+ * Creates an interactive formula visualization from a Formulize specification
+ *
+ * @param config The Formulize configuration object
+ * @param container Optional container element ID to render into
+ * @returns A Formulize instance with methods to interact with the rendered formula
+ */
+// Import binding system
+import { bindingSystem } from "./BindingSystem";
 
 // Type definitions for the Formulize API
 export interface FormulizeFormula {
@@ -33,7 +42,7 @@ export interface FormulizeVariableBind {
 
 export interface FormulizeVariable {
   type: "constant" | "input" | "dependent";
-  value?: number | string | boolean;
+  value?: number;
   dataType?: "scalar" | "vector" | "matrix";
   dimensions?: number[];
   units?: string;
@@ -56,12 +65,13 @@ export interface FormulizeComputation {
 
 // Visualization type definitions
 export interface FormulizeVisualization {
-  type: 'plot2d' | string;
+  type: "plot2d" | string;
   config: FormulizePlot2D;
+  id?: string;
 }
 
 export interface FormulizePlot2D {
-  type: 'plot2d';
+  type: "plot2d";
   title?: string;
   xAxis: {
     variable: string;
@@ -106,9 +116,13 @@ export interface FormulizeConfig {
  */
 export interface FormulizeInstance {
   formula: FormulizeFormula;
-  getVariable: (name: string) => { name: string, value: number | string | boolean | unknown, type: string };
+  getVariable: (name: string) => {
+    name: string;
+    value: number;
+    type: string;
+  };
   setVariable: (name: string, value: number) => boolean;
-  update: (config: FormulizeConfig) => Promise<void>;
+  update: (config: FormulizeConfig) => Promise<FormulizeInstance>;
   destroy: () => void;
 }
 
@@ -128,17 +142,10 @@ function mapVariableType(
   }
 }
 
-/**
- * Creates an interactive formula visualization from a Formulize specification
- * 
- * @param config The Formulize configuration object
- * @param container Optional container element ID to render into
- * @returns A Formulize instance with methods to interact with the rendered formula
- */
-// Import binding system
-import { bindingSystem } from './BindingSystem';
-
-async function create(config: FormulizeConfig, container?: string): Promise<FormulizeInstance> {
+async function create(
+  config: FormulizeConfig,
+  container?: string
+): Promise<FormulizeInstance> {
   try {
     // For now, we only support the formula part
     const { formula, visualizations, externalControls, bindings } = config;
@@ -169,7 +176,7 @@ async function create(config: FormulizeConfig, container?: string): Promise<Form
 
     console.log("🧹 State cleared completely for new formula");
 
-    // Now parse and set up the new formula
+    // Parse and set up the new formula
     const augmentedFormula = deriveAugmentedFormula(formula.expression);
     const canonicalFormula = canonicalizeFormula(augmentedFormula);
 
@@ -180,19 +187,11 @@ async function create(config: FormulizeConfig, container?: string): Promise<Form
 
     // Register formula with binding system
     const formulaId = formula.id || "default-formula";
-    bindingSystem.registerComponent(
-      formulaId,
-      'formula',
-      formula,
-      formula.variables
-    );
 
     // Add variables to computation store from the configuration
     Object.entries(formula.variables).forEach(([varName, variable]) => {
       const symbol = varName.replace(/\$/g, "");
       const varId = `var-${symbol}`;
-
-      console.log(`➕ Adding variable ${varId} (${symbol}) of type ${variable.type}`);
 
       // Add variable to computation store
       computationStore.addVariable(varId, symbol);
@@ -203,23 +202,12 @@ async function create(config: FormulizeConfig, container?: string): Promise<Form
 
       // Set initial value if provided
       if (variable.value !== undefined) {
-        console.log(`⚙️ Setting initial value for ${varId}: ${variable.value}`);
         computationStore.setValue(varId, variable.value);
-      }
-
-      // Process variable local bindings if they exist
-      if (variable.bind) {
-        bindingSystem.registerLocalBinding(
-          formulaId,
-          varName,
-          variable.bind
-        );
       }
     });
 
     // Set up the computation engine if specified
     if (formula.computation) {
-      console.log(`🧮 Setting computation engine to: ${formula.computation.engine}`);
       computationStore.computationEngine = formula.computation.engine;
       computationStore.computationConfig = formula.computation;
     } else {
@@ -227,79 +215,83 @@ async function create(config: FormulizeConfig, container?: string): Promise<Form
       computationStore.computationEngine = "llm";
       computationStore.computationConfig = null;
     }
+    await computationStore.setFormula(formulaStore.latexWithoutStyling);
 
-    // Set the formula for computation
-    console.log("📝 Setting formula in computation store:", formula.expression);
-    await computationStore.setFormula(formula.expression);
-    
-    // Set up visualizations if provided
-    if (visualizations && visualizations.length > 0) {
-      console.log(`🔍 Setting up ${visualizations.length} visualizations`);
-      
-      visualizations.forEach((viz, index) => {
-        const vizId = viz.id || `viz-${index}`;
-        
-        // Register visualization with binding system
-        bindingSystem.registerComponent(
-          vizId,
-          'visualization',
-          viz,
-          viz.config
-        );
-        
-        // Process visualization bindings
-        bindingSystem.processVisualizationBindings(vizId, viz);
-      });
-    }
-    
-    // Set up external controls if provided
-    if (externalControls && externalControls.length > 0) {
-      console.log(`🎛️ Setting up ${externalControls.length} external controls`);
-      
-      // Would register controls similarly to visualizations
-      // This would be implemented similarly to visualization binding
-    }
-    
-    // Set up global bindings if provided
-    if (bindings && bindings.length > 0) {
-      console.log(`🔗 Setting up ${bindings.length} global bindings`);
-      bindingSystem.setGlobalBindings(bindings);
-    }
-    
-    // Return an API object for future interactions
-    return {
+    // Store the formulaId for setVariable method to use
+    const instance = {
       formula,
       getVariable: (name: string) => {
-        const varId = `var-${name}`;
+        const symbol = name.replace(/\$/g, "");
+        const varId = `var-${symbol}`;
         const variable = computationStore.variables.get(varId);
         return {
           name,
           value: variable?.value ?? 0,
-          type: formula.variables[name].type
+          type: formula.variables[name].type,
         };
       },
       setVariable: (name: string, value: number) => {
-        const varId = `var-${name}`;
-        if (formula.variables[name].type !== "dependent") {
+        const symbol = name.replace(/\$/g, "");
+        const varId = `var-${symbol}`;
+
+        // Only allow setting non-dependent variables
+        if (formula.variables[name]?.type !== "dependent") {
+          // Set in computation store
           computationStore.setValue(varId, value);
-          
-          // Also update through binding system to propagate changes
-          bindingSystem.updateProperty(formulaId, name, value);
-          
+
+          // Update formula reference
+          formula.variables[name].value = value;
+
           return true;
         }
+
         return false;
       },
       update: async (updatedConfig: FormulizeConfig) => {
-        // Recreate the formula with the updated config
-        const newInstance = await create(updatedConfig, container);
-        Object.assign(this, newInstance);
+        return await create(updatedConfig, container);
       },
       destroy: () => {
         // Reset with an empty formula
         formulaStore.updateFormula(new AugmentedFormula([]));
-      }
+      },
     };
+
+    // Set up bindings if they exist
+    if (bindings && bindings.length > 0) {
+      bindingSystem.registerComponent(
+        formulaId,
+        "formula",
+        formula,
+        formula.variables
+      );
+
+      // Process local bindings
+      Object.entries(formula.variables).forEach(([varName, variable]) => {
+        if (variable.bind) {
+          bindingSystem.registerLocalBinding(formulaId, varName, variable.bind);
+        }
+      });
+
+      console.log(`🔗 Setting up ${bindings.length} global bindings`);
+      bindingSystem.setGlobalBindings(bindings);
+    }
+
+    // Set up visualizations if provided
+    if (visualizations && visualizations.length > 0) {
+      console.log(`🔍 Setting up ${visualizations.length} visualizations`);
+      // Only register visualizations after instance is created
+      visualizations.forEach((viz, index) => {
+        const vizId = viz.id || `viz-${index}`;
+        bindingSystem.registerComponent(
+          vizId,
+          "visualization",
+          viz,
+          viz.config
+        );
+      });
+    }
+
+    return instance;
   } catch (error) {
     console.error("Error creating formula:", error);
     throw error;
@@ -308,7 +300,7 @@ async function create(config: FormulizeConfig, container?: string): Promise<Form
 
 // Export the Formulize API
 const Formulize = {
-  create
+  create,
 };
 
 export default Formulize;
