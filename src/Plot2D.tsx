@@ -1,12 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as d3 from 'd3';
-import { FormulizePlot2D } from './api';
-import { computationStore } from './computation';
-import { reaction, runInAction } from 'mobx';
-import { observer } from 'mobx-react-lite';
+import React, { useEffect, useRef, useState } from "react";
+
+import { reaction, runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+
+import * as d3 from "d3";
+
+import { IPlot2D } from "./api";
+import { computationStore } from "./computation";
 
 interface Plot2DProps {
-  config: FormulizePlot2D;
+  config: IPlot2D;
 }
 
 interface DataPoint {
@@ -19,31 +22,28 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [currentPoint, setCurrentPoint] = useState<DataPoint | null>(null);
-  
+
   // Cache for local evaluation function to prevent regeneration
-  const evalFunctionRef = useRef<Function | null>(null);
+  const evalFunctionRef = useRef<
+    ((variables: Record<string, number>) => Record<string, number>) | null
+  >(null);
   const lastGeneratedCodeRef = useRef<string | null>(null);
-  
+
   // Parse configuration options with defaults
-  const {
-    title = '',
-    xAxis,
-    yAxis, 
-    width = 800,
-    height = 500
-  } = config;
-  
+  const { title = "", xAxis, yAxis, width = 800, height = 500 } = config;
+
   // Calculate appropriate number of samples based on display width for smooth curves
   // Using a higher density than the physical pixels for better visual quality
   const SAMPLE_DENSITY = 5; // samples per pixel for high resolution
-  const plotWidthPx = (typeof width === 'number' ? width : parseInt(width as string, 10)) - 120; // Accounting for margins
+  const plotWidthPx =
+    (typeof width === "number" ? width : parseInt(width as string, 10)) - 120; // Accounting for margins
   const samples = Math.ceil(SAMPLE_DENSITY * plotWidthPx);
-  
+
   // For very steep functions, we might need even more samples
   // This provides virtually continuous plotting for continuous functions
   const MIN_SAMPLES = 500; // Minimum number of samples for any plot
   const finalSamples = Math.max(samples, MIN_SAMPLES);
-  
+
   // Get min/max values or derive from range if not specified
   const xMin = xAxis.min ?? 0;
   const xMax = xAxis.max ?? 10;
@@ -52,8 +52,14 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Chart margins
   const margin = { top: 50, right: 50, bottom: 60, left: 70 };
-  const plotWidth = (typeof width === 'number' ? width : parseInt(width as string, 10)) - margin.left - margin.right;
-  const plotHeight = (typeof height === 'number' ? height : parseInt(height as string, 10)) - margin.top - margin.bottom;
+  const plotWidth =
+    (typeof width === "number" ? width : parseInt(width as string, 10)) -
+    margin.left -
+    margin.right;
+  const plotHeight =
+    (typeof height === "number" ? height : parseInt(height as string, 10)) -
+    margin.top -
+    margin.bottom;
 
   // Function to get variable value from computation store or binding system
   const getVariableValue = (variableName: string): number => {
@@ -71,10 +77,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       return variable?.value ?? 0;
     }
   };
-  
+
   // Function to get or create a cached evaluation function
   // This specialized version is designed to not trigger API calls
-  const getEvaluationFunction = (): Function | null => {
+  const getEvaluationFunction = ():
+    | ((variables: Record<string, number>) => Record<string, number>)
+    | null => {
     const debugState = computationStore.getDebugState();
     const currentCode = debugState.lastGeneratedCode;
 
@@ -86,8 +94,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // CRITICAL: Check for our local cache first - this is the safest option
     // that won't accidentally trigger any API calls
-    if (evalFunctionRef.current && currentCode === lastGeneratedCodeRef.current) {
-      console.log("✅ Using SAFELY cached evaluation function from component ref");
+    if (
+      evalFunctionRef.current &&
+      currentCode === lastGeneratedCodeRef.current
+    ) {
+      console.log(
+        "✅ Using SAFELY cached evaluation function from component ref"
+      );
       return evalFunctionRef.current;
     }
 
@@ -97,9 +110,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     if (hasFunction) {
       // Get the evaluationFunction directly from its accessor getter
       // We need to be careful to avoid calling any methods that might trigger API calls
-      const storeFunction = (computationStore as any).evaluationFunction;
+      const storeFunction = (computationStore as any).evaluationFunction as (
+        variables: Record<string, number>
+      ) => Record<string, number>;
       if (storeFunction) {
-        console.log("✅ Using direct evaluation function from computation store");
+        console.log(
+          "✅ Using direct evaluation function from computation store"
+        );
         // Save to our local cache for future use
         evalFunctionRef.current = storeFunction;
         lastGeneratedCodeRef.current = currentCode;
@@ -111,12 +128,14 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // This is a safe approach that won't make any API calls
     try {
       console.log("🔄 Creating LOCAL evaluation function from generated code");
-      console.log("🔄 This does NOT make an API call - just creating a function from the existing code");
+      console.log(
+        "🔄 This does NOT make an API call - just creating a function from the existing code"
+      );
 
       const newFunc = new Function(
-        'variables',
+        "variables",
         `"use strict";\n${currentCode}\nreturn evaluate(variables);`
-      );
+      ) as (variables: Record<string, number>) => Record<string, number>;
 
       // Update the local cache
       evalFunctionRef.current = newFunc;
@@ -128,7 +147,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       return null;
     }
   };
-  
+
   // Function to calculate data points for the plot without triggering OpenAI API calls
   const calculateDataPoints = () => {
     console.log("📈 Recalculating data points for plot");
@@ -140,7 +159,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
       // Verify we have a valid evaluation function
       if (!localEvalFunction) {
-        console.warn("⚠️ No evaluation function available - cannot generate plot");
+        console.warn(
+          "⚠️ No evaluation function available - cannot generate plot"
+        );
         return;
       }
 
@@ -156,8 +177,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       for (let i = 0; i <= finalSamples; i++) {
         xValues.push(xMin + i * step);
       }
-      
-      console.log(`📊 Generating ${finalSamples} samples for virtually continuous plotting`);
+
+      console.log(
+        `📊 Generating ${finalSamples} samples for virtually continuous plotting`
+      );
 
       // Generate plot points WITHOUT modifying the computation store
       const points: DataPoint[] = [];
@@ -176,7 +199,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       for (const x of xValues) {
         // IMPORTANT: Create a NEW copy for each calculation to avoid mutation
         // This prevents any changes to the original store's variables
-        const calculationVars = {...variablesMap};
+        const calculationVars = { ...variablesMap };
 
         // Set x-axis variable for this point calculation
         calculationVars[xAxis.variable] = x;
@@ -199,15 +222,22 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
 
             if (formulaDepVar && result[formulaDepVar] !== undefined) {
-              console.log(`📊 Using formula-defined dependent variable ${formulaDepVar} instead of configured ${yAxis.variable}`);
+              console.log(
+                `📊 Using formula-defined dependent variable ${formulaDepVar} instead of configured ${yAxis.variable}`
+              );
               y = result[formulaDepVar];
             }
           }
 
           // Only include points that are within the specified bounds
-          if (typeof y === 'number' && !isNaN(y) && 
-              x >= xMin && x <= xMax && 
-              y >= yMin && y <= yMax) {
+          if (
+            typeof y === "number" &&
+            !isNaN(y) &&
+            x >= xMin &&
+            x <= xMax &&
+            y >= yMin &&
+            y <= yMax
+          ) {
             points.push({ x, y });
           }
         } catch (error) {
@@ -220,11 +250,21 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       const currentY = getVariableValue(yAxis.variable);
 
       // Ensure we have numeric values
-      const currentXNum = typeof currentX === 'number' ? currentX : parseFloat(String(currentX)) || 0;
-      const currentYNum = typeof currentY === 'number' ? currentY : parseFloat(String(currentY)) || 0;
+      const currentXNum =
+        typeof currentX === "number"
+          ? currentX
+          : parseFloat(String(currentX)) || 0;
+      const currentYNum =
+        typeof currentY === "number"
+          ? currentY
+          : parseFloat(String(currentY)) || 0;
 
-      console.log(`🎯 Current point: (${currentXNum.toFixed(2)}, ${currentYNum.toFixed(2)})`);
-      console.log(`📊 Generated ${points.length} data points without OpenAI API calls`);
+      console.log(
+        `🎯 Current point: (${currentXNum.toFixed(2)}, ${currentYNum.toFixed(2)})`
+      );
+      console.log(
+        `📊 Generated ${points.length} data points without OpenAI API calls`
+      );
 
       // Update the state with new data points and current point
       setCurrentPoint({ x: currentXNum, y: currentYNum });
@@ -241,7 +281,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       xAxis: xAxis ? { variable: xAxis.variable, min: xMin, max: xMax } : null,
       yAxis: yAxis ? { variable: yAxis.variable, min: yMin, max: yMax } : null,
       samples,
-      dimensions: { width, height, plotWidth, plotHeight }
+      dimensions: { width, height, plotWidth, plotHeight },
     });
 
     // Clear existing data points to force re-render
@@ -259,7 +299,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       console.log("⏱️ Recalculating data points after configuration change");
       calculateDataPoints();
     }, 50);
-
   }, [
     // Explicitly list every property of the config to ensure any change triggers a recalculation
     config.type,
@@ -273,7 +312,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     config.yAxis?.min,
     config.yAxis?.max,
     config.width,
-    config.height
+    config.height,
   ]);
 
   // Set up reaction to recalculate when any variable changes
@@ -293,9 +332,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
         // Get only the variables we care about
         const relevantVariables = new Set([
-          'var-m',                  // Mass - affects the y-values
-          `var-${xAxis.variable}`,  // X-axis variable
-          `var-${yAxis.variable}`   // Y-axis variable
+          "var-m", // Mass - affects the y-values
+          `var-${xAxis.variable}`, // X-axis variable
+          `var-${yAxis.variable}`, // Y-axis variable
         ]);
 
         // Extract just the values we need
@@ -316,7 +355,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Return a simpler object that only includes what we need to track
         return {
           // Track m value which affects ALL y-values (scaling factor)
-          m: trackedValues['var-m'],
+          m: trackedValues["var-m"],
 
           // Only track the current values of x and y axis variables
           // for current point highlighting - we don't need to track
@@ -325,8 +364,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           yAxisValue: getVariableValue(yAxis.variable),
 
           // Track the function code so we rerender if the function changes
-          functionHash: computationStore.lastGeneratedCode ?
-            computationStore.lastGeneratedCode.substring(0, 20) : 'none'
+          functionHash: computationStore.lastGeneratedCode
+            ? computationStore.lastGeneratedCode.substring(0, 20)
+            : "none",
         };
       },
       // This function runs when tracked values change
@@ -334,10 +374,11 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Only log occasionally to prevent console spam
         if (updateCount % LOG_INTERVAL === 0) {
           console.log("🔄 Variable values changed - recalculating plot");
-          console.log("  Changed values:",
+          console.log(
+            "  Changed values:",
             Object.entries(newValues)
               .filter(([k, v]) => oldValues[k] !== v)
-              .reduce((acc, [k, v]) => ({...acc, [k]: v}), {})
+              .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
           );
         }
 
@@ -346,18 +387,20 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       },
       // Configure the reaction for immediate response and efficiency
       {
-        fireImmediately: true,   // Run immediately on setup
+        fireImmediately: true, // Run immediately on setup
         equals: (prev, next) => {
           // Custom equality function that only checks values we care about
           // This prevents unnecessary recalculations when unrelated variables change
-          return prev.m === next.m &&
-                 prev.xAxisValue === next.xAxisValue &&
-                 prev.yAxisValue === next.yAxisValue &&
-                 prev.functionHash === next.functionHash;
-        }
+          return (
+            prev.m === next.m &&
+            prev.xAxisValue === next.xAxisValue &&
+            prev.yAxisValue === next.yAxisValue &&
+            prev.functionHash === next.functionHash
+          );
+        },
       }
     );
-    
+
     // Cleanup the reaction when component unmounts
     return () => {
       console.log("🧹 Cleaning up plot reaction");
@@ -368,28 +411,26 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   // Draw plot when data points change
   useEffect(() => {
     if (!svgRef.current || dataPoints.length === 0) return;
-    
+
     // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
-    
+
     // Create SVG container
-    const svg = d3.select(svgRef.current)
+    const svg = d3
+      .select(svgRef.current)
       .attr("width", plotWidth + margin.left + margin.right)
       .attr("height", plotHeight + margin.top + margin.bottom)
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
-    
+
     // Create scales
-    const xScale = d3.scaleLinear()
-      .domain([xMin, xMax])
-      .range([0, plotWidth]);
-    
-    const yScale = d3.scaleLinear()
-      .domain([yMin, yMax])
-      .range([plotHeight, 0]);
-    
+    const xScale = d3.scaleLinear().domain([xMin, xMax]).range([0, plotWidth]);
+
+    const yScale = d3.scaleLinear().domain([yMin, yMax]).range([plotHeight, 0]);
+
     // Add X axis
-    svg.append("g")
+    svg
+      .append("g")
       .attr("class", "x-axis")
       .attr("transform", `translate(0,${plotHeight})`)
       .call(d3.axisBottom(xScale))
@@ -400,9 +441,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       .attr("fill", "#000")
       .attr("text-anchor", "middle")
       .text(xAxis.label || xAxis.variable);
-    
+
     // Add Y axis
-    svg.append("g")
+    svg
+      .append("g")
       .attr("class", "y-axis")
       .call(d3.axisLeft(yScale))
       .append("text")
@@ -413,10 +455,11 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       .attr("fill", "#000")
       .attr("text-anchor", "middle")
       .text(yAxis.label || yAxis.variable);
-    
+
     // Add title
     if (title) {
-      svg.append("text")
+      svg
+        .append("text")
         .attr("class", "title")
         .attr("x", plotWidth / 2)
         .attr("y", -margin.top / 2)
@@ -426,50 +469,58 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         .attr("font-weight", "bold")
         .text(title);
     }
-    
+
     // Add grid lines (optional)
-    svg.append("g")
+    svg
+      .append("g")
       .attr("class", "grid")
       .attr("opacity", 0.1)
-      .call(d3.axisLeft(yScale)
-        .tickSize(-plotWidth)
-        .tickFormat(() => "")
+      .call(
+        d3
+          .axisLeft(yScale)
+          .tickSize(-plotWidth)
+          .tickFormat(() => "")
       );
-    
-    svg.append("g")
+
+    svg
+      .append("g")
       .attr("class", "grid")
       .attr("transform", `translate(0,${plotHeight})`)
       .attr("opacity", 0.1)
-      .call(d3.axisBottom(xScale)
-        .tickSize(-plotHeight)
-        .tickFormat(() => "")
+      .call(
+        d3
+          .axisBottom(xScale)
+          .tickSize(-plotHeight)
+          .tickFormat(() => "")
       );
-    
+
     // Create line generator for smooth, continuous curves
-    const line = d3.line<DataPoint>()
-      .x(d => xScale(d.x))
-      .y(d => yScale(d.y))
+    const line = d3
+      .line<DataPoint>()
+      .x((d) => xScale(d.x))
+      .y((d) => yScale(d.y))
       .curve(d3.curveBasis); // Higher quality smooth curve for continuous functions
-    
+
     // Add the line path
-    svg.append("path")
+    svg
+      .append("path")
       .datum(dataPoints)
       .attr("fill", "none")
       .attr("stroke", "#3b82f6")
       .attr("stroke-width", 3)
       .attr("d", line);
-    
+
     // Add an invisible overlay for hover interaction
-    const focus = svg.append("g")
+    const focus = svg
+      .append("g")
       .attr("class", "focus")
       .style("display", "none");
-    
-    focus.append("circle")
-      .attr("r", 5)
-      .attr("fill", "#3b82f6");
-    
+
+    focus.append("circle").attr("r", 5).attr("fill", "#3b82f6");
+
     // Create tooltip
-    const tooltip = d3.select(tooltipRef.current)
+    const tooltip = d3
+      .select(tooltipRef.current)
       .attr("class", "tooltip")
       .style("display", "none")
       .style("position", "absolute")
@@ -479,13 +530,17 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       .style("box-shadow", "0 2px 4px rgba(0,0,0,0.2)")
       .style("pointer-events", "none")
       .style("font-size", "12px");
-    
+
     // Add the current point highlight
-    if (currentPoint && 
-        currentPoint.x >= xMin && currentPoint.x <= xMax && 
-        currentPoint.y >= yMin && currentPoint.y <= yMax) {
-      
-      svg.append("circle")
+    if (
+      currentPoint &&
+      currentPoint.x >= xMin &&
+      currentPoint.x <= xMax &&
+      currentPoint.y >= yMin &&
+      currentPoint.y <= yMax
+    ) {
+      svg
+        .append("circle")
         .attr("class", "current-point")
         .attr("cx", xScale(currentPoint.x))
         .attr("cy", yScale(currentPoint.y))
@@ -493,19 +548,23 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         .attr("fill", "#ef4444")
         .attr("stroke", "#fff")
         .attr("stroke-width", 2);
-      
+
       // Add a label for the current point
-      svg.append("text")
+      svg
+        .append("text")
         .attr("class", "current-point-label")
         .attr("x", xScale(currentPoint.x) + 10)
         .attr("y", yScale(currentPoint.y) - 10)
         .attr("fill", "#000")
         .attr("text-anchor", "start")
-        .text(`${xAxis.label || xAxis.variable}: ${Number(currentPoint.x).toFixed(2)}, ${yAxis.label || yAxis.variable}: ${Number(currentPoint.y).toFixed(2)}`);
+        .text(
+          `${xAxis.label || xAxis.variable}: ${Number(currentPoint.x).toFixed(2)}, ${yAxis.label || yAxis.variable}: ${Number(currentPoint.y).toFixed(2)}`
+        );
     }
-    
+
     // Create a rect to capture mouse events
-    svg.append("rect")
+    svg
+      .append("rect")
       .attr("width", plotWidth)
       .attr("height", plotHeight)
       .style("fill", "none")
@@ -520,26 +579,28 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       })
       .on("mousemove", (event) => {
         const [mouseX, mouseY] = d3.pointer(event);
-        
+
         // Convert mouse position to domain values
         const x0 = xScale.invert(mouseX);
-        
+
         // Find the nearest data point
         const bisect = d3.bisector((d: DataPoint) => d.x).left;
         const i = bisect(dataPoints, x0, 1);
         const d0 = dataPoints[i - 1];
         const d1 = dataPoints[i];
-        
+
         if (!d0 || !d1) return;
-        
+
         const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
-        
+
         focus.attr("transform", `translate(${xScale(d.x)},${yScale(d.y)})`);
-        
+
         tooltip
           .style("left", `${event.pageX + 10}px`)
           .style("top", `${event.pageY - 30}px`)
-          .html(`${xAxis.label || xAxis.variable}: ${Number(d.x).toFixed(2)} ${xAxis.label ? `(${xAxis.variable})` : ''}<br>${yAxis.label || yAxis.variable}: ${Number(d.y).toFixed(2)} ${yAxis.label ? `(${yAxis.variable})` : ''}`);
+          .html(
+            `${xAxis.label || xAxis.variable}: ${Number(d.x).toFixed(2)} ${xAxis.label ? `(${xAxis.variable})` : ""}<br>${yAxis.label || yAxis.variable}: ${Number(d.y).toFixed(2)} ${yAxis.label ? `(${yAxis.variable})` : ""}`
+          );
       })
       .on("click", (event) => {
         const [mouseX] = d3.pointer(event);
@@ -550,12 +611,16 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         try {
           // If we have an ID for this plot, use it to trigger the handler
           if (config.id) {
-            console.log(`📊 User clicked on graph id ${config.id}, setting ${xAxis.variable} = ${x0}`);
+            console.log(
+              `📊 User clicked on graph id ${config.id}, setting ${xAxis.variable} = ${x0}`
+            );
             computationStore.triggerClickHandler(`plot2d-${config.id}`, x0);
           } else {
             // Default fallback behavior using direct store access
             const xVarId = `var-${xAxis.variable}`;
-            console.log(`📊 User clicked on graph, setting ${xAxis.variable} = ${x0} directly`);
+            console.log(
+              `📊 User clicked on graph, setting ${xAxis.variable} = ${x0} directly`
+            );
             // Use runInAction to comply with MobX strict mode
             runInAction(() => {
               computationStore.setValue(xVarId, x0);
@@ -571,17 +636,31 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           });
         }
       });
-      
-  }, [dataPoints, currentPoint, width, height, margin, xMin, xMax, yMin, yMax, plotWidth, plotHeight, xAxis, yAxis, title]);
+  }, [
+    dataPoints,
+    currentPoint,
+    width,
+    height,
+    margin,
+    xMin,
+    xMax,
+    yMin,
+    yMax,
+    plotWidth,
+    plotHeight,
+    xAxis,
+    yAxis,
+    title,
+  ]);
 
   return (
-    <div className="formulize-plot2d" style={{ position: 'relative' }}>
+    <div className="formulize-plot2d" style={{ position: "relative" }}>
       <svg
         ref={svgRef}
-        style={{ 
-          width: typeof width === 'number' ? `${width}px` : width,
-          height: typeof height === 'number' ? `${height}px` : height,
-          overflow: 'visible'
+        style={{
+          width: typeof width === "number" ? `${width}px` : width,
+          height: typeof height === "number" ? `${height}px` : height,
+          overflow: "visible",
         }}
         className="bg-white border rounded shadow-sm"
       />

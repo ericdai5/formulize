@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { FormulizeVisualization } from './api';
-import Plot2D from './Plot2D';
+import React, { useEffect, useState } from "react";
+
+import Plot2D from "./Plot2D";
+import { FormulizeVisualization } from "./api";
 
 interface VisualizationRendererProps {
   visualization: FormulizeVisualization;
 }
 
-const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({ visualization }) => {
+const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
+  visualization,
+}) => {
   // Force re-renders when visualization config changes by using a key state
   const [renderKey, setRenderKey] = useState(Date.now());
 
@@ -14,12 +17,9 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({ visualiza
   useEffect(() => {
     console.log("🔄 Visualization configuration changed, forcing re-render");
     setRenderKey(Date.now());
-  }, [
-    visualization.type,
-    JSON.stringify(visualization.config)
-  ]);
-  
-  if (visualization.type === 'plot2d') {
+  }, [visualization.type, JSON.stringify(visualization.config)]);
+
+  if (visualization.type === "plot2d") {
     return (
       <div
         className="visualization-container p-4 bg-white rounded-lg border border-gray-200 shadow-md overflow-hidden"
@@ -50,7 +50,8 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({ visualiza
 
         <div className="mb-3 p-2 bg-blue-50 rounded text-sm text-blue-700">
           <p>
-            <strong>Tip:</strong> Click anywhere on the graph to set the {visualization.config.xAxis.variable} variable to that value
+            <strong>Tip:</strong> Click anywhere on the graph to set the{" "}
+            {visualization.config.xAxis.variable} variable to that value
           </p>
 
           {/* Show warning if there might be a mismatch between formula and config variables */}
@@ -59,11 +60,16 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({ visualiza
             const formulaMatch = formula?.match(/^\s*([A-Za-z])\s*=/);
             const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
 
-            if (formulaDepVar && formulaDepVar !== visualization.config.yAxis.variable) {
+            if (
+              formulaDepVar &&
+              formulaDepVar !== visualization.config.yAxis.variable
+            ) {
               return (
                 <p className="mt-2 text-amber-600">
-                  <strong>Note:</strong> Formula uses variable "{formulaDepVar}" but graph is configured for "{visualization.config.yAxis.variable}".
-                  The plot will adapt to show the correct data.
+                  <strong>Note:</strong> Formula uses variable "{formulaDepVar}"
+                  but graph is configured for "
+                  {visualization.config.yAxis.variable}". The plot will adapt to
+                  show the correct data.
                 </p>
               );
             }
@@ -72,13 +78,13 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({ visualiza
         </div>
 
         {/* Use the render key to force complete re-creation of the Plot2D component when config changes */}
-        <Plot2D
-          key={`plot2d-${renderKey}`}
-          config={visualization.config}
-        />
+        <Plot2D key={`plot2d-${renderKey}`} config={visualization.config} />
 
         <div className="mt-3 text-xs text-gray-500">
-          <p>This visualization automatically updates as you change variables in the formula or update the API configuration.</p>
+          <p>
+            This visualization automatically updates as you change variables in
+            the formula or update the API configuration.
+          </p>
         </div>
       </div>
     );

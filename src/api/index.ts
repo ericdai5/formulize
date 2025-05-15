@@ -2,10 +2,11 @@
 export { default as Formulize } from "./Formulize";
 export type {
   FormulizeConfig,
-  FormulizeFormula,
-  FormulizeVariable,
-  FormulizeComputation,
   FormulizeInstance,
   FormulizeVisualization,
-  FormulizePlot2D
 } from "./Formulize";
+
+export type { IVariable, IVariableBind } from "../types/variable";
+export type { IPlot2D } from "../types/plot2d";
+export type { IFormula } from "../types/formula";
+export type { IComputation } from "../types/computation";

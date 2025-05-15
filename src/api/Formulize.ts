@@ -8,6 +8,10 @@ import { AugmentedFormula, deriveAugmentedFormula } from "../FormulaTree";
 import { computationStore } from "../computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 import { formulaStore } from "../store";
+import { IComputation } from "../types/computation";
+import { IFormula } from "../types/formula";
+import { IPlot2D } from "../types/plot2d";
+import { IVariable } from "../types/variable";
 
 /**
  * Creates an interactive formula visualization from a Formulize specification
@@ -19,74 +23,11 @@ import { formulaStore } from "../store";
 // Import binding system
 import { bindingSystem } from "./BindingSystem";
 
-// Type definitions for the Formulize API
-export interface FormulizeFormula {
-  expression: string;
-  id?: string;
-  description?: string;
-  displayMode?: "block" | "inline";
-  variables: Record<string, FormulizeVariable>;
-  computation?: FormulizeComputation;
-}
-
-export interface FormulizeVariableBind {
-  source?: {
-    component: string;
-    property: string;
-  };
-  direction?: "bidirectional" | "to-target";
-  transform?: (value: any) => any;
-  reverseTransform?: (value: any) => any;
-  condition?: (context: any) => boolean;
-}
-
-export interface FormulizeVariable {
-  type: "constant" | "input" | "dependent";
-  value?: number;
-  dataType?: "scalar" | "vector" | "matrix";
-  dimensions?: number[];
-  units?: string;
-  label?: string;
-  precision?: number;
-  description?: string;
-  range?: [number, number];
-  step?: number;
-  options?: string[];
-  bind?: FormulizeVariableBind;
-}
-
-export interface FormulizeComputation {
-  engine: "symbolic-algebra" | "llm" | "manual";
-  formula?: string;
-  mappings?: Record<string, (...args: unknown[]) => unknown>;
-  apiKey?: string;
-  model?: string;
-}
-
 // Visualization type definitions
 export interface FormulizeVisualization {
   type: "plot2d" | string;
-  config: FormulizePlot2D;
+  config: IPlot2D;
   id?: string;
-}
-
-export interface FormulizePlot2D {
-  type: "plot2d";
-  title?: string;
-  xAxis: {
-    variable: string;
-    label?: string;
-    min?: number;
-    max?: number;
-  };
-  yAxis: {
-    variable: string;
-    label?: string;
-    min?: number;
-    max?: number;
-  };
-  width?: number | string;
-  height?: number | string;
 }
 
 export interface FormulizeBinding {
@@ -105,7 +46,7 @@ export interface FormulizeBinding {
 }
 
 export interface FormulizeConfig {
-  formula: FormulizeFormula;
+  formula: IFormula;
   externalControls?: unknown[];
   visualizations?: FormulizeVisualization[];
   bindings?: FormulizeBinding[];
@@ -115,7 +56,7 @@ export interface FormulizeConfig {
  * Interface for the object returned by Formulize.create()
  */
 export interface FormulizeInstance {
-  formula: FormulizeFormula;
+  formula: IFormula;
   getVariable: (name: string) => {
     name: string;
     value: number;
