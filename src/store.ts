@@ -31,15 +31,24 @@ class FormulaStore {
 
   @action
   updateFormula(newFormula: AugmentedFormula) {
+    console.log("🔍 updateFormula called with:", newFormula);
+
     if (this.augmentedFormula.equals(newFormula)) {
-      console.log("Skipping formula update");
+      console.log("Skipping formula update - formula is the same");
       return;
     }
 
     const canonicalized = canonicalizeFormula(newFormula);
+    console.log("🔍 Canonicalized formula:", canonicalized);
+
     const { renderSpec } = updateFormula(canonicalized);
     this.renderSpec = renderSpec;
     this.augmentedFormula = canonicalized;
+
+    console.log("🔍 Updated formula in store:");
+    console.log("   - With styling:", this.latexWithStyling);
+    console.log("   - Without styling:", this.latexWithoutStyling);
+
     selectionStore.clearSelection();
     undoStore.checkpoint();
   }
@@ -70,7 +79,9 @@ class FormulaStore {
 
   @computed
   get latexWithoutStyling() {
-    return this.augmentedFormula.toLatex("content-only");
+    const result = this.augmentedFormula.toLatex("content-only");
+    console.log("🔍 latexWithoutStyling called, returning:", result);
+    return result;
   }
 
   @computed
