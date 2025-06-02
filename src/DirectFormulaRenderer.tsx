@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-import BlockInteractivity from "./BlockInteractivity";
 import { Formulize, FormulizeConfig } from "./api";
 import gravitationalPotential from "./examples/gravitationalPotential.ts";
 import kineticEnergy from "./examples/kineticEnergy.ts";
 import quadraticEquation from "./examples/quadraticEquation.ts";
+import BlockInteractivity, {
+  VariableRange,
+} from "./formula/BlockInteractivity.tsx";
 import { IFormula } from "./types/formula";
 
 interface DirectFormulaRendererProps {
@@ -16,48 +18,24 @@ interface DirectFormulaRendererProps {
   onConfigChange?: (config: FormulizeConfig) => void;
 }
 
-// Default Formulize formula configuration
-const DEFAULT_FORMULIZE_FORMULA: IFormula = {
-  expression: "K = \\frac{1}{2}mv^2",
-  variables: {
-    K: {
-      type: "dependent",
-      units: "J",
-      label: "kinetic energy",
-      precision: 2,
-    },
-    m: {
-      type: "constant",
-      value: 1,
-      units: "kg",
-      label: "mass",
-    },
-    v: {
-      type: "input",
-      value: 2,
-      range: [0.1, 10],
-      units: "m/s",
-      label: "velocity",
-    },
-  },
-};
-
 const DirectFormulaRenderer = ({
-  formulizeConfig = { formula: DEFAULT_FORMULIZE_FORMULA },
-  formulizeFormula = DEFAULT_FORMULIZE_FORMULA,
+  formulizeConfig,
+  formulizeFormula,
   autoRender = true,
   height = 300,
   width = "100%",
   onConfigChange,
 }: DirectFormulaRendererProps) => {
-  // Use formulizeConfig if provided, otherwise use the formulizeFormula
+  // Use formulizeConfig if provided, otherwise use the formulizeFormula, or fall back to null
   const initialConfig = formulizeConfig?.formula
     ? formulizeConfig
-    : { formula: formulizeFormula };
+    : formulizeFormula
+      ? { formula: formulizeFormula }
+      : null;
 
   // Convert the config to a JavaScript format for display
   // Use the kineticEnergy template as the default template
-  const configToJsString = (config: FormulizeConfig): string => {
+  const configToJsString = (config: FormulizeConfig | null): string => {
     return kineticEnergy;
   };
 
@@ -66,21 +44,43 @@ const DirectFormulaRenderer = ({
   );
   const [isRendered, setIsRendered] = useState<boolean>(autoRender);
   const [error, setError] = useState<string | null>(null);
+  const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
+    initialConfig
+  );
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Extract variable ranges from Formulize configuration
+  // This function converts Formulize variable ranges to the format expected by BlockInteractivity
+  // Variables with type 'input' and a range [min, max] become slidable with those limits
+  const extractVariableRanges = (
+    config: FormulizeConfig
+  ): Record<string, VariableRange> => {
+    const ranges: Record<string, VariableRange> = {};
+    if (config.formula?.variables) {
+      Object.entries(config.formula.variables).forEach(
+        ([variableName, variableConfig]) => {
+          if (variableConfig.type === "input" && variableConfig.range) {
+            const [min, max] = variableConfig.range;
+            ranges[variableName] = { min, max };
+          }
+        }
+      );
+    }
+
+    return ranges;
+  };
 
   useEffect(() => {
     if (autoRender) {
       renderFormula();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update the formula display when the config changes
   useEffect(() => {
-    if (formulizeConfig !== initialConfig) {
+    if (formulizeConfig && formulizeConfig !== initialConfig) {
       setFormulizeInput(configToJsString(formulizeConfig));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formulizeConfig, JSON.stringify(formulizeConfig)]);
 
   // Execute user-provided JavaScript code to get configuration
@@ -91,7 +91,6 @@ const DirectFormulaRenderer = ({
       // Prepare a secure environment for executing the code
       // In a real production environment, we would use a more secure approach
       // like sandboxed iframes or a server-side evaluation
-
       // Create a function that will wrap the code and return the config
       const wrappedCode = `
         // Mock the Formulize API calls so we can capture the config
@@ -159,14 +158,12 @@ const DirectFormulaRenderer = ({
     }
   };
 
+  // Execute the user-provided JavaScript code
+  // Make sure we have a valid configuration
   const renderFormula = async () => {
     try {
       setError(null);
-
-      // Execute the user-provided JavaScript code
       const userConfig = await executeUserCode(formulizeInput);
-
-      // Make sure we have a valid configuration
       if (!userConfig || !userConfig.formula) {
         throw new Error(
           "Invalid configuration. Please check your code and try again."
@@ -183,21 +180,11 @@ const DirectFormulaRenderer = ({
 
       // Make sure we have a computation engine specified
       if (!configToUse.formula.computation) {
-        console.log(
-          "No computation engine specified, defaulting to symbolic-algebra"
-        );
         configToUse.formula.computation = {
           engine: "symbolic-algebra",
           formula: configToUse.formula.expression.replace(/\\frac/g, ""), // Simple cleanup for formula
         };
       }
-
-      // Log the configuration for debugging
-      console.log("Using config from user JavaScript:", configToUse);
-      console.log(
-        "Formula computation engine:",
-        configToUse.formula.computation.engine
-      );
 
       // Create the formula using Formulize API
       try {
@@ -206,21 +193,21 @@ const DirectFormulaRenderer = ({
         // Store the config globally for access by other components
         window.__lastFormulizeConfig = configToUse;
 
+        // Store the current config in state
+        setCurrentConfig(configToUse);
+
         // Notify parent of config change via callback if provided
         if (onConfigChange) {
-          console.log("📢 Notifying parent of configuration:", configToUse);
           onConfigChange(configToUse);
         }
 
         setIsRendered(true);
       } catch (e) {
-        console.error("Formulize API error:", e);
         setError(
           `Failed to create formula: ${e instanceof Error ? e.message : String(e)}`
         );
       }
     } catch (err) {
-      console.error("Error rendering formula:", err);
       setError(`Error: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
@@ -285,7 +272,6 @@ const DirectFormulaRenderer = ({
       ) : (
         <div className="flex flex-col">
           <div className="flex items-center justify-between bg-gray-100 px-4 py-2">
-            <h3 className="font-medium">Interactive Formula</h3>
             <button
               onClick={() => setIsRendered(false)}
               className="text-sm text-blue-600 hover:text-blue-800"
@@ -293,17 +279,18 @@ const DirectFormulaRenderer = ({
               Edit
             </button>
           </div>
-
           <div
             ref={containerRef}
             style={{ height, width }}
             className="interactive-formula-container"
           >
-            <BlockInteractivity />
-          </div>
-
-          <div className="p-2 bg-gray-50 text-xs text-gray-500">
-            Drag input variables to see how they affect the dependent variables
+            <BlockInteractivity
+              variableRanges={
+                currentConfig ? extractVariableRanges(currentConfig) : {}
+              }
+              defaultMin={-100}
+              defaultMax={100}
+            />
           </div>
         </div>
       )}

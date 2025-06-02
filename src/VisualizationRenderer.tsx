@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 import Plot2D from "./Plot2D";
 import { FormulizeVisualization } from "./api";
+import { computationStore } from "./computation";
 
 interface VisualizationRendererProps {
   visualization: FormulizeVisualization;
@@ -13,7 +14,7 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
   // Force re-renders when visualization config changes by using a key state
   const [renderKey, setRenderKey] = useState(Date.now());
 
-  // Update the render key whenever the visualization config changes
+  // Update render key when visualization config changes
   useEffect(() => {
     console.log("🔄 Visualization configuration changed, forcing re-render");
     setRenderKey(Date.now());
@@ -31,9 +32,6 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
               <h4 className="text-lg font-medium text-gray-800">
                 {visualization.config.title || "Plot Visualization"}
               </h4>
-              <p className="text-sm text-gray-500">
-                Interactive visualization bound to formula variables
-              </p>
             </div>
             <div className="flex text-sm text-gray-600 space-x-4">
               <div className="flex items-center">
@@ -48,28 +46,20 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
           </div>
         </div>
 
-        <div className="mb-3 p-2 bg-blue-50 rounded text-sm text-blue-700">
-          <p>
-            <strong>Tip:</strong> Click anywhere on the graph to set the{" "}
-            {visualization.config.xAxis.variable} variable to that value
-          </p>
-
-          {/* Show warning if there might be a mismatch between formula and config variables */}
+        <div className="rounded text-sm text-blue-700">
           {(() => {
             const formula = computationStore.formula;
             const formulaMatch = formula?.match(/^\s*([A-Za-z])\s*=/);
             const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
-
             if (
               formulaDepVar &&
               formulaDepVar !== visualization.config.yAxis.variable
             ) {
               return (
                 <p className="mt-2 text-amber-600">
-                  <strong>Note:</strong> Formula uses variable "{formulaDepVar}"
-                  but graph is configured for "
-                  {visualization.config.yAxis.variable}". The plot will adapt to
-                  show the correct data.
+                  Formula uses variable "{formulaDepVar}" but graph is
+                  configured for "{visualization.config.yAxis.variable}". The
+                  plot will adapt to show the correct data.
                 </p>
               );
             }
@@ -77,15 +67,8 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
           })()}
         </div>
 
-        {/* Use the render key to force complete re-creation of the Plot2D component when config changes */}
+        {/* Use render key to force complete re-creation of Plot2D component when config changes */}
         <Plot2D key={`plot2d-${renderKey}`} config={visualization.config} />
-
-        <div className="mt-3 text-xs text-gray-500">
-          <p>
-            This visualization automatically updates as you change variables in
-            the formula or update the API configuration.
-          </p>
-        </div>
       </div>
     );
   }

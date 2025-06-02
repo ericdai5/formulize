@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import BlockInteractivity from "./BlockInteractivity";
 import { Debug } from "./Debug";
 import DirectFormulaRenderer from "./DirectFormulaRenderer";
 import { Editor } from "./Editor";
@@ -14,6 +13,7 @@ import { Workspace } from "./Workspace";
 import { FormulizeConfig } from "./api";
 import Header from "./components/Header";
 import { computationStore } from "./computation";
+import BlockInteractivity from "./formula/BlockInteractivity";
 import { formulaStore } from "./store";
 
 // Ensure TypeScript knows about the global configuration property
@@ -97,7 +97,6 @@ function App() {
           },
           width: 800,
           height: 500,
-          samples: 200, // Increase samples for smoother curve
         },
       },
     ],
@@ -150,62 +149,52 @@ function App() {
       <Header viewMode={viewMode} setViewMode={setViewMode} />
 
       {viewMode === "formulizeAPI" ? (
-        <div className="p-6 bg-white overflow-auto h-full">
-          <div className="w-full mx-auto">
-            <div className="mb-8">
-              <div className="flex flex-col md:flex-row space-y-8 md:space-y-0 md:space-x-6">
-                <div className="flex-1 flex flex-col space-y-8">
-                  <div className="w-full rounded-lg overflow-hidden">
-                    <DirectFormulaRenderer
-                      formulizeConfig={{
-                        formula: {
-                          ...kineticEnergyFormula.formula,
-                          computation: getComputationConfig(),
-                        },
-                        visualizations: kineticEnergyFormula.visualizations,
-                      }}
-                      height={320}
-                      width="100%"
-                      onConfigChange={(config) => {
-                        console.log("Config changed:", config);
-                        // Update the engine type based on the config
-                        if (
-                          config.formula.computation.engine ===
-                          "symbolic-algebra"
-                        ) {
-                          setEngineType("symbolic-algebra");
-                        } else {
-                          setEngineType("llm");
-                        }
-                        setCurrentFormulaConfig(config);
-                      }}
-                    />
-                  </div>
-
-                  {/* Visualization */}
-                  {(currentFormulaConfig?.visualizations ||
-                    kineticEnergyFormula.visualizations) &&
-                    (currentFormulaConfig?.visualizations?.length ||
-                      kineticEnergyFormula.visualizations?.length) && (
-                      <div className="w-full">
-                        {(
-                          currentFormulaConfig?.visualizations ||
-                          kineticEnergyFormula.visualizations
-                        )?.map((visualization, index) => (
-                          <VisualizationRenderer
-                            key={`viz-${index}-${JSON.stringify(visualization)}`}
-                            visualization={visualization}
-                          />
-                        ))}
-                      </div>
-                    )}
-                </div>
-
-                {/* Right side: Evaluation Function Pane */}
-                <div className="md:w-2/5">
-                  <EvaluationFunctionPane className="h-full" />
-                </div>
+        <div className="p-6 bg-white overflow-auto h-full w-full mx-auto">
+          <div className="flex flex-col md:flex-row space-y-8 md:space-y-0 md:space-x-6">
+            <div className="flex-1 flex flex-col space-y-8">
+              <div className="w-full rounded-lg overflow-hidden">
+                <DirectFormulaRenderer
+                  formulizeConfig={{
+                    formula: {
+                      ...kineticEnergyFormula.formula,
+                      computation: getComputationConfig(),
+                    },
+                    visualizations: kineticEnergyFormula.visualizations,
+                  }}
+                  height={320}
+                  width="100%"
+                  onConfigChange={(config) => {
+                    console.log("Config changed:", config);
+                    // Update the engine type based on the config
+                    if (
+                      config.formula.computation?.engine === "symbolic-algebra"
+                    ) {
+                      setEngineType("symbolic-algebra");
+                    } else {
+                      setEngineType("llm");
+                    }
+                    setCurrentFormulaConfig(config);
+                  }}
+                />
               </div>
+
+              {/* Visualization */}
+              {currentFormulaConfig?.visualizations &&
+                currentFormulaConfig?.visualizations?.length && (
+                  <div className="w-full">
+                    {currentFormulaConfig?.visualizations?.map(
+                      (visualization, index) => (
+                        <VisualizationRenderer
+                          key={`viz-${index}-${JSON.stringify(visualization)}`}
+                          visualization={visualization}
+                        />
+                      )
+                    )}
+                  </div>
+                )}
+            </div>
+            <div className="md:w-2/5">
+              <EvaluationFunctionPane className="h-full" />
             </div>
           </div>
         </div>
