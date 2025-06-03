@@ -11,6 +11,7 @@ import { formulaStore } from "../store";
 import { IComputation } from "../types/computation";
 import { IFormula } from "../types/formula";
 import { IPlot2D } from "../types/plot2d";
+import { IPlot3D } from "../types/plot3d";
 import { IVariable } from "../types/variable";
 
 /**
@@ -25,8 +26,8 @@ import { bindingSystem } from "./BindingSystem";
 
 // Visualization type definitions
 export interface FormulizeVisualization {
-  type: "plot2d" | string;
-  config: IPlot2D;
+  type: "plot2d" | "plot3d" | string;
+  config: IPlot2D | IPlot3D;
   id?: string;
 }
 

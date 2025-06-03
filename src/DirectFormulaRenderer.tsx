@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "./api";
 import gravitationalPotential from "./examples/gravitationalPotential.ts";
+import kineticEnergy3D from "./examples/kineticEnergy3D.ts";
 import kineticEnergy from "./examples/kineticEnergy.ts";
 import quadraticEquation from "./examples/quadraticEquation.ts";
 import BlockInteractivity, {
@@ -216,6 +217,7 @@ const DirectFormulaRenderer = ({
   const formulaExamples = {
     kineticEnergy,
     gravitationalPotential,
+    kineticEnergy3D,
     quadraticEquation,
   };
 
@@ -247,7 +249,9 @@ const DirectFormulaRenderer = ({
                   ? "Kinetic Energy Example"
                   : example === "gravitationalPotential"
                     ? "Gravitational Potential Example"
-                    : "Quadratic Equation Example"}
+                    : example === "kineticEnergy3D"
+                      ? "Kinetic Energy 3D Example"
+                      : "Quadratic Equation Example"}
               </button>
             ))}
           </div>
