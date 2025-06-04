@@ -170,12 +170,7 @@ const BlockInteractivity = observer(
       }
     }, [isInitialized, renderFormula]);
 
-    return (
-      <div
-        ref={containerRef}
-        className="bg-white p-6 h-full flex items-center justify-center"
-      />
-    );
+    return <div ref={containerRef} />;
   }
 );
 

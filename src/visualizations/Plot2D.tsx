@@ -30,7 +30,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const lastGeneratedCodeRef = useRef<string | null>(null);
 
   // Parse configuration options with defaults
-  const { title = "", xAxis, yAxis, width = 800, height = 500 } = config;
+  const { title = "", xAxis, yAxis, width = 600, height = 600 } = config;
 
   // Calculate appropriate number of samples based on display width for smooth curves
   // Using a higher density than the physical pixels for better visual quality
@@ -456,20 +456,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       .attr("text-anchor", "middle")
       .text(yAxis.label || yAxis.variable);
 
-    // Add title
-    if (title) {
-      svg
-        .append("text")
-        .attr("class", "title")
-        .attr("x", plotWidth / 2)
-        .attr("y", -margin.top / 2)
-        .attr("fill", "#000")
-        .attr("text-anchor", "middle")
-        .attr("font-size", "18px")
-        .attr("font-weight", "bold")
-        .text(title);
-    }
-
     // Add grid lines (optional)
     svg
       .append("g")
@@ -650,7 +636,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     plotHeight,
     xAxis,
     yAxis,
-    title,
   ]);
 
   return (
@@ -662,7 +647,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           height: typeof height === "number" ? `${height}px` : height,
           overflow: "visible",
         }}
-        className="bg-white border rounded shadow-sm"
       />
       <div ref={tooltipRef} className="tooltip" />
     </div>

@@ -58,7 +58,7 @@ const config = {
           max: 250
         },
         plotType: "surface",
-        width: 800,
+        width: 600,
         height: 600
       }
     },
@@ -86,7 +86,7 @@ const config = {
           max: 250
         },
         plotType: "scatter",
-        width: 800,
+        width: 600,
         height: 600
       }
     }

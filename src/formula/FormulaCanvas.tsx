@@ -1,32 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Formulize, FormulizeConfig } from "./api";
-import gravitationalPotential from "./examples/gravitationalPotential.ts";
-import kineticEnergy3D from "./examples/kineticEnergy3D.ts";
-import kineticEnergy from "./examples/kineticEnergy.ts";
-import quadraticEquation from "./examples/quadraticEquation.ts";
-import BlockInteractivity, {
-  VariableRange,
-} from "./formula/BlockInteractivity.tsx";
-import { IFormula } from "./types/formula";
+import { Formulize, FormulizeConfig } from "../api/index.ts";
+import gravitationalPotential from "../examples/gravitationalPotential.ts";
+import kineticEnergy3D from "../examples/kineticEnergy3D.ts";
+import kineticEnergy from "../examples/kineticEnergy.ts";
+import quadraticEquation from "../examples/quadraticEquation.ts";
+import { IFormula } from "../types/formula.ts";
+import BlockInteractivity, { VariableRange } from "./BlockInteractivity.tsx";
 
-interface DirectFormulaRendererProps {
+import codeIcon from "../Icons/code.svg";
+import functionIcon from "../Icons/function.svg";
+
+interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
   formulizeFormula?: IFormula;
   autoRender?: boolean;
-  height?: number | string;
-  width?: number | string;
   onConfigChange?: (config: FormulizeConfig) => void;
+  onOpenEvaluationModal?: () => void;
 }
 
-const DirectFormulaRenderer = ({
+const FormulaCanvas = ({
   formulizeConfig,
   formulizeFormula,
   autoRender = true,
-  height = 300,
-  width = "100%",
   onConfigChange,
-}: DirectFormulaRendererProps) => {
+  onOpenEvaluationModal,
+}: FormulaCanvasProps) => {
   // Use formulizeConfig if provided, otherwise use the formulizeFormula, or fall back to null
   const initialConfig = formulizeConfig?.formula
     ? formulizeConfig
@@ -228,7 +227,7 @@ const DirectFormulaRenderer = ({
   };
 
   return (
-    <div className="formula-renderer border border-gray-200 rounded-lg overflow-hidden">
+    <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
       {!isRendered ? (
         <div className="p-4 flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Formulize Definition</h2>
@@ -274,27 +273,40 @@ const DirectFormulaRenderer = ({
           )}
         </div>
       ) : (
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between bg-gray-100 px-4 py-2">
+        <div className="flex flex-col w-full h-full relative">
+          <div className="absolute right-4 top-4 gap-3 flex flex-row">
             <button
               onClick={() => setIsRendered(false)}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-base bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
             >
-              Edit
+              <img src={codeIcon} alt="Edit" className="w-4 h-4" />
             </button>
+            {onOpenEvaluationModal && (
+              <button
+                onClick={onOpenEvaluationModal}
+                className="bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
+              >
+                <img
+                  src={functionIcon}
+                  alt="Open Evaluation"
+                  className="w-4 h-4"
+                />
+              </button>
+            )}
           </div>
           <div
             ref={containerRef}
-            style={{ height, width }}
-            className="interactive-formula-container"
+            className="interactive-formula-container h-full w-full flex justify-center items-center overflow-auto"
           >
-            <BlockInteractivity
-              variableRanges={
-                currentConfig ? extractVariableRanges(currentConfig) : {}
-              }
-              defaultMin={-100}
-              defaultMax={100}
-            />
+            <div className="min-w-0">
+              <BlockInteractivity
+                variableRanges={
+                  currentConfig ? extractVariableRanges(currentConfig) : {}
+                }
+                defaultMin={-100}
+                defaultMax={100}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -302,4 +314,4 @@ const DirectFormulaRenderer = ({
   );
 };
 
-export default DirectFormulaRenderer;
+export default FormulaCanvas;

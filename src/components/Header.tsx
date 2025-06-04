@@ -7,7 +7,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ viewMode, setViewMode }) => {
   return (
-    <div className="bg-white text-black border-b border-gray-200 p-2 flex justify-between items-center">
+    <div className="bg-white text-black border-b border-gray-200 px-4 py-2 flex justify-between items-center">
       <h1>Formulize</h1>
       <div className="flex gap-1 border border-slate-200 rounded-full p-1">
         <button
@@ -20,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, setViewMode }) => {
           className={`px-4 py-1.5 rounded-full text-sm ${viewMode === "formulizeAPI" ? "bg-slate-100" : "bg-white text-gray-700"}`}
           onClick={() => setViewMode("formulizeAPI")}
         >
-          Formulize API
+          API Playground
         </button>
       </div>
     </div>

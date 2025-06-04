@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 
-import { FormulizeVisualization } from "./api";
-import { IPlot2D, IPlot3D } from "./api";
-import { computationStore } from "./computation";
-import Plot2D from "./visualizations/Plot2D";
-import Plot3D from "./visualizations/Plot3D";
+import { FormulizeVisualization } from "../api";
+import { IPlot2D, IPlot3D } from "../api";
+import { computationStore } from "../computation";
+import Plot2D from "./Plot2D";
+import Plot3D from "./Plot3D";
 
 interface VisualizationRendererProps {
   visualization: FormulizeVisualization;
@@ -26,7 +26,7 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
     const config = visualization.config as IPlot2D;
     return (
       <div
-        className="visualization-container p-4 bg-white rounded-lg border border-gray-200 shadow-md overflow-hidden"
+        className="visualization-container w-full h-full p-6 overflow-hidden"
         key={`plot-container-${renderKey}`}
       >
         <div className="visualization-header mb-3">
@@ -68,7 +68,9 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
         </div>
 
         {/* Use render key to force complete re-creation of Plot2D component when config changes */}
-        <Plot2D key={`plot2d-${renderKey}`} config={config} />
+        <div className="flex items-center justify-center h-full">
+          <Plot2D key={`plot2d-${renderKey}`} config={config} />
+        </div>
       </div>
     );
   }
@@ -77,7 +79,7 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
     const config = visualization.config as IPlot3D;
     return (
       <div
-        className="visualization-container p-4 bg-white rounded-lg border border-gray-200 shadow-md overflow-hidden"
+        className="visualization-container p-6 overflow-hidden border-b border-slate-200"
         key={`plot3d-container-${renderKey}`}
       >
         <div className="visualization-header mb-3">
@@ -89,10 +91,6 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
             </div>
             <div className="flex text-sm text-gray-600 space-x-4">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
-                <span>3D Surface/Points</span>
-              </div>
-              <div className="flex items-center">
                 <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
                 <span>Current point</span>
               </div>
@@ -101,7 +99,9 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
         </div>
 
         {/* Use render key to force complete re-creation of Plot3D component when config changes */}
-        <Plot3D key={`plot3d-${renderKey}`} config={config} />
+        <div className="flex items-center justify-center h-full">
+          <Plot3D key={`plot3d-${renderKey}`} config={config} />
+        </div>
       </div>
     );
   }

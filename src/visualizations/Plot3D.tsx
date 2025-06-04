@@ -36,7 +36,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     xAxis,
     yAxis,
     zAxis,
-    width = 800,
+    width = 600,
     height = 600,
     plotType = "scatter",
   } = config;
@@ -148,8 +148,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       const points: DataPoint3D[] = [];
 
       // Generate 3D data points
-      if (plotType === "surface") {
-        // For surface plots, generate a grid of points
+      if (plotType === "surface" || plotType === "mesh") {
+        // For surface and mesh plots, generate a grid of points
         const xStep = (xMax - xMin) / samples;
         const yStep = (yMax - yMin) / samples;
 
@@ -383,6 +383,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
           z: zMatrix,
           colorscale: "Viridis",
           showscale: true,
+          opacity: 0.7,
         },
       ];
     } else if (plotType === "line") {
@@ -460,15 +461,21 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       title: title || "3D Visualization",
       scene: {
         xaxis: {
-          title: xAxis.label || xAxis.variable,
+          title: {
+            text: xAxis.label || xAxis.variable,
+          },
           range: [xMin, xMax],
         },
         yaxis: {
-          title: yAxis.label || yAxis.variable,
+          title: {
+            text: yAxis.label || yAxis.variable,
+          },
           range: [yMin, yMax],
         },
         zaxis: {
-          title: zAxis.label || zAxis.variable,
+          title: {
+            text: zAxis.label || zAxis.variable,
+          },
           range: [zMin, zMax],
         },
       },

@@ -51,8 +51,8 @@ const config = {
           min: 0,
           max: 200
         },
-        width: 800,
-        height: 500
+        width: 600,
+        height: 600
       }
     }
   ]
