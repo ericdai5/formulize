@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import EvaluationFunctionPane from "../EvaluationFunctionPane";
 import { FormulizeConfig } from "../api";
+import EvaluationFunctionPane from "../components/EvaluationFunctionPane";
 import { computationStore } from "../computation";
 import FormulaCanvas from "../formula/FormulaCanvas";
 import VisualizationRenderer from "../visualizations/VisualizationRenderer";
@@ -157,8 +157,7 @@ export default function APIPage() {
           {/* Modal content */}
           <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
             {/* Modal header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Evaluation Function</h2>
+            <div className="flex items-center justify-end p-2 border-b">
               <button
                 onClick={() => setIsEvaluationModalOpen(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg"
@@ -180,7 +179,7 @@ export default function APIPage() {
             </div>
 
             {/* Modal body */}
-            <div className="p-4 max-h-[calc(80vh-8rem)] overflow-auto">
+            <div className="max-h-[calc(80vh)] overflow-auto">
               <EvaluationFunctionPane className="h-full" />
             </div>
           </div>

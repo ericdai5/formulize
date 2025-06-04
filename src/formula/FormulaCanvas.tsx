@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "../api/index.ts";
-import gravitationalPotential from "../examples/gravitationalPotential.ts";
-import kineticEnergy3D from "../examples/kineticEnergy3D.ts";
 import kineticEnergy from "../examples/kineticEnergy.ts";
-import quadraticEquation from "../examples/quadraticEquation.ts";
 import { IFormula } from "../types/formula.ts";
 import BlockInteractivity, { VariableRange } from "./BlockInteractivity.tsx";
+import FormulaCodeEditor from "./FormulaCodeEditor.tsx";
 
 import codeIcon from "../Icons/code.svg";
 import functionIcon from "../Icons/function.svg";
@@ -160,10 +158,11 @@ const FormulaCanvas = ({
 
   // Execute the user-provided JavaScript code
   // Make sure we have a valid configuration
-  const renderFormula = async () => {
+  const renderFormula = async (inputOverride?: string) => {
     try {
       setError(null);
-      const userConfig = await executeUserCode(formulizeInput);
+      const inputToUse = inputOverride ?? formulizeInput;
+      const userConfig = await executeUserCode(inputToUse);
       if (!userConfig || !userConfig.formula) {
         throw new Error(
           "Invalid configuration. Please check your code and try again."
@@ -186,22 +185,18 @@ const FormulaCanvas = ({
         };
       }
 
-      // Create the formula using Formulize API
+      // Create the formula using Formulize API and handle success:
+      // • Create formula instance with Formulize.create()
+      // • Store config globally for access by other components
+      // • Store current config in state
+      // • Notify parent of config change via callback if provided
       try {
-        const formulizeInstance = await Formulize.create(configToUse);
-
-        // Store the config globally for access by other components
+        await Formulize.create(configToUse);
         window.__lastFormulizeConfig = configToUse;
-
-        // Store the current config in state
         setCurrentConfig(configToUse);
-
-        // Notify parent of config change via callback if provided
         if (onConfigChange) {
           onConfigChange(configToUse);
         }
-
-        setIsRendered(true);
       } catch (e) {
         setError(
           `Failed to create formula: ${e instanceof Error ? e.message : String(e)}`
@@ -212,104 +207,58 @@ const FormulaCanvas = ({
     }
   };
 
-  // Example formula configurations
-  const formulaExamples = {
-    kineticEnergy,
-    gravitationalPotential,
-    kineticEnergy3D,
-    quadraticEquation,
-  };
-
-  // Handler for example button clicks
-  const handleExampleClick = (example: keyof typeof formulaExamples) => {
-    setFormulizeInput(formulaExamples[example]);
-    setIsRendered(false); // Show the code editor with the new example
-  };
-
   return (
     <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
-      {!isRendered ? (
-        <div className="p-4 flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Formulize Definition</h2>
-
-          {/* Example selector buttons */}
-          <div className="flex space-x-2 flex-wrap">
-            {(
-              Object.keys(formulaExamples) as Array<
-                keyof typeof formulaExamples
-              >
-            ).map((example) => (
-              <button
-                key={example}
-                onClick={() => handleExampleClick(example)}
-                className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm"
-              >
-                {example === "kineticEnergy"
-                  ? "Kinetic Energy Example"
-                  : example === "gravitationalPotential"
-                    ? "Gravitational Potential Example"
-                    : example === "kineticEnergy3D"
-                      ? "Kinetic Energy 3D Example"
-                      : "Quadratic Equation Example"}
-              </button>
-            ))}
-          </div>
-
-          <textarea
-            value={formulizeInput}
-            onChange={(e) => setFormulizeInput(e.target.value)}
-            className="w-full p-4 border rounded font-mono text-sm h-80"
-          />
-
+      <div className="flex flex-col w-full h-full relative">
+        <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
           <button
-            onClick={renderFormula}
-            className="bg-blue-500 w-fit text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={() => setIsRendered(!isRendered)}
+            className="text-base bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
           >
-            Render Formula
+            <img src={codeIcon} alt="Edit" className="w-4 h-4" />
           </button>
-
-          {error && (
-            <div className="p-3 bg-red-100 text-red-700 rounded">{error}</div>
+          {onOpenEvaluationModal && (
+            <button
+              onClick={onOpenEvaluationModal}
+              className="bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
+            >
+              <img
+                src={functionIcon}
+                alt="Open Evaluation"
+                className="w-4 h-4"
+              />
+            </button>
           )}
         </div>
-      ) : (
-        <div className="flex flex-col w-full h-full relative">
-          <div className="absolute right-4 top-4 gap-3 flex flex-row">
-            <button
-              onClick={() => setIsRendered(false)}
-              className="text-base bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
-            >
-              <img src={codeIcon} alt="Edit" className="w-4 h-4" />
-            </button>
-            {onOpenEvaluationModal && (
-              <button
-                onClick={onOpenEvaluationModal}
-                className="bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
-              >
-                <img
-                  src={functionIcon}
-                  alt="Open Evaluation"
-                  className="w-4 h-4"
-                />
-              </button>
-            )}
-          </div>
-          <div
-            ref={containerRef}
-            className="interactive-formula-container h-full w-full flex justify-center items-center overflow-auto"
-          >
-            <div className="min-w-0">
-              <BlockInteractivity
-                variableRanges={
-                  currentConfig ? extractVariableRanges(currentConfig) : {}
-                }
-                defaultMin={-100}
-                defaultMax={100}
-              />
-            </div>
+        <div
+          ref={containerRef}
+          className={`interactive-formula-container w-full flex justify-center items-center overflow-auto transition-all duration-300 ease-in-out ${
+            isRendered ? "h-full" : "h-1/2"
+          }`}
+        >
+          <div className="min-w-0">
+            <BlockInteractivity
+              variableRanges={
+                currentConfig ? extractVariableRanges(currentConfig) : {}
+              }
+              defaultMin={-100}
+              defaultMax={100}
+            />
           </div>
         </div>
-      )}
+        <div
+          className={`absolute inset-x-0 bottom-0 h-1/2 transition-transform duration-300 ease-in-out ${
+            isRendered ? "translate-y-full" : "translate-y-0"
+          }`}
+        >
+          <FormulaCodeEditor
+            formulizeInput={formulizeInput}
+            onInputChange={setFormulizeInput}
+            onRender={renderFormula}
+            error={error}
+          />
+        </div>
+      </div>
     </div>
   );
 };

@@ -16,13 +16,23 @@ interface Plot3DProps {
 interface DataPoint3D {
   x: number;
   y: number;
-  z: number;
+  z: number | null;
+}
+
+interface PlotMatrixData {
+  xCoords: number[];
+  yCoords: number[];
+  zMatrix: (number | null)[][];
 }
 
 const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   const plotRef = useRef<HTMLDivElement>(null);
   const [dataPoints, setDataPoints] = useState<DataPoint3D[]>([]);
   const [currentPoint, setCurrentPoint] = useState<DataPoint3D | null>(null);
+  // State for pre-built matrix data
+  const [plotMatrixData, setPlotMatrixData] = useState<PlotMatrixData | null>(
+    null
+  );
 
   // Cache for local evaluation function to prevent regeneration
   const evalFunctionRef = useRef<
@@ -49,9 +59,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   const zMin = zAxis.min ?? 0;
   const zMax = zAxis.max ?? 100;
 
-  // Calculate appropriate number of samples for 3D plotting
-  const SAMPLE_DENSITY = 2; // Lower density for 3D to maintain performance
-  const samples = Math.max(25, SAMPLE_DENSITY * 20); // Minimum 25 samples for 3D
+  // FIXED: Increased sample density for smoother surfaces
+  const SAMPLE_DENSITY = 2;
+  const samples = Math.max(50, SAMPLE_DENSITY * 50);
 
   // Function to get variable value from computation store
   const getVariableValue = (variableName: string): number => {
@@ -72,7 +82,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     | null => {
     const debugState = computationStore.getDebugState();
     const currentCode = debugState.lastGeneratedCode;
-
     if (!currentCode) {
       console.warn("⚠️ No generated code available in computation store");
       return null;
@@ -112,7 +121,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         "variables",
         `"use strict";\n${currentCode}\nreturn evaluate(variables);`
       ) as (variables: Record<string, number>) => Record<string, number>;
-
       evalFunctionRef.current = newFunc;
       lastGeneratedCodeRef.current = currentCode;
       return newFunc;
@@ -122,13 +130,11 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     }
   };
 
-  // Function to calculate 3D data points
+  // FIXED: Function to calculate 3D data points with extended bounds for smooth edges
   const calculateDataPoints = () => {
     console.log("📈 Recalculating 3D data points");
-
     try {
       const localEvalFunction = getEvaluationFunction();
-
       if (!localEvalFunction) {
         console.warn(
           "⚠️ No evaluation function available - cannot generate 3D plot"
@@ -149,14 +155,39 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
       // Generate 3D data points
       if (plotType === "surface" || plotType === "mesh") {
-        // For surface and mesh plots, generate a grid of points
+        // FIXED: Build matrix with extended bounds for smooth edge clipping
+        // STRATEGY: Calculate slightly beyond visual bounds, let Plotly clip naturally
+        // - Eliminates zigzag by avoiding abrupt null transitions
+        // - No artificial plateaus - just natural surface extension
+        // - Visual bounds handled by Plotly's scene.zaxis.range
         const xStep = (xMax - xMin) / samples;
         const yStep = (yMax - yMin) / samples;
 
+        // Extend calculation bounds slightly beyond visual bounds
+        const zRange = zMax - zMin;
+        const extendedZMin = zMin - zRange * 0.05; // 5% extension
+        const extendedZMax = zMax + zRange * 0.05;
+
+        // Pre-build the coordinate arrays to avoid floating-point errors
+        const xCoords = Array.from(
+          { length: samples + 1 },
+          (_, i) => Math.round((xMin + i * xStep) * 1000) / 1000
+        );
+        const yCoords = Array.from(
+          { length: samples + 1 },
+          (_, i) => Math.round((yMin + i * yStep) * 1000) / 1000
+        );
+
+        // Build the z-matrix with extended bounds
+        const zMatrix: (number | null)[][] = [];
+
+        // Generate points row by row (y-direction first for proper matrix structure)
         for (let i = 0; i <= samples; i++) {
+          const row: (number | null)[] = [];
+          const y = yCoords[i];
+
           for (let j = 0; j <= samples; j++) {
-            const x = xMin + i * xStep;
-            const y = yMin + j * yStep;
+            const x = xCoords[j];
 
             const calculationVars = { ...variablesMap };
             calculationVars[xAxis.variable] = x;
@@ -171,56 +202,67 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
                 const formula = computationStore.formula;
                 const formulaMatch = formula.match(/^\s*([A-Za-z])\s*=/);
                 const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
-
                 if (formulaDepVar && result[formulaDepVar] !== undefined) {
                   z = result[formulaDepVar];
                 }
               }
 
-              if (
-                typeof z === "number" &&
-                !isNaN(z) &&
-                z >= zMin &&
-                z <= zMax
-              ) {
-                points.push({ x, y, z });
+              // FIXED: Use extended bounds to avoid abrupt cutoffs
+              if (typeof z === "number" && !isNaN(z)) {
+                // Accept values within extended bounds
+                if (z >= extendedZMin && z <= extendedZMax) {
+                  row.push(z); // Keep actual value - let Plotly clip at visual bounds
+                  points.push({ x, y, z });
+                } else {
+                  // Far outside even extended bounds - use null
+                  row.push(null);
+                  points.push({ x, y, z: null });
+                }
+              } else {
+                // Invalid calculation result
+                row.push(null);
+                points.push({ x, y, z: null });
               }
             } catch (error) {
               console.warn(
                 `⚠️ Error calculating 3D point at (${x}, ${y}):`,
                 error
               );
+              // Add null point to maintain grid structure
+              row.push(null);
+              points.push({ x, y, z: null });
             }
           }
+          zMatrix.push(row);
         }
+
+        // Store the matrix and coordinates for later use
+        setPlotMatrixData({
+          xCoords,
+          yCoords,
+          zMatrix,
+        });
       } else {
         // For line/scatter plots, generate points along a path
         const xStep = (xMax - xMin) / samples;
-
         for (let i = 0; i <= samples; i++) {
           const x = xMin + i * xStep;
-
           // For this example, we'll vary y as well, but this can be customized
           const y = yMin + ((yMax - yMin) * i) / samples;
-
           const calculationVars = { ...variablesMap };
           calculationVars[xAxis.variable] = x;
           calculationVars[yAxis.variable] = y;
-
           try {
             const result = localEvalFunction(calculationVars);
             let z = result[zAxis.variable];
-
             if (z === undefined) {
               const formula = computationStore.formula;
               const formulaMatch = formula.match(/^\s*([A-Za-z])\s*=/);
               const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
-
               if (formulaDepVar && result[formulaDepVar] !== undefined) {
                 z = result[formulaDepVar];
               }
             }
-
             if (
               typeof z === "number" &&
               !isNaN(z) &&
@@ -240,18 +282,18 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
             );
           }
         }
+        // Clear matrix data for non-surface plots
+        setPlotMatrixData(null);
       }
 
       // Get current point for highlighting
       const currentX = getVariableValue(xAxis.variable);
       const currentY = getVariableValue(yAxis.variable);
       const currentZ = getVariableValue(zAxis.variable);
-
       console.log(
         `🎯 Current 3D point: (${currentX.toFixed(2)}, ${currentY.toFixed(2)}, ${currentZ.toFixed(2)})`
       );
       console.log(`📊 Generated ${points.length} 3D data points`);
-
       setCurrentPoint({ x: currentX, y: currentY, z: currentZ });
       setDataPoints(points);
     } catch (error) {
@@ -269,10 +311,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       plotType,
       dimensions: { width, height },
     });
-
     setDataPoints([]);
     setCurrentPoint(null);
-
+    setPlotMatrixData(null);
     setTimeout(() => {
       console.log("⏱️ Recalculating 3D data points after configuration change");
       calculateDataPoints();
@@ -300,7 +341,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   // Set up reaction to recalculate when variables change
   useEffect(() => {
     console.log("🔄 Setting up reaction for 3D plot updates");
-
     const disposer = reaction(
       () => {
         const relevantVariables = new Set([
@@ -308,14 +348,12 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
           `var-${yAxis.variable}`,
           `var-${zAxis.variable}`,
         ]);
-
         const trackedValues: { [key: string]: number } = {};
         Array.from(computationStore.variables.entries())
           .filter(([id]) => relevantVariables.has(id))
           .forEach(([id, v]) => {
             trackedValues[id] = v.value;
           });
-
         return {
           xAxisValue: getVariableValue(xAxis.variable),
           yAxisValue: getVariableValue(yAxis.variable),
@@ -341,89 +379,95 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         },
       }
     );
-
     return () => {
       console.log("🧹 Cleaning up 3D plot reaction");
       disposer();
     };
   }, []);
 
-  // Create and update Plotly chart when data changes
+  // FIXED: Updated plotting effect with proper matrix usage and smooth clipping
   useEffect(() => {
     if (!plotRef.current || dataPoints.length === 0) return;
 
-    console.log("📊 Rendering 3D plot with Plotly.js");
-
-    // Prepare data based on plot type
-    let plotData: any[] = [];
+    let plotData: Record<string, unknown>[] = [];
 
     if (plotType === "surface") {
-      // For surface plots, we need to organize data into a grid
-      const uniqueX = [...new Set(dataPoints.map((p) => p.x))].sort(
-        (a, b) => a - b
-      );
-      const uniqueY = [...new Set(dataPoints.map((p) => p.y))].sort(
-        (a, b) => a - b
-      );
+      // FIXED: Use pre-built matrix instead of reconstructing
+      if (plotMatrixData) {
+        const { xCoords, yCoords, zMatrix } = plotMatrixData;
 
-      const zMatrix = uniqueY.map((y) =>
-        uniqueX.map((x) => {
-          const point = dataPoints.find(
-            (p) => Math.abs(p.x - x) < 0.001 && Math.abs(p.y - y) < 0.001
-          );
-          return point ? point.z : null;
-        })
-      );
-
-      plotData = [
-        {
-          type: "surface",
-          x: uniqueX,
-          y: uniqueY,
-          z: zMatrix,
-          colorscale: "Viridis",
-          showscale: true,
-          opacity: 0.7,
-        },
-      ];
+        plotData = [
+          {
+            type: "surface",
+            x: xCoords,
+            y: yCoords,
+            z: zMatrix,
+            colorscale: "Viridis",
+            showscale: true,
+            opacity: 0.8,
+            connectgaps: false,
+            // FIXED: Let Plotly handle color/z range clipping naturally
+            cmin: zMin, // Visual color range (not calculation range)
+            cmax: zMax,
+            cauto: false,
+            surfacecolor: zMatrix,
+            hidesurface: false,
+            // Disable contours for cleaner surface
+            contours: {
+              x: { show: false },
+              y: { show: false },
+              z: { show: false },
+            },
+          },
+        ];
+      } else {
+        // Fallback to empty plot if matrix data isn't ready
+        console.warn("⚠️ Matrix data not available for surface plot");
+        return;
+      }
     } else if (plotType === "line") {
+      // Filter out null values for line plots
+      const validPoints = dataPoints.filter((p) => p.z !== null);
       plotData = [
         {
           type: "scatter3d",
           mode: "lines",
-          x: dataPoints.map((p) => p.x),
-          y: dataPoints.map((p) => p.y),
-          z: dataPoints.map((p) => p.z),
+          x: validPoints.map((p) => p.x),
+          y: validPoints.map((p) => p.y),
+          z: validPoints.map((p) => p.z),
           line: {
             width: 6,
-            color: dataPoints.map((p) => p.z),
+            color: validPoints.map((p) => p.z),
             colorscale: "Viridis",
           },
         },
       ];
     } else if (plotType === "mesh") {
+      // Filter out null values for mesh plots
+      const validPoints = dataPoints.filter((p) => p.z !== null);
       plotData = [
         {
           type: "mesh3d",
-          x: dataPoints.map((p) => p.x),
-          y: dataPoints.map((p) => p.y),
-          z: dataPoints.map((p) => p.z),
+          x: validPoints.map((p) => p.x),
+          y: validPoints.map((p) => p.y),
+          z: validPoints.map((p) => p.z),
           opacity: 0.7,
           color: "cyan",
         },
       ];
     } else {
-      // Default to scatter plot
+      // Default to scatter plot - filter out null values
+      const validPoints = dataPoints.filter((p) => p.z !== null);
       plotData = [
         {
           type: "scatter3d",
           mode: "markers",
-          x: dataPoints.map((p) => p.x),
-          y: dataPoints.map((p) => p.y),
-          z: dataPoints.map((p) => p.z),
+          x: validPoints.map((p) => p.x),
+          y: validPoints.map((p) => p.y),
+          z: validPoints.map((p) => p.z),
           marker: {
             size: 4,
-            color: dataPoints.map((p) => p.z),
+            color: validPoints.map((p) => p.z),
             colorscale: "Viridis",
             showscale: true,
           },
@@ -434,6 +478,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     // Add current point highlight if it exists
     if (
       currentPoint &&
+      currentPoint.z !== null &&
       currentPoint.x >= xMin &&
       currentPoint.x <= xMax &&
       currentPoint.y >= yMin &&
@@ -456,7 +501,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       });
     }
 
-    // Layout configuration
+    // Layout configuration - ensure boundaries match extended calculation bounds
     const layout = {
       title: title || "3D Visualization",
       scene: {
@@ -465,19 +510,28 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
             text: xAxis.label || xAxis.variable,
           },
           range: [xMin, xMax],
+          autorange: false, // Enforce exact boundaries
         },
         yaxis: {
           title: {
             text: yAxis.label || yAxis.variable,
           },
           range: [yMin, yMax],
+          autorange: false, // Enforce exact boundaries
         },
         zaxis: {
           title: {
             text: zAxis.label || zAxis.variable,
           },
-          range: [zMin, zMax],
+          range: [zMin, zMax], // Visual range - clipping happens here
+          autorange: false, // Enforce exact boundaries
         },
+        aspectratio: {
+          x: 1,
+          y: 1,
+          z: 1,
+        },
+        aspectmode: "manual",
       },
       width: typeof width === "number" ? width : parseInt(width as string, 10),
       height:
@@ -498,7 +552,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       .newPlot(plotRef.current, plotData, layout, plotlyConfig)
       .then(() => {
         console.log("✅ 3D Plot rendered successfully");
-
         // Add click handler for interactivity
         if (plotRef.current) {
           (plotRef.current as any).on("plotly_click", (data: any) => {
@@ -506,11 +559,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
               const point = data.points[0];
               const clickedX = point.x;
               const clickedY = point.y;
-
               console.log(
                 `📊 User clicked on 3D graph at (${clickedX}, ${clickedY})`
               );
-
               try {
                 // Use basic setValue functionality that exists in the store
                 runInAction(() => {
@@ -532,6 +583,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       });
   }, [
     dataPoints,
+    plotMatrixData, // Added dependency for matrix data
     currentPoint,
     width,
     height,
