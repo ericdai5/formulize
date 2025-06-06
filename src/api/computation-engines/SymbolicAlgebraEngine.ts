@@ -6,8 +6,8 @@
  */
 import * as math from "mathjs";
 
-import { IComputation } from "../types/computation";
-import { IFormula } from "../types/formula";
+import { IComputation } from "../../types/computation";
+import { IFormula } from "../../types/formula";
 
 /**
  * Processes a formula string to replace variable names with math.js symbols

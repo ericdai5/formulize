@@ -1,34 +1,23 @@
 import { action, computed, observable } from "mobx";
 
-import { IComputation } from "./api";
-import { computeWithSymbolicEngine } from "./api/SymbolicAlgebraEngine";
+import { IComputation } from ".";
+import { IVariable } from "../types/variable";
+import { computeWithSymbolicEngine } from "./computation-engines/SymbolicAlgebraEngine";
 
-export type VariableType = "fixed" | "slidable" | "dependent" | "none";
-
-export type VariableState = {
+// Extend IVariable to include fields needed by the computation store
+export interface ComputationVariable extends Omit<IVariable, "value"> {
   value: number;
   symbol: string;
-  type: VariableType;
-  min?: number;
-  max?: number;
   dependencies?: Set<string>;
   error?: string;
-};
+}
+
+// Map the new type values to match existing functionality
+export type VariableType = IVariable["type"] | "none";
 
 class ComputationStore {
   @observable
-  accessor variables = new Map<
-    string,
-    {
-      value: number;
-      symbol: string;
-      type: VariableType;
-      min?: number;
-      max?: number;
-      dependencies?: Set<string>;
-      error?: string;
-    }
-  >();
+  accessor variables = new Map<string, ComputationVariable>();
 
   @observable
   accessor formula: string = "";
@@ -231,9 +220,9 @@ class ComputationStore {
               variables: Object.fromEntries(
                 Array.from(this.variables.entries()).map(([id, v]) => {
                   const varType: "constant" | "input" | "dependent" =
-                    v.type === "fixed"
+                    v.type === "constant"
                       ? "constant"
-                      : v.type === "slidable"
+                      : v.type === "input"
                         ? "input"
                         : v.type === "dependent"
                           ? "dependent"
@@ -551,7 +540,7 @@ class ComputationStore {
       this.variables.set(id, {
         value: 0,
         symbol: symbol,
-        type: "none",
+        type: "constant",
       });
     } else {
       console.log("🔵 Variable exists, preserving state:", { id, symbol });
@@ -607,12 +596,15 @@ class ComputationStore {
     if (!variable) return;
 
     const wasDependentBefore = this.dependentVariableTypes.has(id);
-    variable.type = type;
+    if (type === "none") {
+      variable.type = "constant";
+    } else {
+      variable.type = type;
+    }
     variable.error = undefined;
 
-    if (type === "slidable") {
-      variable.min = -100;
-      variable.max = 100;
+    if (type === "input") {
+      variable.range = [-100, 100];
     }
 
     // Handle dependent variable updates
@@ -677,7 +669,9 @@ class ComputationStore {
 
   @computed
   get hasInteractiveVariables() {
-    return Array.from(this.variables.values()).some((v) => v.type !== "none");
+    return Array.from(this.variables.values()).some(
+      (v) => v.type !== "constant"
+    );
   }
 
   @computed

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "./computation";
+import { computationStore } from "../../api/computation";
 
 const LLMFunction = observer(() => {
   const code = computationStore.lastGeneratedCode;

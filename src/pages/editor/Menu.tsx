@@ -4,7 +4,6 @@ import { observer } from "mobx-react-lite";
 
 import Icon from "@mui/material/Icon";
 
-import { Debug } from "./Debug";
 import {
   Aligned,
   AugmentedFormula,
@@ -16,13 +15,18 @@ import {
   Script,
   Strikethrough,
   Text,
-} from "./FormulaTree";
-import { consolidateGroups, replaceNodes } from "./formulaTransformations";
-import { editingStore, formulaStore, selectionStore, undoStore } from "./store";
+} from "../../FormulaTree";
+import { consolidateGroups, replaceNodes } from "../../formulaTransformations";
+import {
+  editingStore,
+  formulaStore,
+  selectionStore,
+  undoStore,
+} from "../../store";
 
-import AnnotateIcon from "./Icons/AnnotateIcon.svg";
-import BoxIcon from "./Icons/BoxIcon.svg";
-import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
+import AnnotateIcon from "../../Icons/AnnotateIcon.svg";
+import BoxIcon from "../../Icons/BoxIcon.svg";
+import CurlyBraceListOption from "../../Icons/CurlyBraceListOption.svg";
 
 // import LogoIcon from "./Icons/LogoIcon.svg";
 

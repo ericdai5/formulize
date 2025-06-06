@@ -2,13 +2,13 @@ import { MouseEvent, useCallback, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { AlignmentGuides } from "./AlignmentGuides";
+import { AlignmentGuides } from "../../AlignmentGuides";
+import { MathSymbol } from "../../FormulaTree";
+import { RenderedFormula } from "../../RenderedFormula";
+import { computationStore } from "../../api/computation";
+import { editingStore, formulaStore, selectionStore } from "../../store";
 import { Debug } from "./Debug";
-import { MathSymbol } from "./FormulaTree";
-import { RenderedFormula } from "./RenderedFormula";
 import VariableTooltip from "./VariableTooltip";
-import { computationStore } from "./computation";
-import { editingStore, formulaStore, selectionStore } from "./store";
 
 export const Workspace = observer(() => {
   const [dragState, setDragState] = useState<
@@ -122,7 +122,7 @@ export const Workspace = observer(() => {
   }, [getActiveVariable]);
 
   const handleVariableTypeSelect = useCallback(
-    (type: "fixed" | "slidable" | "dependent") => {
+    (type: "constant" | "input" | "dependent") => {
       const activeVar = getActiveVariable();
       if (!activeVar) return;
 
@@ -135,8 +135,8 @@ export const Workspace = observer(() => {
       computationStore.addVariable(activeVar.id, activeVar.symbol);
       computationStore.setVariableType(activeVar.id, type);
 
-      // Only keep selection for fixed variables
-      if (type !== "fixed") {
+      // Only keep selection for constant variables
+      if (type !== "constant") {
         selectionStore.clearSelection();
       }
     },
@@ -280,7 +280,7 @@ export const EnlivenMode = observer(() => {
   };
 
   const handleVariableTypeSelect = (
-    type: "fixed" | "slidable" | "dependent"
+    type: "constant" | "input" | "dependent"
   ) => {
     const selection = selectionStore.siblingSelections[0]?.[0];
     if (!selection) return;
@@ -293,7 +293,7 @@ export const EnlivenMode = observer(() => {
       computationStore.addVariable(id, symbol);
       computationStore.setVariableType(id, type);
 
-      if (type === "fixed") {
+      if (type === "constant") {
         setSelectedVar(id);
       } else {
         setSelectedVar(null);

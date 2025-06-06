@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 import { FormulizeVisualization } from "../api";
 import { IPlot2D, IPlot3D } from "../api";
-import { computationStore } from "../computation";
+import { computationStore } from "../api/computation";
 import Plot2D from "./Plot2D";
 import Plot3D from "./Plot3D";
 

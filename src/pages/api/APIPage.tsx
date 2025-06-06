@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { FormulizeConfig } from "../api";
-import EvaluationFunctionPane from "../components/EvaluationFunctionPane";
-import { computationStore } from "../computation";
-import FormulaCanvas from "../formula/FormulaCanvas";
-import { IComputation } from "../types/computation";
-import VisualizationRenderer from "../visualizations/VisualizationRenderer";
+import { FormulizeConfig } from "../../api/Formulize";
+import { computationStore } from "../../api/computation";
+import EvaluationFunctionPane from "../../components/EvaluationFunctionPane";
+import FormulaCanvas from "../../formula/FormulaCanvas";
+import { IComputation } from "../../types/computation";
+import VisualizationRenderer from "../../visualizations/VisualizationRenderer";
 
 export default function APIPage() {
   // Add state for the computation engine selection

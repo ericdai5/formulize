@@ -7,7 +7,7 @@ import { observer } from "mobx-react-lite";
 import * as Plotly from "plotly.js-dist";
 
 import { IPlot3D } from "../api";
-import { computationStore } from "../computation";
+import { computationStore } from "../api/computation";
 
 interface Plot3DProps {
   config: IPlot3D;

@@ -6,7 +6,7 @@ import { observer } from "mobx-react-lite";
 import * as d3 from "d3";
 
 import { IPlot2D } from "../api";
-import { computationStore } from "../computation";
+import { computationStore } from "../api/computation";
 
 interface Plot2DProps {
   config: IPlot2D;

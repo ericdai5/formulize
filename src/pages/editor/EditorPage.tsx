@@ -1,10 +1,10 @@
-import { Debug } from "../Debug";
-import { Editor } from "../Editor";
-import { ElementPane } from "../ElementPane";
-import LLMFunction from "../LLMFunction";
-import { Menu } from "../Menu";
-import { Workspace } from "../Workspace";
-import BlockInteractivity from "../formula/BlockInteractivity";
+import BlockInteractivity from "../../formula/BlockInteractivity";
+import { Debug } from "./Debug";
+import { Editor } from "./Editor";
+import { ElementPane } from "./ElementPane";
+import LLMFunction from "./LLMFunction";
+import { Menu } from "./Menu";
+import { Workspace } from "./Workspace";
 
 function EditorPage() {
   return (

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 
 import { AugmentedFormula } from "./FormulaTree";
 import { FormulizeConfig } from "./api";
+import { computationStore } from "./api/computation";
 import Header from "./components/Header";
-import { computationStore } from "./computation";
-import APIPage from "./pages/APIPage";
-import EditorPage from "./pages/EditorPage";
+import APIPage from "./pages/api/APIPage";
+import EditorPage from "./pages/editor/EditorPage";
 import { formulaStore } from "./store";
 
 // Ensure TypeScript knows about the global configuration property

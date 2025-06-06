@@ -4,9 +4,18 @@ const config = {
     expressions: [
       "x = t",
       "y = 1 - 2 * t",
-      "z = t"
+      "z = t",
+      "x + y + z = h"
     ],
     variables: {
+      h: {
+        type: "dependent",
+        value: 0,
+        range: [-2, 2],
+        step: 0.1,
+        label: "h-coordinate",
+        precision: 2
+      },
       x: {
         type: "dependent",
         value: 0,
@@ -41,7 +50,8 @@ const config = {
       expressions: [
         "{x} = {t}",
         "{y} = 1 - 2 * {t}",
-        "{z} = {t}"
+        "{z} = {t}",
+        "{x} + {y} + {z} = {h}"
       ]
     }
   },

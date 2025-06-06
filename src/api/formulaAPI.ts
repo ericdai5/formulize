@@ -1,7 +1,7 @@
 import { AugmentedFormula, deriveAugmentedFormula } from "../FormulaTree";
-import { computationStore } from "../computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 import { formulaStore } from "../store";
+import { computationStore } from "./computation";
 
 export type VariableType = "constant" | "input" | "dependent";
 
@@ -68,12 +68,12 @@ export const createFormula = async (
  */
 function mapVariableType(
   type: VariableType
-): "fixed" | "slidable" | "dependent" | "none" {
+): "constant" | "input" | "dependent" | "none" {
   switch (type) {
     case "constant":
-      return "fixed";
+      return "constant";
     case "input":
-      return "slidable";
+      return "input";
     case "dependent":
       return "dependent";
     default:

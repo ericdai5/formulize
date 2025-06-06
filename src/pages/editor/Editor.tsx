@@ -1,5 +1,4 @@
 import { css as classname } from "@emotion/css";
-import { Global, css } from "@emotion/react";
 import { useEffect, useState } from "react";
 import useStateRef from "react-usestateref";
 
@@ -27,13 +26,13 @@ import {
   FormulaLatexRangeNode,
   StyledRange,
   UnstyledRange,
-} from "./FormulaText";
+} from "../../FormulaText";
 import {
   type AugmentedFormula,
   checkFormulaCode,
   deriveAugmentedFormula,
-} from "./FormulaTree";
-import { formulaStore } from "./store";
+} from "../../FormulaTree";
+import { formulaStore } from "../../store";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };
 

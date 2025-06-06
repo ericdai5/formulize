@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../computation";
+import { computationStore } from "../api/computation";
 import { formulaStore } from "../store";
 import { VariableRange, dragInteractionHandlers } from "./dragInteraction";
 
@@ -130,11 +130,11 @@ const BlockInteractivity = observer(
               const value = variable.value;
               const type = variable.type;
 
-              if (type === "fixed") {
+              if (type === "constant") {
                 return value.toString();
               }
 
-              if (type === "slidable") {
+              if (type === "input") {
                 return `\\cssId{var-${match}}{\\class{interactive-var-slidable}{${match}: ${value.toFixed(1)}}}`;
               }
 

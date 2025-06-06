@@ -2,7 +2,12 @@ import styled from "@emotion/styled";
 
 import { observer } from "mobx-react-lite";
 
-import { debugStore, formulaStore, selectionStore, undoStore } from "./store";
+import {
+  debugStore,
+  formulaStore,
+  selectionStore,
+  undoStore,
+} from "../../store";
 
 function formatCoordinate(n: number) {
   return Math.round(n).toString().padStart(3, " ");

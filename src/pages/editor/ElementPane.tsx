@@ -14,12 +14,12 @@ import {
   Color,
   Group,
   Script,
-} from "./FormulaTree";
+} from "../../FormulaTree";
+import { assertUnreachable, replaceNodes } from "../../formulaTransformations";
+import { formulaStore, selectionStore } from "../../store";
 import { ColorPicker, ColorSwatch } from "./Menu";
-import { assertUnreachable, replaceNodes } from "./formulaTransformations";
-import { formulaStore, selectionStore } from "./store";
 
-import CurlyBraceListOption from "./Icons/CurlyBraceListOption.svg";
+import CurlyBraceListOption from "../../Icons/CurlyBraceListOption.svg";
 
 const ElementPaneContext = createContext<{
   collapsed: { [key: string]: boolean };

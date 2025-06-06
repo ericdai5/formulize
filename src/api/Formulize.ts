@@ -5,12 +5,12 @@
  * as described in the Formulize API Documentation.
  */
 import { AugmentedFormula, deriveAugmentedFormula } from "../FormulaTree";
-import { computationStore } from "../computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 import { formulaStore } from "../store";
 import { IFormula } from "../types/formula";
 import { IPlot2D } from "../types/plot2d";
 import { IPlot3D } from "../types/plot3d";
+import { computationStore } from "./computation";
 
 export interface FormulizeVisualization {
   type: "plot2d" | "plot3d" | string;
@@ -42,12 +42,12 @@ export interface FormulizeInstance {
 // Internal mapping of variable types to computation store types
 function mapVariableType(
   type: "constant" | "input" | "dependent"
-): "fixed" | "slidable" | "dependent" | "none" {
+): "constant" | "input" | "dependent" | "none" {
   switch (type) {
     case "constant":
-      return "fixed";
+      return "constant";
     case "input":
-      return "slidable";
+      return "input";
     case "dependent":
       return "dependent";
     default:

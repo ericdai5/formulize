@@ -1,4 +1,4 @@
-import { computationStore } from "../computation";
+import { computationStore } from "../api/computation";
 
 export interface VariableRange {
   min: number;

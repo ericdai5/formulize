@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { computationStore } from "./computation";
+import { computationStore } from "../../api/computation";
 
 const VariableTooltip = ({
   position,
@@ -9,8 +9,8 @@ const VariableTooltip = ({
   id, // id of the currently selected variable
 }: {
   position: { x: number; y: number };
-  onSelect: (type: "fixed" | "slidable" | "dependent") => void;
-  currentType: "fixed" | "slidable" | "dependent" | "none";
+  onSelect: (type: "constant" | "input" | "dependent") => void;
+  currentType: "constant" | "input" | "dependent" | "none";
   id: string;
 }) => {
   const [value, setValue] = useState("0");
@@ -23,11 +23,11 @@ const VariableTooltip = ({
     }
   }, [variable?.value]);
 
-  const handleTypeSelect = (type: "fixed" | "slidable" | "dependent") => {
-    if (type === "fixed") {
+  const handleTypeSelect = (type: "constant" | "input" | "dependent") => {
+    if (type === "constant") {
       setShowValueInput(true);
     } else {
-      // For non-fixed types, just update the type
+      // For non-constant types, just update the type
       computationStore.setVariableType(id, type);
       onSelect(type);
     }
@@ -40,7 +40,7 @@ const VariableTooltip = ({
     if (!isNaN(numValue)) {
       console.log(`🔵 Setting value for variable ${id}: ${numValue}`);
       computationStore.setValue(id, numValue);
-      onSelect("fixed");
+      onSelect("constant");
     } else {
       console.log(
         `🔴 Invalid numeric value entered for variable ${id}: ${value}`
@@ -48,15 +48,17 @@ const VariableTooltip = ({
     }
   };
 
-  const [showValueInput, setShowValueInput] = useState(currentType === "fixed");
+  const [showValueInput, setShowValueInput] = useState(
+    currentType === "constant"
+  );
 
   useEffect(() => {
-    setShowValueInput(currentType === "fixed");
+    setShowValueInput(currentType === "constant");
   }, [currentType]);
 
   const options = [
-    { type: "fixed" as const, icon: "📌", label: "Fixed" },
-    { type: "slidable" as const, icon: "↔️", label: "Slidable" },
+    { type: "constant" as const, icon: "📌", label: "Fixed" },
+    { type: "input" as const, icon: "↔️", label: "Slidable" },
     { type: "dependent" as const, icon: "🔄", label: "Dependent" },
   ];
 
