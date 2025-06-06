@@ -1,10 +1,7 @@
-// Quadratic Equation example formula code
-const quadraticEquationExample = `// Formulize configuration - Quadratic Equation Example
-// This JavaScript code is directly executed by the Formulize API
-
+const quadraticEquationExample = `
 const config = {
   formula: {
-    expression: "y = ax^2 + bx + c",
+    expressions: ["y = ax^2 + bx + c"],
     variables: {
       y: {
         type: "dependent",
@@ -42,7 +39,7 @@ const config = {
     },
     computation: {
       engine: "symbolic-algebra",
-      formula: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+      expressions: ["{y} = {a} * {x} * {x} + {b} * {x} + {c}"]
     }
   },
   
@@ -68,18 +65,9 @@ const config = {
         height: 600
       }
     }
-  ],
-  
-  bindings: [
-    {
-      source: { component: "quadraticPlot", property: "points[0].x" },
-      target: { component: "formula", property: "x" },
-      direction: "bidirectional"
-    }
   ]
 };
 
-// Create the Formulize instance with the configuration
 const formula = await Formulize.create(config);`;
 
 export default quadraticEquationExample;

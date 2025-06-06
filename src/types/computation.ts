@@ -1,6 +1,6 @@
 export interface IComputation {
   engine: "symbolic-algebra" | "llm" | "manual";
-  formula?: string;
+  expressions: string[];
   mappings?: Record<string, (...args: unknown[]) => unknown>;
   apiKey?: string;
   model?: string;

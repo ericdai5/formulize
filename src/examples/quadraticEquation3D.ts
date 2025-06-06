@@ -1,10 +1,7 @@
-// Quadratic Equation 3D example formula code
-const quadraticEquation3DExample = `// Formulize configuration - 3D Quadratic Equation Example
-// This JavaScript code demonstrates 3D visualization of the quadratic function
-
+const quadraticEquation3DExample = `
 const config = {
   formula: {
-    expression: "y = ax^2 + bx + c",
+    expressions: ["y = ax^2 + bx + c"],
     variables: {
       y: {
         type: "dependent",
@@ -42,7 +39,7 @@ const config = {
     },
     computation: {
       engine: "symbolic-algebra",
-      formula: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+      expressions: ["{y} = {a} * {x} * {x} + {b} * {x} + {c}"]
     }
   },
   
@@ -78,7 +75,6 @@ const config = {
   ],
 };
 
-// Create the Formulize instance with the configuration
 const formula = await Formulize.create(config);`;
 
 export default quadraticEquation3DExample;

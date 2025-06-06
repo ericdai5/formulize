@@ -1,12 +1,13 @@
 /**
  * Symbolic Algebra Engine for Formulize
- * 
+ *
  * This module provides symbolic algebra capability for the Formulize API
  * using math.js for formula parsing, variable substitution, and evaluation.
  */
+import * as math from "mathjs";
 
-import * as math from 'mathjs';
-import { FormulizeFormula, FormulizeComputation } from './Formulize';
+import { IComputation } from "../types/computation";
+import { IFormula } from "../types/formula";
 
 /**
  * Processes a formula string to replace variable names with math.js symbols
@@ -16,115 +17,146 @@ import { FormulizeFormula, FormulizeComputation } from './Formulize';
  */
 function processFormulaString(formulaStr: string): string {
   // Replace {variableName} with variableName
-  return formulaStr.replace(/\{([^}]+)\}/g, '$1');
+  return formulaStr.replace(/\{([^}]+)\}/g, "$1");
 }
 
 /**
  * Derives a JavaScript function from a symbolic formula that computes
  * dependent variables based on input variables
- * 
+ *
  * @param formula The main formula definition from the Formulize config
  * @param computation The computation configuration with symbolic algebra settings
  * @param dependentVars Names of the dependent variables to solve for
  * @returns A JavaScript function that evaluates the formula
  */
 export function deriveSymbolicFunction(
-  formula: FormulizeFormula,
-  computation: FormulizeComputation,
+  formula: IFormula,
+  computation: IComputation,
   dependentVars: string[]
-): (variables: Record<string, any>) => Record<string, any> {
-  if (!computation.formula) {
-    throw new Error("No symbolic formula provided in computation.formula");
-  }
+): (variables: Record<string, number>) => Record<string, number> {
+  // All computations now use expressions array
+  const expressions = computation.expressions;
 
-  // Process the formula string for math.js
-  const processedFormula = processFormulaString(computation.formula);
-  
-  // Try to parse the formula with math.js
+  // Process all expressions for math.js
+  const processedExpressions = expressions.map((expr: string) =>
+    processFormulaString(expr)
+  );
+
+  // Try to parse all expressions with math.js
   try {
-    // Create a function that evaluates the expression for all dependent variables
-    return function(variables: Record<string, any>): Record<string, any> {
+    // Create a function that evaluates the expressions for all dependent variables
+    return function (
+      variables: Record<string, number>
+    ): Record<string, number> {
       try {
-        const result: Record<string, any> = {};
-        
-        // For each dependent variable, try to solve the equation
+        const result: Record<string, number> = {};
+
+        // For each dependent variable, try to solve the corresponding equation
         for (const dependentVar of dependentVars) {
           // If there's an explicit mapping function for this variable, use it
-          if (computation.mappings && typeof computation.mappings[dependentVar] === 'function') {
-            result[dependentVar] = computation.mappings[dependentVar](variables);
+          if (
+            computation.mappings &&
+            typeof computation.mappings[dependentVar] === "function"
+          ) {
+            result[dependentVar] = computation.mappings[dependentVar](
+              variables
+            ) as number;
             continue;
           }
-          
-          // Otherwise, try to solve it symbolically
-          // We'll use math.js's evaluate function with the provided variables
-          const scope = { ...variables };
-          
-          // Special case: If the formula is an equation like `y = x + 1`,
-          // and we're solving for y, we can directly evaluate the right side
-          const equationMatch = processedFormula.match(
-            new RegExp(`${dependentVar}\\s*=\\s*(.+)`)
-          );
-          
-          if (equationMatch) {
-            // Extract the right side of the equation and evaluate it
-            const rightSide = equationMatch[1];
-            result[dependentVar] = math.evaluate(rightSide, scope);
-          } else {
-            // For more complex cases, we can use math.js's built-in solve
-            // capabilities, or try to rearrange the formula to isolate the variable
-            
-            // For now, we'll attempt a direct evaluation and hope the formula
-            // is structured correctly. This is a simplification and would need
-            // to be enhanced for complex formulas.
-            try {
-              result[dependentVar] = math.evaluate(processedFormula, scope);
-            } catch (error) {
-              console.error(`Could not solve for ${dependentVar} symbolically`, error);
+
+          // Find the expression that defines this dependent variable
+          let foundExpression = false;
+
+          for (const processedExpr of processedExpressions) {
+            // Check if this expression defines the current dependent variable
+            const equationMatch = processedExpr.match(
+              new RegExp(`${dependentVar}\\s*=\\s*(.+)`)
+            );
+
+            if (equationMatch) {
+              // Extract the right side of the equation and evaluate it
+              const rightSide = equationMatch[1];
+              const scope = { ...variables };
+              result[dependentVar] = math.evaluate(rightSide, scope) as number;
+              foundExpression = true;
+              break;
+            }
+          }
+
+          if (!foundExpression) {
+            // If no explicit equation found, try to evaluate each expression
+            // and see if it yields a result for this variable
+            const scope = { ...variables };
+            let solved = false;
+
+            for (const processedExpr of processedExpressions) {
+              try {
+                // Try direct evaluation
+                const evalResult = math.evaluate(processedExpr, scope);
+                if (typeof evalResult === "number" && !isNaN(evalResult)) {
+                  result[dependentVar] = evalResult;
+                  solved = true;
+                  break;
+                }
+              } catch {
+                // Continue to next expression
+                continue;
+              }
+            }
+
+            if (!solved) {
+              console.error(
+                `Could not solve for ${dependentVar} from any expression`
+              );
               result[dependentVar] = NaN;
             }
           }
         }
-        
+
         return result;
       } catch (error) {
-        console.error("Error evaluating symbolic formula:", error);
+        console.error("Error evaluating symbolic expressions:", error);
         // Return NaN for all dependent variables on error
-        return Object.fromEntries(dependentVars.map(v => [v, NaN]));
+        return Object.fromEntries(dependentVars.map((v) => [v, NaN]));
       }
     };
   } catch (error) {
-    console.error("Failed to parse symbolic formula:", error);
-    throw new Error(`Failed to parse symbolic formula: ${error}`);
+    console.error("Failed to parse symbolic expressions:", error);
+    throw new Error(`Failed to parse symbolic expressions: ${error}`);
   }
 }
 
 /**
  * Computes the formula with the given variable values
- * 
+ *
  * @param formula The Formulize formula specification
  * @param computation The computation settings
  * @param variables Current variable values
  * @returns An object with updated dependent variable values
  */
 export function computeWithSymbolicEngine(
-  formula: FormulizeFormula,
-  computation: FormulizeComputation,
-  variables: Record<string, any>
-): Record<string, any> {
+  formula: IFormula,
+  computation: IComputation,
+  variables: Record<string, number>
+): Record<string, number> {
   try {
     // Get all dependent variables
     const dependentVars = Object.entries(formula.variables)
-      .filter(([_, varDef]) => varDef.type === 'dependent')
+      .filter(([, varDef]) => varDef.type === "dependent")
       .map(([varName]) => varName);
-    
+
     // No dependent variables, nothing to compute
     if (dependentVars.length === 0) {
       return {};
     }
-    
+
     // Derive the evaluation function
-    const evaluationFunction = deriveSymbolicFunction(formula, computation, dependentVars);
-    
+    const evaluationFunction = deriveSymbolicFunction(
+      formula,
+      computation,
+      dependentVars
+    );
+
     // Execute the function with the current variable values
     return evaluationFunction(variables);
   } catch (error) {
@@ -136,13 +168,13 @@ export function computeWithSymbolicEngine(
 /**
  * Generates symbolic derivatives for a formula
  * Useful for advanced analysis and optimization
- * 
+ *
  * @param formula The formula expression to differentiate
  * @param variableName The variable to differentiate with respect to
  * @returns The symbolic derivative
  */
 export function deriveSymbolicDerivative(
-  formulaStr: string, 
+  formulaStr: string,
   variableName: string
 ): string {
   try {
@@ -158,7 +190,7 @@ export function deriveSymbolicDerivative(
 
 /**
  * Simplifies a symbolic formula
- * 
+ *
  * @param formulaStr The formula to simplify
  * @returns The simplified formula
  */

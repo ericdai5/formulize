@@ -1,10 +1,7 @@
-// Kinetic Energy example formula code
-const kineticEnergyExample = `// Formulize configuration - Kinetic Energy Example
-// This JavaScript code is directly executed by the Formulize API
-
+const kineticEnergyExample = `
 const config = {
   formula: {
-    expression: "K = \\\\frac{1}{2}mv^2",
+    expressions: ["K = \\\\frac{1}{2}mv^2"],
     variables: {
       K: {
         type: "dependent",
@@ -29,7 +26,7 @@ const config = {
     },
     computation: {
       engine: "symbolic-algebra",
-      formula: "{K} = 0.5 * {m} * {v} * {v}"
+      expressions: ["{K} = 0.5 * {m} * {v} * {v}"]
     }
   },
   
@@ -58,7 +55,6 @@ const config = {
   ]
 };
 
-// Create the Formulize instance with the configuration
 const formula = await Formulize.create(config);`;
 
 export default kineticEnergyExample;

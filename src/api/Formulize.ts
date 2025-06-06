@@ -8,49 +8,20 @@ import { AugmentedFormula, deriveAugmentedFormula } from "../FormulaTree";
 import { computationStore } from "../computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 import { formulaStore } from "../store";
-import { IComputation } from "../types/computation";
 import { IFormula } from "../types/formula";
 import { IPlot2D } from "../types/plot2d";
 import { IPlot3D } from "../types/plot3d";
-import { IVariable } from "../types/variable";
 
-/**
- * Creates an interactive formula visualization from a Formulize specification
- *
- * @param config The Formulize configuration object
- * @param container Optional container element ID to render into
- * @returns A Formulize instance with methods to interact with the rendered formula
- */
-// Import binding system
-import { bindingSystem } from "./BindingSystem";
-
-// Visualization type definitions
 export interface FormulizeVisualization {
   type: "plot2d" | "plot3d" | string;
   config: IPlot2D | IPlot3D;
   id?: string;
 }
 
-export interface FormulizeBinding {
-  source: {
-    component: string;
-    property: string;
-  };
-  target: {
-    component: string;
-    property: string;
-  };
-  direction?: "bidirectional" | "to-target";
-  transform?: (value: any) => any;
-  reverseTransform?: (value: any) => any;
-  condition?: (context: any) => boolean;
-}
-
 export interface FormulizeConfig {
   formula: IFormula;
   externalControls?: unknown[];
   visualizations?: FormulizeVisualization[];
-  bindings?: FormulizeBinding[];
 }
 
 /**
@@ -89,16 +60,15 @@ async function create(
   container?: string
 ): Promise<FormulizeInstance> {
   try {
-    // For now, we only support the formula part
-    const { formula, visualizations, externalControls, bindings } = config;
+    const { formula } = config;
 
     // Validate the formula
     if (!formula) {
       throw new Error("No formula defined in configuration");
     }
 
-    if (!formula.expression) {
-      throw new Error("No expression defined in formula");
+    if (!formula.expressions || formula.expressions.length === 0) {
+      throw new Error("No expressions defined in formula");
     }
 
     if (!formula.variables) {
@@ -116,32 +86,22 @@ async function create(
     // Clear the formula store with an empty formula
     formulaStore.updateFormula(new AugmentedFormula([]));
 
-    console.log("🧹 State cleared completely for new formula");
-
     // Parse and set up the new formula
-    const augmentedFormula = deriveAugmentedFormula(formula.expression);
+    const augmentedFormula = deriveAugmentedFormula(formula.expressions[0]);
     const canonicalFormula = canonicalizeFormula(augmentedFormula);
 
     // Set the formula in the store
     formulaStore.updateFormula(canonicalFormula);
 
-    console.log("🔄 Setting up new variables from formula config");
-
-    // Register formula with binding system
-    const formulaId = formula.id || "default-formula";
-
     // Add variables to computation store from the configuration
     Object.entries(formula.variables).forEach(([varName, variable]) => {
       const symbol = varName.replace(/\$/g, "");
       const varId = `var-${symbol}`;
-
       // Add variable to computation store
       computationStore.addVariable(varId, symbol);
-
       // Map variable types to computation store types
       const type = mapVariableType(variable.type);
       computationStore.setVariableType(varId, type);
-
       // Set initial value if provided
       if (variable.value !== undefined) {
         computationStore.setValue(varId, variable.value);
@@ -157,6 +117,10 @@ async function create(
       computationStore.computationEngine = "llm";
       computationStore.computationConfig = null;
     }
+
+    // Store the original expressions array for components like BlockInteractivity
+    computationStore.originalExpressions = formula.expressions || [];
+
     await computationStore.setFormula(formulaStore.latexWithoutStyling);
 
     // Store the formulaId for setVariable method to use
@@ -197,42 +161,6 @@ async function create(
         formulaStore.updateFormula(new AugmentedFormula([]));
       },
     };
-
-    // Set up bindings if they exist
-    if (bindings && bindings.length > 0) {
-      bindingSystem.registerComponent(
-        formulaId,
-        "formula",
-        formula,
-        formula.variables
-      );
-
-      // Process local bindings
-      Object.entries(formula.variables).forEach(([varName, variable]) => {
-        if (variable.bind) {
-          bindingSystem.registerLocalBinding(formulaId, varName, variable.bind);
-        }
-      });
-
-      console.log(`🔗 Setting up ${bindings.length} global bindings`);
-      bindingSystem.setGlobalBindings(bindings);
-    }
-
-    // Set up visualizations if provided
-    if (visualizations && visualizations.length > 0) {
-      console.log(`🔍 Setting up ${visualizations.length} visualizations`);
-      // Only register visualizations after instance is created
-      visualizations.forEach((viz, index) => {
-        const vizId = viz.id || `viz-${index}`;
-        bindingSystem.registerComponent(
-          vizId,
-          "visualization",
-          viz,
-          viz.config
-        );
-      });
-    }
-
     return instance;
   } catch (error) {
     console.error("Error creating formula:", error);
@@ -246,3 +174,7 @@ const Formulize = {
 };
 
 export default Formulize;
+
+// // Type aliases for backward compatibility
+// export type FormulizeFormula = IFormula;
+// export type FormulizeComputation = IComputation;

@@ -1,10 +1,7 @@
-// Gravitational Potential Energy example formula code
-const gravitationalPotentialExample = `// Formulize configuration - Gravitational Potential Energy Example
-// This JavaScript code is directly executed by the Formulize API
-
+const gravitationalPotentialExample = `
 const config = {
   formula: {
-    expression: "U = mgh",
+    expressions: ["U = mgh"],
     variables: {
       U: {
         type: "dependent",
@@ -36,7 +33,7 @@ const config = {
     },
     computation: {
       engine: "symbolic-algebra",
-      formula: "{U} = {m} * {g} * {h}"
+      expressions: ["{U} = {m} * {g} * {h}"]
     }
   },
   
@@ -65,7 +62,6 @@ const config = {
   ]
 };
 
-// Create the Formulize instance with the configuration
 const formula = await Formulize.create(config);`;
 
 export default gravitationalPotentialExample;

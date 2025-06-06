@@ -4,6 +4,7 @@ import { FormulizeConfig } from "../api";
 import EvaluationFunctionPane from "../components/EvaluationFunctionPane";
 import { computationStore } from "../computation";
 import FormulaCanvas from "../formula/FormulaCanvas";
+import { IComputation } from "../types/computation";
 import VisualizationRenderer from "../visualizations/VisualizationRenderer";
 
 export default function APIPage() {
@@ -17,15 +18,16 @@ export default function APIPage() {
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
 
   // Get the appropriate computation configuration based on the selected engine type
-  const getComputationConfig = () => {
+  const getComputationConfig = (): IComputation => {
     if (engineType === "symbolic-algebra") {
       return {
         engine: "symbolic-algebra" as const,
-        formula: "{K} = 0.5 * {m} * {v} * {v}",
+        expressions: ["{K} = 0.5 * {m} * {v} * {v}"],
       };
     } else {
       return {
         engine: "llm" as const,
+        expressions: [],
         model: "gpt-4",
       };
     }
@@ -34,7 +36,7 @@ export default function APIPage() {
   // Kinetic Energy Formula with dynamic computation engine and Plot2D visualization
   const kineticEnergyFormula: FormulizeConfig = {
     formula: {
-      expression: "K = \\frac{1}{2}mv^2",
+      expressions: ["K = \\frac{1}{2}mv^2"],
       variables: {
         K: {
           type: "dependent",

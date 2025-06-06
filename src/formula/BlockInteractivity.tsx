@@ -8,9 +8,9 @@ import { formulaStore } from "../store";
 import { VariableRange, dragInteractionHandlers } from "./dragInteraction";
 
 /**
- * BlockInteractivity Component with Custom Variable Ranges
+ * BlockInteractivity Component with Custom Variable Ranges and Multiple Expressions Support
  *
- * This component now accepts custom min/max ranges for each slidable variable.
+ * This component automatically detects and renders multiple expressions from the formula system.
  *
  * Usage Examples:
  *
@@ -82,64 +82,106 @@ const BlockInteractivity = observer(
       initializeMathJax();
     }, []);
 
-    const renderFormula = useCallback(async () => {
+    // Helper function to get expressions to render from the system
+    const getExpressionsToRender = useCallback((): string[] => {
+      // First check if we have original expressions stored in computationStore
+      if (
+        computationStore.originalExpressions &&
+        computationStore.originalExpressions.length > 0
+      ) {
+        return computationStore.originalExpressions;
+      }
+
+      // Fallback to formulaStore for backward compatibility
+      const storeLatex = formulaStore.latexWithoutStyling;
+      if (!storeLatex) {
+        return [];
+      }
+
+      // For backward compatibility, treat the single LaTeX from the store as one expression
+      return [storeLatex];
+    }, []);
+
+    const renderFormulas = useCallback(async () => {
       if (!containerRef.current) return;
 
+      // Store the container reference to avoid multiple ref accesses
+      const container = containerRef.current;
+
       try {
-        const latex = formulaStore.latexWithoutStyling;
-        if (!latex) return;
-
-        // Store the original LaTeX for computation
-        const originalLatex = latex;
-
-        // Process the LaTeX to include interactive elements (for display only)
-        const processedLatex = latex.replace(/([a-zA-Z])/g, (match) => {
-          const varId = `var-${match}`;
-          const variable = computationStore.variables.get(varId);
-
-          if (!variable) {
-            return match;
-          }
-
-          const value = variable.value;
-          const type = variable.type;
-
-          if (type === "fixed") {
-            return value.toString();
-          }
-
-          if (type === "slidable") {
-            return `\\cssId{var-${match}}{\\class{interactive-var-slidable}{${match}: ${value.toFixed(1)}}}`;
-          }
-
-          if (type === "dependent") {
-            return `\\cssId{var-${match}}{\\class{interactive-var-dependent}{${match}: ${value.toFixed(1)}}}`;
-          }
-
-          return `\\class{interactive-var-${type}}{${match}}`;
-        });
+        const expressionsToRender = getExpressionsToRender();
+        if (expressionsToRender.length === 0) return;
 
         // Clear previous MathJax content
-        window.MathJax.typesetClear([containerRef.current]);
+        window.MathJax.typesetClear([container]);
+
+        // Create container for all expressions
+        const expressionsHTML = expressionsToRender
+          .map((latex, index) => {
+            // Process the LaTeX to include interactive elements (for display only)
+            const processedLatex = latex.replace(/([a-zA-Z])/g, (match) => {
+              const varId = `var-${match}`;
+              const variable = computationStore.variables.get(varId);
+
+              if (!variable) {
+                return match;
+              }
+
+              const value = variable.value;
+              const type = variable.type;
+
+              if (type === "fixed") {
+                return value.toString();
+              }
+
+              if (type === "slidable") {
+                return `\\cssId{var-${match}}{\\class{interactive-var-slidable}{${match}: ${value.toFixed(1)}}}`;
+              }
+
+              if (type === "dependent") {
+                return `\\cssId{var-${match}}{\\class{interactive-var-dependent}{${match}: ${value.toFixed(1)}}}`;
+              }
+
+              return `\\class{interactive-var-${type}}{${match}}`;
+            });
+
+            return `
+            <div class="formula-expression" data-expression-index="${index}" style="padding: 1rem; border: 1px solid #e0e0e0; border-radius: 24px;">
+              <div class="expression-formula">\\[${processedLatex}\\]</div>
+            </div>
+          `;
+          })
+          .join("");
 
         // Update content and typeset
-        containerRef.current.innerHTML = `\\[${processedLatex}\\]`;
-        await window.MathJax.typesetPromise([containerRef.current]);
+        container.innerHTML = expressionsHTML;
+        await window.MathJax.typesetPromise([container]);
 
-        // Make sure to set the original formula for computation
+        // Set the original formula for computation (use the first expression)
+        const originalLatex = expressionsToRender[0];
         await computationStore.setFormula(originalLatex);
 
-        // Interaction handlers with variable ranges
-        dragInteractionHandlers(
-          containerRef.current,
-          defaultMin,
-          defaultMax,
-          variableRanges
-        );
+        // Check if container is still available after async operations
+        if (!containerRef.current) {
+          console.warn("Container ref became null during async operations");
+          return;
+        }
+
+        // Set up interaction handlers for each expression
+        const expressionElements =
+          containerRef.current.querySelectorAll(`.formula-expression`);
+        expressionElements.forEach((element) => {
+          dragInteractionHandlers(
+            element as HTMLElement,
+            defaultMin,
+            defaultMax,
+            variableRanges
+          );
+        });
       } catch (error) {
-        console.error("Error rendering formula:", error);
+        console.error("Error rendering formulas:", error);
       }
-    }, [variableRanges, defaultMin, defaultMax]);
+    }, [getExpressionsToRender, variableRanges, defaultMin, defaultMax]);
 
     useEffect(() => {
       const disposer = reaction(
@@ -154,23 +196,30 @@ const BlockInteractivity = observer(
             })
           ),
           variableTypesChanged: computationStore.variableTypesChanged,
+          // Watch for changes in original expressions
+          originalExpressions: computationStore.originalExpressions,
         }),
         async () => {
           if (!isInitialized || !containerRef.current) return;
-          await renderFormula();
+          await renderFormulas();
         }
       );
 
       return () => disposer();
-    }, [isInitialized, renderFormula]);
+    }, [isInitialized, renderFormulas]);
 
     useEffect(() => {
       if (isInitialized) {
-        renderFormula();
+        renderFormulas();
       }
-    }, [isInitialized, renderFormula]);
+    }, [isInitialized, renderFormulas]);
 
-    return <div ref={containerRef} />;
+    return (
+      <div
+        ref={containerRef}
+        className="block-interactivity-container flex flex-col gap-4"
+      />
+    );
   }
 );
 

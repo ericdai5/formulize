@@ -2,7 +2,7 @@ import { IComputation } from "./computation";
 import { IVariable } from "./variable";
 
 export interface IFormula {
-  expression: string;
+  expressions: string[];
   id?: string;
   description?: string;
   displayMode?: "block" | "inline";

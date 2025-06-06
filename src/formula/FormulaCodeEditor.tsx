@@ -1,6 +1,7 @@
 import gravitationalPotential from "../examples/gravitationalPotential.ts";
 import kineticEnergy3D from "../examples/kineticEnergy3D.ts";
 import kineticEnergy from "../examples/kineticEnergy.ts";
+import parametric3D from "../examples/parametric3D.ts";
 import quadraticEquation3D from "../examples/quadraticEquation3D.ts";
 import quadraticEquation from "../examples/quadraticEquation.ts";
 
@@ -24,6 +25,7 @@ const FormulaCodeEditor = ({
     kineticEnergy3D,
     quadraticEquation,
     quadraticEquation3D,
+    parametric3D,
   };
 
   // Display names for examples
@@ -33,6 +35,7 @@ const FormulaCodeEditor = ({
     kineticEnergy3D: "Kinetic Energy 3D",
     quadraticEquation: "Quadratic Equation",
     quadraticEquation3D: "Quadratic Equation 3D",
+    parametric3D: "Parametric 3D",
   };
 
   // Handler for example button clicks
