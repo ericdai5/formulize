@@ -7,7 +7,7 @@
 import * as math from "mathjs";
 
 import { IComputation } from "../../types/computation";
-import { IFormula } from "../../types/formula";
+import { IEnvironment } from "../../types/environment";
 
 /**
  * Processes a formula string to replace variable names with math.js symbols
@@ -30,118 +30,81 @@ function processFormulaString(formulaStr: string): string {
  * @returns A JavaScript function that evaluates the formula
  */
 export function deriveSymbolicFunction(
-  formula: IFormula,
   computation: IComputation,
   dependentVars: string[]
 ): (variables: Record<string, number>) => Record<string, number> {
-  // All computations now use expressions array
   const expressions = computation.expressions;
-
-  // Process all expressions for math.js
   const processedExpressions = expressions.map((expr: string) =>
     processFormulaString(expr)
   );
 
-  // Try to parse all expressions with math.js
-  try {
-    // Create a function that evaluates the expressions for all dependent variables
-    return function (
-      variables: Record<string, number>
-    ): Record<string, number> {
-      try {
-        const result: Record<string, number> = {};
+  return function (variables: Record<string, number>): Record<string, number> {
+    const result: Record<string, number> = {};
+    const scope = { ...variables };
+    const unresolved = new Set(dependentVars);
 
-        // For each dependent variable, try to solve the corresponding equation
-        for (const dependentVar of dependentVars) {
-          // If there's an explicit mapping function for this variable, use it
-          if (
-            computation.mappings &&
-            typeof computation.mappings[dependentVar] === "function"
-          ) {
-            result[dependentVar] = computation.mappings[dependentVar](
-              variables
-            ) as number;
-            continue;
-          }
+    // Keep propagating changes until all variables are resolved or no progress
+    while (unresolved.size > 0) {
+      const initialUnresolvedCount = unresolved.size;
 
-          // Find the expression that defines this dependent variable
-          let foundExpression = false;
-
-          for (const processedExpr of processedExpressions) {
-            // Check if this expression defines the current dependent variable
-            const equationMatch = processedExpr.match(
-              new RegExp(`${dependentVar}\\s*=\\s*(.+)`)
-            );
-
-            if (equationMatch) {
-              // Extract the right side of the equation and evaluate it
-              const rightSide = equationMatch[1];
-              const scope = { ...variables };
-              result[dependentVar] = math.evaluate(rightSide, scope) as number;
-              foundExpression = true;
-              break;
+      for (const expr of processedExpressions) {
+        for (const depVar of unresolved) {
+          // Check pattern: depVar = expression
+          const match1 = expr.match(new RegExp(`^\\s*${depVar}\\s*=\\s*(.+)$`));
+          if (match1) {
+            try {
+              result[depVar] = math.evaluate(match1[1], scope) as number;
+              scope[depVar] = result[depVar];
+              unresolved.delete(depVar);
+              break; // Move to next expression since we found a match
+            } catch {
+              // Can't evaluate yet, dependencies not ready
             }
           }
 
-          if (!foundExpression) {
-            // If no explicit equation found, try to evaluate each expression
-            // and see if it yields a result for this variable
-            const scope = { ...variables };
-            let solved = false;
-
-            for (const processedExpr of processedExpressions) {
-              try {
-                // Try direct evaluation
-                const evalResult = math.evaluate(processedExpr, scope);
-                if (typeof evalResult === "number" && !isNaN(evalResult)) {
-                  result[dependentVar] = evalResult;
-                  solved = true;
-                  break;
-                }
-              } catch {
-                // Continue to next expression
-                continue;
-              }
-            }
-
-            if (!solved) {
-              console.error(
-                `Could not solve for ${dependentVar} from any expression`
-              );
-              result[dependentVar] = NaN;
+          // Check pattern: expression = depVar
+          const match2 = expr.match(
+            new RegExp(`^\\s*(.+?)\\s*=\\s*${depVar}\\s*$`)
+          );
+          if (match2) {
+            try {
+              result[depVar] = math.evaluate(match2[1], scope) as number;
+              scope[depVar] = result[depVar];
+              unresolved.delete(depVar);
+              break; // Move to next expression since we found a match
+            } catch {
+              // Can't evaluate yet, dependencies not ready
             }
           }
         }
-
-        return result;
-      } catch (error) {
-        console.error("Error evaluating symbolic expressions:", error);
-        // Return NaN for all dependent variables on error
-        return Object.fromEntries(dependentVars.map((v) => [v, NaN]));
       }
-    };
-  } catch (error) {
-    console.error("Failed to parse symbolic expressions:", error);
-    throw new Error(`Failed to parse symbolic expressions: ${error}`);
-  }
+
+      // If no progress was made in this iteration, break to avoid infinite loop
+      if (unresolved.size === initialUnresolvedCount) {
+        break;
+      }
+    }
+
+    return result;
+  };
 }
 
 /**
  * Computes the formula with the given variable values
  *
- * @param formula The Formulize formula specification
+ * @param environment The Formulize environment
  * @param computation The computation settings
  * @param variables Current variable values
  * @returns An object with updated dependent variable values
  */
 export function computeWithSymbolicEngine(
-  formula: IFormula,
+  environment: IEnvironment,
   computation: IComputation,
   variables: Record<string, number>
 ): Record<string, number> {
   try {
     // Get all dependent variables
-    const dependentVars = Object.entries(formula.variables)
+    const dependentVars = Object.entries(environment.variables)
       .filter(([, varDef]) => varDef.type === "dependent")
       .map(([varName]) => varName);
 
@@ -152,7 +115,6 @@ export function computeWithSymbolicEngine(
 
     // Derive the evaluation function
     const evaluationFunction = deriveSymbolicFunction(
-      formula,
       computation,
       dependentVars
     );

@@ -32,9 +32,7 @@ function App() {
 
       // Reset computation store variables
       computationStore.variables.clear();
-      computationStore.formula = "";
       computationStore.setLastGeneratedCode(null);
-      computationStore.setFormulaError(null);
       computationStore.variableTypesChanged = 0;
     }
   }, [viewMode]);

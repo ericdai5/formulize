@@ -14,7 +14,7 @@ declare global {
       };
       tex: {
         packages: {
-          '[+]': string[];
+          "[+]": string[];
         };
       };
       typesetPromise?: () => Promise<void>;

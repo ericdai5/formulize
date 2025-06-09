@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 
-import { FormulizeVisualization } from "../api";
+import { IVisualization } from "../api";
 import { IPlot2D, IPlot3D } from "../api";
-import { computationStore } from "../api/computation";
 import Plot2D from "./Plot2D";
 import Plot3D from "./Plot3D";
 
 interface VisualizationRendererProps {
-  visualization: FormulizeVisualization;
+  visualization: IVisualization;
 }
 
 const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
@@ -16,11 +15,14 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
   // Force re-renders when visualization config changes by using a key state
   const [renderKey, setRenderKey] = useState(Date.now());
 
+  // Extract complex expression to a variable for useEffect dependency
+  const configString = JSON.stringify(visualization.config);
+
   // Update render key when visualization config changes
   useEffect(() => {
     console.log("🔄 Visualization configuration changed, forcing re-render");
     setRenderKey(Date.now());
-  }, [visualization.type, JSON.stringify(visualization.config)]);
+  }, [visualization.type, configString]);
 
   if (visualization.type === "plot2d") {
     const config = visualization.config as IPlot2D;
@@ -48,25 +50,6 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
             </div>
           </div>
         </div>
-
-        <div className="rounded text-sm text-blue-700">
-          {(() => {
-            const formula = computationStore.formula;
-            const formulaMatch = formula?.match(/^\s*([A-Za-z])\s*=/);
-            const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
-            if (formulaDepVar && formulaDepVar !== config.yAxis.variable) {
-              return (
-                <p className="mt-2 text-amber-600">
-                  Formula uses variable "{formulaDepVar}" but graph is
-                  configured for "{config.yAxis.variable}". The plot will adapt
-                  to show the correct data.
-                </p>
-              );
-            }
-            return null;
-          })()}
-        </div>
-
         {/* Use render key to force complete re-creation of Plot2D component when config changes */}
         <div className="flex items-center justify-center h-full">
           <Plot2D key={`plot2d-${renderKey}`} config={config} />

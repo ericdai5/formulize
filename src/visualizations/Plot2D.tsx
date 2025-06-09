@@ -78,38 +78,51 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     }
   };
 
-  // Function to get or create a cached evaluation function
-  // This specialized version is designed to not trigger API calls
+  // Get or create evaluation function with enhanced validation for example transitions
   const getEvaluationFunction = ():
     | ((variables: Record<string, number>) => Record<string, number>)
     | null => {
     const debugState = computationStore.getDebugState();
     const currentCode = debugState.lastGeneratedCode;
 
-    // If we have no code, we can't create a function
     if (!currentCode) {
       console.warn("⚠️ No generated code available in computation store");
       return null;
     }
 
-    // CRITICAL: Check for our local cache first - this is the safest option
-    // that won't accidentally trigger any API calls
+    // Check for cached function with validation
     if (
       evalFunctionRef.current &&
       currentCode === lastGeneratedCodeRef.current
     ) {
-      console.log(
-        "✅ Using SAFELY cached evaluation function from component ref"
-      );
-      return evalFunctionRef.current;
+      // Validate the cached function is still working
+      try {
+        const testResult = evalFunctionRef.current({ x: 0 });
+        if (testResult && typeof testResult === "object") {
+          console.log(
+            "✅ Using SAFELY cached evaluation function from component ref"
+          );
+          return evalFunctionRef.current;
+        } else {
+          console.warn(
+            "⚠️ Cached function returned invalid result, clearing cache"
+          );
+          evalFunctionRef.current = null;
+          lastGeneratedCodeRef.current = null;
+        }
+      } catch (error) {
+        console.warn(
+          "⚠️ Cached function failed validation, clearing cache:",
+          error
+        );
+        evalFunctionRef.current = null;
+        lastGeneratedCodeRef.current = null;
+      }
     }
 
-    // Next try to get the existing function from computationStore
-    // This should be safe as we're just accessing the property, not calling any methods
+    // Try to get existing function from store
     const hasFunction = debugState.hasFunction;
     if (hasFunction) {
-      // Get the evaluationFunction directly from its accessor getter
-      // We need to be careful to avoid calling any methods that might trigger API calls
       const storeFunction = (computationStore as any).evaluationFunction as (
         variables: Record<string, number>
       ) => Record<string, number>;
@@ -117,25 +130,32 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         console.log(
           "✅ Using direct evaluation function from computation store"
         );
-        // Save to our local cache for future use
         evalFunctionRef.current = storeFunction;
         lastGeneratedCodeRef.current = currentCode;
         return storeFunction;
       }
     }
 
-    // Create a new evaluation function and cache it locally
-    // This is a safe approach that won't make any API calls
+    // Create new evaluation function with enhanced error handling
     try {
       console.log("🔄 Creating LOCAL evaluation function from generated code");
-      console.log(
-        "🔄 This does NOT make an API call - just creating a function from the existing code"
-      );
 
       const newFunc = new Function(
         "variables",
         `"use strict";\n${currentCode}\nreturn evaluate(variables);`
       ) as (variables: Record<string, number>) => Record<string, number>;
+
+      // Test the new function before caching
+      try {
+        const testResult = newFunc({ x: 0 });
+        if (!testResult || typeof testResult !== "object") {
+          console.error("❌ New evaluation function returned invalid result");
+          return null;
+        }
+      } catch (testError) {
+        console.error("❌ New evaluation function failed test:", testError);
+        return null;
+      }
 
       // Update the local cache
       evalFunctionRef.current = newFunc;
@@ -210,29 +230,37 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // and will never trigger API calls
           const result = localEvalFunction(calculationVars);
 
+          // Enhanced validation for result
+          if (!result || typeof result !== "object") {
+            console.warn(`⚠️ Invalid result type at x=${x}`);
+            continue;
+          }
+
           // First try to get the Y value using the configured yAxis.variable
           let y = result[yAxis.variable];
 
           // If we couldn't find the value using the configured variable name,
-          // try to extract and use the actual dependent variable from the formula
-          if (y === undefined) {
-            // Parse the formula to identify the dependent variable (left side of equation)
-            const formula = computationStore.formula;
-            const formulaMatch = formula.match(/^\s*([A-Za-z])\s*=/);
-            const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
-
-            if (formulaDepVar && result[formulaDepVar] !== undefined) {
-              console.log(
-                `📊 Using formula-defined dependent variable ${formulaDepVar} instead of configured ${yAxis.variable}`
-              );
-              y = result[formulaDepVar];
+          // try to extract and use common dependent variable names
+          if (y === undefined || typeof y !== "number" || !isFinite(y)) {
+            // Try common variable names that might be in the result
+            const possibleYVars = ["y", "z", "result", "output"];
+            for (const varName of possibleYVars) {
+              if (
+                result[varName] !== undefined &&
+                typeof result[varName] === "number" &&
+                isFinite(result[varName])
+              ) {
+                y = result[varName];
+                break;
+              }
             }
           }
 
-          // Only include points that are within the specified bounds
+          // Only include points that are valid and within bounds
           if (
             typeof y === "number" &&
             !isNaN(y) &&
+            isFinite(y) &&
             x >= xMin &&
             x <= xMax &&
             y >= yMin &&
@@ -241,7 +269,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             points.push({ x, y });
           }
         } catch (error) {
-          console.warn(`⚠️ Error calculating point at x=${x}:`, error);
+          // Reduce console spam - only log first few errors and summary
+          if (points.length < 5) {
+            console.warn(`⚠️ Error calculating point at x=${x}:`, error);
+          }
         }
       }
 

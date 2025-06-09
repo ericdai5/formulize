@@ -1,33 +1,35 @@
-const kineticEnergy3DExample = `
-const config = {
-  formula: {
-    expressions: ["K = \\\\frac{1}{2}mv^2"],
-    variables: {
-      K: {
-        type: "dependent",
-        units: "J",
-        label: "Kinetic Energy",
-        precision: 2
-      },
-      m: {
-        type: "input",
-        value: 2,
-        range: [0.5, 5],
-        units: "kg",
-        label: "Mass"
-      },
-      v: {
-        type: "input",
-        value: 3,
-        range: [0.5, 10],
-        units: "m/s",
-        label: "Velocity"
-      }
-    },
-    computation: {
-      engine: "symbolic-algebra",
-      expressions: ["{K} = 0.5 * {m} * {v} * {v}"]
+const kineticEnergy3DExample = `const config = {
+  formulas: [
+    {
+      name: "Kinetic Energy Formula",
+      function: "K = \\\\frac{1}{2}mv^2"
     }
+  ],
+  variables: {
+    K: {
+      type: "dependent",
+      units: "J",
+      label: "Kinetic Energy",
+      precision: 2
+    },
+    m: {
+      type: "input",
+      value: 2,
+      range: [0.5, 5],
+      units: "kg",
+      label: "Mass"
+    },
+    v: {
+      type: "input",
+      value: 3,
+      range: [0.5, 10],
+      units: "m/s",
+      label: "Velocity"
+    }
+  },
+  computation: {
+    engine: "symbolic-algebra",
+    expressions: ["{K} = 0.5 * {m} * {v} * {v}"]
   },
   
   visualizations: [

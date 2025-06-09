@@ -1,46 +1,48 @@
-const quadraticEquation3DExample = `
-const config = {
-  formula: {
-    expressions: ["y = ax^2 + bx + c"],
-    variables: {
-      y: {
-        type: "dependent",
-        label: "y-value",
-        precision: 2
-      },
-      x: {
-        type: "input",
-        value: 0,
-        range: [-5, 5],
-        step: 0.1,
-        label: "x"
-      },
-      a: {
-        type: "input",
-        value: 1,
-        range: [-2, 2],
-        step: 0.1,
-        label: "Coefficient a"
-      },
-      b: {
-        type: "input",
-        value: 0,
-        range: [-5, 5],
-        step: 0.1,
-        label: "Coefficient b"
-      },
-      c: {
-        type: "input",
-        value: 0,
-        range: [-10, 10],
-        step: 0.1,
-        label: "Coefficient c"
-      }
-    },
-    computation: {
-      engine: "symbolic-algebra",
-      expressions: ["{y} = {a} * {x} * {x} + {b} * {x} + {c}"]
+const quadraticEquation3DExample = `const config = {
+  formulas: [
+    {
+      name: "Quadratic Equation",
+      function: "y = ax^2 + bx + c"
     }
+  ],
+  variables: {
+    y: {
+      type: "dependent",
+      label: "y-value",
+      precision: 2
+    },
+    x: {
+      type: "input",
+      value: 0,
+      range: [-5, 5],
+      step: 0.1,
+      label: "x"
+    },
+    a: {
+      type: "input",
+      value: 1,
+      range: [-2, 2],
+      step: 0.1,
+      label: "Coefficient a"
+    },
+    b: {
+      type: "input",
+      value: 0,
+      range: [-5, 5],
+      step: 0.1,
+      label: "Coefficient b"
+    },
+    c: {
+      type: "input",
+      value: 0,
+      range: [-10, 10],
+      step: 0.1,
+      label: "Coefficient c"
+    }
+  },
+  computation: {
+    engine: "symbolic-algebra",
+    expressions: ["{y} = {a} * {x} * {x} + {b} * {x} + {c}"]
   },
   
   visualizations: [
@@ -72,7 +74,7 @@ const config = {
         height: 600
       }
     }
-  ],
+  ]
 };
 
 const formula = await Formulize.create(config);`;

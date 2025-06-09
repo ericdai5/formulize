@@ -1,59 +1,59 @@
-const parametric3DExample = `
-const config = {
-  formula: {
-    expressions: [
-      "x = t",
-      "y = 1 - 2 * t",
-      "z = t",
-      "x + y + z = h"
-    ],
-    variables: {
-      h: {
-        type: "dependent",
-        value: 0,
-        range: [-2, 2],
-        step: 0.1,
-        label: "h-coordinate",
-        precision: 2
-      },
-      x: {
-        type: "dependent",
-        value: 0,
-        range: [-2, 2],
-        step: 0.1,
-        label: "x-coordinate",
-        precision: 2
-      },
-      y: {
-        type: "dependent",
-        value: 0,
-        range: [-2, 2],
-        step: 0.1,
-        label: "y-coordinate",
-        precision: 2
-      },
-      z: {
-        type: "dependent",
-        label: "z-coordinate",
-        precision: 2
-      },
-      t: {
-        type: "input",
-        value: 0,
-        range: [-2, 2],
-        step: 0.1,
-        label: "Parameter t"
-      }
+const parametric3DExample = `const config = {
+  formulas: [
+    {
+      name: "x and t",
+      function: "x = t"
     },
-    computation: {
-      engine: "symbolic-algebra",
-      expressions: [
-        "{x} = {t}",
-        "{y} = 1 - 2 * {t}",
-        "{z} = {t}",
-        "{x} + {y} + {z} = {h}"
-      ]
+    {
+      name: "y and t",
+      function: "y = 1 - 2t"
+    },
+    {
+      name: "z and t",
+      function: "z = t"
+    },
+    {
+      name: "h and t",
+      function: "h = x + y + z"
     }
+  ],
+  variables: {
+    h: {
+      type: "dependent",
+      label: "h-coordinate",
+      precision: 2
+    },
+    x: {
+      type: "dependent",
+      label: "x-coordinate",
+      precision: 2
+    },
+    y: {
+      type: "dependent",
+      label: "y-coordinate",
+      precision: 2
+    },
+    z: {
+      type: "dependent",
+      label: "z-coordinate",
+      precision: 2
+    },
+    t: {
+      type: "input",
+      value: 0,
+      range: [-2, 2],
+      step: 0.1,
+      label: "Parameter t"
+    }
+  },
+  computation: {
+    engine: "symbolic-algebra",
+    expressions: [
+      "{x} = {t}",
+      "{y} = 1 - 2 * {t}",
+      "{z} = {t}",
+      "{x} + {y} + {z} = {h}"
+    ]
   },
   
   visualizations: [

@@ -13,9 +13,9 @@ import {
   AugmentedFormulaNode,
   Group,
   RenderSpec,
+  convertLatexToMathML,
   deriveAugmentedFormula,
   updateFormula,
-  convertLatexToMathML // NEW: importing MathML conversion
 } from "./FormulaTree";
 import { canonicalizeFormula } from "./formulaTransformations";
 
@@ -721,8 +721,8 @@ export const undoStore = new UndoStore();
 class EditingStore {
   @observable
   accessor showAlignMode: boolean = false;
-  
-  @observable 
+
+  @observable
   accessor showEnlivenMode: boolean = false;
 
   @action
@@ -730,7 +730,7 @@ class EditingStore {
     this.showAlignMode = show;
   }
 
-  @action 
+  @action
   setShowEnlivenMode(show: boolean) {
     this.showEnlivenMode = show;
     if (!show) {

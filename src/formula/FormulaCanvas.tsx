@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "../api/index.ts";
 import kineticEnergy from "../examples/kineticEnergy.ts";
-import { IFormula } from "../types/formula.ts";
+import { IEnvironment } from "../types/environment.ts";
 import BlockInteractivity, { VariableRange } from "./BlockInteractivity.tsx";
 import FormulaCodeEditor from "./FormulaCodeEditor.tsx";
 
@@ -11,7 +11,7 @@ import functionIcon from "../Icons/function.svg";
 
 interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
-  formulizeFormula?: IFormula;
+  formulizeFormula?: IEnvironment;
   autoRender?: boolean;
   onConfigChange?: (config: FormulizeConfig) => void;
   onOpenEvaluationModal?: () => void;
@@ -25,10 +25,10 @@ const FormulaCanvas = ({
   onOpenEvaluationModal,
 }: FormulaCanvasProps) => {
   // Use formulizeConfig if provided, otherwise use the formulizeFormula, or fall back to null
-  const initialConfig = formulizeConfig?.formula
+  const initialConfig = formulizeConfig?.formulas
     ? formulizeConfig
     : formulizeFormula
-      ? { formula: formulizeFormula }
+      ? formulizeFormula
       : null;
 
   // Convert the config to a JavaScript format for display
@@ -54,8 +54,8 @@ const FormulaCanvas = ({
     config: FormulizeConfig
   ): Record<string, VariableRange> => {
     const ranges: Record<string, VariableRange> = {};
-    if (config.formula?.variables) {
-      Object.entries(config.formula.variables).forEach(
+    if (config.variables) {
+      Object.entries(config.variables).forEach(
         ([variableName, variableConfig]) => {
           if (variableConfig.type === "input" && variableConfig.range) {
             const [min, max] = variableConfig.range;
@@ -104,7 +104,7 @@ const FormulaCanvas = ({
             
             // Return a mock instance
             return {
-              formula: config.formula,
+              formula: config,
               getVariable: () => ({}),
               setVariable: () => true,
               update: async () => {},
@@ -140,9 +140,14 @@ const FormulaCanvas = ({
       const result = await executeFunction();
 
       // Validate the config
-      if (!result || !result.formula) {
+      if (
+        !result ||
+        !result.formulas ||
+        !result.variables ||
+        !result.computation
+      ) {
         throw new Error(
-          "Invalid configuration returned. Configuration must include a formula property."
+          "Invalid configuration returned. Configuration must include formulas, variables, and computation properties."
         );
       }
 
@@ -163,7 +168,12 @@ const FormulaCanvas = ({
       setError(null);
       const inputToUse = inputOverride ?? formulizeInput;
       const userConfig = await executeUserCode(inputToUse);
-      if (!userConfig || !userConfig.formula) {
+      if (
+        !userConfig ||
+        !userConfig.formulas ||
+        !userConfig.variables ||
+        !userConfig.computation
+      ) {
         throw new Error(
           "Invalid configuration. Please check your code and try again."
         );
@@ -173,15 +183,17 @@ const FormulaCanvas = ({
       const configToUse = userConfig;
 
       // Ensure the configToUse has all required properties
-      if (!configToUse.formula.variables) {
-        configToUse.formula.variables = {};
+      if (!configToUse.variables) {
+        configToUse.variables = {};
       }
 
       // Make sure we have a computation engine specified
-      if (!configToUse.formula.computation) {
-        configToUse.formula.computation = {
+      if (!configToUse.computation) {
+        configToUse.computation = {
           engine: "symbolic-algebra",
-          formula: configToUse.formula.expression.replace(/\\frac/g, ""), // Simple cleanup for formula
+          expressions: configToUse.formulas.map((formula) =>
+            formula.function.replace(/\\frac/g, "")
+          ), // Simple cleanup for formula
         };
       }
 
@@ -241,8 +253,6 @@ const FormulaCanvas = ({
               variableRanges={
                 currentConfig ? extractVariableRanges(currentConfig) : {}
               }
-              defaultMin={-100}
-              defaultMax={100}
             />
           </div>
         </div>

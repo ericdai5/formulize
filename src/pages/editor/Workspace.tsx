@@ -4,10 +4,9 @@ import { observer } from "mobx-react-lite";
 
 import { AlignmentGuides } from "../../AlignmentGuides";
 import { MathSymbol } from "../../FormulaTree";
-import { RenderedFormula } from "../../RenderedFormula";
 import { computationStore } from "../../api/computation";
 import { editingStore, formulaStore, selectionStore } from "../../store";
-import { Debug } from "./Debug";
+import { RenderedFormula } from "./RenderedFormula";
 import VariableTooltip from "./VariableTooltip";
 
 export const Workspace = observer(() => {

@@ -4,33 +4,8 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { computationStore } from "../api/computation";
-import { formulaStore } from "../store";
+import { FormulaStore } from "../store/FormulaStoreManager";
 import { VariableRange, dragInteractionHandlers } from "./dragInteraction";
-
-/**
- * BlockInteractivity Component with Custom Variable Ranges and Multiple Expressions Support
- *
- * This component automatically detects and renders multiple expressions from the formula system.
- *
- * Usage Examples:
- *
- * 1. Basic usage with default ranges (-100 to 100):
- * <BlockInteractivity />
- *
- * 2. Custom default ranges:
- * <BlockInteractivity defaultMin={0} defaultMax={50} />
- *
- * 3. Variable-specific ranges:
- * <BlockInteractivity
- *   variableRanges={{
- *     'var-a': { min: 0, max: 100 },    // Variable 'a' ranges from 0 to 100
- *     'var-b': { min: -50, max: 50 },   // Variable 'b' ranges from -50 to 50
- *     'c': { min: 1, max: 10 }          // Variable 'c' ranges from 1 to 10 (can use symbol directly)
- *   }}
- *   defaultMin={-10}
- *   defaultMax={10}
- * />
- */
 
 declare global {
   interface Window {
@@ -46,15 +21,15 @@ declare global {
 
 interface BlockInteractivityProps {
   variableRanges?: Record<string, VariableRange>;
-  defaultMin?: number;
-  defaultMax?: number;
+  formulaIndex?: number;
+  formulaStore?: FormulaStore;
 }
 
 const BlockInteractivity = observer(
   ({
     variableRanges = {},
-    defaultMin = -100,
-    defaultMax = 100,
+    formulaIndex,
+    formulaStore,
   }: BlockInteractivityProps = {}) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isInitialized, setIsInitialized] = useState(false);
@@ -65,42 +40,45 @@ const BlockInteractivity = observer(
           console.error("MathJax not loaded");
           return;
         }
-
         try {
           await window.MathJax.startup.promise;
           setIsInitialized(true);
-          // Set initial formula when MathJax is ready
-          const latex = formulaStore.latexWithoutStyling;
-          if (latex) {
-            await computationStore.setFormula(latex);
-          }
         } catch (error) {
           console.error("Error initializing MathJax:", error);
         }
       };
-
       initializeMathJax();
-    }, []);
+    }, [formulaStore]);
 
     // Helper function to get expressions to render from the system
-    const getExpressionsToRender = useCallback((): string[] => {
-      // First check if we have original expressions stored in computationStore
+    const getFormula = useCallback((): string[] => {
+      // If a custom formula store is provided, use its formula
+      if (formulaStore) {
+        const storeLatex = formulaStore.latexWithoutStyling;
+        if (storeLatex) {
+          return [storeLatex];
+        }
+      }
+
+      // If a specific formula index is provided, get that formula
+      if (formulaIndex !== undefined && computationStore.displayedFormulas) {
+        const specificFormula =
+          computationStore.displayedFormulas[formulaIndex];
+        if (specificFormula) {
+          return [specificFormula];
+        }
+      }
+
+      // Use displayed formulas from computation store
       if (
-        computationStore.originalExpressions &&
-        computationStore.originalExpressions.length > 0
+        computationStore.displayedFormulas &&
+        computationStore.displayedFormulas.length > 0
       ) {
-        return computationStore.originalExpressions;
+        return computationStore.displayedFormulas;
       }
 
-      // Fallback to formulaStore for backward compatibility
-      const storeLatex = formulaStore.latexWithoutStyling;
-      if (!storeLatex) {
-        return [];
-      }
-
-      // For backward compatibility, treat the single LaTeX from the store as one expression
-      return [storeLatex];
-    }, []);
+      return [];
+    }, [formulaIndex, formulaStore]);
 
     const renderFormulas = useCallback(async () => {
       if (!containerRef.current) return;
@@ -109,14 +87,14 @@ const BlockInteractivity = observer(
       const container = containerRef.current;
 
       try {
-        const expressionsToRender = getExpressionsToRender();
-        if (expressionsToRender.length === 0) return;
+        const formula = getFormula();
+        if (formula.length === 0) return;
 
         // Clear previous MathJax content
         window.MathJax.typesetClear([container]);
 
         // Create container for all expressions
-        const expressionsHTML = expressionsToRender
+        const expressionsHTML = formula
           .map((latex, index) => {
             // Process the LaTeX to include interactive elements (for display only)
             const processedLatex = latex.replace(/([a-zA-Z])/g, (match) => {
@@ -153,15 +131,9 @@ const BlockInteractivity = observer(
           })
           .join("");
 
-        // Update content and typeset
         container.innerHTML = expressionsHTML;
         await window.MathJax.typesetPromise([container]);
 
-        // Set the original formula for computation (use the first expression)
-        const originalLatex = expressionsToRender[0];
-        await computationStore.setFormula(originalLatex);
-
-        // Check if container is still available after async operations
         if (!containerRef.current) {
           console.warn("Container ref became null during async operations");
           return;
@@ -171,22 +143,16 @@ const BlockInteractivity = observer(
         const expressionElements =
           containerRef.current.querySelectorAll(`.formula-expression`);
         expressionElements.forEach((element) => {
-          dragInteractionHandlers(
-            element as HTMLElement,
-            defaultMin,
-            defaultMax,
-            variableRanges
-          );
+          dragInteractionHandlers(element as HTMLElement, variableRanges);
         });
       } catch (error) {
         console.error("Error rendering formulas:", error);
       }
-    }, [getExpressionsToRender, variableRanges, defaultMin, defaultMax]);
+    }, [getFormula, variableRanges]);
 
     useEffect(() => {
       const disposer = reaction(
         () => ({
-          latex: formulaStore.latexWithoutStyling,
           // Watch for changes in both variable values and types
           variables: Array.from(computationStore.variables.entries()).map(
             ([id, v]) => ({
@@ -196,8 +162,9 @@ const BlockInteractivity = observer(
             })
           ),
           variableTypesChanged: computationStore.variableTypesChanged,
-          // Watch for changes in original expressions
-          originalExpressions: computationStore.originalExpressions,
+          displayedFormulas: computationStore.displayedFormulas,
+          formulaIndex: formulaIndex,
+          formulaStore: formulaStore?.latexWithoutStyling,
         }),
         async () => {
           if (!isInitialized || !containerRef.current) return;
@@ -206,7 +173,7 @@ const BlockInteractivity = observer(
       );
 
       return () => disposer();
-    }, [isInitialized, renderFormulas]);
+    }, [isInitialized, renderFormulas, formulaIndex, formulaStore]);
 
     useEffect(() => {
       if (isInitialized) {

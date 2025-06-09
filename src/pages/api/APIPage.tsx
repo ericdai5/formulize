@@ -35,32 +35,35 @@ export default function APIPage() {
 
   // Kinetic Energy Formula with dynamic computation engine and Plot2D visualization
   const kineticEnergyFormula: FormulizeConfig = {
-    formula: {
-      expressions: ["K = \\frac{1}{2}mv^2"],
-      variables: {
-        K: {
-          type: "dependent",
-          units: "J",
-          label: "Kinetic Energy",
-          precision: 2,
-        },
-        m: {
-          type: "input",
-          value: 1,
-          range: [0.1, 10],
-          units: "kg",
-          label: "Mass",
-        },
-        v: {
-          type: "input",
-          value: 2,
-          range: [0.1, 100],
-          units: "m/s",
-          label: "Velocity",
-        },
+    formulas: [
+      {
+        name: "Kinetic Energy Formula",
+        function: "K = \\frac{1}{2}mv^2",
       },
-      computation: getComputationConfig(),
+    ],
+    variables: {
+      K: {
+        type: "dependent",
+        units: "J",
+        label: "Kinetic Energy",
+        precision: 2,
+      },
+      m: {
+        type: "input",
+        value: 1,
+        range: [0.1, 10],
+        units: "kg",
+        label: "Mass",
+      },
+      v: {
+        type: "input",
+        value: 2,
+        range: [0.1, 100],
+        units: "m/s",
+        label: "Velocity",
+      },
     },
+    computation: getComputationConfig(),
     visualizations: [
       {
         type: "plot2d",
@@ -91,10 +94,7 @@ export default function APIPage() {
     if (currentFormulaConfig) {
       const updatedConfig = {
         ...currentFormulaConfig,
-        formula: {
-          ...currentFormulaConfig.formula,
-          computation: getComputationConfig(),
-        },
+        computation: getComputationConfig(),
       };
       setCurrentFormulaConfig(updatedConfig);
     }
@@ -111,16 +111,15 @@ export default function APIPage() {
         <div className="w-1/2">
           <FormulaCanvas
             formulizeConfig={{
-              formula: {
-                ...kineticEnergyFormula.formula,
-                computation: getComputationConfig(),
-              },
+              formulas: kineticEnergyFormula.formulas,
+              variables: kineticEnergyFormula.variables,
+              computation: getComputationConfig(),
               visualizations: kineticEnergyFormula.visualizations,
             }}
             onConfigChange={(config) => {
               console.log("Config changed:", config);
               // Update the engine type based on the config
-              if (config.formula.computation?.engine === "symbolic-algebra") {
+              if (config.computation?.engine === "symbolic-algebra") {
                 setEngineType("symbolic-algebra");
               } else {
                 setEngineType("llm");

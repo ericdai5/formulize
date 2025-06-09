@@ -5,10 +5,11 @@ export interface VariableRange {
   max: number;
 }
 
+const DEFAULT_MIN_VALUE = -10;
+const DEFAULT_MAX_VALUE = 10;
+
 export const dragInteractionHandlers = (
   container: HTMLElement,
-  defaultMin: number = -100,
-  defaultMax: number = 100,
   variableRanges: Record<string, VariableRange> = {}
 ) => {
   if (!container) return;
@@ -20,13 +21,12 @@ export const dragInteractionHandlers = (
   slidableElements.forEach((element) => {
     let isDragging = false;
     let startY = 0;
-    let startValue = (defaultMin + defaultMax) / 2;
     const SENSITIVITY = 0.5;
 
     // Get variable-specific range
     const varMatch = element.id.match(/^var-([a-zA-Z])$/);
-    let actualMinValue = defaultMin;
-    let actualMaxValue = defaultMax;
+    let actualMinValue = DEFAULT_MIN_VALUE;
+    let actualMaxValue = DEFAULT_MAX_VALUE;
 
     if (varMatch) {
       const symbol = varMatch[1];
@@ -38,9 +38,9 @@ export const dragInteractionHandlers = (
         actualMinValue = range.min;
         actualMaxValue = range.max;
       }
-
-      startValue = (actualMinValue + actualMaxValue) / 2;
     }
+
+    let startValue = (actualMinValue + actualMaxValue) / 2;
 
     const handleMouseMove = async (e: MouseEvent) => {
       if (!isDragging) return;
