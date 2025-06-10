@@ -2,7 +2,8 @@ const quadraticEquation3DExample = `const config = {
   formulas: [
     {
       name: "Quadratic Equation",
-      function: "y = ax^2 + bx + c"
+      function: "y = ax^2 + bx + c",
+      expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
     }
   ],
   variables: {
@@ -41,10 +42,9 @@ const quadraticEquation3DExample = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra",
-    expressions: ["{y} = {a} * {x} * {x} + {b} * {x} + {c}"]
+    engine: "symbolic-algebra"
   },
-  
+
   visualizations: [
     {
       type: "plot3d",
@@ -71,7 +71,15 @@ const quadraticEquation3DExample = `const config = {
         },
         plotType: "surface",
         width: 600,
-        height: 600
+        height: 600,
+        surfaces: [
+          {
+            formulaName: "Quadratic Equation",
+            color: "Viridis",
+            opacity: 0.7,
+            showInLegend: true
+          }
+        ]
       }
     }
   ]

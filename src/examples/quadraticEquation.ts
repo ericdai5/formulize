@@ -2,7 +2,8 @@ const quadraticEquationExample = `const config = {
   formulas: [
     {
       name: "Quadratic Equation",
-      function: "y = ax^2 + bx + c"
+      function: "y = ax^2 + bx + c",
+      expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
     }
   ],
   variables: {
@@ -41,8 +42,7 @@ const quadraticEquationExample = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra",
-    expressions: ["{y} = {a} * {x} * {x} + {b} * {x} + {c}"]
+    engine: "symbolic-algebra"
   },
   
   visualizations: [

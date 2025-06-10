@@ -369,7 +369,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         ]);
 
         // Extract just the values we need
-        const trackedValues = {};
+        const trackedValues: Record<string, number> = {};
 
         Array.from(computationStore.variables.entries())
           .filter(([id]) => relevantVariables.has(id))
@@ -386,7 +386,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Return a simpler object that only includes what we need to track
         return {
           // Track m value which affects ALL y-values (scaling factor)
-          m: trackedValues["var-m"],
+          m: trackedValues["var-m"] ?? 0,
 
           // Only track the current values of x and y axis variables
           // for current point highlighting - we don't need to track
@@ -405,12 +405,16 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Only log occasionally to prevent console spam
         if (updateCount % LOG_INTERVAL === 0) {
           console.log("🔄 Variable values changed - recalculating plot");
-          console.log(
-            "  Changed values:",
-            Object.entries(newValues)
-              .filter(([k, v]) => oldValues[k] !== v)
-              .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
-          );
+          if (oldValues) {
+            console.log(
+              "  Changed values:",
+              Object.entries(newValues)
+                .filter(
+                  ([k, v]) => oldValues[k as keyof typeof oldValues] !== v
+                )
+                .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
+            );
+          }
         }
 
         // Recalculate all data points with current variable values
@@ -623,34 +627,18 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         const [mouseX] = d3.pointer(event);
         const x0 = xScale.invert(mouseX);
 
-        // This will use the registered click handler if one exists,
-        // which is how visualization bindings work
+        // Update the x-axis variable when user clicks on the plot
         try {
-          // If we have an ID for this plot, use it to trigger the handler
-          if (config.id) {
-            console.log(
-              `📊 User clicked on graph id ${config.id}, setting ${xAxis.variable} = ${x0}`
-            );
-            computationStore.triggerClickHandler(`plot2d-${config.id}`, x0);
-          } else {
-            // Default fallback behavior using direct store access
-            const xVarId = `var-${xAxis.variable}`;
-            console.log(
-              `📊 User clicked on graph, setting ${xAxis.variable} = ${x0} directly`
-            );
-            // Use runInAction to comply with MobX strict mode
-            runInAction(() => {
-              computationStore.setValue(xVarId, x0);
-            });
-          }
-        } catch (error) {
-          console.error(`Error updating variable through bindings:`, error);
-          // Fallback to direct update in case of error
           const xVarId = `var-${xAxis.variable}`;
+          console.log(
+            `📊 User clicked on graph, setting ${xAxis.variable} = ${x0}`
+          );
           // Use runInAction to comply with MobX strict mode
           runInAction(() => {
             computationStore.setValue(xVarId, x0);
           });
+        } catch (error) {
+          console.error(`Error updating variable:`, error);
         }
       });
   }, [

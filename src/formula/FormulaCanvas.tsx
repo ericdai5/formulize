@@ -99,9 +99,6 @@ const FormulaCanvas = ({
             // Make a deep copy to prevent any reference issues
             capturedConfig = JSON.parse(JSON.stringify(config));
             
-            // Log the captured config for debugging
-            console.log("Captured config:", capturedConfig);
-            
             // Return a mock instance
             return {
               formula: config,
@@ -151,9 +148,6 @@ const FormulaCanvas = ({
         );
       }
 
-      // Log the fully extracted config
-      console.log("Extracted configuration:", result);
-
       return result;
     } catch (error) {
       console.error("Error executing user code:", error);
@@ -191,9 +185,6 @@ const FormulaCanvas = ({
       if (!configToUse.computation) {
         configToUse.computation = {
           engine: "symbolic-algebra",
-          expressions: configToUse.formulas.map((formula) =>
-            formula.function.replace(/\\frac/g, "")
-          ), // Simple cleanup for formula
         };
       }
 

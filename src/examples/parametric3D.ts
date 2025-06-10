@@ -2,19 +2,28 @@ const parametric3DExample = `const config = {
   formulas: [
     {
       name: "x and t",
-      function: "x = t"
+      function: "x = t",
+      expression: "{x} = {t}"
     },
     {
       name: "y and t",
-      function: "y = 1 - 2t"
+      function: "y = 1 - 2t",
+      expression: "{y} = 1 - 2 * {t}"
     },
     {
       name: "z and t",
-      function: "z = t"
+      function: "z = t",
+      expression: "{z} = {t}"
     },
     {
       name: "h and t",
-      function: "h = x + y + z"
+      function: "h = x + y + z",
+      expression: "{x} + {y} + {z} = {h}"
+    },
+    {
+      name: "x and z",
+      function: "x - z = 0",
+      expression: "{x} - {z} = 0"
     }
   ],
   variables: {
@@ -47,21 +56,15 @@ const parametric3DExample = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra",
-    expressions: [
-      "{x} = {t}",
-      "{y} = 1 - 2 * {t}",
-      "{z} = {t}",
-      "{x} + {y} + {z} = {h}"
-    ]
+    engine: "symbolic-algebra"
   },
-  
+
   visualizations: [
     {
       type: "plot3d",
       id: "parametricPlane3D",
       config: {
-        title: "3D Parametric Line: x = t, y = 1 - 2t, z = t",
+        title: "3D Parametric Surfaces: x + y + z = h and x - z = 0",
         xAxis: {
           variable: "x",
           label: "x = t",
@@ -80,9 +83,23 @@ const parametric3DExample = `const config = {
           min: -2,
           max: 2
         },
-        plotType: "line",
+        plotType: "surface",
         width: 600,
-        height: 600
+        height: 600,
+        surfaces: [
+          {
+            formulaName: "h and t",
+            color: "Viridis",
+            opacity: 0.7,
+            showInLegend: true
+          },
+          {
+            formulaName: "x and z",
+            color: "Plasma",
+            opacity: 0.6,
+            showInLegend: true
+          }
+        ]
       }
     }
   ]

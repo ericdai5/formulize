@@ -2,7 +2,8 @@ const kineticEnergyExample = `const config = {
   formulas: [
     {
       name: "Kinetic Energy Formula",
-      function: "K = \\\\frac{1}{2}mv^2"
+      function: "K = \\\\frac{1}{2}mv^2",
+      expression: "{K} = 0.5 * {m} * {v} * {v}"
     }
   ],
   variables: {
@@ -28,8 +29,7 @@ const kineticEnergyExample = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra",
-    expressions: ["{K} = 0.5 * {m} * {v} * {v}"]
+    engine: "symbolic-algebra"
   },
   
   visualizations: [
@@ -51,7 +51,15 @@ const kineticEnergyExample = `const config = {
           max: 200
         },
         width: 600,
-        height: 600
+        height: 600,
+        surfaces: [
+          {
+            formulaName: "Kinetic Energy Formula",
+            color: "Viridis",
+            opacity: 0.7,
+            showInLegend: true
+          }
+        ]
       }
     }
   ]

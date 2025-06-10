@@ -2,7 +2,8 @@ const gravitationalPotentialExample = `const config = {
   formulas: [
     {
       name: "Gravitational Potential Energy Formula",
-      function: "U = mgh"
+      function: "U = mgh",
+      expression: "{U} = {m} * {g} * {h}"
     }
   ],
   variables: {
@@ -35,8 +36,7 @@ const gravitationalPotentialExample = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra",
-    expressions: ["{U} = {m} * {g} * {h}"]
+    engine: "symbolic-algebra"
   },
   
   visualizations: [

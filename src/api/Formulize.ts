@@ -24,13 +24,13 @@ export interface FormulizeInstance {
   setVariable: (name: string, value: number) => boolean;
   update: (config: FormulizeConfig) => Promise<FormulizeInstance>;
   destroy: () => void;
-  // Multi-formula management methods
   getFormulaStore: (index: number) => FormulaStore | null;
   getFormulaByIndex: (index: number) => string | null;
   getAllFormulaStores: () => FormulaStore[];
   getAllFormulas: () => string[];
   getFormulaStoreCount: () => number;
   resetFormulaState: () => void;
+  getFormulaExpression: (name: string) => string | null;
 }
 
 // Set up computation engine configuration
@@ -109,8 +109,10 @@ async function create(
     // Set up the computation engine
     setupComputationEngine(environment);
 
-    // Use computation expressions for actual computation
-    const computationFunctions = environment.computation.expressions || [];
+    // Extract computation expressions from individual formulas
+    const computationFunctions = environment.formulas
+      .map((formula) => formula.expression)
+      .filter((expression): expression is string => expression !== undefined);
 
     // Store the display formulas for rendering and the computation expressions for evaluation
     computationStore.displayedFormulas = formulas;
@@ -188,6 +190,11 @@ async function create(
         // Clear all individual stores
         formulaStoreManager.clearAllStores();
       },
+      // Formula expression access
+      getFormulaExpression: (name: string) => {
+        const formula = environment.formulas.find((f) => f.name === name);
+        return formula?.expression || null;
+      },
     };
     return instance;
   } catch (error) {
@@ -227,8 +234,10 @@ const Formulize = {
       computationStore.computationEngine = environment.computation.engine;
       computationStore.computationConfig = environment.computation;
 
-      // Use computation expressions for actual computation
-      const computationFunctions = environment.computation.expressions || [];
+      // Extract computation expressions from individual formulas
+      const computationFunctions = environment.formulas
+        .map((formula) => formula.expression)
+        .filter((expression): expression is string => expression !== undefined);
 
       // Store the display formulas for rendering and the computation expressions for evaluation
       computationStore.displayedFormulas = formulas;
@@ -273,6 +282,15 @@ const Formulize = {
   resetFormulaState: () => {
     // Clear all individual stores
     formulaStoreManager.clearAllStores();
+  },
+
+  // Formula expression access
+  getFormulaExpression: (
+    environment: IEnvironment,
+    name: string
+  ): string | null => {
+    const formula = environment.formulas.find((f) => f.name === name);
+    return formula?.expression || null;
   },
 };
 

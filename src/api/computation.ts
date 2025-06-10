@@ -124,9 +124,16 @@ class ComputationStore {
       if (!this.computationConfig) return {};
       const result: Record<string, number> = {};
 
+      // Create formulas from the stored expressions
+      const formulas = this.computationFunctions.map((expression, index) => ({
+        name: `Formula ${index + 1}`,
+        function: `Formula ${index + 1}`, // LaTeX display (not used for computation)
+        expression: expression, // The computational expression
+      }));
+
       // Create a formula object for the symbolic engine
       const formulaObj = {
-        formulas: [], // Not used by the symbolic engine for computation
+        formulas: formulas, // ✅ Now includes actual formulas with expressions
         variables: Object.fromEntries(
           Array.from(this.variables.entries()).map(([id, v]) => {
             const varType: "constant" | "input" | "dependent" =
@@ -278,9 +285,15 @@ class ComputationStore {
 
   getDebugState() {
     return {
-      variables: Array.from(this.variables.entries()),
+      variables: Array.from(this.variables.entries()).map(([id, v]) => ({
+        id,
+        symbol: v.symbol,
+        value: v.value,
+        type: v.type,
+      })),
       lastGeneratedCode: this.lastGeneratedCode,
       hasFunction: !!this.evaluationFunction,
+      computationEngine: this.computationEngine,
       displayedFormulas: this.displayedFormulas,
       computationFunctions: this.computationFunctions,
     };

@@ -2,7 +2,8 @@ const kineticEnergy3DExample = `const config = {
   formulas: [
     {
       name: "Kinetic Energy Formula",
-      function: "K = \\\\frac{1}{2}mv^2"
+      function: "K = \\\\frac{1}{2}mv^2",
+      expression: "{K} = 0.5 * {m} * {v} * {v}"
     }
   ],
   variables: {
@@ -29,7 +30,6 @@ const kineticEnergy3DExample = `const config = {
   },
   computation: {
     engine: "symbolic-algebra",
-    expressions: ["{K} = 0.5 * {m} * {v} * {v}"]
   },
   
   visualizations: [
@@ -58,37 +58,17 @@ const kineticEnergy3DExample = `const config = {
         },
         plotType: "surface",
         width: 600,
-        height: 600
+        height: 600,
+        surfaces: [
+          {
+            formulaName: "Kinetic Energy Formula",
+            color: "Viridis",
+            opacity: 0.7,
+            showInLegend: true
+          }
+        ]
       }
     },
-    {
-      type: "plot3d",
-      id: "energyScatterPlot",
-      config: {
-        title: "3D Kinetic Energy Scatter Plot",
-        xAxis: {
-          variable: "m",
-          label: "Mass (kg)",
-          min: 0.5,
-          max: 5
-        },
-        yAxis: {
-          variable: "v",
-          label: "Velocity (m/s)",
-          min: 0.5,
-          max: 10
-        },
-        zAxis: {
-          variable: "K",
-          label: "Kinetic Energy (J)",
-          min: 0,
-          max: 250
-        },
-        plotType: "scatter",
-        width: 600,
-        height: 600
-      }
-    }
   ]
 };
 

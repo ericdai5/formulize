@@ -24,16 +24,14 @@ function processFormulaString(formulaStr: string): string {
  * Derives a JavaScript function from a symbolic formula that computes
  * dependent variables based on input variables
  *
- * @param formula The main formula definition from the Formulize config
- * @param computation The computation configuration with symbolic algebra settings
+ * @param expressions The expressions extracted from formula objects
  * @param dependentVars Names of the dependent variables to solve for
  * @returns A JavaScript function that evaluates the formula
  */
 export function deriveSymbolicFunction(
-  computation: IComputation,
+  expressions: string[],
   dependentVars: string[]
 ): (variables: Record<string, number>) => Record<string, number> {
-  const expressions = computation.expressions;
   const processedExpressions = expressions.map((expr: string) =>
     processFormulaString(expr)
   );
@@ -103,6 +101,18 @@ export function computeWithSymbolicEngine(
   variables: Record<string, number>
 ): Record<string, number> {
   try {
+    // Validate environment has proper structure
+    if (!environment || !environment.variables) {
+      console.warn("⚠️ Invalid environment: missing variables");
+      return {};
+    }
+
+    // Check if formulas exist and are properly configured
+    if (!environment.formulas || !Array.isArray(environment.formulas)) {
+      console.warn("⚠️ No formulas array found in environment");
+      return {};
+    }
+
     // Get all dependent variables
     const dependentVars = Object.entries(environment.variables)
       .filter(([, varDef]) => varDef.type === "dependent")
@@ -110,12 +120,28 @@ export function computeWithSymbolicEngine(
 
     // No dependent variables, nothing to compute
     if (dependentVars.length === 0) {
+      console.warn("⚠️ No dependent variables found");
+      return {};
+    }
+
+    // Extract expressions from individual formulas only
+    const expressions = environment.formulas
+      .map((f) => f?.expression)
+      .filter(
+        (expression): expression is string =>
+          expression !== undefined &&
+          expression !== null &&
+          typeof expression === "string"
+      );
+
+    if (expressions.length === 0) {
+      console.warn("⚠️ No valid expressions found in formulas");
       return {};
     }
 
     // Derive the evaluation function
     const evaluationFunction = deriveSymbolicFunction(
-      computation,
+      expressions,
       dependentVars
     );
 

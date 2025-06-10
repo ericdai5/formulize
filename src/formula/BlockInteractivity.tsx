@@ -124,7 +124,7 @@ const BlockInteractivity = observer(
             });
 
             return `
-            <div class="formula-expression" data-expression-index="${index}" style="padding: 1rem; border: 1px solid #e0e0e0; border-radius: 24px;">
+            <div class="formula-expression" data-expression-index="${index}" style="padding: 1rem; border: 1px solid #e0e0e0; border-radius: 24px; font-size: 0.9em;">
               <div class="expression-formula">\\[${processedLatex}\\]</div>
             </div>
           `;
@@ -184,7 +184,7 @@ const BlockInteractivity = observer(
     return (
       <div
         ref={containerRef}
-        className="block-interactivity-container flex flex-col gap-4"
+        className="formulas-container flex flex-col gap-4"
       />
     );
   }

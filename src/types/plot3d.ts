@@ -23,4 +23,10 @@ export interface IPlot3D {
   height?: number | string;
   plotType?: "scatter" | "surface" | "line" | "mesh";
   id?: string;
+  surfaces?: {
+    formulaName: string;
+    color?: string;
+    opacity?: number;
+    showInLegend?: boolean;
+  }[];
 }
