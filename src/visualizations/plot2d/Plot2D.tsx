@@ -5,8 +5,8 @@ import { observer } from "mobx-react-lite";
 
 import * as d3 from "d3";
 
-import { IPlot2D } from "../api";
-import { computationStore } from "../api/computation";
+import { IPlot2D } from "../../api";
+import { computationStore } from "../../api/computation";
 
 interface Plot2DProps {
   config: IPlot2D;
@@ -30,7 +30,15 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const lastGeneratedCodeRef = useRef<string | null>(null);
 
   // Parse configuration options with defaults
-  const { title = "", xAxis, yAxis, width = 600, height = 600 } = config;
+  const {
+    title = "",
+    xVar,
+    xRange = [0, 10],
+    yVar,
+    yRange = [0, 100],
+    width = 600,
+    height = 600,
+  } = config;
 
   // Calculate appropriate number of samples based on display width for smooth curves
   // Using a higher density than the physical pixels for better visual quality
@@ -44,11 +52,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const MIN_SAMPLES = 500; // Minimum number of samples for any plot
   const finalSamples = Math.max(samples, MIN_SAMPLES);
 
-  // Get min/max values or derive from range if not specified
-  const xMin = xAxis.min ?? 0;
-  const xMax = xAxis.max ?? 10;
-  const yMin = yAxis.min ?? 0;
-  const yMax = yAxis.max ?? 100;
+  // Get min/max values from ranges
+  const [xMin, xMax] = xRange;
+  const [yMin, yMax] = yRange;
 
   // Chart margins
   const margin = { top: 50, right: 50, bottom: 60, left: 70 };
@@ -61,7 +67,26 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     margin.top -
     margin.bottom;
 
-  // Function to get variable value from computation store or binding system
+  // Helper function to get variable precision
+  const getVariablePrecision = (variableName: string): number => {
+    const varId = `var-${variableName}`;
+    const variable = computationStore.variables.get(varId);
+    return variable?.precision ?? 2; // Default to 2 decimal places if not specified
+  };
+
+  // Helper function to format a number with variable precision
+  const formatVariableValue = (value: number, variableName: string): string => {
+    return value.toFixed(getVariablePrecision(variableName));
+  };
+
+  // Helper function to get variable label from computation store
+  const getVariableLabel = (variableName: string): string => {
+    const varId = `var-${variableName}`;
+    const variable = computationStore.variables.get(varId);
+    return variable?.label || variableName; // Fallback to variable name if no label
+  };
+
+  // Get variable value from computation store
   const getVariableValue = (variableName: string): number => {
     // First try to get value through binding system if it's been registered
     try {
@@ -222,7 +247,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         const calculationVars = { ...variablesMap };
 
         // Set x-axis variable for this point calculation
-        calculationVars[xAxis.variable] = x;
+        calculationVars[xVar] = x;
 
         try {
           // CRITICAL: Run the LOCAL cached evaluation function
@@ -236,8 +261,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             continue;
           }
 
-          // First try to get the Y value using the configured yAxis.variable
-          let y = result[yAxis.variable];
+          // First try to get the Y value using the configured yVar
+          let y = result[yVar];
 
           // If we couldn't find the value using the configured variable name,
           // try to extract and use common dependent variable names
@@ -277,8 +302,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       }
 
       // Get the CURRENT point based on the UI state for highlighting
-      const currentX = getVariableValue(xAxis.variable);
-      const currentY = getVariableValue(yAxis.variable);
+      const currentX = getVariableValue(xVar);
+      const currentY = getVariableValue(yVar);
 
       // Ensure we have numeric values
       const currentXNum =
@@ -291,7 +316,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           : parseFloat(String(currentY)) || 0;
 
       console.log(
-        `🎯 Current point: (${currentXNum.toFixed(2)}, ${currentYNum.toFixed(2)})`
+        ` Current point: (${formatVariableValue(currentXNum, xVar)}, ${formatVariableValue(currentYNum, yVar)})`
       );
       console.log(
         `📊 Generated ${points.length} data points without OpenAI API calls`
@@ -309,8 +334,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   useEffect(() => {
     console.log("📊 Plot configuration changed:", {
       title,
-      xAxis: xAxis ? { variable: xAxis.variable, min: xMin, max: xMax } : null,
-      yAxis: yAxis ? { variable: yAxis.variable, min: yMin, max: yMax } : null,
+      xVar,
+      xRange,
+      yVar,
+      yRange,
       samples,
       dimensions: { width, height, plotWidth, plotHeight },
     });
@@ -334,14 +361,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // Explicitly list every property of the config to ensure any change triggers a recalculation
     config.type,
     config.title,
-    config.xAxis?.variable,
-    config.xAxis?.label,
-    config.xAxis?.min,
-    config.xAxis?.max,
-    config.yAxis?.variable,
-    config.yAxis?.label,
-    config.yAxis?.min,
-    config.yAxis?.max,
+    config.xVar,
+    config.xRange,
+    config.yVar,
+    config.yRange,
     config.width,
     config.height,
   ]);
@@ -364,8 +387,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Get only the variables we care about
         const relevantVariables = new Set([
           "var-m", // Mass - affects the y-values
-          `var-${xAxis.variable}`, // X-axis variable
-          `var-${yAxis.variable}`, // Y-axis variable
+          `var-${xVar}`, // X-axis variable
+          `var-${yVar}`, // Y-axis variable
         ]);
 
         // Extract just the values we need
@@ -391,8 +414,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // Only track the current values of x and y axis variables
           // for current point highlighting - we don't need to track
           // every variable to calculate the curve
-          xAxisValue: getVariableValue(xAxis.variable),
-          yAxisValue: getVariableValue(yAxis.variable),
+          xAxisValue: getVariableValue(xVar),
+          yAxisValue: getVariableValue(yVar),
 
           // Track the function code so we rerender if the function changes
           functionHash: computationStore.lastGeneratedCode
@@ -475,7 +498,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       .attr("y", 40)
       .attr("fill", "#000")
       .attr("text-anchor", "middle")
-      .text(xAxis.label || xAxis.variable);
+      .text(getVariableLabel(xVar));
 
     // Add Y axis
     svg
@@ -489,7 +512,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       .attr("x", -plotHeight / 2)
       .attr("fill", "#000")
       .attr("text-anchor", "middle")
-      .text(yAxis.label || yAxis.variable);
+      .text(getVariableLabel(yVar));
 
     // Add grid lines (optional)
     svg
@@ -579,7 +602,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         .attr("fill", "#000")
         .attr("text-anchor", "start")
         .text(
-          `${xAxis.label || xAxis.variable}: ${Number(currentPoint.x).toFixed(2)}, ${yAxis.label || yAxis.variable}: ${Number(currentPoint.y).toFixed(2)}`
+          `${getVariableLabel(xVar)}: ${formatVariableValue(Number(currentPoint.x), xVar)}, ${getVariableLabel(yVar)}: ${formatVariableValue(Number(currentPoint.y), yVar)}`
         );
     }
 
@@ -620,7 +643,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           .style("left", `${event.pageX + 10}px`)
           .style("top", `${event.pageY - 30}px`)
           .html(
-            `${xAxis.label || xAxis.variable}: ${Number(d.x).toFixed(2)} ${xAxis.label ? `(${xAxis.variable})` : ""}<br>${yAxis.label || yAxis.variable}: ${Number(d.y).toFixed(2)} ${yAxis.label ? `(${yAxis.variable})` : ""}`
+            `${getVariableLabel(xVar)}: ${formatVariableValue(Number(d.x), xVar)}<br>${getVariableLabel(yVar)}: ${formatVariableValue(Number(d.y), yVar)}`
           );
       })
       .on("click", (event) => {
@@ -629,10 +652,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
         // Update the x-axis variable when user clicks on the plot
         try {
-          const xVarId = `var-${xAxis.variable}`;
-          console.log(
-            `📊 User clicked on graph, setting ${xAxis.variable} = ${x0}`
-          );
+          const xVarId = `var-${xVar}`;
+          console.log(`📊 User clicked on graph, setting ${xVar} = ${x0}`);
           // Use runInAction to comply with MobX strict mode
           runInAction(() => {
             computationStore.setValue(xVarId, x0);
@@ -653,8 +674,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     yMax,
     plotWidth,
     plotHeight,
-    xAxis,
-    yAxis,
+    xVar,
+    yVar,
   ]);
 
   return (

@@ -35,17 +35,17 @@ const parametric3DExample = `const config = {
     x: {
       type: "dependent",
       label: "x-coordinate",
-      precision: 2
+      precision: 1
     },
     y: {
       type: "dependent",
       label: "y-coordinate",
-      precision: 2
+      precision: 1
     },
     z: {
       type: "dependent",
       label: "z-coordinate",
-      precision: 2
+      precision: 1
     },
     t: {
       type: "input",
@@ -63,44 +63,42 @@ const parametric3DExample = `const config = {
     {
       type: "plot3d",
       id: "parametricPlane3D",
-      config: {
-        title: "3D Parametric Surfaces: x + y + z = h and x - z = 0",
-        xAxis: {
-          variable: "x",
-          label: "x = t",
-          min: -2,
-          max: 2
+      title: "3D Parametric Surfaces: x + y + z = h and x - z = 0",
+      xVar: "x",
+      xRange: [-10, 10],
+      yVar: "y",
+      yRange: [-10, 10],
+      zVar: "z",
+      zRange: [-10, 10],
+      plotType: "surface",
+      width: 600,
+      height: 600,
+      surfaces: [
+        {
+          formulaName: "h and t",
+          color: "purple",
+          opacity: 0.3,
+          showInLegend: true
         },
-        yAxis: {
-          variable: "y",
-          label: "y = 1 - 2t",
-          min: -4,
-          max: 5
-        },
-        zAxis: {
-          variable: "z",
-          label: "z = t",
-          min: -2,
-          max: 2
-        },
-        plotType: "surface",
-        width: 600,
-        height: 600,
-        surfaces: [
-          {
-            formulaName: "h and t",
-            color: "Viridis",
-            opacity: 0.7,
-            showInLegend: true
+        {
+          formulaName: "x and z",
+          color: "green",
+          opacity: 0.3,
+          showInLegend: true
+        }
+      ],
+      lines: [
+        {
+          name: "Intersection Line",
+          surfaceIntersection: {
+            surface1: "h and t",
+            surface2: "x and z"
           },
-          {
-            formulaName: "x and z",
-            color: "Plasma",
-            opacity: 0.6,
-            showInLegend: true
-          }
-        ]
-      }
+          color: "yellow",
+          width: 4,
+          showInLegend: true
+        }
+      ]
     }
   ]
 };

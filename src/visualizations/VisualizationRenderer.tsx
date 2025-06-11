@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 
-import { IVisualization } from "../api";
-import { IPlot2D, IPlot3D } from "../api";
-import Plot2D from "./Plot2D";
-import Plot3D from "./Plot3D";
+import { IVisualization } from "../types/visualization";
+import Plot2D from "./plot2d/Plot2D";
+import Plot3D from "./plot3d/Plot3D";
 
 interface VisualizationRendererProps {
   visualization: IVisualization;
@@ -12,20 +11,18 @@ interface VisualizationRendererProps {
 const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
   visualization,
 }) => {
-  // Force re-renders when visualization config changes by using a key state
+  // 1. Force re-renders when visualization config changes by using a key state
+  // 2. Extract complex expression to a variable for useEffect dependency
+  // 3. Use useEffect to update render key when visualization config changes
   const [renderKey, setRenderKey] = useState(Date.now());
-
-  // Extract complex expression to a variable for useEffect dependency
-  const configString = JSON.stringify(visualization.config);
-
-  // Update render key when visualization config changes
+  const configString = JSON.stringify(visualization);
   useEffect(() => {
-    console.log("🔄 Visualization configuration changed, forcing re-render");
+    console.log("Visualization config changed, forcing re-render");
     setRenderKey(Date.now());
   }, [visualization.type, configString]);
 
   if (visualization.type === "plot2d") {
-    const config = visualization.config as IPlot2D;
+    const config = visualization;
     return (
       <div
         className="visualization-container w-full h-full p-6 overflow-hidden"
@@ -59,7 +56,7 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
   }
 
   if (visualization.type === "plot3d") {
-    const config = visualization.config as IPlot3D;
+    const config = visualization;
     return (
       <div
         className="visualization-container p-6 overflow-hidden border-b border-slate-200"
@@ -89,7 +86,7 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
 
   return (
     <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-      Unsupported visualization type: {visualization.type}
+      Unsupported visualization type: {(visualization as any).type}
     </div>
   );
 };

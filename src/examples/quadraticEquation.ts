@@ -49,23 +49,13 @@ const quadraticEquationExample = `const config = {
     {
       type: "plot2d",
       id: "quadraticPlot",
-      config: {
-        title: "Quadratic Function",
-        xAxis: {
-          variable: "x",
-          label: "x",
-          min: -5,
-          max: 5
-        },
-        yAxis: {
-          variable: "y",
-          label: "y",
-          min: -10,
-          max: 10
-        },
-        width: 600,
-        height: 600
-      }
+      title: "Quadratic Function",
+      xVar: "x",
+      xRange: [-5, 5],
+      yVar: "y",
+      yRange: [-10, 10],
+      width: 600,
+      height: 600
     }
   ]
 };

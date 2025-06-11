@@ -19,18 +19,14 @@ declare global {
   }
 }
 
-interface BlockInteractivityProps {
+interface FormulaProps {
   variableRanges?: Record<string, VariableRange>;
   formulaIndex?: number;
   formulaStore?: FormulaStore;
 }
 
-const BlockInteractivity = observer(
-  ({
-    variableRanges = {},
-    formulaIndex,
-    formulaStore,
-  }: BlockInteractivityProps = {}) => {
+const Formula = observer(
+  ({ variableRanges = {}, formulaIndex, formulaStore }: FormulaProps = {}) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isInitialized, setIsInitialized] = useState(false);
 
@@ -97,7 +93,22 @@ const BlockInteractivity = observer(
         const expressionsHTML = formula
           .map((latex, index) => {
             // Process the LaTeX to include interactive elements (for display only)
-            const processedLatex = latex.replace(/([a-zA-Z])/g, (match) => {
+            // First, temporarily replace LaTeX commands to avoid matching letters within them
+            const latexCommands: string[] = [];
+            const placeholderPrefix = "___LATEXCMD___";
+
+            // Replace LaTeX commands with numbered placeholders
+            let tempLatex = latex.replace(
+              /\\[a-zA-Z]+(\{[^}]*\}|\[[^\]]*\])*|\\[^a-zA-Z]/g,
+              (match) => {
+                const index = latexCommands.length;
+                latexCommands.push(match);
+                return `${placeholderPrefix}${index}___`;
+              }
+            );
+
+            // Now do variable replacement on the remaining text (which should only contain standalone letters)
+            tempLatex = tempLatex.replace(/([a-zA-Z])/g, (match) => {
               const varId = `var-${match}`;
               const variable = computationStore.variables.get(varId);
 
@@ -107,21 +118,30 @@ const BlockInteractivity = observer(
 
               const value = variable.value;
               const type = variable.type;
+              const precision = variable.precision ?? 1; // Default to 1 decimal place if not specified
 
               if (type === "constant") {
                 return value.toString();
               }
 
               if (type === "input") {
-                return `\\cssId{var-${match}}{\\class{interactive-var-slidable}{${match}: ${value.toFixed(1)}}}`;
+                return `\\cssId{var-${match}}{\\class{interactive-var-slidable}{${match}: ${value.toFixed(precision)}}}`;
               }
 
               if (type === "dependent") {
-                return `\\cssId{var-${match}}{\\class{interactive-var-dependent}{${match}: ${value.toFixed(1)}}}`;
+                return `\\cssId{var-${match}}{\\class{interactive-var-dependent}{${match}: ${value.toFixed(precision)}}}`;
               }
 
               return `\\class{interactive-var-${type}}{${match}}`;
             });
+
+            // Restore LaTeX commands from placeholders
+            const processedLatex = tempLatex.replace(
+              new RegExp(`${placeholderPrefix}(\\d+)___`, "g"),
+              (match, index) => {
+                return latexCommands[parseInt(index)];
+              }
+            );
 
             return `
             <div class="formula-expression" data-expression-index="${index}" style="padding: 1rem; border: 1px solid #e0e0e0; border-radius: 24px; font-size: 0.9em;">
@@ -190,5 +210,5 @@ const BlockInteractivity = observer(
   }
 );
 
-export type { VariableRange, BlockInteractivityProps };
-export default BlockInteractivity;
+export type { VariableRange, FormulaProps };
+export default Formula;

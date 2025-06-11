@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Formulize, FormulizeConfig } from "../api/index.ts";
 import kineticEnergy from "../examples/kineticEnergy.ts";
 import { IEnvironment } from "../types/environment.ts";
-import BlockInteractivity, { VariableRange } from "./BlockInteractivity.tsx";
 import FormulaCodeEditor from "./FormulaCodeEditor.tsx";
+import Formula, { VariableRange } from "./formula.tsx";
 
 import codeIcon from "../Icons/code.svg";
 import functionIcon from "../Icons/function.svg";
@@ -240,7 +240,7 @@ const FormulaCanvas = ({
           }`}
         >
           <div className="min-w-0">
-            <BlockInteractivity
+            <Formula
               variableRanges={
                 currentConfig ? extractVariableRanges(currentConfig) : {}
               }

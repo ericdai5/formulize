@@ -36,31 +36,21 @@ const kineticEnergyExample = `const config = {
     {
       type: "plot2d",
       id: "energyPlot",
-      config: {
-        title: "Kinetic Energy vs. Velocity",
-        xAxis: {
-          variable: "v",
-          label: "Velocity (m/s)",
-          min: 0,
-          max: 20
-        },
-        yAxis: {
-          variable: "K",
-          label: "Kinetic Energy (J)",
-          min: 0,
-          max: 200
-        },
-        width: 600,
-        height: 600,
-        surfaces: [
-          {
-            formulaName: "Kinetic Energy Formula",
-            color: "Viridis",
-            opacity: 0.7,
-            showInLegend: true
-          }
-        ]
-      }
+      title: "Kinetic Energy vs. Velocity",
+      xVar: "v",
+      xRange: [0, 20],
+      yVar: "K",
+      yRange: [0, 200],
+      width: 600,
+      height: 600,
+      surfaces: [
+        {
+          formulaName: "Kinetic Energy Formula",
+          color: "Viridis",
+          opacity: 0.7,
+          showInLegend: true
+        }
+      ]
     }
   ]
 };

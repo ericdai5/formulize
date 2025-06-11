@@ -12,61 +12,57 @@ import { observer } from "mobx-react-lite";
 // Import Plotly as any to avoid type issues since @types/plotly.js-dist might not be available
 import * as Plotly from "plotly.js-dist";
 
-import { IPlot3D } from "../api";
-import { computationStore } from "../api/computation";
-import { solveSingularFormula } from "../api/computation-engines/singular-formula-solver";
+import { IPlot3D } from "../../api";
+import { computationStore } from "../../api/computation";
+import {
+  computeSurfaceIntersection,
+  solveSingularFormula,
+} from "../../api/computation-engines/singular-formula-solver";
+import { IPoint3D, ISurface } from "../../types/plot3d";
+import { getFormulaByName } from "../../util/formula-by-name";
+import { getDefaultColorScale, resolveLineColor } from "./color";
+import { getSurfaces } from "./surfaces";
 
 interface Plot3DProps {
   config: IPlot3D;
 }
 
-interface DataPoint3D {
-  x: number;
-  y: number;
-  z: number | null;
-}
-
-interface PlotMatrixData {
-  xCoords: number[];
-  yCoords: number[];
-  zMatrix: (number | null)[][];
-}
-
-interface SurfaceData {
+interface LineData {
   name: string;
-  matrixData: PlotMatrixData | null;
-  points: DataPoint3D[];
+  points: IPoint3D[];
   color: string;
-  opacity: number;
+  width: number;
   showInLegend: boolean;
 }
 
 const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   const plotRef = useRef<HTMLDivElement>(null);
-  const [currentPoint, setCurrentPoint] = useState<DataPoint3D | null>(null);
-  const [surfacesData, setSurfacesData] = useState<SurfaceData[]>([]);
+  const [currentPoint, setCurrentPoint] = useState<IPoint3D | null>(null);
+  const [surfacesData, setSurfacesData] = useState<ISurface[]>([]);
+  const [linesData, setLinesData] = useState<LineData[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isPlotInitialized, setIsPlotInitialized] = useState(false);
 
   // Parse configuration options with defaults
   const {
     title = "",
-    xAxis,
-    yAxis,
-    zAxis,
+    xVar,
+    xRange = [0, 10],
+    yVar,
+    yRange = [0, 10],
+    zVar,
+    zRange = [0, 100],
     width = 600,
     height = 600,
     plotType = "surface",
     surfaces = null,
+    lines = null,
   } = config;
 
-  // Get min/max values or derive from range if not specified
-  const xMin = xAxis.min ?? 0;
-  const xMax = xAxis.max ?? 10;
-  const yMin = yAxis.min ?? 0;
-  const yMax = yAxis.max ?? 10;
-  const zMin = zAxis.min ?? 0;
-  const zMax = zAxis.max ?? 100;
+  // Get min/max values from ranges
+  const [xMin, xMax] = xRange;
+  const [yMin, yMax] = yRange;
+  const [zMin, zMax] = zRange;
 
   // Optimized sample density for smooth surfaces, especially for parametric equations
   const samples = useMemo(() => {
@@ -97,76 +93,69 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     }
   }, []);
 
-  // Function to get formula expression by name
-  const getFormulaByName = useCallback((formulaName: string): string | null => {
-    try {
-      const currentConfig = (window as any).__lastFormulizeConfig;
-      if (!currentConfig || !currentConfig.formulas) {
-        return null;
-      }
-
-      const formula = currentConfig.formulas.find(
-        (f: any) => f.name === formulaName
-      );
-      return formula?.expression || null;
-    } catch (error) {
-      console.error("Error getting formula by name:", error);
-      return null;
-    }
+  // Helper function to get variable label from computation store
+  const getVariableLabel = useCallback((variableName: string): string => {
+    const varId = `var-${variableName}`;
+    const variable = computationStore.variables.get(varId);
+    return variable?.label || variableName; // Fallback to variable name if no label
   }, []);
 
-  // Helper function to solve equations using singular formula solver
-  const solveForVariable = useCallback(
-    (
-      formulaExpression: string,
-      variables: Record<string, number>,
-      solveFor: string
-    ): number | null => {
-      try {
-        // Use the singular formula solver
-        const result = solveSingularFormula(
-          formulaExpression,
-          variables,
-          solveFor
-        );
-        return result;
-      } catch (error) {
-        console.debug("Error solving for variable:", error);
-        return null;
-      }
-    },
-    []
-  );
+  // Main calculation function for all surfaces
+  const calculateSurfacesDataWrapper = useCallback(() => {
+    const params = {
+      xAxis: xVar,
+      yAxis: yVar,
+      zAxis: zVar,
+      xMin,
+      xMax,
+      yMin,
+      yMax,
+      zMin,
+      zMax,
+      samples,
+      getFormulaByName,
+      getDefaultColorScale,
+    };
 
-  // Calculate surface data for a specific formula
-  const calculateSurfaceData = useCallback(
-    (surfaceConfig: any, index: number): SurfaceData | null => {
-      // Get the formula expression by name
-      const formulaExpression = getFormulaByName(surfaceConfig.formulaName);
-      if (!formulaExpression) {
-        console.warn(`Formula not found: ${surfaceConfig.formulaName}`);
-        return null;
-      }
+    return getSurfaces(surfaces, params);
+  }, [
+    surfaces,
+    xVar,
+    yVar,
+    zVar,
+    xMin,
+    xMax,
+    yMin,
+    yMax,
+    zMin,
+    zMax,
+    samples,
+    getFormulaByName,
+    getDefaultColorScale,
+  ]);
 
-      console.log(
-        `Calculating surface for formula: ${surfaceConfig.formulaName}`
-      );
-      console.log(`Formula expression: ${formulaExpression}`);
+  // Calculate line data for a specific line configuration
+  const calculateLineData = useCallback(
+    (lineConfig: any, index: number): LineData | null => {
+      const {
+        name,
+        surfaceIntersection,
+        xFormula,
+        yFormula,
+        zFormula,
+        parameterVariable = "t",
+        parameterMin = xMin,
+        parameterMax = xMax,
+        color = "red",
+        width = 6,
+        showInLegend = true,
+      } = lineConfig;
 
-      const points: DataPoint3D[] = [];
-      const xStep = (xMax - xMin) / samples;
-      const yStep = (yMax - yMin) / samples;
+      console.log(`Calculating line: ${name}`);
 
-      // Generate coordinates without excessive rounding to avoid aliasing
-      // Use higher precision for parametric surfaces
-      const xCoords = Array.from({ length: samples + 1 }, (_, i) =>
-        Number((xMin + i * xStep).toFixed(6))
-      );
-      const yCoords = Array.from({ length: samples + 1 }, (_, i) =>
-        Number((yMin + i * yStep).toFixed(6))
-      );
-
-      const zMatrix: (number | null)[][] = [];
+      const points: IPoint3D[] = [];
+      const lineResolution = 100; // Higher resolution for smooth lines
+      const paramStep = (parameterMax - parameterMin) / lineResolution;
 
       // Get current variable values as base context
       const baseVariables = Object.fromEntries(
@@ -176,108 +165,156 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         ])
       );
 
-      for (let i = 0; i <= samples; i++) {
-        const row: (number | null)[] = [];
-        const y = yCoords[i];
+      // Check if this is an automatic surface intersection
+      if (surfaceIntersection) {
+        const { surface1, surface2 } = surfaceIntersection;
 
-        for (let j = 0; j <= samples; j++) {
-          const x = xCoords[j];
-          let z: number | null = null;
+        // Get the formula expressions for both surfaces
+        const surface1Formula = getFormulaByName(surface1);
+        const surface2Formula = getFormulaByName(surface2);
 
-          try {
-            // Create variable context for this point
-            const variablesMap = { ...baseVariables };
-            variablesMap[xAxis.variable] = x;
-            variablesMap[yAxis.variable] = y;
+        if (!surface1Formula || !surface2Formula) {
+          console.warn(
+            `Cannot find formulas for intersection: ${surface1}, ${surface2}`
+          );
+          return null;
+        }
 
-            // Solve for the z variable using the singular formula solver
-            z = solveForVariable(
-              formulaExpression,
-              variablesMap,
-              zAxis.variable
-            );
+        console.log(
+          `Computing automatic intersection of "${surface1}" and "${surface2}"`
+        );
 
-            // Enhanced validation - allow parametric surfaces to extend beyond display limits
-            if (z !== null && isFinite(z)) {
-              // Round to reasonable precision to avoid floating point artifacts
-              const roundedZ = Number(z.toFixed(8));
-              row.push(roundedZ);
-              points.push({ x, y, z: roundedZ });
-            } else {
-              // Only set to null for actual calculation failures, not range limits
-              row.push(null);
-              points.push({ x, y, z: null });
-            }
-          } catch (error) {
-            // Keep z as null for failed evaluations
-            row.push(null);
-            points.push({ x, y, z: null });
+        for (let i = 0; i <= lineResolution; i++) {
+          const paramValue = parameterMin + i * paramStep;
+
+          // Compute intersection point at this parameter value
+          const intersectionPoint = computeSurfaceIntersection(
+            surface1Formula,
+            surface2Formula,
+            baseVariables,
+            xVar,
+            yVar,
+            zVar,
+            paramValue
+          );
+
+          if (intersectionPoint) {
+            points.push({
+              x: Number(intersectionPoint.x.toFixed(8)),
+              y: Number(intersectionPoint.y.toFixed(8)),
+              z: Number(intersectionPoint.z.toFixed(8)),
+            });
           }
         }
-        zMatrix.push(row);
+      } else {
+        // Original manual formula approach
+        for (let i = 0; i <= lineResolution; i++) {
+          const paramValue = parameterMin + i * paramStep;
+
+          try {
+            // Create variable context for this parameter value
+            const variablesMap = { ...baseVariables };
+            variablesMap[parameterVariable] = paramValue;
+
+            let x: number | null = null;
+            let y: number | null = null;
+            let z: number | null = null;
+
+            // Calculate x coordinate
+            if (xFormula) {
+              const xExpression = getFormulaByName(xFormula);
+              if (xExpression) {
+                x = solveSingularFormula(xExpression, variablesMap, xVar);
+              }
+            } else {
+              x = paramValue; // Default to parameter value
+            }
+
+            // Calculate y coordinate
+            if (yFormula) {
+              const yExpression = getFormulaByName(yFormula);
+              if (yExpression) {
+                y = solveSingularFormula(yExpression, variablesMap, yVar);
+              }
+            } else {
+              y = paramValue; // Default to parameter value
+            }
+
+            // Calculate z coordinate
+            if (zFormula) {
+              const zExpression = getFormulaByName(zFormula);
+              if (zExpression) {
+                z = solveSingularFormula(zExpression, variablesMap, zVar);
+              }
+            } else {
+              z = paramValue; // Default to parameter value
+            }
+
+            // Add point if all coordinates are valid
+            if (
+              x !== null &&
+              y !== null &&
+              z !== null &&
+              isFinite(x) &&
+              isFinite(y) &&
+              isFinite(z)
+            ) {
+              points.push({
+                x: Number(x.toFixed(8)),
+                y: Number(y.toFixed(8)),
+                z: Number(z.toFixed(8)),
+              });
+            }
+          } catch (error) {
+            console.debug(
+              `Error calculating line point at ${parameterVariable}=${paramValue}:`,
+              error
+            );
+          }
+        }
       }
 
-      // Simplified matrix processing - skip expensive gap filling
-      const filledMatrix = zMatrix;
+      if (points.length === 0) {
+        console.warn(`No valid points calculated for line: ${name}`);
+        return null;
+      }
 
       return {
-        name: surfaceConfig.formulaName || `Surface ${index + 1}`,
-        matrixData: { xCoords, yCoords, zMatrix: filledMatrix },
+        name,
         points,
-        color: surfaceConfig.color || getDefaultColorScale(index),
-        opacity: surfaceConfig.opacity ?? 0.7,
-        showInLegend: surfaceConfig.showInLegend !== false,
+        color: resolveLineColor(color),
+        width,
+        showInLegend,
       };
     },
-    [
-      getFormulaByName,
-      solveForVariable,
-      xMax,
-      xMin,
-      yMax,
-      yMin,
-      samples,
-      zMax,
-      zMin,
-      xAxis.variable,
-      yAxis.variable,
-      zAxis.variable,
-    ]
+    [getFormulaByName, xMin, xMax, xVar, yVar, zVar]
   );
 
-  // Helper function to get default color scales
-  const getDefaultColorScale = useCallback((index: number): string => {
-    const colorScales = ["Viridis", "Plasma", "Inferno", "Magma", "Cividis"];
-    return colorScales[index % colorScales.length];
-  }, []);
-
-  // Main calculation function for all surfaces
-  const calculateSurfacesData = useCallback(() => {
-    const surfacesToProcess = surfaces;
-    if (!surfacesToProcess || surfacesToProcess.length === 0) {
-      console.log("No surfaces configuration provided, using default");
+  // Main calculation function for all lines
+  const calculateLinesData = useCallback(() => {
+    const linesToProcess = lines;
+    if (!linesToProcess || linesToProcess.length === 0) {
+      console.log("No lines configuration provided");
       return [];
     }
 
-    console.log("Processing surfaces:", surfacesToProcess);
+    console.log("Processing lines:", linesToProcess);
 
-    const results: SurfaceData[] = [];
+    const results: LineData[] = [];
 
-    surfacesToProcess.forEach((surfaceConfig, index) => {
-      const surfaceData = calculateSurfaceData(surfaceConfig, index);
-      if (surfaceData) {
-        console.log(`Successfully calculated surface: ${surfaceData.name}`);
-        results.push(surfaceData);
+    linesToProcess.forEach((lineConfig, index) => {
+      const lineData = calculateLineData(lineConfig, index);
+      if (lineData) {
+        console.log(`Successfully calculated line: ${lineData.name}`);
+        results.push(lineData);
       } else {
-        console.warn(
-          `Failed to calculate surface: ${surfaceConfig.formulaName}`
-        );
+        console.warn(`Failed to calculate line: ${lineConfig.name}`);
       }
     });
 
-    console.log(`Total surfaces calculated: ${results.length}`);
+    console.log(`Total lines calculated: ${results.length}`);
     return results;
-  }, [surfaces, calculateSurfaceData]);
+  }, [lines, calculateLineData]);
 
   // Direct calculation function without debouncing
   const calculateDataPoints = useCallback(() => {
@@ -285,37 +322,38 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
     setIsCalculating(true);
     try {
-      const surfacesResult = calculateSurfacesData();
+      const surfacesResult = calculateSurfacesDataWrapper();
+      const linesResult = calculateLinesData();
       setSurfacesData(surfacesResult);
+      setLinesData(linesResult);
 
       // Update current point
-      const currentX = getVariableValue(xAxis.variable);
-      const currentY = getVariableValue(yAxis.variable);
-      const currentZ = getVariableValue(zAxis.variable);
+      const currentX = getVariableValue(xVar);
+      const currentY = getVariableValue(yVar);
+      const currentZ = getVariableValue(zVar);
       setCurrentPoint({ x: currentX, y: currentY, z: currentZ });
     } catch (error) {
       console.error("Error calculating 3D plot data:", error);
       setSurfacesData([]);
+      setLinesData([]);
       setCurrentPoint(null);
     } finally {
       setIsCalculating(false);
     }
   }, [
-    calculateSurfacesData,
-    xAxis.variable,
-    yAxis.variable,
-    zAxis.variable,
+    calculateSurfacesDataWrapper,
+    calculateLinesData,
+    xVar,
+    yVar,
+    zVar,
     getVariableValue,
     isCalculating,
   ]);
 
-  // Monitor config changes
   useEffect(() => {
-    // Clear existing data immediately
     setSurfacesData([]);
+    setLinesData([]);
     setCurrentPoint(null);
-
-    // Schedule recalculation
     calculateDataPoints();
   }, [calculateDataPoints]);
 
@@ -323,9 +361,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   useEffect(() => {
     const disposer = reaction(
       () => {
-        const xValue = getVariableValue(xAxis.variable);
-        const yValue = getVariableValue(yAxis.variable);
-        const zValue = getVariableValue(zAxis.variable);
+        const xValue = getVariableValue(xVar);
+        const yValue = getVariableValue(yVar);
+        const zValue = getVariableValue(zVar);
 
         return { xValue, yValue, zValue };
       },
@@ -354,42 +392,31 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     );
 
     return disposer;
-  }, [
-    xAxis.variable,
-    yAxis.variable,
-    zAxis.variable,
-    getVariableValue,
-    calculateDataPoints,
-  ]);
+  }, [xVar, yVar, zVar, getVariableValue, calculateDataPoints]);
 
   // Optimized plotting effect
   useEffect(() => {
-    if (!plotRef.current || surfacesData.length === 0) return;
-
-    console.log(
-      "Rendering plot with surfaces:",
-      surfacesData.map((s) => s.name)
-    );
+    if (
+      !plotRef.current ||
+      (surfacesData.length === 0 && linesData.length === 0)
+    )
+      return;
 
     const plotData: Record<string, unknown>[] = [];
-
-    // Process each surface
     surfacesData.forEach((surfaceData, index) => {
       if (!surfaceData.matrixData) return;
-
-      const { xCoords, yCoords, zMatrix } = surfaceData.matrixData;
-
-      // Validate that we have sufficient data
-      const hasValidData = zMatrix.some((row) =>
-        row.some((value) => value !== null && typeof value === "number")
+      const { xCoords, yCoords, zCoords } = surfaceData.matrixData;
+      const hasValidData = zCoords.some((row: (number | null)[]) =>
+        row.some(
+          (value: number | null) => value !== null && typeof value === "number"
+        )
       );
-
       if (!hasValidData) {
-        console.warn(`No valid data for surface: ${surfaceData.name}`);
+        console.warn(`No valid data for surface: ${surfaceData.formulaName}`);
         return;
       }
 
-      console.log(`Adding surface to plot: ${surfaceData.name}`);
+      console.log(`Adding surface to plot: ${surfaceData.formulaName}`);
 
       // Create surface plot data based on plot type
       if (plotType === "surface") {
@@ -397,12 +424,12 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
           type: "surface",
           x: xCoords,
           y: yCoords,
-          z: zMatrix,
+          z: zCoords,
           colorscale: surfaceData.color,
           showscale: index === 0,
           opacity: surfaceData.opacity,
           connectgaps: false,
-          name: surfaceData.name,
+          name: surfaceData.formulaName,
           showlegend: surfaceData.showInLegend,
           contours: {
             x: { show: false },
@@ -412,40 +439,63 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
           hidesurface: false,
         });
       } else if (plotType === "mesh") {
-        const validPoints = surfaceData.points.filter((p) => p.z !== null);
+        const validPoints =
+          surfaceData.points?.filter((p: IPoint3D) => p.z !== null) || [];
         if (validPoints.length > 0) {
           plotData.push({
             type: "mesh3d",
-            x: validPoints.map((p) => p.x),
-            y: validPoints.map((p) => p.y),
-            z: validPoints.map((p) => p.z),
+            x: validPoints.map((p: IPoint3D) => p.x),
+            y: validPoints.map((p: IPoint3D) => p.y),
+            z: validPoints.map((p: IPoint3D) => p.z),
             opacity: surfaceData.opacity,
             colorscale: surfaceData.color,
-            intensity: validPoints.map((p) => p.z),
-            name: surfaceData.name,
+            intensity: validPoints.map((p: IPoint3D) => p.z),
+            name: surfaceData.formulaName,
             showlegend: surfaceData.showInLegend,
           });
         }
       } else {
         // Scatter plot fallback
-        const validPoints = surfaceData.points.filter((p) => p.z !== null);
+        const validPoints =
+          surfaceData.points?.filter((p: IPoint3D) => p.z !== null) || [];
         if (validPoints.length > 0) {
           plotData.push({
             type: "scatter3d",
             mode: "markers",
-            x: validPoints.map((p) => p.x),
-            y: validPoints.map((p) => p.y),
-            z: validPoints.map((p) => p.z),
+            x: validPoints.map((p: IPoint3D) => p.x),
+            y: validPoints.map((p: IPoint3D) => p.y),
+            z: validPoints.map((p: IPoint3D) => p.z),
             marker: {
               size: 3,
-              color: validPoints.map((p) => p.z),
+              color: validPoints.map((p: IPoint3D) => p.z),
               colorscale: surfaceData.color,
               showscale: index === 0,
             },
-            name: surfaceData.name,
+            name: surfaceData.formulaName,
             showlegend: surfaceData.showInLegend,
           });
         }
+      }
+    });
+
+    // Process each line
+    linesData.forEach((lineData) => {
+      const validPoints = lineData.points.filter((p) => p.z !== null);
+      if (validPoints.length > 0) {
+        console.log(`Adding line to plot: ${lineData.name}`);
+        plotData.push({
+          type: "scatter3d",
+          mode: "lines",
+          x: validPoints.map((p) => p.x),
+          y: validPoints.map((p) => p.y),
+          z: validPoints.map((p) => p.z),
+          line: {
+            width: lineData.width,
+            color: lineData.color,
+          },
+          name: lineData.name,
+          showlegend: lineData.showInLegend,
+        });
       }
     });
 
@@ -482,17 +532,23 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       uirevision: "persistent", // This key setting preserves user interactions like camera angle
       scene: {
         xaxis: {
-          title: xAxis.label || xAxis.variable,
+          title: {
+            text: getVariableLabel(xVar),
+          },
           range: [xMin, xMax],
           autorange: false,
         },
         yaxis: {
-          title: yAxis.label || yAxis.variable,
+          title: {
+            text: getVariableLabel(yVar),
+          },
           range: [yMin, yMax],
           autorange: false,
         },
         zaxis: {
-          title: zAxis.label || zAxis.variable,
+          title: {
+            text: getVariableLabel(zVar),
+          },
           range: [zMin, zMax],
           autorange: false,
         },
@@ -533,8 +589,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
               const point = data.points[0];
               try {
                 runInAction(() => {
-                  const xVarId = `var-${xAxis.variable}`;
-                  const yVarId = `var-${yAxis.variable}`;
+                  const xVarId = `var-${xVar}`;
+                  const yVarId = `var-${yVar}`;
 
                   if (computationStore.variables.has(xVarId)) {
                     computationStore.setValue(xVarId, point.x);
@@ -557,6 +613,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       });
   }, [
     surfacesData,
+    linesData,
     currentPoint,
     plotType,
     title,

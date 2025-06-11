@@ -169,12 +169,25 @@ class ComputationStore {
   }
 
   @action
-  addVariable(id: string, symbol: string) {
+  addVariable(
+    id: string,
+    symbol: string,
+    variableDefinition?: Partial<IVariable>
+  ) {
     if (!this.variables.has(id)) {
       this.variables.set(id, {
-        value: 0,
+        value: variableDefinition?.value ?? 0,
         symbol: symbol,
-        type: "constant",
+        type: variableDefinition?.type ?? "constant",
+        dataType: variableDefinition?.dataType,
+        dimensions: variableDefinition?.dimensions,
+        units: variableDefinition?.units,
+        label: variableDefinition?.label,
+        precision: variableDefinition?.precision,
+        description: variableDefinition?.description,
+        range: variableDefinition?.range,
+        step: variableDefinition?.step,
+        options: variableDefinition?.options,
       });
     }
   }

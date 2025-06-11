@@ -43,23 +43,13 @@ const gravitationalPotentialExample = `const config = {
     {
       type: "plot2d",
       id: "potentialEnergyPlot",
-      config: {
-        title: "Potential Energy vs. Height",
-        xAxis: {
-          variable: "h",
-          label: "Height (m)",
-          min: 0,
-          max: 100
-        },
-        yAxis: {
-          variable: "U",
-          label: "Potential Energy (J)",
-          min: 0,
-          max: 10000
-        },
-        width: 600,
-        height: 600
-      }
+      title: "Potential Energy vs. Height",
+      xVar: "h",
+      xRange: [0, 100],
+      yVar: "U",
+      yRange: [0, 10000],
+      width: 600,
+      height: 600
     }
   ]
 };

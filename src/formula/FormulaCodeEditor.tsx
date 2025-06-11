@@ -4,6 +4,7 @@ import kineticEnergy from "../examples/kineticEnergy.ts";
 import parametric3D from "../examples/parametric3D.ts";
 import quadraticEquation3D from "../examples/quadraticEquation3D.ts";
 import quadraticEquation from "../examples/quadraticEquation.ts";
+import rationalNumbers from "../examples/rationalNumbers.ts";
 
 interface FormulaCodeEditorProps {
   formulizeInput: string;
@@ -26,6 +27,7 @@ const FormulaCodeEditor = ({
     quadraticEquation,
     quadraticEquation3D,
     parametric3D,
+    rationalNumbers,
   };
 
   // Display names for examples
@@ -36,6 +38,7 @@ const FormulaCodeEditor = ({
     quadraticEquation: "Quadratic Equation",
     quadraticEquation3D: "Quadratic Equation 3D",
     parametric3D: "Parametric 3D",
+    rationalNumbers: "Rational Numbers",
   };
 
   // Handler for example button clicks

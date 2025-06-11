@@ -1,4 +1,4 @@
-import BlockInteractivity from "../../formula/BlockInteractivity";
+import Formula from "../../formula/formula";
 import { Debug } from "./Debug";
 import { Editor } from "./Editor";
 import { ElementPane } from "./ElementPane";
@@ -23,7 +23,7 @@ function EditorPage() {
           <Workspace />
         </div>
         <div className="flex-[0.8] border-t border-gray-200 overflow-auto">
-          <BlockInteractivity />
+          <Formula />
         </div>
       </div>
       <div className="w-[22%] h-full border-l border-gray-200">

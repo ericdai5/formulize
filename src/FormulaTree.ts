@@ -245,6 +245,46 @@ const buildAugmentedFormula = (
       index && (index._parent = root);
       return root;
     }
+    case "htmlmathml": {
+      // Handle symbols that have both HTML and MathML representations (like \neq)
+      // Use HTML structure to preserve the original LaTeX command structure
+      if (katexTree.html && katexTree.html.length > 0) {
+        return buildAugmentedFormula(katexTree.html[0], `${id}.html`);
+      }
+      break;
+    }
+    case "mclass": {
+      // Handle mathematical classes (like \mathrel{})
+      if (katexTree.body && katexTree.body.length > 0) {
+        if (katexTree.body.length === 1) {
+          return buildAugmentedFormula(katexTree.body[0], id);
+        } else {
+          // For multiple children, create a group
+          const children = katexTree.body.map((child, i) =>
+            buildAugmentedFormula(child, `${id}.${i}`)
+          );
+          const group = new Group(id, children);
+          children.forEach((child) => (child._parent = group));
+          children.forEach((child, i) => {
+            if (i > 0) {
+              child._leftSibling = children[i - 1];
+            }
+            if (i < children.length - 1) {
+              child._rightSibling = children[i + 1];
+            }
+          });
+          return group;
+        }
+      }
+      break;
+    }
+    case "lap": {
+      // Handle overlapping constructs like \rlap{}, \llap{}
+      if (katexTree.body) {
+        return buildAugmentedFormula(katexTree.body, `${id}.body`);
+      }
+      break;
+    }
   }
 
   console.log("Failed to build:", katexTree);
@@ -293,7 +333,6 @@ export type AugmentedFormulaNode =
   | Script
   | Fraction
   | MathSymbol
-  
   | Color
   | Group
   | Box
@@ -333,7 +372,7 @@ abstract class AugmentedFormulaNodeBase {
   }
 
   toMathML(): string {
-    return `<mrow>${this.children.map(c => c.toMathML()).join('')}</mrow>`;
+    return `<mrow>${this.children.map((c) => c.toMathML()).join("")}</mrow>`;
   }
 
   abstract toLatex(mode: LatexMode): string;
@@ -1222,10 +1261,10 @@ export const extractStyle = (node: Element): Record<string, string> => {
 // NEW: converting Latex to MathML using MathJax
 export const convertLatexToMathML = async (latex: string): Promise<string> => {
   console.log("convertLatexToMathML called with:", latex);
-  
+
   if (!window.MathJax?.tex2mmlPromise) {
     console.error("MathJax tex2mmlPromise not available");
-    return '';
+    return "";
   }
 
   try {

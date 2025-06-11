@@ -49,38 +49,24 @@ const quadraticEquation3DExample = `const config = {
     {
       type: "plot3d",
       id: "quadratic3DSurface",
-      config: {
-        title: "3D Quadratic Surface: y = ax² + bx + c",
-        xAxis: {
-          variable: "x",
-          label: "x",
-          min: -5,
-          max: 5
-        },
-        yAxis: {
-          variable: "c",
-          label: "Coefficient c",
-          min: -5,
-          max: 5
-        },
-        zAxis: {
-          variable: "y",
-          label: "y-value",
-          min: -20,
-          max: 40
-        },
-        plotType: "surface",
-        width: 600,
-        height: 600,
-        surfaces: [
-          {
-            formulaName: "Quadratic Equation",
-            color: "Viridis",
-            opacity: 0.7,
-            showInLegend: true
-          }
-        ]
-      }
+      title: "3D Quadratic Surface: y = ax² + bx + c",
+      xVar: "x",
+      xRange: [-5, 5],
+      yVar: "c",
+      yRange: [-5, 5],
+      zVar: "y",
+      zRange: [-20, 40],
+      plotType: "surface",
+      width: 600,
+      height: 600,
+      surfaces: [
+        {
+          formulaName: "Quadratic Equation",
+          color: "Viridis",
+          opacity: 0.7,
+          showInLegend: true
+        }
+      ]
     }
   ]
 };

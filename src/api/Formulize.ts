@@ -99,7 +99,7 @@ async function create(
     Object.entries(environment.variables).forEach(([varName, variable]) => {
       const symbol = varName.replace(/\$/g, "");
       const varId = `var-${symbol}`;
-      computationStore.addVariable(varId, symbol);
+      computationStore.addVariable(varId, symbol, variable);
       computationStore.setVariableType(varId, variable.type);
       if (variable.value !== undefined) {
         computationStore.setValue(varId, variable.value);
@@ -223,7 +223,7 @@ const Formulize = {
       Object.entries(environment.variables).forEach(([name, variable]) => {
         const symbol = name.replace(/\$/g, "");
         const id = `var-${symbol}`;
-        computationStore.addVariable(id, symbol);
+        computationStore.addVariable(id, symbol, variable);
         computationStore.setVariableType(id, variable.type);
         if (variable.value !== undefined) {
           computationStore.setValue(id, variable.value);
