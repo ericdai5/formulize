@@ -1,14 +1,27 @@
 declare global {
   interface Window {
     MathJax: {
-      tex2mmlPromise: (latex: string) => Promise<string>;
-      tex2chtml: (latex: string) => any;
+      // Core MathJax v3 functions
+      typesetPromise: (elements?: HTMLElement[]) => Promise<void>;
+      typeset: (elements?: HTMLElement[]) => void;
+
+      // Conversion functions
+      tex2chtml: (latex: string) => Element;
+      tex2mmlPromise?: (latex: string) => Promise<string>;
+
+      // Startup and configuration
       startup: {
+        promise: Promise<void>;
         pageReady: () => Promise<void>;
         defaultPageReady: () => Promise<void>;
-        promise: Promise<unknown>;
-        toMML: (node: any) => string;
+        ready: () => void;
+        document: {
+          clear: () => void;
+          updateDocument: () => void;
+        };
       };
+
+      // Configuration objects
       loader: {
         load: string[];
       };
@@ -17,9 +30,18 @@ declare global {
           "[+]": string[];
         };
       };
-      typesetPromise?: () => Promise<void>;
-      typeset?: (elements: HTMLElement[]) => void;
+      chtml?: {
+        scale?: number;
+      };
+      options?: {
+        enableMenu?: boolean;
+        skipHtmlTags?: string[];
+      };
+
+      // Custom extensions (not standard MathJax)
+      typesetClear: (elements: HTMLElement[]) => void;
     };
+    debugLatex: (latex: string) => Promise<void>;
   }
 }
 

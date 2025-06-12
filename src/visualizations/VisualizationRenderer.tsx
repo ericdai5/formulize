@@ -59,21 +59,13 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
     const config = visualization;
     return (
       <div
-        className="visualization-container p-6 overflow-hidden border-b border-slate-200"
+        className="p-6 w-full h-full overflow-hidden border-b"
         key={`plot3d-container-${renderKey}`}
       >
         <div className="visualization-header mb-3">
-          <div className="flex items-center justify-between ">
-            <h4 className="text-lg font-medium text-gray-800">
-              {config.title || "3D Plot Visualization"}
-            </h4>
-            <div className="flex text-sm text-gray-600 space-x-4 border border-slate-200 rounded-xl h-9 px-3">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-                <span>Current point</span>
-              </div>
-            </div>
-          </div>
+          <h4 className="text-lg font-medium text-gray-800">
+            {config.title || "3D Plot Visualization"}
+          </h4>
         </div>
 
         {/* Use render key to force complete re-creation of Plot3D component when config changes */}

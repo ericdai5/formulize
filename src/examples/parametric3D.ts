@@ -16,9 +16,9 @@ const parametric3DExample = `const config = {
       expression: "{z} = {t}"
     },
     {
-      name: "h and t",
-      function: "h = x + y + z",
-      expression: "{x} + {y} + {z} = {h}"
+      name: "x + y + z = 1",
+      function: "1 = x + y + z",
+      expression: "{x} + {y} + {z} = 1"
     },
     {
       name: "x and z",
@@ -27,11 +27,6 @@ const parametric3DExample = `const config = {
     }
   ],
   variables: {
-    h: {
-      type: "dependent",
-      label: "h-coordinate",
-      precision: 2
-    },
     x: {
       type: "dependent",
       label: "x-coordinate",
@@ -63,7 +58,7 @@ const parametric3DExample = `const config = {
     {
       type: "plot3d",
       id: "parametricPlane3D",
-      title: "3D Parametric Surfaces: x + y + z = h and x - z = 0",
+      title: "3D Parametric Surfaces",
       xVar: "x",
       xRange: [-10, 10],
       yVar: "y",
@@ -73,25 +68,29 @@ const parametric3DExample = `const config = {
       plotType: "surface",
       width: 600,
       height: 600,
+      showColorbar: true,
+      showCurrentPointInLegend: true,
       surfaces: [
         {
-          formulaName: "h and t",
+          formulaName: "x + y + z = 1",
           color: "purple",
           opacity: 0.3,
-          showInLegend: true
+          showInLegend: true,
+          showColorbar: false
         },
         {
           formulaName: "x and z",
           color: "green",
           opacity: 0.3,
-          showInLegend: true
+          showInLegend: true,
+          showColorbar: false
         }
       ],
       lines: [
         {
           name: "Intersection Line",
           surfaceIntersection: {
-            surface1: "h and t",
+            surface1: "x + y + z = 1",
             surface2: "x and z"
           },
           color: "yellow",

@@ -11,11 +11,13 @@ export interface IPlot3D {
   width?: number | string;
   height?: number | string;
   plotType?: "scatter" | "surface" | "line" | "mesh";
+  showCurrentPointInLegend?: boolean;
   surfaces?: {
     formulaName: string;
     color?: string | string[];
     opacity?: number;
     showInLegend?: boolean;
+    showColorbar?: boolean;
   }[];
   lines?: {
     name: string;
@@ -46,6 +48,7 @@ export interface ISurface {
   color?: string | string[];
   opacity?: number;
   showInLegend?: boolean;
+  showColorbar?: boolean;
   matrixData?: ISurfaceCoord | null;
   points?: IPoint3D[];
 }

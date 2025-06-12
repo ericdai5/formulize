@@ -1,6 +1,7 @@
 import gravitationalPotential from "../examples/gravitationalPotential.ts";
 import kineticEnergy3D from "../examples/kineticEnergy3D.ts";
 import kineticEnergy from "../examples/kineticEnergy.ts";
+import parameterizedPlane from "../examples/parameterizedPlane.ts";
 import parametric3D from "../examples/parametric3D.ts";
 import quadraticEquation3D from "../examples/quadraticEquation3D.ts";
 import quadraticEquation from "../examples/quadraticEquation.ts";
@@ -28,6 +29,7 @@ const FormulaCodeEditor = ({
     quadraticEquation3D,
     parametric3D,
     rationalNumbers,
+    parameterizedPlane,
   };
 
   // Display names for examples
@@ -39,6 +41,7 @@ const FormulaCodeEditor = ({
     quadraticEquation3D: "Quadratic Equation 3D",
     parametric3D: "Parametric 3D",
     rationalNumbers: "Rational Numbers",
+    parameterizedPlane: "Parameterized Plane",
   };
 
   // Handler for example button clicks

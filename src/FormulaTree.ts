@@ -1,7 +1,3 @@
-// import * as prettier from "prettier/standalone";
-// import * as babelPlugin from "prettier/parser-babel";
-// import * as estreePlugin from "prettier/plugins/estree";
-// import katex from "katex";
 import {
   FormulaLatexRangeNode,
   FormulaLatexRanges,
@@ -9,6 +5,11 @@ import {
   UnstyledRange,
 } from "./FormulaText";
 import { canonicalizeFormula } from "./formulaTransformations";
+
+// import * as prettier from "prettier/standalone";
+// import * as babelPlugin from "prettier/parser-babel";
+// import * as estreePlugin from "prettier/plugins/estree";
+// import katex from "katex";
 
 export const debugLatex = async (latex: string) => {
   // const mathjaxRendered: Element = (MathJax as any).tex2chtml(latex);
@@ -52,7 +53,7 @@ export const debugLatex = async (latex: string) => {
   console.log("Parsed augmented formula:", parsed);
 };
 
-(window as any).debugLatex = debugLatex;
+window.debugLatex = debugLatex;
 
 export const checkFormulaCode = (latex: string) => {
   try {
@@ -71,14 +72,14 @@ export const updateFormula = (
   console.log("LaTeX:", newFormula.toLatex("no-id"));
   console.log("New formula:", newFormula);
   const renderLatex = newFormula.toLatex("render");
-  const chtml = (MathJax as any).tex2chtml(renderLatex);
+  const chtml = window.MathJax.tex2chtml(renderLatex);
   const renderSpec = deriveRenderSpec(chtml);
   console.log("Render spec:", renderSpec);
 
   // MathJax rendering requires appending new styles to the document
   // TODO: Don't know what this does when there are multiple formulas
-  (MathJax as any).startup.document.clear();
-  (MathJax as any).startup.document.updateDocument();
+  window.MathJax.startup.document.clear();
+  window.MathJax.startup.document.updateDocument();
 
   return {
     renderSpec,
@@ -924,6 +925,7 @@ export class Space extends AugmentedFormulaNodeBase {
     super(id);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   toLatex(_: LatexMode): string {
     return this.text;
   }

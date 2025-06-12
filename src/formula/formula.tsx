@@ -7,18 +7,6 @@ import { computationStore } from "../api/computation";
 import { FormulaStore } from "../store/FormulaStoreManager";
 import { VariableRange, dragInteractionHandlers } from "./dragInteraction";
 
-declare global {
-  interface Window {
-    MathJax: {
-      startup: {
-        promise: Promise<void>;
-      };
-      typesetPromise: (elements: HTMLElement[]) => Promise<void>;
-      typesetClear: (elements: HTMLElement[]) => void;
-    };
-  }
-}
-
 interface FormulaProps {
   variableRanges?: Record<string, VariableRange>;
   formulaIndex?: number;
@@ -144,8 +132,8 @@ const Formula = observer(
             );
 
             return `
-            <div class="formula-expression" data-expression-index="${index}" style="padding: 1rem; border: 1px solid #e0e0e0; border-radius: 24px; font-size: 0.9em;">
-              <div class="expression-formula">\\[${processedLatex}\\]</div>
+            <div class="formula-expression" data-expression-index="${index}" style="font-size: 0.9em;">
+              <div class="border border-slate-200 bg-white rounded-2xl py-0 px-4 w-fit">\\[${processedLatex}\\]</div>
             </div>
           `;
           })

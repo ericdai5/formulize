@@ -235,11 +235,11 @@ const FormulaCanvas = ({
         </div>
         <div
           ref={containerRef}
-          className={`interactive-formula-container w-full flex justify-center items-center overflow-auto transition-all duration-300 ease-in-out ${
+          className={`interactive-formula-container w-full overflow-auto transition-all duration-300 ease-in-out ${
             isRendered ? "h-full" : "h-1/2"
           }`}
         >
-          <div className="min-w-0">
+          <div className="min-w-0 w-full h-full overflow-auto p-8 bg-slate-50 text-center">
             <Formula
               variableRanges={
                 currentConfig ? extractVariableRanges(currentConfig) : {}

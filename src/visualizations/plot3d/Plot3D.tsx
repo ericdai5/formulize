@@ -40,7 +40,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   const [currentPoint, setCurrentPoint] = useState<IPoint3D | null>(null);
   const [surfacesData, setSurfacesData] = useState<ISurface[]>([]);
   const [linesData, setLinesData] = useState<LineData[]>([]);
-  const [isCalculating, setIsCalculating] = useState(false);
   const [isPlotInitialized, setIsPlotInitialized] = useState(false);
 
   // Parse configuration options with defaults
@@ -55,6 +54,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     width = 600,
     height = 600,
     plotType = "surface",
+    showCurrentPointInLegend = false,
     surfaces = null,
     lines = null,
   } = config;
@@ -318,9 +318,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
   // Direct calculation function without debouncing
   const calculateDataPoints = useCallback(() => {
-    if (isCalculating) return;
-
-    setIsCalculating(true);
     try {
       const surfacesResult = calculateSurfacesDataWrapper();
       const linesResult = calculateLinesData();
@@ -337,8 +334,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       setSurfacesData([]);
       setLinesData([]);
       setCurrentPoint(null);
-    } finally {
-      setIsCalculating(false);
     }
   }, [
     calculateSurfacesDataWrapper,
@@ -347,7 +342,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     yVar,
     zVar,
     getVariableValue,
-    isCalculating,
   ]);
 
   useEffect(() => {
@@ -403,6 +397,17 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       return;
 
     const plotData: Record<string, unknown>[] = [];
+    let hasColorbar = false; // Track if any surface shows a colorbar
+
+    // First pass: count how many surfaces want colorbars and assign positions
+    const colorbarSurfaces: number[] = [];
+    surfacesData.forEach((surfaceData, index) => {
+      if (surfaceData.showColorbar === true && surfaceData.matrixData) {
+        colorbarSurfaces.push(index);
+        hasColorbar = true;
+      }
+    });
+
     surfacesData.forEach((surfaceData, index) => {
       if (!surfaceData.matrixData) return;
       const { xCoords, yCoords, zCoords } = surfaceData.matrixData;
@@ -418,6 +423,15 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
       console.log(`Adding surface to plot: ${surfaceData.formulaName}`);
 
+      // Determine if this specific surface should show a colorbar and its position
+      const colorbarIndex = colorbarSurfaces.indexOf(index);
+      const shouldShowColorbar = colorbarIndex >= 0;
+
+      // Position colorbars side by side, starting from the right
+      const colorbarX = shouldShowColorbar
+        ? 1.02 + colorbarIndex * 0.08
+        : undefined;
+
       // Create surface plot data based on plot type
       if (plotType === "surface") {
         plotData.push({
@@ -426,7 +440,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
           y: yCoords,
           z: zCoords,
           colorscale: surfaceData.color,
-          showscale: index === 0,
+          showscale: shouldShowColorbar,
           opacity: surfaceData.opacity,
           connectgaps: false,
           name: surfaceData.formulaName,
@@ -437,6 +451,17 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
             z: { show: false },
           },
           hidesurface: false,
+          colorbar: shouldShowColorbar
+            ? {
+                x: colorbarX, // Position colorbar with offset for multiple bars
+                len: 0.8, // Make it shorter to leave room for legend
+                thickness: 5,
+                title: {
+                  text: surfaceData.formulaName, // Use surface name as colorbar title
+                  side: "right",
+                },
+              }
+            : undefined,
         });
       } else if (plotType === "mesh") {
         const validPoints =
@@ -452,6 +477,18 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
             intensity: validPoints.map((p: IPoint3D) => p.z),
             name: surfaceData.formulaName,
             showlegend: surfaceData.showInLegend,
+            showscale: shouldShowColorbar,
+            colorbar: shouldShowColorbar
+              ? {
+                  x: colorbarX,
+                  len: 0.8,
+                  thickness: 5,
+                  title: {
+                    text: surfaceData.formulaName,
+                    side: "right",
+                  },
+                }
+              : undefined,
           });
         }
       } else {
@@ -469,7 +506,18 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
               size: 3,
               color: validPoints.map((p: IPoint3D) => p.z),
               colorscale: surfaceData.color,
-              showscale: index === 0,
+              showscale: shouldShowColorbar,
+              colorbar: shouldShowColorbar
+                ? {
+                    x: colorbarX,
+                    len: 0.8,
+                    thickness: 5,
+                    title: {
+                      text: surfaceData.formulaName,
+                      side: "right",
+                    },
+                  }
+                : undefined,
             },
             name: surfaceData.formulaName,
             showlegend: surfaceData.showInLegend,
@@ -521,8 +569,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
           color: "red",
           symbol: "diamond",
         },
-        name: "Current Point",
-        showlegend: false,
+        name: `Current Point`,
+        showlegend: showCurrentPointInLegend,
       });
     }
 
@@ -530,6 +578,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     const layout = {
       title: title || "3D Visualization",
       uirevision: "persistent", // This key setting preserves user interactions like camera angle
+      autosize: true, // Let Plotly automatically size to container
       scene: {
         xaxis: {
           title: {
@@ -555,17 +604,37 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         aspectratio: { x: 1, y: 1, z: 1 },
         aspectmode: "manual",
       },
-      width: typeof width === "number" ? width : parseInt(width as string, 10),
-      height:
-        typeof height === "number" ? height : parseInt(height as string, 10),
-      margin: { l: 0, r: 0, b: 0, t: 40 },
+      margin: hasColorbar
+        ? { l: 0, r: 0, b: 0, t: 0 }
+        : { l: 0, r: 0, b: 0, t: 0 },
+      legend: {
+        x: 0,
+        y: 1,
+        xanchor: "left",
+        yanchor: "top",
+        bgcolor: "rgba(255, 255, 255, 0.8)",
+        bordercolor: "rgba(0, 0, 0, 0.05)",
+        borderwidth: 1,
+        font: {
+          size: 11,
+        },
+        itemsizing: "constant",
+        traceorder: "normal",
+      },
+      modebar: {
+        orientation: "v",
+        bgcolor: "rgba(255, 255, 255, 0.8)",
+        color: "rgba(0, 0, 0, 0.7)",
+        activecolor: "rgba(0, 0, 0, 0.9)",
+      },
     };
 
     // Plotly configuration
     const plotlyConfig = {
       displayModeBar: true,
       displaylogo: false,
-      responsive: true,
+      responsive: true, // This is the key for proper container sizing
+      modeBarButtonsToRemove: [], // Keep all buttons but position them properly
     };
 
     // Use newPlot for initial creation, react for updates to preserve user interactions
@@ -618,6 +687,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     plotType,
     title,
     isPlotInitialized,
+    showCurrentPointInLegend,
     // Removed many dependencies to reduce re-renders
   ]);
 
@@ -636,32 +706,13 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   }, []);
 
   return (
-    <div className="formulize-plot3d" style={{ position: "relative" }}>
-      {isCalculating && (
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            background: "rgba(0,0,0,0.8)",
-            color: "white",
-            padding: "5px 10px",
-            borderRadius: "3px",
-            fontSize: "12px",
-            zIndex: 1000,
-          }}
-        >
-          Calculating...
-        </div>
-      )}
-      <div
-        ref={plotRef}
-        style={{
-          width: typeof width === "number" ? `${width}px` : width,
-          height: typeof height === "number" ? `${height}px` : height,
-        }}
-      />
-    </div>
+    <div
+      ref={plotRef}
+      style={{
+        width: typeof width === "number" ? `${width}px` : width,
+        height: typeof height === "number" ? `${height}px` : height,
+      }}
+    />
   );
 });
 

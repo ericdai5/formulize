@@ -128,6 +128,7 @@ export const getSurface = (
     color: resolveColor(surfaceConfig.color as ColorScale, index),
     opacity: surfaceConfig.opacity ?? 0.7,
     showInLegend: surfaceConfig.showInLegend !== false,
+    showColorbar: surfaceConfig.showColorbar,
   };
 };
 
