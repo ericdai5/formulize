@@ -1,4 +1,5 @@
 import { IComputation } from "./computation";
+import { IControls } from "./control";
 import { IFormula } from "./formula";
 import { IVariable } from "./variable";
 import { IVisualization } from "./visualization";
@@ -8,4 +9,5 @@ export interface IEnvironment {
   variables: Record<string, IVariable>;
   computation: IComputation;
   visualizations?: IVisualization[];
+  controls?: IControls[];
 }

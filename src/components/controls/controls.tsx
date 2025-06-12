@@ -1,0 +1,45 @@
+import { observer } from "mobx-react-lite";
+
+import { IControls, ISliderControl } from "../../types/control";
+import Slider from "./slider";
+
+interface ControlPanelProps {
+  controls: IControls[];
+}
+
+const ControlPanel = observer(({ controls }: ControlPanelProps) => {
+  if (!controls || controls.length === 0) {
+    return null;
+  }
+
+  const renderControl = (control: IControls) => {
+    switch (control.type) {
+      case "slider":
+        return <Slider key={control.id} control={control as ISliderControl} />;
+
+      case "dropdown":
+        // TODO: Implement
+        return null;
+
+      case "checkbox":
+        // TODO: Implement
+        return null;
+
+      case "button":
+        // TODO: Implement
+        return null;
+
+      case "radio":
+        // TODO: Implement
+        return null;
+    }
+  };
+
+  return (
+    <div className="controls-container flex flex-wrap gap-4">
+      {controls.map(renderControl)}
+    </div>
+  );
+});
+
+export default ControlPanel;

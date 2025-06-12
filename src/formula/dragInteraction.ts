@@ -21,16 +21,22 @@ export const dragInteractionHandlers = (
   slidableElements.forEach((element) => {
     let isDragging = false;
     let startY = 0;
-    const SENSITIVITY = 0.5;
 
-    // Get variable-specific range
+    // Get variable-specific range and step
     const varMatch = element.id.match(/^var-([a-zA-Z])$/);
     let actualMinValue = DEFAULT_MIN_VALUE;
     let actualMaxValue = DEFAULT_MAX_VALUE;
+    let stepSize = 0.5; // Default step size
 
     if (varMatch) {
       const symbol = varMatch[1];
       const varId = `var-${symbol}`;
+
+      // Get variable from computation store to access step size
+      const variable = computationStore.variables.get(varId);
+      if (variable && variable.step) {
+        stepSize = variable.step;
+      }
 
       // Check for range by varId first, then by symbol, then use defaults
       const range = variableRanges[varId] || variableRanges[symbol];
@@ -39,6 +45,8 @@ export const dragInteractionHandlers = (
         actualMaxValue = range.max;
       }
     }
+
+    const SENSITIVITY = stepSize;
 
     let startValue = (actualMinValue + actualMaxValue) / 2;
 

@@ -71,6 +71,7 @@ async function create(
       variables: config.variables,
       computation: config.computation,
       visualizations: config.visualizations,
+      controls: config.controls,
     };
 
     // CRITICAL: Reset all state to ensure we start fresh
@@ -206,56 +207,7 @@ async function create(
 // Export the Formulize API
 const Formulize = {
   create,
-  // Utility functions for multi-formula management
-  createFormula: async (environment: IEnvironment): Promise<boolean> => {
-    try {
-      formulaStoreManager.clearAllStores();
-      const formulas = environment.formulas.map((f) => f.function);
-      const formulaStores: FormulaStore[] = [];
 
-      formulas.forEach((formulaLatex, index) => {
-        const storeId = index.toString();
-        const store = formulaStoreManager.createStore(storeId, formulaLatex);
-        formulaStores.push(store);
-      });
-
-      // Add variables to computation store
-      Object.entries(environment.variables).forEach(([name, variable]) => {
-        const symbol = name.replace(/\$/g, "");
-        const id = `var-${symbol}`;
-        computationStore.addVariable(id, symbol, variable);
-        computationStore.setVariableType(id, variable.type);
-        if (variable.value !== undefined) {
-          computationStore.setValue(id, variable.value);
-        }
-      });
-
-      // Set up computation engine
-      computationStore.computationEngine = environment.computation.engine;
-      computationStore.computationConfig = environment.computation;
-
-      // Extract computation expressions from individual formulas
-      const computationFunctions = environment.formulas
-        .map((formula) => formula.expression)
-        .filter((expression): expression is string => expression !== undefined);
-
-      // Store the display formulas for rendering and the computation expressions for evaluation
-      computationStore.displayedFormulas = formulas;
-      computationStore.computationFunctions = computationFunctions;
-
-      await computationStore.setAllExpressions(computationFunctions);
-
-      console.log(
-        `✅ Created ${formulaStores.length} individual formula stores`
-      );
-      return true;
-    } catch (error) {
-      console.error("Error creating formula:", error);
-      return false;
-    }
-  },
-
-  // Utility functions for accessing formulas
   getFormulaStore: (index: number): FormulaStore | null => {
     const storeId = index.toString();
     return formulaStoreManager.getStore(storeId);
@@ -280,11 +232,9 @@ const Formulize = {
   },
 
   resetFormulaState: () => {
-    // Clear all individual stores
     formulaStoreManager.clearAllStores();
   },
 
-  // Formula expression access
   getFormulaExpression: (
     environment: IEnvironment,
     name: string

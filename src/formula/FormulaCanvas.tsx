@@ -244,6 +244,7 @@ const FormulaCanvas = ({
               variableRanges={
                 currentConfig ? extractVariableRanges(currentConfig) : {}
               }
+              controls={currentConfig?.controls}
             />
           </div>
         </div>

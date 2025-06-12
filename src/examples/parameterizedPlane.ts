@@ -56,6 +56,21 @@ const parameterizedPlaneExample = `const config = {
     engine: "symbolic-algebra"
   },
 
+  controls: [
+    {
+      id: "tSlider",
+      type: "slider",
+      variable: "t",
+      orientation: "horizontal"
+    },
+    {
+      id: "wSlider",
+      type: "slider",
+      variable: "w",
+      orientation: "horizontal"
+    }
+  ],
+
   visualizations: [
     {
       type: "plot3d",
@@ -93,27 +108,6 @@ const parameterizedPlaneExample = `const config = {
         }
       ]
     },
-    {
-      type: "plot2d",
-      id: "parameterSpacePlot",
-      title: "Parameter Space (t, w)",
-      xVar: "t",
-      xRange: [-10, 10],
-      yVar: "w",
-      yRange: [-10, 10],
-      width: 400,
-      height: 400,
-      points: [
-        {
-          name: "Current Parameters",
-          x: "t",
-          y: "w",
-          color: "blue",
-          size: 6,
-          showInLegend: true
-        }
-      ]
-    }
   ]
 };
 

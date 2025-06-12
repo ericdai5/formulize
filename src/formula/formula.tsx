@@ -4,17 +4,25 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { computationStore } from "../api/computation";
+import ControlPanel from "../components/controls/controls";
 import { FormulaStore } from "../store/FormulaStoreManager";
+import { IControls } from "../types/control";
 import { VariableRange, dragInteractionHandlers } from "./dragInteraction";
 
 interface FormulaProps {
   variableRanges?: Record<string, VariableRange>;
   formulaIndex?: number;
   formulaStore?: FormulaStore;
+  controls?: IControls[];
 }
 
 const Formula = observer(
-  ({ variableRanges = {}, formulaIndex, formulaStore }: FormulaProps = {}) => {
+  ({
+    variableRanges = {},
+    formulaIndex,
+    formulaStore,
+    controls,
+  }: FormulaProps = {}) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isInitialized, setIsInitialized] = useState(false);
 
@@ -190,10 +198,18 @@ const Formula = observer(
     }, [isInitialized, renderFormulas]);
 
     return (
-      <div
-        ref={containerRef}
-        className="formulas-container flex flex-col gap-4"
-      />
+      <div className="flex flex-col gap-4">
+        {/* Control Panel */}
+        {controls && controls.length > 0 && (
+          <ControlPanel controls={controls} />
+        )}
+
+        {/* Interactive Formula Display */}
+        <div
+          ref={containerRef}
+          className="formulas-container flex flex-col gap-4"
+        />
+      </div>
     );
   }
 );

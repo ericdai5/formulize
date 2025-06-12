@@ -239,8 +239,9 @@ class ComputationStore {
     }
     variable.error = undefined;
 
-    if (type === "input") {
-      variable.range = [-100, 100];
+    if (type === "input" && !variable.range) {
+      // Only set default range if no range is already defined
+      variable.range = [-10, 10];
     }
 
     this.variableTypesChanged++;
