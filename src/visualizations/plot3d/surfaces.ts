@@ -56,11 +56,6 @@ export const getSurface = (
     return null;
   }
 
-  console.log(
-    `Calculating surface for formula: ${surfaceConfig.formulaName}`,
-    formulaExpression
-  );
-
   const points: IPoint3D[] = [];
   const xStep = (xMax - xMin) / samples;
   const yStep = (yMax - yMin) / samples;
@@ -139,26 +134,20 @@ export const getSurfaces = (
 ): ISurface[] => {
   const surfacesToProcess = surfaces;
   if (!surfacesToProcess || surfacesToProcess.length === 0) {
-    console.log("No surfaces configuration provided, using default");
+    console.warn("No surfaces configuration provided, using default");
     return [];
   }
-
-  console.log("Processing surfaces:", surfacesToProcess);
 
   const results: ISurface[] = [];
 
   surfacesToProcess.forEach((surfaceConfig, index) => {
     const surfaceData = getSurface(surfaceConfig, index, params);
     if (surfaceData) {
-      console.log(
-        `Successfully calculated surface: ${surfaceData.formulaName}`
-      );
       results.push(surfaceData);
     } else {
       console.warn(`Failed to calculate surface: ${surfaceConfig.formulaName}`);
     }
   });
 
-  console.log(`Total surfaces calculated: ${results.length}`);
   return results;
 };

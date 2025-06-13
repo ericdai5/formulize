@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { computationStore } from "../api/computation.ts";
 import { Formulize, FormulizeConfig } from "../api/index.ts";
 import kineticEnergy from "../examples/kineticEnergy.ts";
 import { IEnvironment } from "../types/environment.ts";
@@ -45,6 +46,7 @@ const FormulaCanvas = ({
   const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
     initialConfig
   );
+  const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Extract variable ranges from Formulize configuration
@@ -59,7 +61,7 @@ const FormulaCanvas = ({
         ([variableName, variableConfig]) => {
           if (variableConfig.type === "input" && variableConfig.range) {
             const [min, max] = variableConfig.range;
-            ranges[variableName] = { min, max };
+            ranges[variableName] = [min, max];
           }
         }
       );
@@ -210,6 +212,32 @@ const FormulaCanvas = ({
     }
   };
 
+  const handleGetVariableIds = () => {
+    setShowVariableModal(true);
+  };
+
+  const getVariableData = () => {
+    const formulas = computationStore.displayedFormulas;
+    const computationFunctions = computationStore.computationFunctions;
+
+    return {
+      variables: Array.from(computationStore.variables.entries()).map(
+        ([id, variable]) => ({
+          id,
+          symbol: variable.symbol,
+          type: variable.type,
+          value: variable.value,
+          error: variable.error,
+        })
+      ),
+      formulas: formulas.map((latex, index) => ({
+        index,
+        latex,
+        expression: computationFunctions[index] || "N/A",
+      })),
+    };
+  };
+
   return (
     <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
       <div className="flex flex-col w-full h-full relative">
@@ -232,6 +260,13 @@ const FormulaCanvas = ({
               />
             </button>
           )}
+          <button
+            onClick={handleGetVariableIds}
+            className="bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
+            title="Get Variable IDs"
+          >
+            <span className="text-xs font-mono font-bold">ID</span>
+          </button>
         </div>
         <div
           ref={containerRef}
@@ -261,6 +296,99 @@ const FormulaCanvas = ({
           />
         </div>
       </div>
+
+      {/* Variable IDs Modal */}
+      {showVariableModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Computation Store Variables</h2>
+              <button
+                onClick={() => setShowVariableModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-3">
+              {getVariableData().variables.length === 0 ? (
+                <p className="text-gray-500 italic">
+                  No variables found in computation store
+                </p>
+              ) : (
+                getVariableData().variables.map((variable) => (
+                  <div
+                    key={variable.id}
+                    className="border border-gray-200 rounded-lg p-3"
+                  >
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <strong>ID:</strong> {variable.id}
+                      </div>
+                      <div>
+                        <strong>Symbol:</strong> {variable.symbol}
+                      </div>
+                      <div>
+                        <strong>Type:</strong>{" "}
+                        <span className="capitalize">{variable.type}</span>
+                      </div>
+                      <div>
+                        <strong>Value:</strong> {variable.value}
+                      </div>
+                      {variable.error && (
+                        <div className="col-span-2">
+                          <strong>Error:</strong>{" "}
+                          <span className="text-red-600">{variable.error}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* LaTeX Formulas Section */}
+            {getVariableData().formulas.length > 0 && (
+              <>
+                <div className="mt-6 mb-4">
+                  <h3 className="text-lg font-semibold">LaTeX Formulas</h3>
+                </div>
+                <div className="space-y-3">
+                  {getVariableData().formulas.map((formula) => (
+                    <div
+                      key={formula.index}
+                      className="border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <strong>Formula {formula.index + 1}:</strong>
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded font-mono text-xs overflow-x-auto">
+                          <strong>LaTeX:</strong> {formula.latex}
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded font-mono text-xs overflow-x-auto">
+                          <strong>Expression:</strong> {formula.expression}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-600">
+                Total variables: {getVariableData().variables.length}
+              </p>
+              {getVariableData().formulas.length > 0 && (
+                <p className="text-sm text-gray-600">
+                  Total formulas: {getVariableData().formulas.length}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

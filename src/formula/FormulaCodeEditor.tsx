@@ -1,11 +1,4 @@
-import gravitationalPotential from "../examples/gravitationalPotential.ts";
-import kineticEnergy3D from "../examples/kineticEnergy3D.ts";
-import kineticEnergy from "../examples/kineticEnergy.ts";
-import parameterizedPlane from "../examples/parameterizedPlane.ts";
-import parametric3D from "../examples/parametric3D.ts";
-import quadraticEquation3D from "../examples/quadraticEquation3D.ts";
-import quadraticEquation from "../examples/quadraticEquation.ts";
-import rationalNumbers from "../examples/rationalNumbers.ts";
+import { exampleDisplayNames, examples as formulaExamples } from "../examples";
 
 interface FormulaCodeEditorProps {
   formulizeInput: string;
@@ -20,30 +13,6 @@ const FormulaCodeEditor = ({
   onRender,
   error,
 }: FormulaCodeEditorProps) => {
-  // Example formula configurations
-  const formulaExamples = {
-    kineticEnergy,
-    gravitationalPotential,
-    kineticEnergy3D,
-    quadraticEquation,
-    quadraticEquation3D,
-    parametric3D,
-    rationalNumbers,
-    parameterizedPlane,
-  };
-
-  // Display names for examples
-  const exampleDisplayNames = {
-    kineticEnergy: "Kinetic Energy",
-    gravitationalPotential: "Gravitational Potential",
-    kineticEnergy3D: "Kinetic Energy 3D",
-    quadraticEquation: "Quadratic Equation",
-    quadraticEquation3D: "Quadratic Equation 3D",
-    parametric3D: "Parametric 3D",
-    rationalNumbers: "Rational Numbers",
-    parameterizedPlane: "Parameterized Plane",
-  };
-
   // Handler for example button clicks
   const handleExampleClick = (example: keyof typeof formulaExamples) => {
     const newFormula = formulaExamples[example];

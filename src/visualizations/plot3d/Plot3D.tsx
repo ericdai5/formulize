@@ -151,8 +151,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         showInLegend = true,
       } = lineConfig;
 
-      console.log(`Calculating line: ${name}`);
-
       const points: IPoint3D[] = [];
       const lineResolution = 100; // Higher resolution for smooth lines
       const paramStep = (parameterMax - parameterMin) / lineResolution;
@@ -179,10 +177,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
           );
           return null;
         }
-
-        console.log(
-          `Computing automatic intersection of "${surface1}" and "${surface2}"`
-        );
 
         for (let i = 0; i <= lineResolution; i++) {
           const paramValue = parameterMin + i * paramStep;
@@ -294,25 +288,20 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   const calculateLinesData = useCallback(() => {
     const linesToProcess = lines;
     if (!linesToProcess || linesToProcess.length === 0) {
-      console.log("No lines configuration provided");
+      console.warn("No lines configuration provided");
       return [];
     }
-
-    console.log("Processing lines:", linesToProcess);
 
     const results: LineData[] = [];
 
     linesToProcess.forEach((lineConfig, index) => {
       const lineData = calculateLineData(lineConfig, index);
       if (lineData) {
-        console.log(`Successfully calculated line: ${lineData.name}`);
         results.push(lineData);
       } else {
         console.warn(`Failed to calculate line: ${lineConfig.name}`);
       }
     });
-
-    console.log(`Total lines calculated: ${results.length}`);
     return results;
   }, [lines, calculateLineData]);
 
@@ -421,8 +410,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         return;
       }
 
-      console.log(`Adding surface to plot: ${surfaceData.formulaName}`);
-
       // Determine if this specific surface should show a colorbar and its position
       const colorbarIndex = colorbarSurfaces.indexOf(index);
       const shouldShowColorbar = colorbarIndex >= 0;
@@ -530,7 +517,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     linesData.forEach((lineData) => {
       const validPoints = lineData.points.filter((p) => p.z !== null);
       if (validPoints.length > 0) {
-        console.log(`Adding line to plot: ${lineData.name}`);
         plotData.push({
           type: "scatter3d",
           mode: "lines",
@@ -644,8 +630,6 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
     plotMethod(plotRef.current, plotData, layout, plotlyConfig)
       .then(() => {
-        console.log("Plot rendered successfully");
-
         // Mark plot as initialized after first render
         if (!isPlotInitialized) {
           setIsPlotInitialized(true);
