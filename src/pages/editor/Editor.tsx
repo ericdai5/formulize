@@ -6,8 +6,10 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { StreamLanguage } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 import {
+  EditorSelection,
   EditorState,
   RangeSetBuilder,
   StateEffect,
@@ -19,7 +21,9 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
+import { tags as t } from "@lezer/highlight";
 import { EditorView, basicSetup } from "codemirror";
+import { printPrettier as prettyLaTeX } from "prettier-plugin-latex/standalone";
 
 import {
   ContentChange,
@@ -32,7 +36,8 @@ import {
   checkFormulaCode,
   deriveAugmentedFormula,
 } from "../../FormulaTree";
-import { formulaStore } from "../../store";
+import { formulaStore, selectionStore } from "../../store";
+import * as styles from "../../styles";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };
 
@@ -82,7 +87,11 @@ const styledRanges = (view: EditorView) => {
                   bottom: 0;
                   left: 0;
                   right: 0;
-                  opacity: ${view.state.field(styledRangeSelectionState).has(range.id) ? 0.1 : 0};
+                  opacity: ${
+                    view.state.field(styledRangeSelectionState).has(range.id)
+                      ? 0.1
+                      : 0
+                  };
                   background-color: ${range.hints?.color || "black"};
                 }
 
@@ -93,7 +102,11 @@ const styledRanges = (view: EditorView) => {
                   top: ${-4 + 4 * nestingDepth}px;
                   left: 0;
                   width: 100%;
-                  height: ${view.state.field(styledRangeSelectionState).has(range.id) ? "4px" : "2px"};
+                  height: ${
+                    view.state.field(styledRangeSelectionState).has(range.id)
+                      ? "4px"
+                      : "2px"
+                  };
                   background-color: ${range.hints?.color || "black"};
                 }
               `,
@@ -376,7 +389,10 @@ export const Editor = observer(() => {
           Full LaTeX
         </EditorTab>
       </div>
-      {currentEditor === "full" ? <FullStyleEditor /> : <ContentOnlyEditor />}
+      {
+        /*currentEditor === "full" ? <FullStyleEditor /> : <ContentOnlyEditor />*/
+        <FullStyleEditor />
+      }
     </>
   );
 });
@@ -414,6 +430,25 @@ const FullStyleEditor = observer(() => {
             EditorView.lineWrapping,
             StreamLanguage.define(stex),
             codeUpdateListener,
+            EditorView.theme({
+              ".cm-activeLine": {
+                "background-color": `${styles.COLORS.baseDark}44`,
+              },
+              ".cm-selectionBackground": {
+                "background-color": `${styles.COLORS.selection} !important`,
+              },
+              "::selection": {
+                "background-color": `${styles.COLORS.selection} !important`,
+              },
+              ".cm-focused": {
+                border: `none`,
+                outline: `none`,
+              },
+            }),
+            syntaxHighlighting(
+              // https://lezer.codemirror.net/docs/ref/#highlight.tags
+              HighlightStyle.define([{ tag: t.name, color: "#2b65bd" }])
+            ),
           ],
           doc: formulaStore.latexWithStyling,
         }),
@@ -422,7 +457,7 @@ const FullStyleEditor = observer(() => {
       setEditorView(newEditorView);
 
       // Automatically update the editor code when the formula changes due to interactions
-      const disposeReaction = reaction(
+      const disposeUpdateCodeReaction = reaction(
         () => formulaStore.latexWithStyling,
         (latex) => {
           console.log("Synchronizing editor with new formula", latex);
@@ -433,15 +468,49 @@ const FullStyleEditor = observer(() => {
             return;
           }
 
-          newEditorView.dispatch([
-            newEditorView.state.update({
-              changes: {
-                from: 0,
-                to: newEditorView.state.doc.length,
-                insert: latex,
-              },
-            }),
-          ]);
+          prettyLaTeX(latex, { printWidth: 30 }).then((pretty: string) => {
+            newEditorView.dispatch([
+              newEditorView.state.update({
+                changes: {
+                  from: 0,
+                  to: newEditorView.state.doc.length,
+                  insert: pretty,
+                },
+              }),
+            ]);
+          });
+        }
+      );
+
+      const disposeUpdateSelectionReaction = reaction(
+        () =>
+          [selectionStore.siblingSelections, formulaStore.latexRanges] as const,
+        ([selectionRanges, latexRanges]) => {
+          if (suppressCodeUpdateRef.current) {
+            console.log("Suppressing selection update");
+            return;
+          }
+
+          console.log("selection:", selectionRanges);
+          const selections = selectionRanges.flatMap((range) => {
+            const first = range[0];
+            const last = range.slice(-1)[0];
+            if (!(first in latexRanges) || !(last in latexRanges)) {
+              return [];
+            }
+
+            const [firstStart, _] = latexRanges[first];
+            const [__, lastEnd] = latexRanges[last];
+            console.log(first, firstStart, last, lastEnd);
+            return [EditorSelection.range(firstStart, lastEnd)];
+          });
+
+          newEditorView.dispatch({
+            selection:
+              selections.length > 0
+                ? EditorSelection.create(selections)
+                : EditorSelection.single(0),
+          });
         }
       );
 
@@ -457,26 +526,24 @@ const FullStyleEditor = observer(() => {
         setEditorCodeCorrect(() => true);
 
         // Synchronize the editor with the current formula
-        newEditorView.dispatch([
-          newEditorView.state.update({
-            changes: {
-              from: 0,
-              to: newEditorView.state.doc.length,
-              insert: formulaStore.latexWithStyling,
-            },
-          }),
-        ]);
-        // const newCode = newEditorView.state.doc.toString();
-        // if (checkFormulaCode(newCode)) {
-        //   setEditorCodeCorrect(() => true);
-        //   formulaStore.updateFormula(deriveAugmentedFormula(newCode));
-        // } else {
-        //   setEditorCodeCorrect(() => false);
-        // }
+        prettyLaTeX(formulaStore.latexWithStyling, { printWidth: 30 }).then(
+          (pretty: string) => {
+            newEditorView.dispatch([
+              newEditorView.state.update({
+                changes: {
+                  from: 0,
+                  to: newEditorView.state.doc.length,
+                  insert: pretty,
+                },
+              }),
+            ]);
+          }
+        );
       });
 
       return () => {
-        disposeReaction();
+        disposeUpdateCodeReaction();
+        disposeUpdateSelectionReaction();
         newEditorView.destroy();
       };
     }
@@ -490,6 +557,7 @@ const FullStyleEditor = observer(() => {
   );
 });
 
+// @ts-expect-error Currently unused
 const ContentOnlyEditor = observer(() => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);

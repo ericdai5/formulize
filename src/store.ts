@@ -85,6 +85,11 @@ class FormulaStore {
   }
 
   @computed
+  get latexRanges() {
+    return this.augmentedFormula.toLatexRanges("no-id")[1];
+  }
+
+  @computed
   get styledRanges() {
     return this.styledRangesOverride ?? this.augmentedFormula.toStyledRanges();
   }

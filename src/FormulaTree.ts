@@ -1,3 +1,8 @@
+import katex from "katex";
+
+// import * as babelPlugin from "prettier/parser-babel";
+// import * as estreePlugin from "prettier/plugins/estree";
+// import * as prettier from "prettier/standalone";
 import {
   FormulaLatexRangeNode,
   FormulaLatexRanges,
@@ -10,6 +15,14 @@ import { canonicalizeFormula } from "./formulaTransformations";
 // import * as babelPlugin from "prettier/parser-babel";
 // import * as estreePlugin from "prettier/plugins/estree";
 // import katex from "katex";
+
+// Add this interface near the top of the file after imports
+interface KatexWithInternals {
+  __parse: (
+    latex: string,
+    options: { strict: boolean; trust: boolean }
+  ) => katex.ParseNode[];
+}
 
 export const debugLatex = async (latex: string) => {
   // const mathjaxRendered: Element = (MathJax as any).tex2chtml(latex);
@@ -27,7 +40,10 @@ export const debugLatex = async (latex: string) => {
     trust: true,
     output: "html",
   };
-  console.log("KaTeX Parse tree:", katex.__parse(latex, katexOptions));
+  console.log(
+    "KaTeX Parse tree:",
+    (katex as unknown as KatexWithInternals).__parse(latex, katexOptions)
+  );
 
   const katexRendered = katex.renderToString(latex, katexOptions);
   // const formattedKatex = await prettier.format(katexRendered, {
@@ -87,10 +103,14 @@ export const updateFormula = (
 };
 
 export const deriveAugmentedFormula = (latex: string): AugmentedFormula => {
-  const katexTrees = katex.__parse(latex, { strict: false, trust: true });
+  const katexTrees = (katex as unknown as KatexWithInternals).__parse(latex, {
+    strict: false,
+    trust: true,
+  });
 
-  const augmentedTrees = katexTrees.map((katexTree, i) =>
-    buildAugmentedFormula(katexTree, `${i}`)
+  const augmentedTrees = katexTrees.map(
+    (katexTree: katex.ParseNode, i: number) =>
+      buildAugmentedFormula(katexTree, `${i}`)
   );
   return canonicalizeFormula(new AugmentedFormula(augmentedTrees));
 };
@@ -295,6 +315,45 @@ const buildAugmentedFormula = (
 // TODO: eventually this will also cover alternative code presentations (content
 // only, with augmentations)
 type LatexMode = "render" | "no-id" | "content-only";
+type LatexRange = [string, { [id: string]: [number, number] }];
+type RangeElement = string | LatexRange;
+
+/**
+ * Adjust ranges based on their offset within this group, combine LaTeX strings, and combine LatexRanges.
+ * All ranges should be calculated with the same offset
+ */
+function consolidateRanges(
+  rangeElements: RangeElement[],
+  offset: number,
+  id?: string
+): LatexRange {
+  let adjustedOffset = offset;
+  let combinedLatex = "";
+  let combinedRanges: { [id: string]: [number, number] } = {};
+  for (const element of rangeElements) {
+    if (typeof element === "string") {
+      combinedLatex += element;
+      adjustedOffset += element.length;
+    } else {
+      const [latex, range] = element;
+      combinedLatex += latex;
+      combinedRanges = {
+        ...combinedRanges,
+        ...Object.fromEntries(
+          Object.entries(range).map(([id, [start, end]]) => [
+            id,
+            [start + adjustedOffset, end + adjustedOffset],
+          ])
+        ),
+      };
+      adjustedOffset += latex.length;
+    }
+  }
+  if (id) {
+    combinedRanges[id] = [offset, adjustedOffset];
+  }
+  return [combinedLatex, combinedRanges];
+}
 
 export class AugmentedFormula {
   private idToNode: { [id: string]: AugmentedFormulaNode } = {};
@@ -308,7 +367,15 @@ export class AugmentedFormula {
   }
 
   toLatex(mode: LatexMode): string {
-    return this.children.map((child) => child.toLatex(mode)).join(" ");
+    // return this.children.map((child) => child.toLatex(mode)).join(" ");
+    return this.toLatexRanges(mode)[0];
+  }
+
+  toLatexRanges(mode: LatexMode): LatexRange {
+    return consolidateRanges(
+      this.children.flatMap((child) => [child.toLatex(mode, 0), " "]),
+      0
+    );
   }
 
   findNode(id: string): AugmentedFormulaNode | null {
@@ -351,13 +418,16 @@ abstract class AugmentedFormulaNodeBase {
   public _rightSibling: AugmentedFormulaNode | null = null;
   constructor(public id: string) {}
 
-  protected latexWithId(mode: LatexMode, latex: string): string {
+  protected latexWithId(
+    mode: LatexMode,
+    elements: RangeElement[]
+  ): RangeElement[] {
     switch (mode) {
       case "render":
-        return String.raw`\cssId{${this.id}}{${latex}}`;
+        return [String.raw`\cssId{${this.id}}{`, ...elements, `}`];
       case "no-id":
       case "content-only":
-        return latex;
+        return elements;
     }
   }
 
@@ -372,11 +442,7 @@ abstract class AugmentedFormulaNodeBase {
     return this.id === id || this.children.some((child) => child.contains(id));
   }
 
-  toMathML(): string {
-    return `<mrow>${this.children.map((c) => c.toMathML()).join("")}</mrow>`;
-  }
-
-  abstract toLatex(mode: LatexMode): string;
+  abstract toLatex(mode: LatexMode, offset: number): LatexRange;
   abstract get children(): AugmentedFormulaNode[];
   abstract toStyledRanges(): FormulaLatexRangeNode[];
 }
@@ -392,14 +458,15 @@ export class Script extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const baseLatex = String.raw`${this.base.toLatex(mode)}`;
-    const subLatex = this.sub ? String.raw`_${this.sub.toLatex(mode)}` : "";
-    const supLatex = this.sup ? String.raw`^${this.sup.toLatex(mode)}` : "";
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const baseElement = this.base.toLatex(mode, offset);
+    const subElement = this.sub ? ["_", this.sub.toLatex(mode, offset)] : [];
+    const supElement = this.sup ? ["^", this.sup.toLatex(mode, offset)] : [];
 
-    return this.latexWithId(
-      mode,
-      String.raw`${baseLatex}${subLatex}${supLatex}`
+    return consolidateRanges(
+      this.latexWithId(mode, [baseElement, ...subElement, ...supElement]),
+      offset,
+      this.id
     );
   }
 
@@ -467,12 +534,19 @@ export class Fraction extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const numeratorLatex = this.numerator.toLatex(mode);
-    const denominatorLatex = this.denominator.toLatex(mode);
-    return this.latexWithId(
-      mode,
-      String.raw`\frac{${numeratorLatex}}{${denominatorLatex}}`
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const numeratorElement = this.numerator.toLatex(mode, offset);
+    const denominatorElement = this.denominator.toLatex(mode, offset);
+    return consolidateRanges(
+      this.latexWithId(mode, [
+        String.raw`\frac{`,
+        numeratorElement,
+        `}{`,
+        denominatorElement,
+        `}`,
+      ]),
+      offset,
+      this.id
     );
   }
 
@@ -533,8 +607,12 @@ export class MathSymbol extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    return this.latexWithId(mode, this.value.toString());
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    return consolidateRanges(
+      this.latexWithId(mode, [this.value.toString()]),
+      offset,
+      this.id
+    );
   }
 
   withChanges({
@@ -578,17 +656,22 @@ export class Color extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const childrenLatex = this.body
-      .map((child) => child.toLatex(mode))
-      .join(" ");
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const childrenElements = this.body
+      .flatMap((child) => [child.toLatex(mode, offset), " "])
+      .slice(0, -1);
     if (mode === "content-only") {
-      return childrenLatex;
+      return consolidateRanges(childrenElements, offset, this.id);
     }
 
-    return this.latexWithId(
-      mode,
-      String.raw`\textcolor{${this.color}}{${childrenLatex}}`
+    return consolidateRanges(
+      this.latexWithId(mode, [
+        String.raw`\textcolor{${this.color}}{`,
+        ...childrenElements,
+        `}`,
+      ]),
+      offset,
+      this.id
     );
   }
 
@@ -654,10 +737,10 @@ export class Group extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const childrenLatex = this.body
-      .map((child) => child.toLatex(mode))
-      .join(" ");
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const childrenElements = this.body
+      .flatMap((child) => [child.toLatex(mode, offset), " "])
+      .slice(0, -1);
     if (
       (mode === "no-id" || mode === "content-only") &&
       (this._parent === null ||
@@ -671,9 +754,13 @@ export class Group extends AugmentedFormulaNodeBase {
       // TODO: We also make Group aware when it is the child of nodes with single-child bodies
       // but this is a bit of a hack. We should have a more generic mechanism for detecting whether
       // the Group's braces are necessary.
-      return childrenLatex;
+      return consolidateRanges(childrenElements, offset, this.id);
     }
-    return this.latexWithId(mode, String.raw`{${childrenLatex}}`);
+    return consolidateRanges(
+      this.latexWithId(mode, [`{`, ...childrenElements, `}`]),
+      offset,
+      this.id
+    );
   }
 
   withChanges({
@@ -727,17 +814,25 @@ export class Box extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const bodyLatex = this.body.toLatex(mode);
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const bodyElement = this.body.toLatex(mode, offset);
 
     if (mode === "content-only") {
-      return bodyLatex;
+      return consolidateRanges([bodyElement], offset, this.id);
     }
 
-    return this.latexWithId(
-      mode,
-      // fcolorbox returns to text mode so the body must be wrapped in $
-      String.raw`\fcolorbox{${this.borderColor}}{${this.backgroundColor}}{$${bodyLatex}$}`
+    return consolidateRanges(
+      this.latexWithId(
+        mode,
+        // fcolorbox returns to text mode so the body must be wrapped in $
+        [
+          `\fcolorbox{${this.borderColor}}{${this.backgroundColor}}{$`,
+          bodyElement,
+          `$}`,
+        ]
+      ),
+      offset,
+      this.id
     );
   }
 
@@ -802,15 +897,19 @@ export class Brace extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const baseLatex = this.base.toLatex(mode);
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const baseElement = this.base.toLatex(mode, offset);
 
     if (mode === "content-only") {
-      return baseLatex;
+      return consolidateRanges([baseElement], offset, this.id);
     }
 
     const command = "\\" + (this.over ? "over" : "under") + "brace";
-    return this.latexWithId(mode, String.raw`${command}{${baseLatex}}`);
+    return consolidateRanges(
+      this.latexWithId(mode, [`${command}{`, baseElement, `}`]),
+      offset,
+      this.id
+    );
   }
 
   withChanges({
@@ -868,11 +967,15 @@ export class Text extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const childrenLatex = this.body
-      .map((child) => child.toLatex("no-id"))
-      .join("");
-    return this.latexWithId(mode, String.raw`\text{${childrenLatex}}`);
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const childrenElements = this.body.map((child) =>
+      child.toLatex("no-id", offset)
+    );
+    return consolidateRanges(
+      this.latexWithId(mode, [String.raw`\text{`, ...childrenElements, `}`]),
+      offset,
+      this.id
+    );
   }
 
   withChanges({
@@ -925,9 +1028,13 @@ export class Space extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  toLatex(_: LatexMode): string {
-    return this.text;
+  toLatex(_: LatexMode, offset: number): LatexRange {
+    return [
+      this.text,
+      {
+        [this.id]: [offset, offset + this.text.length],
+      },
+    ];
   }
 
   withChanges({
@@ -973,22 +1080,32 @@ export class Aligned extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const rowsLatex = this.body
-      .map((row) => row.map((cell) => cell.toLatex(mode)).join(" & "))
-      .join(String.raw` \\` + "\n");
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const rowElements = this.body
+      .flatMap((row) => [
+        ...row
+          .flatMap((cell) => [cell.toLatex(mode, offset), " & "])
+          .slice(0, -1),
+        String.raw` \\ `,
+      ])
+      .slice(0, -1);
 
     if (mode === "content-only") {
-      return rowsLatex;
+      return consolidateRanges(rowElements, offset, this.id);
     }
 
     const numCols = Math.max(...this.body.map((row) => row.length));
     const columnAlignment =
       numCols === 2 ? ["r", "l"] : Array(numCols).fill("l");
 
-    return this.latexWithId(
-      mode,
-      `\\begin{array}{${columnAlignment.join("")}}\n${rowsLatex}\n\\end{array}`
+    return consolidateRanges(
+      this.latexWithId(mode, [
+        `\\begin{array}{${columnAlignment.join("")}}\n`,
+        ...rowElements,
+        `\n\\end{array}`,
+      ]),
+      offset,
+      this.id
     );
   }
 
@@ -1054,11 +1171,23 @@ export class Root extends AugmentedFormulaNodeBase {
   ) {
     super(id);
   }
-  toLatex(mode: LatexMode): string {
-    const bodyLatex = this.body.toLatex(mode);
-    const indexLatex = this.index ? `[${this.index.toLatex(mode)}]` : "";
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const bodyElement = this.body.toLatex(mode, offset);
+    const indexElements = this.index
+      ? [`[`, this.index.toLatex(mode, offset), `]`]
+      : [];
 
-    return this.latexWithId(mode, String.raw`\sqrt${indexLatex}{${bodyLatex}}`);
+    return consolidateRanges(
+      this.latexWithId(mode, [
+        String.raw`\sqrt`,
+        ...indexElements,
+        `{`,
+        bodyElement,
+        `}`,
+      ]),
+      offset,
+      this.id
+    );
   }
 
   withChanges({
@@ -1120,10 +1249,14 @@ export class Op extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    return this.latexWithId(
-      mode,
-      this.limits ? String.raw`${this.operator}\limits` : this.operator
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    return consolidateRanges(
+      this.latexWithId(
+        mode,
+        this.limits ? [this.operator, String.raw`\limits`] : [this.operator]
+      ),
+      offset,
+      this.id
     );
   }
 
@@ -1176,14 +1309,18 @@ export class Strikethrough extends AugmentedFormulaNodeBase {
     super(id);
   }
 
-  toLatex(mode: LatexMode): string {
-    const bodyLatex = this.body.toLatex(mode);
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const bodyElement = this.body.toLatex(mode, offset);
 
     if (mode === "content-only") {
-      return bodyLatex;
+      return consolidateRanges([bodyElement], offset, this.id);
     }
 
-    return this.latexWithId(mode, String.raw`\cancel{${bodyLatex}}`);
+    return consolidateRanges(
+      this.latexWithId(mode, [String.raw`\cancel{`, bodyElement, `}`]),
+      offset,
+      this.id
+    );
   }
 
   withChanges({
