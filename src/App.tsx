@@ -4,7 +4,7 @@ import { AugmentedFormula } from "./FormulaTree";
 import { FormulizeConfig } from "./api";
 import { computationStore } from "./api/computation";
 import Header from "./components/Header";
-import APIPage from "./pages/api/APIPage";
+import APIPage from "./pages/api/index.tsx";
 import EditorPage from "./pages/editor/EditorPage";
 import { formulaStore } from "./store";
 

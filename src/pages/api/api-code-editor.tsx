@@ -1,4 +1,7 @@
-import { exampleDisplayNames, examples as formulaExamples } from "../examples";
+import {
+  exampleDisplayNames,
+  examples as formulaExamples,
+} from "../../examples";
 
 interface FormulaCodeEditorProps {
   formulizeInput: string;

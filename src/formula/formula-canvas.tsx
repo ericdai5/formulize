@@ -3,12 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { computationStore } from "../api/computation.ts";
 import { Formulize, FormulizeConfig } from "../api/index.ts";
 import kineticEnergy from "../examples/kineticEnergy.ts";
+import FormulaCodeEditor from "../pages/api/api-code-editor.tsx";
 import { IEnvironment } from "../types/environment.ts";
-import FormulaCodeEditor from "./FormulaCodeEditor.tsx";
 import Formula, { VariableRange } from "./formula.tsx";
 
 import codeIcon from "../Icons/code.svg";
 import functionIcon from "../Icons/function.svg";
+import storeIcon from "../Icons/store.svg";
 
 interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
@@ -263,9 +264,8 @@ const FormulaCanvas = ({
           <button
             onClick={handleGetVariableIds}
             className="bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
-            title="Get Variable IDs"
           >
-            <span className="text-xs font-mono font-bold">ID</span>
+            <img src={storeIcon} alt="Store" className="w-4 h-4" />
           </button>
         </div>
         <div

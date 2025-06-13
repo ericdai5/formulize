@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { FormulizeConfig } from "../../api/Formulize";
 import { computationStore } from "../../api/computation";
 import EvaluationFunctionPane from "../../components/EvaluationFunctionPane";
-import FormulaCanvas from "../../formula/FormulaCanvas";
+import FormulaCanvas from "../../formula/formula-canvas";
 import VisualizationRenderer from "../../visualizations/VisualizationRenderer";
 
 export default function APIPage() {
