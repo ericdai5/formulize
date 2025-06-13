@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { computationStore } from "../api/computation.ts";
 import { Formulize, FormulizeConfig } from "../api/index.ts";
+import IconButton from "../components/IconButton.tsx";
+import Modal from "../components/Modal.tsx";
+import StorePane from "../components/StorePane.tsx";
 import kineticEnergy from "../examples/kineticEnergy.ts";
+import { FormulaElementPane } from "../pages/api/FormulaElementPane.tsx";
 import FormulaCodeEditor from "../pages/api/api-code-editor.tsx";
 import { IEnvironment } from "../types/environment.ts";
 import Formula, { VariableRange } from "./formula.tsx";
@@ -10,6 +13,7 @@ import Formula, { VariableRange } from "./formula.tsx";
 import codeIcon from "../Icons/code.svg";
 import functionIcon from "../Icons/function.svg";
 import storeIcon from "../Icons/store.svg";
+import treeIcon from "../Icons/tree.svg";
 
 interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
@@ -17,6 +21,7 @@ interface FormulaCanvasProps {
   autoRender?: boolean;
   onConfigChange?: (config: FormulizeConfig) => void;
   onOpenEvaluationModal?: () => void;
+  onOpenStoreModal?: () => void;
 }
 
 const FormulaCanvas = ({
@@ -25,6 +30,7 @@ const FormulaCanvas = ({
   autoRender = true,
   onConfigChange,
   onOpenEvaluationModal,
+  onOpenStoreModal,
 }: FormulaCanvasProps) => {
   // Use formulizeConfig if provided, otherwise use the formulizeFormula, or fall back to null
   const initialConfig = formulizeConfig?.formulas
@@ -47,7 +53,8 @@ const FormulaCanvas = ({
   const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
     initialConfig
   );
-  const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
+  const [showStoreModal, setShowStoreModal] = useState<boolean>(false);
+  const [showElementPane, setShowElementPane] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Extract variable ranges from Formulize configuration
@@ -213,60 +220,41 @@ const FormulaCanvas = ({
     }
   };
 
-  const handleGetVariableIds = () => {
-    setShowVariableModal(true);
-  };
-
-  const getVariableData = () => {
-    const formulas = computationStore.displayedFormulas;
-    const computationFunctions = computationStore.computationFunctions;
-
-    return {
-      variables: Array.from(computationStore.variables.entries()).map(
-        ([id, variable]) => ({
-          id,
-          symbol: variable.symbol,
-          type: variable.type,
-          value: variable.value,
-          error: variable.error,
-        })
-      ),
-      formulas: formulas.map((latex, index) => ({
-        index,
-        latex,
-        expression: computationFunctions[index] || "N/A",
-      })),
-    };
+  const handleOpenStoreModal = () => {
+    if (onOpenStoreModal) {
+      onOpenStoreModal();
+    } else {
+      setShowStoreModal(true);
+    }
   };
 
   return (
     <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
       <div className="flex flex-col w-full h-full relative">
         <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
-          <button
+          <IconButton
+            icon={codeIcon}
+            alt="Edit"
             onClick={() => setIsRendered(!isRendered)}
-            className="text-base bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
-          >
-            <img src={codeIcon} alt="Edit" className="w-4 h-4" />
-          </button>
+          />
           {onOpenEvaluationModal && (
-            <button
+            <IconButton
+              icon={functionIcon}
+              alt="Open Evaluation"
               onClick={onOpenEvaluationModal}
-              className="bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
-            >
-              <img
-                src={functionIcon}
-                alt="Open Evaluation"
-                className="w-4 h-4"
-              />
-            </button>
+            />
           )}
-          <button
-            onClick={handleGetVariableIds}
-            className="bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100"
-          >
-            <img src={storeIcon} alt="Store" className="w-4 h-4" />
-          </button>
+          <IconButton
+            icon={treeIcon}
+            alt="Show Elements"
+            onClick={() => setShowElementPane(true)}
+            title="Show Elements"
+          />
+          <IconButton
+            icon={storeIcon}
+            alt="Store"
+            onClick={handleOpenStoreModal}
+          />
         </div>
         <div
           ref={containerRef}
@@ -297,98 +285,24 @@ const FormulaCanvas = ({
         </div>
       </div>
 
-      {/* Variable IDs Modal */}
-      {showVariableModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Computation Store Variables</h2>
-              <button
-                onClick={() => setShowVariableModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-            <div className="space-y-3">
-              {getVariableData().variables.length === 0 ? (
-                <p className="text-gray-500 italic">
-                  No variables found in computation store
-                </p>
-              ) : (
-                getVariableData().variables.map((variable) => (
-                  <div
-                    key={variable.id}
-                    className="border border-gray-200 rounded-lg p-3"
-                  >
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <strong>ID:</strong> {variable.id}
-                      </div>
-                      <div>
-                        <strong>Symbol:</strong> {variable.symbol}
-                      </div>
-                      <div>
-                        <strong>Type:</strong>{" "}
-                        <span className="capitalize">{variable.type}</span>
-                      </div>
-                      <div>
-                        <strong>Value:</strong> {variable.value}
-                      </div>
-                      {variable.error && (
-                        <div className="col-span-2">
-                          <strong>Error:</strong>{" "}
-                          <span className="text-red-600">{variable.error}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* LaTeX Formulas Section */}
-            {getVariableData().formulas.length > 0 && (
-              <>
-                <div className="mt-6 mb-4">
-                  <h3 className="text-lg font-semibold">LaTeX Formulas</h3>
-                </div>
-                <div className="space-y-3">
-                  {getVariableData().formulas.map((formula) => (
-                    <div
-                      key={formula.index}
-                      className="border border-gray-200 rounded-lg p-3"
-                    >
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <strong>Formula {formula.index + 1}:</strong>
-                        </div>
-                        <div className="bg-gray-50 p-2 rounded font-mono text-xs overflow-x-auto">
-                          <strong>LaTeX:</strong> {formula.latex}
-                        </div>
-                        <div className="bg-gray-50 p-2 rounded font-mono text-xs overflow-x-auto">
-                          <strong>Expression:</strong> {formula.expression}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-600">
-                Total variables: {getVariableData().variables.length}
-              </p>
-              {getVariableData().formulas.length > 0 && (
-                <p className="text-sm text-gray-600">
-                  Total formulas: {getVariableData().formulas.length}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Element Pane Modal */}
+      <Modal
+        isOpen={showElementPane}
+        onClose={() => setShowElementPane(false)}
+        title="Formula Elements"
+        maxWidth="max-w-md"
+      >
+        <FormulaElementPane />
+      </Modal>
+      {/* Store Modal */}
+      <Modal
+        isOpen={showStoreModal}
+        onClose={() => setShowStoreModal(false)}
+        title="Computation Store Variables"
+        maxWidth="max-w-2xl"
+      >
+        <StorePane className="h-full" />
+      </Modal>
     </div>
   );
 };

@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { FormulizeConfig } from "../../api/Formulize";
 import { computationStore } from "../../api/computation";
 import EvaluationFunctionPane from "../../components/EvaluationFunctionPane";
+import Modal from "../../components/Modal";
+import StorePane from "../../components/StorePane";
 import FormulaCanvas from "../../formula/formula-canvas";
 import VisualizationRenderer from "../../visualizations/VisualizationRenderer";
 
@@ -11,6 +13,7 @@ export default function APIPage() {
     FormulizeConfig | undefined
   >(undefined);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
 
   useEffect(() => {
     if (currentFormulaConfig?.computation?.engine) {
@@ -30,6 +33,7 @@ export default function APIPage() {
               setCurrentFormulaConfig(config);
             }}
             onOpenEvaluationModal={() => setIsEvaluationModalOpen(true)}
+            onOpenStoreModal={() => setIsStoreModalOpen(true)}
           />
         </div>
         {currentFormulaConfig?.visualizations &&
@@ -46,39 +50,26 @@ export default function APIPage() {
             </div>
           )}
       </div>
-      {isEvaluationModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50"
-            onClick={() => setIsEvaluationModalOpen(false)}
-          />
-          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-end p-2 border-b">
-              <button
-                onClick={() => setIsEvaluationModalOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="max-h-[calc(80vh)] overflow-auto">
-              <EvaluationFunctionPane className="h-full" />
-            </div>
-          </div>
-        </div>
-      )}
+
+      {/* Evaluation Modal */}
+      <Modal
+        isOpen={isEvaluationModalOpen}
+        onClose={() => setIsEvaluationModalOpen(false)}
+        title="Evaluation Function"
+        maxWidth="max-w-4xl"
+      >
+        <EvaluationFunctionPane className="h-full" />
+      </Modal>
+
+      {/* Store Modal */}
+      <Modal
+        isOpen={isStoreModalOpen}
+        onClose={() => setIsStoreModalOpen(false)}
+        title="Computation Store Variables"
+        maxWidth="max-w-2xl"
+      >
+        <StorePane className="h-full" />
+      </Modal>
     </div>
   );
 }

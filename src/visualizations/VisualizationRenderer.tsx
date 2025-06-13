@@ -17,7 +17,6 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
   const [renderKey, setRenderKey] = useState(Date.now());
   const configString = JSON.stringify(visualization);
   useEffect(() => {
-    console.log("Visualization config changed, forcing re-render");
     setRenderKey(Date.now());
   }, [visualization.type, configString]);
 

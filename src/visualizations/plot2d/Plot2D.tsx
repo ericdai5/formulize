@@ -124,20 +124,17 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       try {
         const testResult = evalFunctionRef.current({ x: 0 });
         if (testResult && typeof testResult === "object") {
-          console.log(
-            "✅ Using SAFELY cached evaluation function from component ref"
-          );
           return evalFunctionRef.current;
         } else {
           console.warn(
-            "⚠️ Cached function returned invalid result, clearing cache"
+            "Cached function returned invalid result, clearing cache"
           );
           evalFunctionRef.current = null;
           lastGeneratedCodeRef.current = null;
         }
       } catch (error) {
         console.warn(
-          "⚠️ Cached function failed validation, clearing cache:",
+          "Cached function failed validation, clearing cache:",
           error
         );
         evalFunctionRef.current = null;
@@ -152,9 +149,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         variables: Record<string, number>
       ) => Record<string, number>;
       if (storeFunction) {
-        console.log(
-          "✅ Using direct evaluation function from computation store"
-        );
         evalFunctionRef.current = storeFunction;
         lastGeneratedCodeRef.current = currentCode;
         return storeFunction;
@@ -163,8 +157,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // Create new evaluation function with enhanced error handling
     try {
-      console.log("🔄 Creating LOCAL evaluation function from generated code");
-
       const newFunc = new Function(
         "variables",
         `"use strict";\n${currentCode}\nreturn evaluate(variables);`
@@ -188,15 +180,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
       return newFunc;
     } catch (error) {
-      console.error("❌ Error creating evaluation function:", error);
+      console.error("Error creating evaluation function:", error);
       return null;
     }
   };
 
   // Function to calculate data points for the plot without triggering OpenAI API calls
   const calculateDataPoints = () => {
-    console.log("📈 Recalculating data points for plot");
-
     try {
       // Get the cached evaluation function (or create a new one if needed)
       // This is critical - we need to make sure we're not triggering API calls
@@ -204,17 +194,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
       // Verify we have a valid evaluation function
       if (!localEvalFunction) {
-        console.warn(
-          "⚠️ No evaluation function available - cannot generate plot"
-        );
+        console.warn("No evaluation function available - cannot generate plot");
         return;
       }
-
-      console.log("✅ Using cached evaluation function for plot generation");
-
-      // Cache key variables for the plot
-      const mValue = getVariableValue("m");
-      console.log(`🏋️ Using mass value: ${mValue} for plot generation`);
 
       // Generate evenly spaced x values across the domain
       const xValues: number[] = [];
@@ -222,10 +204,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       for (let i = 0; i <= finalSamples; i++) {
         xValues.push(xMin + i * step);
       }
-
-      console.log(
-        `📊 Generating ${finalSamples} samples for virtually continuous plotting`
-      );
 
       // Generate plot points WITHOUT modifying the computation store
       const points: DataPoint[] = [];
@@ -315,13 +293,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           ? currentY
           : parseFloat(String(currentY)) || 0;
 
-      console.log(
-        ` Current point: (${formatVariableValue(currentXNum, xVar)}, ${formatVariableValue(currentYNum, yVar)})`
-      );
-      console.log(
-        `📊 Generated ${points.length} data points without OpenAI API calls`
-      );
-
       // Update the state with new data points and current point
       setCurrentPoint({ x: currentXNum, y: currentYNum });
       setDataPoints(points);
@@ -332,16 +303,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Monitor config changes and recalculate when API specification changes
   useEffect(() => {
-    console.log("📊 Plot configuration changed:", {
-      title,
-      xVar,
-      xRange,
-      yVar,
-      yRange,
-      samples,
-      dimensions: { width, height, plotWidth, plotHeight },
-    });
-
     // Clear existing data points to force re-render
     setDataPoints([]);
     setCurrentPoint(null);
@@ -354,7 +315,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // Schedule a recalculation with the new configuration
     // Delay slightly to ensure any related state changes have propagated
     setTimeout(() => {
-      console.log("⏱️ Recalculating data points after configuration change");
       calculateDataPoints();
     }, 50);
   }, [
@@ -371,8 +331,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Set up reaction to recalculate when any variable changes
   useEffect(() => {
-    console.log("🔄 Setting up reaction for plot updates");
-
     // Track number of updates to prevent excessive logging
     let updateCount = 0;
     const LOG_INTERVAL = 5; // Only log every 5 updates
@@ -402,9 +360,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
         // Log only occasionally to prevent excessive logging
         updateCount++;
-        if (updateCount % LOG_INTERVAL === 0) {
-          console.log("⚡ Reaction checking variables:", trackedValues);
-        }
 
         // Return a simpler object that only includes what we need to track
         return {
@@ -424,22 +379,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         };
       },
       // This function runs when tracked values change
-      (newValues, oldValues) => {
-        // Only log occasionally to prevent console spam
-        if (updateCount % LOG_INTERVAL === 0) {
-          console.log("🔄 Variable values changed - recalculating plot");
-          if (oldValues) {
-            console.log(
-              "  Changed values:",
-              Object.entries(newValues)
-                .filter(
-                  ([k, v]) => oldValues[k as keyof typeof oldValues] !== v
-                )
-                .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
-            );
-          }
-        }
-
+      () => {
         // Recalculate all data points with current variable values
         calculateDataPoints();
       },
@@ -461,7 +401,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // Cleanup the reaction when component unmounts
     return () => {
-      console.log("🧹 Cleaning up plot reaction");
       disposer();
     };
   }, []);
@@ -653,7 +592,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Update the x-axis variable when user clicks on the plot
         try {
           const xVarId = `var-${xVar}`;
-          console.log(`📊 User clicked on graph, setting ${xVar} = ${x0}`);
           // Use runInAction to comply with MobX strict mode
           runInAction(() => {
             computationStore.setValue(xVarId, x0);

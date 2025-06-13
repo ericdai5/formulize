@@ -44,9 +44,7 @@ const EvaluationFunctionPane = observer(
 
     return (
       <div className={`overflow-hidden ${className}`}>
-        <div className="pt-4 px-4 text-lg">
-          Evaluation Function: {currentEngine.title}
-        </div>
+        <div className="pt-4 px-4 text-lg">{currentEngine.title}</div>
 
         <div className="p-4">
           <div className="relative">
