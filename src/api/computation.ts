@@ -83,6 +83,26 @@ class ComputationStore {
   }
 
   @action
+  clearAllVariables() {
+    this.variables.clear();
+  }
+
+  @action
+  setVariableTypesChanged(value: number) {
+    this.variableTypesChanged = value;
+  }
+
+  @action
+  setDisplayedFormulas(formulas: string[]) {
+    this.displayedFormulas = formulas;
+  }
+
+  @action
+  setComputationFunctions(functions: string[]) {
+    this.computationFunctions = functions;
+  }
+
+  @action
   setValue(id: string, value: number) {
     const variable = this.variables.get(id);
     if (!variable) {
@@ -100,7 +120,7 @@ class ComputationStore {
   // Set up all expressions for computation
   @action
   async setAllExpressions(expressions: string[]) {
-    this.computationFunctions = expressions;
+    this.setComputationFunctions(expressions);
 
     // Set up the evaluation function to handle all expressions
     if (

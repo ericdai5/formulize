@@ -76,9 +76,9 @@ async function create(
 
     // CRITICAL: Reset all state to ensure we start fresh
     // Clear computation store variables and state
-    computationStore.variables.clear();
+    computationStore.clearAllVariables();
     computationStore.setLastGeneratedCode(null);
-    computationStore.variableTypesChanged = 0;
+    computationStore.setVariableTypesChanged(0);
 
     // Set initialization flag to prevent premature evaluations
     computationStore.setInitializing(true);
@@ -116,8 +116,8 @@ async function create(
       .filter((expression): expression is string => expression !== undefined);
 
     // Store the display formulas for rendering and the computation expressions for evaluation
-    computationStore.displayedFormulas = formulas;
-    computationStore.computationFunctions = computationFunctions;
+    computationStore.setDisplayedFormulas(formulas);
+    computationStore.setComputationFunctions(computationFunctions);
 
     // Set up expressions and enable evaluation
     await computationStore.setAllExpressions(computationFunctions);

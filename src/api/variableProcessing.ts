@@ -188,7 +188,7 @@ export const processLatexContent = (latex: string): string => {
         }
 
         if (beforeReplace !== tempLatex) {
-          console.log(`🔄 LaTeX after replacing ${variation}:`, tempLatex);
+          // console.log(`LaTeX after replacing ${variation}:`, tempLatex);
           break; // Found a match, no need to try other variations
         }
       }

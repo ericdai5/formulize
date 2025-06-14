@@ -15,7 +15,7 @@ const decodeCssId = (cssId: string): string | null => {
   }
 
   // For complex variables - decode special characters back to original form
-  const decoded = encoded.replace(/_(\d+)_/g, (match, charCode) => {
+  const decoded = encoded.replace(/_(\d+)_/g, (_match, charCode) => {
     return String.fromCharCode(parseInt(charCode));
   });
 
@@ -61,11 +61,11 @@ const findVariableByElement = (
     }
   }
 
-  console.warn(`Could not find variable for CSS ID: ${cssId}`);
-  console.warn(
-    "Available variables:",
-    Array.from(computationStore.variables.keys())
-  );
+  // console.warn(`Could not find variable for CSS ID: ${cssId}`);
+  // console.warn(
+  //   "Available variables:",
+  //   Array.from(computationStore.variables.keys())
+  // );
   return null;
 };
 
@@ -79,26 +79,24 @@ export const dragHandler = (
     ".interactive-var-slidable"
   );
 
-  slidableElements.forEach((element, index) => {
+  slidableElements.forEach((element) => {
     let isDragging = false;
     let startY = 0;
 
     // Find the variable using the improved matching function
     const variableMatch = findVariableByElement(element as HTMLElement);
     if (!variableMatch) {
-      console.warn("❌ Could not find variable for element:", element.id);
+      // console.warn("❌ Could not find variable for element:", element.id);
       return;
     }
 
-    const { varId, symbol } = variableMatch;
+    const { varId } = variableMatch;
     const variableState = getInputVariableState(varId, variableRanges);
 
     if (!variableState) {
-      console.warn("❌ Could not get variable state for:", varId);
+      // console.warn("❌ Could not get variable state for:", varId);
       return;
     }
-
-    console.log("✅ Got variable state:", variableState);
 
     const { stepSize, minValue, maxValue } = variableState;
     let startValue = (minValue + maxValue) / 2;
@@ -121,7 +119,6 @@ export const dragHandler = (
 
     element.addEventListener("mousedown", (e: Event) => {
       if (!(e instanceof MouseEvent)) return;
-      console.log("🔍 Mouse down on element:", element.id);
       isDragging = true;
       startY = e.clientY;
       startValue = parseFloat(element.textContent || "0");
@@ -129,7 +126,5 @@ export const dragHandler = (
       document.addEventListener("mouseup", handleMouseUp);
       e.preventDefault();
     });
-
-    console.log("✅ Event listeners attached to element:", element.id);
   });
 };

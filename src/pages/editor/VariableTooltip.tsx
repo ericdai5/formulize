@@ -35,16 +35,10 @@ const VariableTooltip = ({
 
   const handleValueSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("🔵 Set button clicked in VariableTooltip for variable:", id);
     const numValue = parseFloat(value);
     if (!isNaN(numValue)) {
-      console.log(`🔵 Setting value for variable ${id}: ${numValue}`);
       computationStore.setValue(id, numValue);
       onSelect("constant");
-    } else {
-      console.log(
-        `🔴 Invalid numeric value entered for variable ${id}: ${value}`
-      );
     }
   };
 
