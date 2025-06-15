@@ -115,6 +115,20 @@ export const deriveAugmentedFormula = (latex: string): AugmentedFormula => {
   return canonicalizeFormula(new AugmentedFormula(augmentedTrees));
 };
 
+/**
+ * Derive an augmented formula with automatic variable name grouping
+ */
+export const deriveAugmentedFormulaWithVariables = (
+  latex: string,
+  customPatterns?: string[]
+): AugmentedFormula => {
+  const baseFormula = deriveAugmentedFormula(latex);
+  console.log("🔍 baseFormula created:", baseFormula);
+  const result = groupVariableNames(baseFormula, customPatterns);
+  console.log("🔍 result after groupVariableNames:", result);
+  return result;
+};
+
 const buildAugmentedFormula = (
   katexTree: katex.ParseNode,
   id: string
@@ -410,7 +424,8 @@ export type AugmentedFormulaNode =
   | Aligned
   | Root
   | Op
-  | Strikethrough;
+  | Strikethrough
+  | VariableName;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -1361,6 +1376,72 @@ export class Strikethrough extends AugmentedFormulaNodeBase {
   }
 }
 
+export class VariableName extends AugmentedFormulaNodeBase {
+  type = "variableName" as const;
+  constructor(
+    public id: string,
+    public body: AugmentedFormulaNode,
+    public variablePattern: string
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const bodyElement = this.body.toLatex(mode, offset);
+
+    if (mode === "content-only") {
+      return consolidateRanges([bodyElement], offset, this.id);
+    }
+
+    return consolidateRanges(
+      this.latexWithId(mode, [bodyElement]),
+      offset,
+      this.id
+    );
+  }
+
+  withChanges({
+    id,
+    parent,
+    leftSibling,
+    rightSibling,
+    body,
+    variablePattern,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
+    body?: AugmentedFormulaNode;
+    variablePattern?: string;
+  }): VariableName {
+    const variableName = new VariableName(
+      id ?? this.id,
+      body ?? this.body,
+      variablePattern ?? this.variablePattern
+    );
+    variableName._parent = parent === undefined ? this._parent : parent;
+    variableName._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    variableName._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
+    return variableName;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [this.body];
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return [
+      new StyledRange(this.id, "", this.body.toStyledRanges(), "", {
+        color: "#2563eb",
+        tooltip: `Variable: ${this.variablePattern}`,
+      }),
+    ];
+  }
+}
+
 export type RenderSpec = {
   tagName: string;
   id?: string;
@@ -1399,23 +1480,723 @@ export const extractStyle = (node: Element): Record<string, string> => {
 
 // NEW: converting Latex to MathML using MathJax
 export const convertLatexToMathML = async (latex: string): Promise<string> => {
-  console.log("convertLatexToMathML called with:", latex);
-
   if (!window.MathJax?.tex2mmlPromise) {
-    console.error("MathJax tex2mmlPromise not available");
     return "";
   }
 
   try {
     const mml = await window.MathJax.tex2mmlPromise(latex);
-    console.log("MathML conversion successful:", mml);
     return mml;
   } catch (error) {
-    console.error("MathML conversion failed:", error);
     return `<math xmlns="http://www.w3.org/1998/Math/MathML">
               <merror>
                 <mtext>Error converting LaTeX to MathML</mtext>
               </merror>
             </math>`;
+  }
+};
+
+/**
+ * Identifies variable name patterns in LaTeX strings
+ * Examples: P(A \mid B), f(x), \mu_0, etc.
+ */
+const VARIABLE_PATTERNS = [
+  // Conditional probability: P(A \mid B), P(X|Y), etc.
+  /([A-Za-z]+)\s*\(\s*([^)]*)\s*\\mid\s*([^)]*)\s*\)/g,
+  // Function notation: f(x), g(a,b), etc.
+  /([A-Za-z]+)\s*\(\s*([^)]+)\s*\)/g,
+  // Subscripted variables: \mu_0, x_i, etc.
+  /\\?([A-Za-z]+)_\{?([^}\s]+)\}?/g,
+  // Superscripted variables: x^2, a^{n+1}, etc.
+  /\\?([A-Za-z]+)\^\{?([^}\s]+)\}?/g,
+  // Greek letters with subscripts/superscripts
+  /\\(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)(_\{?[^}\s]+\}?|\^\{?[^}\s]+\}?)?/g,
+];
+
+/**
+ * Parse a LaTeX string to identify potential variable name patterns
+ */
+export const identifyVariablePatterns = (
+  latex: string
+): Array<{
+  pattern: string;
+  startIndex: number;
+  endIndex: number;
+  type: "conditional" | "function" | "subscript" | "superscript" | "greek";
+}> => {
+  const matches: Array<{
+    pattern: string;
+    startIndex: number;
+    endIndex: number;
+    type: "conditional" | "function" | "subscript" | "superscript" | "greek";
+  }> = [];
+
+  const typeMap = [
+    "conditional",
+    "function",
+    "subscript",
+    "superscript",
+    "greek",
+  ] as const;
+
+  VARIABLE_PATTERNS.forEach((pattern, patternIndex) => {
+    const regex = new RegExp(pattern.source, pattern.flags);
+    let match;
+
+    while ((match = regex.exec(latex)) !== null) {
+      matches.push({
+        pattern: match[0],
+        startIndex: match.index,
+        endIndex: match.index + match[0].length,
+        type: typeMap[patternIndex] || "function",
+      });
+    }
+  });
+
+  // Sort by start index and remove overlaps (keep longest matches)
+  matches.sort((a, b) => a.startIndex - b.startIndex);
+
+  const nonOverlapping: Array<{
+    pattern: string;
+    startIndex: number;
+    endIndex: number;
+    type: "conditional" | "function" | "subscript" | "superscript" | "greek";
+  }> = [];
+  for (const match of matches) {
+    const hasOverlap = nonOverlapping.some(
+      (existing) =>
+        (match.startIndex >= existing.startIndex &&
+          match.startIndex < existing.endIndex) ||
+        (match.endIndex > existing.startIndex &&
+          match.endIndex <= existing.endIndex)
+    );
+
+    if (!hasOverlap) {
+      nonOverlapping.push(match);
+    }
+  }
+
+  return nonOverlapping;
+};
+
+/**
+ * Group variable name patterns in the formula tree by wrapping matching subtrees
+ * with VariableName nodes
+ */
+export const groupVariableNames = (
+  formula: AugmentedFormula,
+  variablePatterns?: string[]
+): AugmentedFormula => {
+  console.log("🔍 groupVariableNames called");
+
+  // If no patterns provided, auto-detect them
+  const patterns =
+    variablePatterns || identifyVariablePatterns(formula.toLatex("no-id"));
+
+  const patternStrings =
+    typeof patterns[0] === "string"
+      ? (patterns as string[])
+      : (patterns as any[]).map((p) => p.pattern);
+
+  console.log("🔍 Identified patterns:", patternStrings);
+
+  if (patternStrings.length === 0) {
+    return formula;
+  }
+
+  // Find and group matching subtrees for each pattern
+  let newFormula = formula;
+  for (const pattern of patternStrings) {
+    console.log("🔍 Processing pattern:", pattern);
+    newFormula = findAndGroupVariablePattern(newFormula, pattern);
+  }
+
+  console.log("🔍 Final grouped formula:", newFormula);
+  return newFormula;
+};
+
+/**
+ * Find and group a specific variable pattern in the formula tree
+ */
+const findAndGroupVariablePattern = (
+  formula: AugmentedFormula,
+  pattern: string
+): AugmentedFormula => {
+  // Parse the pattern into a template tree
+  const patternTree = deriveAugmentedFormula(pattern);
+  console.log("🔍 Pattern tree for", pattern, ":", patternTree);
+
+  // Recursively process the entire tree to find and replace patterns at any level
+  const newChildren = formula.children.map((child) =>
+    recursivelyFindAndGroupPattern(child, patternTree.children, pattern)
+  );
+
+  // Also check for patterns at the top level
+  const topLevelMatches = findMatchingSubsequences(
+    newChildren,
+    patternTree.children
+  );
+  console.log(
+    "🔍 Found",
+    topLevelMatches.length,
+    "top-level matching subsequences for pattern:",
+    pattern
+  );
+
+  let finalChildren = newChildren;
+  if (topLevelMatches.length > 0) {
+    finalChildren = replaceSubsequencesWithVariableNames(
+      newChildren,
+      topLevelMatches,
+      pattern
+    );
+  }
+
+  console.log(
+    "🔍 Created new formula with",
+    finalChildren.length,
+    "children for pattern:",
+    pattern
+  );
+  console.log(
+    "🔍 Children types:",
+    finalChildren.map((c) => c.type)
+  );
+
+  return new AugmentedFormula(finalChildren);
+};
+
+/**
+ * Recursively search through a node and its children to find and group patterns
+ */
+const recursivelyFindAndGroupPattern = (
+  node: AugmentedFormulaNode,
+  patternChildren: AugmentedFormulaNode[],
+  pattern: string
+): AugmentedFormulaNode => {
+  switch (node.type) {
+    case "script": {
+      const nodeScript = node as Script;
+      return nodeScript.withChanges({
+        base: recursivelyFindAndGroupPattern(
+          nodeScript.base,
+          patternChildren,
+          pattern
+        ),
+        sub: nodeScript.sub
+          ? recursivelyFindAndGroupPattern(
+              nodeScript.sub,
+              patternChildren,
+              pattern
+            )
+          : undefined,
+        sup: nodeScript.sup
+          ? recursivelyFindAndGroupPattern(
+              nodeScript.sup,
+              patternChildren,
+              pattern
+            )
+          : undefined,
+      });
+    }
+
+    case "frac": {
+      const nodeFrac = node as Fraction;
+      return nodeFrac.withChanges({
+        numerator: recursivelyFindAndGroupPattern(
+          nodeFrac.numerator,
+          patternChildren,
+          pattern
+        ),
+        denominator: recursivelyFindAndGroupPattern(
+          nodeFrac.denominator,
+          patternChildren,
+          pattern
+        ),
+      });
+    }
+
+    case "group": {
+      const nodeGroup = node as Group;
+      // First recursively process all children
+      const processedChildren = nodeGroup.body.map((child) =>
+        recursivelyFindAndGroupPattern(child, patternChildren, pattern)
+      );
+
+      // Then look for patterns in this group's children
+      const matches = findMatchingSubsequences(
+        processedChildren,
+        patternChildren
+      );
+      console.log(
+        "🔍 Found",
+        matches.length,
+        "matches in group",
+        nodeGroup.id,
+        "for pattern:",
+        pattern
+      );
+
+      let finalChildren = processedChildren;
+      if (matches.length > 0) {
+        finalChildren = replaceSubsequencesWithVariableNames(
+          processedChildren,
+          matches,
+          pattern
+        );
+      }
+
+      return nodeGroup.withChanges({
+        body: finalChildren,
+      });
+    }
+
+    case "color": {
+      const nodeColor = node as Color;
+      // First recursively process all children
+      const processedChildren = nodeColor.body.map((child) =>
+        recursivelyFindAndGroupPattern(child, patternChildren, pattern)
+      );
+
+      // Then look for patterns in this color node's children
+      const matches = findMatchingSubsequences(
+        processedChildren,
+        patternChildren
+      );
+      console.log(
+        "🔍 Found",
+        matches.length,
+        "matches in color",
+        nodeColor.id,
+        "for pattern:",
+        pattern
+      );
+
+      let finalChildren = processedChildren;
+      if (matches.length > 0) {
+        finalChildren = replaceSubsequencesWithVariableNames(
+          processedChildren,
+          matches,
+          pattern
+        );
+      }
+
+      return nodeColor.withChanges({
+        body: finalChildren,
+      });
+    }
+
+    case "text": {
+      const nodeText = node as Text;
+      // First recursively process all children
+      const processedChildren = nodeText.body.map((child) =>
+        recursivelyFindAndGroupPattern(child, patternChildren, pattern)
+      );
+
+      // Then look for patterns in this text node's children
+      const matches = findMatchingSubsequences(
+        processedChildren,
+        patternChildren
+      );
+      console.log(
+        "🔍 Found",
+        matches.length,
+        "matches in text",
+        nodeText.id,
+        "for pattern:",
+        pattern
+      );
+
+      let finalChildren = processedChildren;
+      if (matches.length > 0) {
+        finalChildren = replaceSubsequencesWithVariableNames(
+          processedChildren,
+          matches,
+          pattern
+        );
+      }
+
+      return nodeText.withChanges({
+        body: finalChildren,
+      });
+    }
+
+    case "box": {
+      const nodeBox = node as Box;
+      return nodeBox.withChanges({
+        body: recursivelyFindAndGroupPattern(
+          nodeBox.body,
+          patternChildren,
+          pattern
+        ),
+      });
+    }
+
+    case "strikethrough": {
+      const nodeStrike = node as Strikethrough;
+      return nodeStrike.withChanges({
+        body: recursivelyFindAndGroupPattern(
+          nodeStrike.body,
+          patternChildren,
+          pattern
+        ),
+      });
+    }
+
+    case "variableName": {
+      const nodeVar = node as VariableName;
+      return nodeVar.withChanges({
+        body: recursivelyFindAndGroupPattern(
+          nodeVar.body,
+          patternChildren,
+          pattern
+        ),
+      });
+    }
+
+    case "brace": {
+      const nodeBrace = node as Brace;
+      return nodeBrace.withChanges({
+        base: recursivelyFindAndGroupPattern(
+          nodeBrace.base,
+          patternChildren,
+          pattern
+        ),
+      });
+    }
+
+    case "array": {
+      const nodeArray = node as Aligned;
+      return nodeArray.withChanges({
+        body: nodeArray.body.map((row) =>
+          row.map((cell) =>
+            recursivelyFindAndGroupPattern(cell, patternChildren, pattern)
+          )
+        ),
+      });
+    }
+
+    case "root": {
+      const nodeRoot = node as Root;
+      return nodeRoot.withChanges({
+        body: recursivelyFindAndGroupPattern(
+          nodeRoot.body,
+          patternChildren,
+          pattern
+        ),
+        index: nodeRoot.index
+          ? recursivelyFindAndGroupPattern(
+              nodeRoot.index,
+              patternChildren,
+              pattern
+            )
+          : undefined,
+      });
+    }
+
+    // For leaf nodes (symbol, space, op), just return them as-is
+    case "symbol":
+    case "space":
+    case "op":
+    default:
+      return node;
+  }
+};
+
+/**
+ * Replace matching subsequences with VariableName wrapper nodes
+ */
+const replaceSubsequencesWithVariableNames = (
+  children: AugmentedFormulaNode[],
+  matches: {
+    startIndex: number;
+    endIndex: number;
+    nodes: AugmentedFormulaNode[];
+  }[],
+  pattern: string
+): AugmentedFormulaNode[] => {
+  // Sort matches by start index in descending order to replace from end to beginning
+  const sortedMatches = [...matches].sort(
+    (a, b) => b.startIndex - a.startIndex
+  );
+
+  const newChildren = [...children];
+
+  for (const match of sortedMatches) {
+    console.log(
+      "🔍 Replacing subsequence at",
+      match.startIndex,
+      "to",
+      match.endIndex,
+      "with VariableName"
+    );
+
+    // Create a group containing all the matched nodes
+    const groupedBody =
+      match.nodes.length === 1
+        ? match.nodes[0]
+        : new Group(`group-${Date.now()}`, match.nodes);
+
+    // Create the VariableName wrapper
+    const variableNameNode = new VariableName(
+      `var-${Date.now()}`,
+      groupedBody,
+      pattern
+    );
+
+    // Update parent relationships
+    if (groupedBody instanceof Group) {
+      groupedBody.body.forEach((child) => (child._parent = groupedBody));
+      groupedBody._parent = variableNameNode;
+    } else {
+      groupedBody._parent = variableNameNode;
+    }
+
+    // Replace the subsequence with the VariableName node
+    newChildren.splice(
+      match.startIndex,
+      match.endIndex - match.startIndex + 1,
+      variableNameNode
+    );
+  }
+
+  return newChildren;
+};
+
+/**
+ * Find contiguous subsequences in the children array that match the pattern
+ */
+const findMatchingSubsequences = (
+  children: AugmentedFormulaNode[],
+  patternChildren: AugmentedFormulaNode[]
+): {
+  startIndex: number;
+  endIndex: number;
+  nodes: AugmentedFormulaNode[];
+}[] => {
+  const matches: {
+    startIndex: number;
+    endIndex: number;
+    nodes: AugmentedFormulaNode[];
+  }[] = [];
+
+  // Try to find the pattern starting at each position
+  for (let i = 0; i <= children.length - patternChildren.length; i++) {
+    if (
+      subsequenceMatches(
+        children.slice(i, i + patternChildren.length),
+        patternChildren
+      )
+    ) {
+      const matchedNodes = children.slice(i, i + patternChildren.length);
+      console.log(
+        "🔍 Found subsequence match at index",
+        i,
+        "to",
+        i + patternChildren.length - 1
+      );
+      console.log(
+        "🔍 Matched nodes:",
+        matchedNodes.map((n) => `${n.type}:${n.toLatex("no-id", 0)[0]}`)
+      );
+
+      matches.push({
+        startIndex: i,
+        endIndex: i + patternChildren.length - 1,
+        nodes: matchedNodes,
+      });
+
+      // Skip past this match to avoid overlapping matches
+      i += patternChildren.length - 1;
+    }
+  }
+
+  return matches;
+};
+
+/**
+ * Check if a subsequence of nodes matches a pattern subsequence
+ */
+const subsequenceMatches = (
+  subsequence: AugmentedFormulaNode[],
+  pattern: AugmentedFormulaNode[]
+): boolean => {
+  if (subsequence.length !== pattern.length) {
+    return false;
+  }
+
+  for (let i = 0; i < subsequence.length; i++) {
+    if (!nodeMatches(subsequence[i], pattern[i])) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Check if a node matches a pattern node structurally
+ */
+const nodeMatches = (
+  node: AugmentedFormulaNode,
+  pattern: AugmentedFormulaNode
+): boolean => {
+  // Must have the same type
+  if (node.type !== pattern.type) {
+    return false;
+  }
+
+  switch (node.type) {
+    case "symbol": {
+      // For symbols, check the value matches
+      const nodeSymbol = node as MathSymbol;
+      const patternSymbol = pattern as MathSymbol;
+      return nodeSymbol.value === patternSymbol.value;
+    }
+
+    case "space": {
+      // For spaces, check the text matches
+      const nodeSpace = node as Space;
+      const patternSpace = pattern as Space;
+      return nodeSpace.text === patternSpace.text;
+    }
+
+    case "script": {
+      // For scripts, recursively check base, sub, and sup
+      const nodeScript = node as Script;
+      const patternScript = pattern as Script;
+      return (
+        nodeMatches(nodeScript.base, patternScript.base) &&
+        ((nodeScript.sub === undefined && patternScript.sub === undefined) ||
+          (nodeScript.sub !== undefined &&
+            patternScript.sub !== undefined &&
+            nodeMatches(nodeScript.sub, patternScript.sub))) &&
+        ((nodeScript.sup === undefined && patternScript.sup === undefined) ||
+          (nodeScript.sup !== undefined &&
+            patternScript.sup !== undefined &&
+            nodeMatches(nodeScript.sup, patternScript.sup)))
+      );
+    }
+
+    case "frac": {
+      // For fractions, check numerator and denominator
+      const nodeFrac = node as Fraction;
+      const patternFrac = pattern as Fraction;
+      return (
+        nodeMatches(nodeFrac.numerator, patternFrac.numerator) &&
+        nodeMatches(nodeFrac.denominator, patternFrac.denominator)
+      );
+    }
+
+    case "group": {
+      // For groups, check all children match
+      const nodeGroup = node as Group;
+      const patternGroup = pattern as Group;
+      if (nodeGroup.body.length !== patternGroup.body.length) {
+        return false;
+      }
+      return nodeGroup.body.every((child, i) =>
+        nodeMatches(child, patternGroup.body[i])
+      );
+    }
+
+    case "color": {
+      // For color nodes, check color and all children match
+      const nodeColor = node as Color;
+      const patternColor = pattern as Color;
+      if (
+        nodeColor.color !== patternColor.color ||
+        nodeColor.body.length !== patternColor.body.length
+      ) {
+        return false;
+      }
+      return nodeColor.body.every((child, i) =>
+        nodeMatches(child, patternColor.body[i])
+      );
+    }
+
+    case "box": {
+      // For box nodes, check the body matches
+      const nodeBox = node as Box;
+      const patternBox = pattern as Box;
+      return nodeMatches(nodeBox.body, patternBox.body);
+    }
+
+    case "strikethrough": {
+      // For strikethrough nodes, check the body matches
+      const nodeStrike = node as Strikethrough;
+      const patternStrike = pattern as Strikethrough;
+      return nodeMatches(nodeStrike.body, patternStrike.body);
+    }
+
+    case "variableName": {
+      // For variable name nodes, check the body matches
+      const nodeVar = node as VariableName;
+      const patternVar = pattern as VariableName;
+      return nodeMatches(nodeVar.body, patternVar.body);
+    }
+
+    case "brace": {
+      // For braces, check over flag and base
+      const nodeBrace = node as Brace;
+      const patternBrace = pattern as Brace;
+      return (
+        nodeBrace.over === patternBrace.over &&
+        nodeMatches(nodeBrace.base, patternBrace.base)
+      );
+    }
+
+    case "text": {
+      // For text nodes, check all children match
+      const nodeText = node as Text;
+      const patternText = pattern as Text;
+      if (nodeText.body.length !== patternText.body.length) {
+        return false;
+      }
+      return nodeText.body.every((child, i) =>
+        nodeMatches(child, patternText.body[i])
+      );
+    }
+
+    case "array": {
+      // For arrays, check structure matches
+      const nodeArray = node as Aligned;
+      const patternArray = pattern as Aligned;
+      if (nodeArray.body.length !== patternArray.body.length) {
+        return false;
+      }
+      return nodeArray.body.every(
+        (row, i) =>
+          row.length === patternArray.body[i].length &&
+          row.every((cell, j) => nodeMatches(cell, patternArray.body[i][j]))
+      );
+    }
+
+    case "root": {
+      // For roots, check body and optional index
+      const nodeRoot = node as Root;
+      const patternRoot = pattern as Root;
+      return (
+        nodeMatches(nodeRoot.body, patternRoot.body) &&
+        ((nodeRoot.index === undefined && patternRoot.index === undefined) ||
+          (nodeRoot.index !== undefined &&
+            patternRoot.index !== undefined &&
+            nodeMatches(nodeRoot.index, patternRoot.index)))
+      );
+    }
+
+    case "op": {
+      // For operators, check operator and limits flag
+      const nodeOp = node as Op;
+      const patternOp = pattern as Op;
+      return (
+        nodeOp.operator === patternOp.operator &&
+        nodeOp.limits === patternOp.limits
+      );
+    }
+
+    default:
+      // For unknown types, default to false
+      return false;
   }
 };

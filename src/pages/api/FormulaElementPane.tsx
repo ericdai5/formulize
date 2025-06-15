@@ -14,6 +14,7 @@ import {
   Color,
   Group,
   Script,
+  VariableName,
 } from "../../FormulaTree";
 import { assertUnreachable, replaceNodes } from "../../formulaTransformations";
 import {
@@ -79,6 +80,15 @@ export const FormulaElementPane = observer(
         </div>
       );
     }
+
+    console.log(
+      "🔍 FormulaElementPane rendering with formula:",
+      store.augmentedFormula
+    );
+    console.log(
+      "🔍 Formula children:",
+      store.augmentedFormula.children.map((c) => ({ type: c.type, id: c.id }))
+    );
 
     return (
       <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
@@ -188,6 +198,8 @@ const TreeElement = ({
   tree: AugmentedFormulaNode;
   store: FormulaStore;
 }) => {
+  console.log("🔍 TreeElement rendering node:", tree.type, tree.id);
+
   switch (tree.type) {
     case "symbol":
       return <LabeledNode tree={tree} label={tree.value} store={store} />;
@@ -239,6 +251,15 @@ const TreeElement = ({
           tree={tree}
           label="Strikethrough"
           deletable
+          store={store}
+        />
+      );
+    case "variableName":
+      console.log("🔍 Found variableName node:", tree);
+      return (
+        <LabeledNode
+          tree={tree}
+          label={`Variable: ${(tree as VariableName).variablePattern}`}
           store={store}
         />
       );

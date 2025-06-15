@@ -7,7 +7,7 @@ import {
   Group,
   RenderSpec,
   convertLatexToMathML,
-  deriveAugmentedFormula,
+  deriveAugmentedFormulaWithVariables,
   updateFormula,
 } from "../FormulaTree";
 import { canonicalizeFormula } from "../formulaTransformations";
@@ -26,8 +26,6 @@ export class FormulaStore {
 
   @action
   updateFormula(newFormula: AugmentedFormula) {
-    console.log(`🔍 [Store ${this.id}] updateFormula called with:`, newFormula);
-
     if (this.augmentedFormula.equals(newFormula)) {
       console.log(
         `[Store ${this.id}] Skipping formula update - formula is the same`
@@ -49,7 +47,7 @@ export class FormulaStore {
 
   @action
   restoreFormulaState(latex: string) {
-    const newFormula = deriveAugmentedFormula(latex);
+    const newFormula = deriveAugmentedFormulaWithVariables(latex);
     const { renderSpec } = updateFormula(newFormula);
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
@@ -157,7 +155,7 @@ export class FormulaStoreManager {
     console.log(`Creating formula store with id: ${id}`);
     const store = new FormulaStore(id);
     if (formulaLatex) {
-      const formula = deriveAugmentedFormula(formulaLatex);
+      const formula = deriveAugmentedFormulaWithVariables(formulaLatex);
       const canonicalFormula = canonicalizeFormula(formula);
       store.updateFormula(canonicalFormula);
     }
