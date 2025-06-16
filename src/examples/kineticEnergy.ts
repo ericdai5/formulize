@@ -54,7 +54,8 @@ const kineticEnergyExample = `const config = {
         }
       ]
     }
-  ]
+  ],
+  fontSize: 0.8
 };
 
 const formula = await Formulize.create(config);`;

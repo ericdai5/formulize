@@ -10,4 +10,5 @@ export interface IEnvironment {
   computation: IComputation;
   visualizations?: IVisualization[];
   controls?: IControls[];
+  fontSize?: number; // Font size multiplier (0.5 to 1.0) - will be formatted as "Xem"
 }

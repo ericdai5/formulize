@@ -42,7 +42,8 @@ const bayesTheoremExample = `const config = {
     },
     computation: {
       engine: "symbolic-algebra"
-    }
+    },
+    fontSize: 0.7
   };
   
   const formula = await Formulize.create(config);`;

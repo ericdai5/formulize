@@ -8,6 +8,7 @@ import { processLatexContent } from "../api/variableProcessing";
 import ControlPanel from "../components/controls/controls";
 import { FormulaStore } from "../store/FormulaStoreManager";
 import { IControls } from "../types/control";
+import { IEnvironment } from "../types/environment";
 import { dragHandler } from "./dragHandler";
 
 export type VariableRange = [number, number];
@@ -17,6 +18,7 @@ interface FormulaProps {
   formulaIndex?: number;
   formulaStore?: FormulaStore;
   controls?: IControls[];
+  environment?: IEnvironment;
 }
 
 const Formula = observer(
@@ -25,6 +27,7 @@ const Formula = observer(
     formulaIndex,
     formulaStore,
     controls,
+    environment,
   }: FormulaProps = {}) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isInitialized, setIsInitialized] = useState(false);
@@ -94,9 +97,19 @@ const Formula = observer(
             // Process the LaTeX to include interactive elements (for display only)
             const processedLatex = processLatexContent(latex);
 
+            // Get font size from environment with fallback
+            const fontSize = environment?.fontSize ?? 0.9;
+
+            // Validate fontSize is between 0.5 and 1, with fallback to 0.9
+            const validatedFontSize =
+              typeof fontSize === "number" && fontSize >= 0.5 && fontSize <= 1
+                ? fontSize
+                : 0.9;
+            const fontSizeValue = `${validatedFontSize}em`;
+
             return `
-            <div class="formula-expression" data-expression-index="${index}" style="font-size: 0.9em;">
-              <div class="border border-slate-200 bg-white rounded-2xl py-0 px-4 w-fit">\\[${processedLatex}\\]</div>
+            <div class="formula-expression" data-expression-index="${index}">
+              <div class="border border-slate-200 bg-white rounded-2xl py-0 px-4 w-fit text-[${fontSizeValue}]">\\[${processedLatex}\\]</div>
             </div>
           `;
           })
@@ -119,7 +132,7 @@ const Formula = observer(
       } catch (error) {
         console.error("Error rendering formulas:", error);
       }
-    }, [getFormula, variableRanges]);
+    }, [getFormula, variableRanges, environment]);
 
     useEffect(() => {
       const disposer = reaction(

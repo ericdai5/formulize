@@ -307,6 +307,7 @@ const FormulaCanvas = ({
                 currentConfig ? extractVariableRanges(currentConfig) : {}
               }
               controls={currentConfig?.controls}
+              environment={currentConfig || undefined}
             />
           </div>
         </div>
