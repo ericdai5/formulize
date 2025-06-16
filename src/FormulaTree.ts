@@ -180,6 +180,25 @@ const buildAugmentedFormula = (
     case "atom":
     case "mathord":
     case "textord":
+      // Handle internal KaTeX commands that start with \@
+      if (katexTree.text.startsWith("\\@")) {
+        // Convert internal KaTeX commands to their standard LaTeX equivalents
+        const internalCommand = katexTree.text;
+        let displayText = internalCommand;
+
+        // Map internal commands to their display equivalents
+        switch (internalCommand) {
+          case "\\@not":
+            displayText = "\\not";
+            break;
+          // Add other internal command mappings as needed
+          default:
+            // For unhandled internal commands, remove the @ prefix
+            displayText = internalCommand.replace("\\@", "\\");
+        }
+
+        return new MathSymbol(id, displayText);
+      }
       return new MathSymbol(id, katexTree.text);
     case "color": {
       const children = katexTree.body.map((child) =>

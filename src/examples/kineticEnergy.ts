@@ -17,6 +17,7 @@ const kineticEnergyExample = `const config = {
       type: "input",
       value: 1,
       range: [0.1, 10],
+      step: 1,
       units: "kg",
       label: "Mass"
     },
@@ -24,6 +25,7 @@ const kineticEnergyExample = `const config = {
       type: "input",
       value: 2,
       range: [0.1, 100],
+      step: 1,
       units: "m/s",
       label: "Velocity"
     }

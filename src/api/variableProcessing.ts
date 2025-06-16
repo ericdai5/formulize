@@ -206,12 +206,12 @@ export const getInputVariableState = (
     return null;
   }
 
-  // Get range from provided ranges or use defaults
-  const range = variableRanges[variable.symbol] || [-10, 10];
+  // Get range from variable definition or provided ranges or use defaults
+  const range = variable.range || variableRanges[variable.symbol] || [-10, 10];
   const [minValue, maxValue] = range;
 
-  // Calculate step size based on range
-  const stepSize = (maxValue - minValue) / 100; // 100 steps across the range
+  // Use the variable's step property if defined, otherwise calculate from range
+  const stepSize = variable.step || (maxValue - minValue) / 100; // 100 steps across the range
 
   return {
     stepSize,
