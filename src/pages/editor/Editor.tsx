@@ -34,7 +34,7 @@ import {
 import {
   type AugmentedFormula,
   checkFormulaCode,
-  deriveAugmentedFormula,
+  deriveTree,
 } from "../../FormulaTree";
 import { formulaStore, selectionStore } from "../../store";
 import * as styles from "../../styles";
@@ -346,7 +346,7 @@ const styledRangeEditExtension = EditorState.transactionFilter.of((tr) => {
     if (checkFormulaCode(newRanges.toLatex())) {
       console.log("Valid content latex, updating formula");
       requestAnimationFrame(() => {
-        formulaStore.updateFormula(deriveAugmentedFormula(newRanges.toLatex()));
+        formulaStore.updateFormula(deriveTree(newRanges.toLatex()));
       });
     }
 
@@ -415,7 +415,7 @@ const FullStyleEditor = observer(() => {
           const newCode = update.state.doc.toString();
           if (checkFormulaCode(newCode)) {
             setEditorCodeCorrect(() => true);
-            formulaStore.updateFormula(deriveAugmentedFormula(newCode));
+            formulaStore.updateFormula(deriveTree(newCode));
           } else {
             setEditorCodeCorrect(() => false);
           }

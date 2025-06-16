@@ -33,7 +33,6 @@ export const RenderedFormula = observer(() => {
 
   useEffect(
     () => {
-      console.log("Updating targets");
       requestAnimationFrame(() => {
         selectionStore.updateTargets();
       });
@@ -73,7 +72,6 @@ const RenderedFormulaComponent = observer(({ spec }: { spec: RenderSpec }) => {
     }
 
     () => {
-      console.log("Target cleanup running");
       if (spec.id) {
         selectionStore.removeTarget(spec.id);
       }

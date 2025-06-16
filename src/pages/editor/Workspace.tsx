@@ -30,7 +30,7 @@ export const Workspace = observer(() => {
 
     const symbol = (node as MathSymbol).value;
     return {
-      id: `var-${symbol}`,
+      id: symbol,
       symbol,
       selectedId,
     };
@@ -124,16 +124,8 @@ export const Workspace = observer(() => {
     (type: "constant" | "input" | "dependent") => {
       const activeVar = getActiveVariable();
       if (!activeVar) return;
-
-      console.log("🔍 Setting variable type:", {
-        id: activeVar.id,
-        symbol: activeVar.symbol,
-        type,
-      });
-
       computationStore.addVariable(activeVar.id, activeVar.symbol);
       computationStore.setVariableType(activeVar.id, type);
-
       // Only keep selection for constant variables
       if (type !== "constant") {
         selectionStore.clearSelection();
@@ -275,7 +267,7 @@ export const EnlivenMode = observer(() => {
     const node = formulaStore.augmentedFormula.findNode(selection);
     if (!node || node.type !== "symbol") return null;
 
-    return `var-${(node as MathSymbol).value}`;
+    return (node as MathSymbol).value;
   };
 
   const handleVariableTypeSelect = (
@@ -287,8 +279,7 @@ export const EnlivenMode = observer(() => {
     const node = formulaStore.augmentedFormula.findNode(selection);
     if (node?.type === "symbol") {
       const symbol = (node as MathSymbol).value;
-      const id = `var-${symbol}`;
-      console.log("Setting variable type:", { id, symbol, type });
+      const id = symbol;
       computationStore.addVariable(id, symbol);
       computationStore.setVariableType(id, type);
 

@@ -8,12 +8,43 @@ import kineticEnergy from "../examples/kineticEnergy.ts";
 import { FormulaElementPane } from "../pages/api/FormulaElementPane.tsx";
 import FormulaCodeEditor from "../pages/api/api-code-editor.tsx";
 import { IEnvironment } from "../types/environment.ts";
+import { VariableTreePane } from "./VariableTreePane.tsx";
 import Formula, { VariableRange } from "./formula.tsx";
 
 import codeIcon from "../Icons/code.svg";
 import functionIcon from "../Icons/function.svg";
 import storeIcon from "../Icons/store.svg";
 import treeIcon from "../Icons/tree.svg";
+import variableIcon from "../Icons/variable.svg";
+
+// Wrapper component to handle multiple variable trees
+const VariableTreesPane = ({ config }: { config: FormulizeConfig | null }) => {
+  const variableNames = config?.variables ? Object.keys(config.variables) : [];
+
+  // Empty state component
+  const EmptyState = ({ message }: { message: string }) => (
+    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+      <div className="text-gray-500 text-sm">{message}</div>
+    </div>
+  );
+
+  if (!config) return <EmptyState message="No configuration available" />;
+  if (variableNames.length === 0)
+    return <EmptyState message="No variables found in configuration" />;
+
+  return (
+    <div className="h-full overflow-hidden flex flex-col flex-1 overflow-y-auto">
+      {variableNames.map((variableName, index) => (
+        <div key={variableName} className={index > 0 ? "border-t" : ""}>
+          <VariableTreePane
+            variableName={variableName}
+            title={`Variable ${index + 1}: ${variableName}`}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
 
 interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
@@ -55,6 +86,8 @@ const FormulaCanvas = ({
   );
   const [showStoreModal, setShowStoreModal] = useState<boolean>(false);
   const [showElementPane, setShowElementPane] = useState<boolean>(false);
+  const [showVariableTreePane, setShowVariableTreePane] =
+    useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Extract variable ranges from Formulize configuration
@@ -251,6 +284,12 @@ const FormulaCanvas = ({
             title="Show Elements"
           />
           <IconButton
+            icon={variableIcon}
+            alt="Show Variable Trees"
+            onClick={() => setShowVariableTreePane(true)}
+            title="Show Variable Trees"
+          />
+          <IconButton
             icon={storeIcon}
             alt="Store"
             onClick={handleOpenStoreModal}
@@ -294,6 +333,17 @@ const FormulaCanvas = ({
       >
         <FormulaElementPane />
       </Modal>
+
+      {/* Variable Tree Pane Modal */}
+      <Modal
+        isOpen={showVariableTreePane}
+        onClose={() => setShowVariableTreePane(false)}
+        title="Variable Trees"
+        maxWidth="max-w-2xl"
+      >
+        <VariableTreesPane config={currentConfig} />
+      </Modal>
+
       {/* Store Modal */}
       <Modal
         isOpen={showStoreModal}

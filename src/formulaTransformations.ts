@@ -56,6 +56,7 @@ const replaceNode = (
       );
     case "box":
     case "strikethrough":
+    case "variable":
       return replacer(
         node.withChanges({
           body: replaceNode(node.body, replacer),
@@ -126,6 +127,7 @@ const reassignIds = (
       });
     case "box":
     case "strikethrough":
+    case "variable":
       return node.withChanges({
         id,
         body: reassignIds(node.body, `${id}.body`),
@@ -197,6 +199,7 @@ const fixParent = (
       });
     case "box":
     case "strikethrough":
+    case "variable":
       return node.withChanges({
         parent,
         body: fixParent(node.body, node),
@@ -314,6 +317,7 @@ export const removeEmptyGroup = (
       ];
     case "box":
     case "strikethrough":
+    case "variable":
       return [
         node.withChanges({
           body: exactlyOne(removeEmptyGroup(node.body)),
@@ -387,6 +391,7 @@ const fixSibling = (node: AugmentedFormulaNode): AugmentedFormulaNode => {
       return node;
     case "box":
     case "strikethrough":
+    case "variable":
       return node.withChanges({
         body: fixSibling(node.body),
       });
@@ -477,6 +482,7 @@ const consolidateGroup = (
       return node;
     case "box":
     case "strikethrough":
+    case "variable":
       return node.withChanges({
         body: consolidateGroup(node.body, siblingGroups),
       });
@@ -520,5 +526,5 @@ const consolidateGroup = (
     }
   }
 
-  assertUnreachable(node);
+  return assertUnreachable(node);
 };

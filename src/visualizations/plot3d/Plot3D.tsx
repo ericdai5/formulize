@@ -85,7 +85,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   // Function to get variable value from computation store
   const getVariableValue = useCallback((variableName: string): number => {
     try {
-      const varId = `var-${variableName}`;
+      const varId = variableName;
       const variable = computationStore.variables.get(varId);
       return variable?.value ?? 0;
     } catch (error) {
@@ -95,7 +95,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
   // Helper function to get variable label from computation store
   const getVariableLabel = useCallback((variableName: string): string => {
-    const varId = `var-${variableName}`;
+    const varId = variableName;
     const variable = computationStore.variables.get(varId);
     return variable?.label || variableName; // Fallback to variable name if no label
   }, []);
@@ -642,8 +642,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
               const point = data.points[0];
               try {
                 runInAction(() => {
-                  const xVarId = `var-${xVar}`;
-                  const yVarId = `var-${yVar}`;
+                  const xVarId = xVar;
+                  const yVarId = yVar;
 
                   if (computationStore.variables.has(xVarId)) {
                     computationStore.setValue(xVarId, point.x);

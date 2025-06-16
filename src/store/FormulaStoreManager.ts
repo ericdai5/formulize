@@ -7,9 +7,11 @@ import {
   Group,
   RenderSpec,
   convertLatexToMathML,
-  deriveAugmentedFormula,
+  deriveTreeWithVars,
+  parseVariableStrings,
   updateFormula,
 } from "../FormulaTree";
+import { computationStore } from "../api/computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 
 export class FormulaStore {
@@ -26,8 +28,6 @@ export class FormulaStore {
 
   @action
   updateFormula(newFormula: AugmentedFormula) {
-    console.log(`🔍 [Store ${this.id}] updateFormula called with:`, newFormula);
-
     if (this.augmentedFormula.equals(newFormula)) {
       console.log(
         `[Store ${this.id}] Skipping formula update - formula is the same`
@@ -49,7 +49,17 @@ export class FormulaStore {
 
   @action
   restoreFormulaState(latex: string) {
-    const newFormula = deriveAugmentedFormula(latex);
+    // Get all variables from computation store and convert to trees
+    const allVariableSymbols = Array.from(computationStore.variables.values())
+      .map((variable) => variable.symbol)
+      .filter((symbol) => symbol && symbol.length > 0);
+    console.log("🔍 Creating variable trees for:", allVariableSymbols);
+    const variableTrees = parseVariableStrings(allVariableSymbols);
+    const newFormula = deriveTreeWithVars(
+      latex,
+      variableTrees,
+      allVariableSymbols
+    );
     const { renderSpec } = updateFormula(newFormula);
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
@@ -157,7 +167,19 @@ export class FormulaStoreManager {
     console.log(`Creating formula store with id: ${id}`);
     const store = new FormulaStore(id);
     if (formulaLatex) {
-      const formula = deriveAugmentedFormula(formulaLatex);
+      // Get all variables from computation store and convert to trees
+      const allVariableSymbols = Array.from(computationStore.variables.values())
+        .map((variable) => variable.symbol)
+        .filter((symbol) => symbol && symbol.length > 0);
+
+      console.log("🔍 Creating variable trees for:", allVariableSymbols);
+      const variableTrees = parseVariableStrings(allVariableSymbols);
+
+      const formula = deriveTreeWithVars(
+        formulaLatex,
+        variableTrees,
+        allVariableSymbols
+      );
       const canonicalFormula = canonicalizeFormula(formula);
       store.updateFormula(canonicalFormula);
     }

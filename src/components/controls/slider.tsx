@@ -13,7 +13,7 @@ const Slider = observer(({ control }: SliderProps) => {
   // Get the variable ID from the control's variable property
   const getVariableId = useCallback(() => {
     if (control.variable) {
-      return `var-${control.variable}`;
+      return control.variable;
     }
     return null;
   }, [control.variable]);

@@ -76,9 +76,9 @@ async function create(
 
     // CRITICAL: Reset all state to ensure we start fresh
     // Clear computation store variables and state
-    computationStore.variables.clear();
+    computationStore.clearAllVariables();
     computationStore.setLastGeneratedCode(null);
-    computationStore.variableTypesChanged = 0;
+    computationStore.setVariableTypesChanged(0);
 
     // Set initialization flag to prevent premature evaluations
     computationStore.setInitializing(true);
@@ -86,7 +86,18 @@ async function create(
     // Clear all individual formula stores
     formulaStoreManager.clearAllStores();
 
-    // Create individual formula stores for each formula
+    // Add variables to computation store from the configuration FIRST
+    // This must happen before creating formula stores so variable trees can be generated
+    Object.entries(environment.variables).forEach(([varName, variable]) => {
+      const varId = varName;
+      computationStore.addVariable(varId, varName, variable);
+      computationStore.setVariableType(varId, variable.type);
+      if (variable.value !== undefined) {
+        computationStore.setValue(varId, variable.value);
+      }
+    });
+
+    // Now create individual formula stores for each formula (with variable trees available)
     const formulas = environment.formulas.map((f) => f.function);
     const formulaStores: FormulaStore[] = [];
 
@@ -94,17 +105,6 @@ async function create(
       const storeId = index.toString();
       const store = formulaStoreManager.createStore(storeId, formulaLatex);
       formulaStores.push(store);
-    });
-
-    // Add variables to computation store from the configuration
-    Object.entries(environment.variables).forEach(([varName, variable]) => {
-      const symbol = varName.replace(/\$/g, "");
-      const varId = `var-${symbol}`;
-      computationStore.addVariable(varId, symbol, variable);
-      computationStore.setVariableType(varId, variable.type);
-      if (variable.value !== undefined) {
-        computationStore.setValue(varId, variable.value);
-      }
     });
 
     // Set up the computation engine
@@ -116,8 +116,8 @@ async function create(
       .filter((expression): expression is string => expression !== undefined);
 
     // Store the display formulas for rendering and the computation expressions for evaluation
-    computationStore.displayedFormulas = formulas;
-    computationStore.computationFunctions = computationFunctions;
+    computationStore.setDisplayedFormulas(formulas);
+    computationStore.setComputationFunctions(computationFunctions);
 
     // Set up expressions and enable evaluation
     await computationStore.setAllExpressions(computationFunctions);
@@ -140,8 +140,7 @@ async function create(
           throw new Error(`Variable '${name}' not found`);
         }
 
-        const symbol = name.replace(/\$/g, "");
-        const varId = `var-${symbol}`;
+        const varId = name;
         const computationVariable = computationStore.variables.get(varId);
 
         return {

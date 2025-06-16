@@ -14,7 +14,7 @@ import {
   Group,
   RenderSpec,
   convertLatexToMathML,
-  deriveAugmentedFormula,
+  deriveTree,
   updateFormula,
 } from "./FormulaTree";
 import { canonicalizeFormula } from "./formulaTransformations";
@@ -59,7 +59,7 @@ class FormulaStore {
    */
   @action
   restoreFormulaState(latex: string) {
-    const newFormula = deriveAugmentedFormula(latex);
+    const newFormula = deriveTree(latex);
     const { renderSpec } = updateFormula(newFormula);
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
