@@ -1,270 +1,271 @@
-import { INPUT_VARIABLE_DEFAULT, IVariableInput } from "../types/variable";
+import {
+  Aligned,
+  AugmentedFormula,
+  AugmentedFormulaNode,
+  Box,
+  Brace,
+  Color,
+  Fraction,
+  Group,
+  MathSymbol,
+  Op,
+  Root,
+  Script,
+  Space,
+  Strikethrough,
+  Text,
+  Variable,
+  deriveTreeWithVars,
+  parseVariableStrings,
+} from "../FormulaTree";
 import { computationStore } from "./computation";
 
 /**
- * Process a variable identifier and return its configuration
+ * Process an augmented formula tree to find Variable nodes and wrap their tokens
+ * with CSS classes for interactive display
+ */
+export const processVariablesInFormula = (
+  formula: AugmentedFormula,
+  precision: number = 2
+): string => {
+  const processNode = (node: AugmentedFormulaNode): string => {
+    if (node.type === "variable") {
+      const variableNode = node as Variable;
+      const originalSymbol = variableNode.originalSymbol;
+
+      // Get the token from the variable's body (the LaTeX representation of what's inside)
+      const token =
+        variableNode.body && "toLatex" in variableNode.body
+          ? variableNode.body.toLatex("no-id", 0)[0]
+          : originalSymbol;
+
+      // Get the value and type from the computation store
+      let value = 0;
+      let isInputVariable = false;
+
+      for (const [, variable] of computationStore.variables.entries()) {
+        if (variable.symbol === originalSymbol) {
+          value = variable.value;
+          isInputVariable = variable.type === "input";
+          break;
+        }
+      }
+
+      // Use the original symbol as the CSS ID
+      const id = originalSymbol;
+
+      // Use different CSS classes based on variable type
+      const cssClass = isInputVariable
+        ? "interactive-var-slidable"
+        : "interactive-var-dependent";
+
+      // Wrap the token with CSS classes
+      const result = `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(precision)}}}`;
+      return result;
+    }
+
+    // For other node types, recursively process their children
+    switch (node.type) {
+      case "script": {
+        const script = node as Script;
+        const base = processNode(script.base);
+        const sub = script.sub ? processNode(script.sub) : undefined;
+        const sup = script.sup ? processNode(script.sup) : undefined;
+
+        let result = base;
+        if (sub) result += `_{${sub}}`;
+        if (sup) result += `^{${sup}}`;
+        return result;
+      }
+
+      case "frac": {
+        const frac = node as Fraction;
+        const numerator = processNode(frac.numerator);
+        const denominator = processNode(frac.denominator);
+        return `\\frac{${numerator}}{${denominator}}`;
+      }
+
+      case "group": {
+        const group = node as Group;
+        const children = group.body.map(processNode).join(" ");
+        return `{${children}}`;
+      }
+
+      case "color": {
+        const color = node as Color;
+        const children = color.body.map(processNode).join(" ");
+        return `\\textcolor{${color.color}}{${children}}`;
+      }
+
+      case "box": {
+        const box = node as Box;
+        const body = processNode(box.body);
+        return `\\fcolorbox{${box.borderColor}}{${box.backgroundColor}}{$${body}$}`;
+      }
+
+      case "brace": {
+        const brace = node as Brace;
+        const base = processNode(brace.base);
+        const command = brace.over ? "\\overbrace" : "\\underbrace";
+        return `${command}{${base}}`;
+      }
+
+      case "text": {
+        const text = node as Text;
+        const children = text.body
+          .map((child) =>
+            "toLatex" in child ? child.toLatex("no-id", 0)[0] : ""
+          )
+          .join("");
+        return `\\text{${children}}`;
+      }
+
+      case "array": {
+        const array = node as Aligned;
+        const rows = array.body
+          .map((row) => row.map((cell) => processNode(cell)).join(" & "))
+          .join(" \\\\ ");
+
+        const numCols = Math.max(...array.body.map((row) => row.length));
+        const columnAlignment =
+          numCols === 2 ? ["r", "l"] : Array(numCols).fill("l");
+
+        return `\\begin{array}{${columnAlignment.join("")}}\n${rows}\n\\end{array}`;
+      }
+
+      case "root": {
+        const root = node as Root;
+        const body = processNode(root.body);
+        if (root.index) {
+          const index = processNode(root.index);
+          return `\\sqrt[${index}]{${body}}`;
+        }
+        return `\\sqrt{${body}}`;
+      }
+
+      case "strikethrough": {
+        const strike = node as Strikethrough;
+        const body = processNode(strike.body);
+        return `\\cancel{${body}}`;
+      }
+
+      case "symbol": {
+        const symbol = node as MathSymbol;
+        return symbol.value;
+      }
+
+      case "space": {
+        const space = node as Space;
+        return space.text;
+      }
+
+      case "op": {
+        const op = node as Op;
+        return op.limits ? `${op.operator}\\limits` : op.operator;
+      }
+
+      default:
+        // Fallback to the node's own LaTeX representation
+        return (node as AugmentedFormulaNode).toLatex
+          ? (node as AugmentedFormulaNode).toLatex("no-id", 0)[0]
+          : "";
+    }
+  };
+
+  return formula.children.map(processNode).join(" ");
+};
+
+/**
+ * Traverse the formula tree and collect all Variable nodes
+ */
+export const collectVariableNodes = (formula: AugmentedFormula): Variable[] => {
+  const variables: Variable[] = [];
+
+  const traverse = (node: AugmentedFormulaNode) => {
+    if (node.type === "variable") {
+      variables.push(node as Variable);
+    }
+
+    // Recursively traverse children
+    node.children.forEach(traverse);
+  };
+
+  formula.children.forEach(traverse);
+  return variables;
+};
+
+/**
+ * Get variable state for input processing (used by drag handler)
  */
 export const getInputVariableState = (
-  varElement: string,
+  varId: string,
   variableRanges: Record<string, [number, number]> = {}
-): IVariableInput | null => {
-  // Handle both simple and complex variable names
-  // Simple: var-x, var-y, var-alpha
-  // Complex: var-P(B\mid A), var-x_1, etc.
-  const varMatch = varElement.match(/^var-(.+)$/);
-  if (!varMatch) return null;
-
-  const symbol = varMatch[1];
-  const varId = `var-${symbol}`;
+): { stepSize: number; minValue: number; maxValue: number } | null => {
   const variable = computationStore.variables.get(varId);
-  let minValue = INPUT_VARIABLE_DEFAULT.MIN_VALUE;
-  let maxValue = INPUT_VARIABLE_DEFAULT.MAX_VALUE;
-  let stepSize = INPUT_VARIABLE_DEFAULT.STEP_SIZE;
-
-  if (variable?.step) {
-    stepSize = variable.step;
+  if (!variable) {
+    return null;
   }
 
-  // Check for range by varId first, then by symbol
-  const range = variableRanges[varId] || variableRanges[symbol];
-  if (range) {
-    [minValue, maxValue] = range;
-  }
+  // Get range from provided ranges or use defaults
+  const range = variableRanges[variable.symbol] || [-10, 10];
+  const [minValue, maxValue] = range;
+
+  // Calculate step size based on range
+  const stepSize = (maxValue - minValue) / 100; // 100 steps across the range
 
   return {
-    value: variable?.value || INPUT_VARIABLE_DEFAULT.VALUE,
+    stepSize,
     minValue,
     maxValue,
-    stepSize,
-    symbol,
-    varId,
   };
 };
 
 /**
- * Process LaTeX content to handle variables and interactive elements
+ * Find a variable by matching the element's CSS ID to variables in the computation store
  */
-export const processLatexContent = (latex: string): string => {
-  // Get all variable symbols from the computation store for matching
-  const allVariableSymbols = Array.from(computationStore.variables.values())
-    .map((variable) => variable.symbol)
-    .sort((a, b) => b.length - a.length); // Sort by length descending to match longer names first
+export const findVariableByElement = (
+  element: HTMLElement
+): { varId: string; symbol: string } | null => {
+  const cssId = element.id;
 
-  let tempLatex = latex;
+  if (!cssId) {
+    return null;
+  }
 
-  // Keep track of processed variables to avoid reprocessing
-  const processedVariableLatex: string[] = [];
-  const placeholderPrefix = "___VAR___";
-
-  // Process ALL variables (both simple and complex) in one pass
-  for (const symbol of allVariableSymbols) {
-    const varId = `var-${symbol}`;
-    const variable = computationStore.variables.get(varId);
-
-    if (variable) {
-      // For complex variables with LaTeX commands, try multiple representations
-      let symbolVariations: string[] = [];
-
-      if (symbol.includes("\\")) {
-        // Complex variable with LaTeX commands
-        symbolVariations = [
-          symbol, // Original: P(B\mid A)
-          symbol.replace(/\\/g, "\\\\"), // Double escaped: P(B\\mid A)
-          symbol.replace(/\\\\/g, "\\\\\\\\"), // Quadruple escaped: P(B\\\\mid A)
-        ];
-      } else {
-        // Simple variable - match exactly
-        symbolVariations = [symbol];
-      }
-
-      for (const variation of symbolVariations) {
-        // Escape special regex characters for safe matching
-        const escapedVariation = variation.replace(
-          /[.*+?^${}()|[\]\\]/g,
-          "\\$&"
-        );
-
-        let symbolRegex: RegExp;
-        if (symbol.length === 1 && /^[a-zA-Z]$/.test(symbol)) {
-          // Single letter variable - use simple global matching, we'll filter manually
-          symbolRegex = new RegExp(escapedVariation, "g");
-        } else {
-          // Complex variable or multi-character - use exact match
-          symbolRegex = new RegExp(escapedVariation, "g");
-        }
-
-        const beforeReplace = tempLatex;
-
-        if (symbol.length === 1 && /^[a-zA-Z]$/.test(symbol)) {
-          // For single letters, exclude matches that are part of long letter sequences (English words)
-          // or already within processed variable placeholders
-          tempLatex = tempLatex.replace(
-            symbolRegex,
-            (match, offset, string) => {
-              // Check if this match is actually inside a placeholder (not just near one)
-              // Look for the specific pattern: ___VAR___[number]___
-              let insidePlaceholder = false;
-
-              // Find the nearest placeholder start before this position
-              const searchStart = Math.max(0, offset - 30);
-              const beforeText = string.substring(
-                searchStart,
-                offset + match.length
-              );
-
-              // Check if we're between ___VAR___[number]___ markers
-              const placeholderPattern = /___VAR___\d+___/g;
-              let placeholderMatch;
-              while (
-                (placeholderMatch = placeholderPattern.exec(beforeText)) !==
-                null
-              ) {
-                const placeholderStart = searchStart + placeholderMatch.index;
-                const placeholderEnd =
-                  placeholderStart + placeholderMatch[0].length;
-
-                // If our variable position is inside this placeholder, skip it
-                if (offset >= placeholderStart && offset < placeholderEnd) {
-                  insidePlaceholder = true;
-                  break;
-                }
-              }
-
-              if (insidePlaceholder) {
-                return match;
-              }
-
-              // Generate the LaTeX but replace it with a placeholder for now
-              const variableLatex = processVariableToLatex(symbol, variable);
-              const placeholderIndex = processedVariableLatex.length;
-              processedVariableLatex.push(variableLatex);
-              return `${placeholderPrefix}${placeholderIndex}___`;
-            }
-          );
-        } else {
-          // For complex variables, simple replacement with placeholder protection
-          tempLatex = tempLatex.replace(
-            symbolRegex,
-            (match, offset, string) => {
-              // Check if this match is actually inside a placeholder (not just near one)
-              let insidePlaceholder = false;
-
-              // Find the nearest placeholder start before this position
-              const searchStart = Math.max(0, offset - 30);
-              const beforeText = string.substring(
-                searchStart,
-                offset + match.length
-              );
-
-              // Check if we're between ___VAR___[number]___ markers
-              const placeholderPattern = /___VAR___\d+___/g;
-              let placeholderMatch;
-              while (
-                (placeholderMatch = placeholderPattern.exec(beforeText)) !==
-                null
-              ) {
-                const placeholderStart = searchStart + placeholderMatch.index;
-                const placeholderEnd =
-                  placeholderStart + placeholderMatch[0].length;
-
-                // If our variable position is inside this placeholder, skip it
-                if (offset >= placeholderStart && offset < placeholderEnd) {
-                  insidePlaceholder = true;
-                  break;
-                }
-              }
-
-              if (insidePlaceholder) {
-                return match;
-              }
-
-              // Generate the LaTeX but replace it with a placeholder for now
-              const variableLatex = processVariableToLatex(symbol, variable);
-              const placeholderIndex = processedVariableLatex.length;
-              processedVariableLatex.push(variableLatex);
-              return `${placeholderPrefix}${placeholderIndex}___`;
-            }
-          );
-        }
-
-        if (beforeReplace !== tempLatex) {
-          // console.log(`LaTeX after replacing ${variation}:`, tempLatex);
-          break; // Found a match, no need to try other variations
-        }
-      }
+  // The CSS ID should be the original variable symbol
+  // Find the corresponding variable in the computation store
+  for (const [varId, variable] of computationStore.variables.entries()) {
+    if (variable.symbol === cssId) {
+      return { varId, symbol: variable.symbol };
     }
   }
 
-  // Restore variable LaTeX from placeholders FIRST
-  tempLatex = tempLatex.replace(
-    new RegExp(`${placeholderPrefix}(\\d+)___`, "g"),
-    (match, index) => {
-      const idx = parseInt(index);
-      const replacement = processedVariableLatex[idx];
-      return replacement || match; // Keep original if undefined
-    }
-  );
-
-  // Handle remaining LaTeX commands AFTER variable restoration
-  const latexCommands: string[] = [];
-  const latexPlaceholderPrefix = "___LATEXCMD___";
-
-  // Replace remaining LaTeX commands with numbered placeholders
-  tempLatex = tempLatex.replace(
-    /\\[a-zA-Z]+(\{[^}]*\}|\[[^\]]*\])*|\\[^a-zA-Z]/g,
-    (match) => {
-      const index = latexCommands.length;
-      latexCommands.push(match);
-      return `${latexPlaceholderPrefix}${index}___`;
-    }
-  );
-
-  // Restore LaTeX commands from placeholders
-  const finalLatex = tempLatex.replace(
-    new RegExp(`${latexPlaceholderPrefix}(\\d+)___`, "g"),
-    (_, index) => latexCommands[parseInt(index)]
-  );
-  return finalLatex;
+  return null;
 };
 
 /**
- * Convert a variable to its LaTeX representation
+ * Process a latex string to find and wrap variables with CSS classes
+ * This is the main function used by the Formula component
  */
-const processVariableToLatex = (
-  token: string,
-  variable: { type: string; value: number; precision?: number }
+export const processLatexContent = (
+  latex: string,
+  precision: number = 2
 ): string => {
-  const { value, type, precision = 1 } = variable;
+  try {
+    // Get variable patterns from computation store
+    const variablePatterns = Array.from(
+      computationStore.variables.values()
+    ).map((v) => v.symbol);
 
-  if (type === "constant") {
-    return value.toString();
+    // Parse variable patterns into trees for grouping
+    const variableTrees = parseVariableStrings(variablePatterns);
+
+    // Create formula tree with variables grouped, passing original symbols
+    const formula = deriveTreeWithVars(latex, variableTrees, variablePatterns);
+
+    return processVariablesInFormula(formula, precision);
+  } catch (error) {
+    console.warn("Failed to process latex content:", error);
+    return latex; // Return original latex if processing fails
   }
-
-  // Create a safe CSS ID by encoding special characters
-  // Simple variables like 'x' remain as 'var-x'
-  // Complex variables get encoded: 'P(B\mid A)' -> 'var-P_40_B_92_mid_32_A_41_'
-  let safeCssId: string;
-  if (token.length === 1 && /^[a-zA-Z]$/.test(token)) {
-    // Simple single-letter variable - no encoding needed
-    safeCssId = `var-${token}`;
-  } else {
-    // Complex variable - encode special characters
-    safeCssId = `var-${token}`.replace(/[^a-zA-Z0-9_-]/g, (char) => {
-      return `_${char.charCodeAt(0)}_`;
-    });
-  }
-
-  if (type === "input") {
-    return `\\cssId{${safeCssId}}{\\class{interactive-var-slidable}{${token}: ${value.toFixed(
-      precision
-    )}}}`;
-  }
-
-  if (type === "dependent") {
-    return `\\cssId{${safeCssId}}{\\class{interactive-var-dependent}{${token}: ${value.toFixed(
-      precision
-    )}}}`;
-  }
-
-  return `\\class{interactive-var-${type}}{${token}}`;
 };

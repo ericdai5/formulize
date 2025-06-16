@@ -14,7 +14,7 @@ import {
   Color,
   Group,
   Script,
-  VariableName,
+  Variable,
 } from "../../FormulaTree";
 import { assertUnreachable, replaceNodes } from "../../formulaTransformations";
 import {
@@ -254,12 +254,12 @@ const TreeElement = ({
           store={store}
         />
       );
-    case "variableName":
-      console.log("🔍 Found variableName node:", tree);
+    case "variable":
+      console.log("🔍 Found variable node:", tree);
       return (
         <LabeledNode
           tree={tree}
-          label={`Variable: ${(tree as VariableName).variablePattern}`}
+          label={`Variable: ${(tree as Variable).variableLatex}`}
           store={store}
         />
       );

@@ -69,7 +69,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Helper function to get variable precision
   const getVariablePrecision = (variableName: string): number => {
-    const varId = `var-${variableName}`;
+    const varId = variableName;
     const variable = computationStore.variables.get(varId);
     return variable?.precision ?? 2; // Default to 2 decimal places if not specified
   };
@@ -81,7 +81,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Helper function to get variable label from computation store
   const getVariableLabel = (variableName: string): string => {
-    const varId = `var-${variableName}`;
+    const varId = variableName;
     const variable = computationStore.variables.get(varId);
     return variable?.label || variableName; // Fallback to variable name if no label
   };
@@ -90,14 +90,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const getVariableValue = (variableName: string): number => {
     // First try to get value through binding system if it's been registered
     try {
-      // This would use the binding system in a full implementation
-      // For now, we'll continue to use the computation store directly
-      const varId = `var-${variableName}`;
+      const varId = variableName;
       const variable = computationStore.variables.get(varId);
       return variable?.value ?? 0;
     } catch (error) {
       // Fallback to direct computation store access
-      const varId = `var-${variableName}`;
+      const varId = variableName;
       const variable = computationStore.variables.get(varId);
       return variable?.value ?? 0;
     }
@@ -212,7 +210,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       // This prevents us from modifying the original variables
       const variablesMap: Record<string, number> = {};
       for (const [id, variable] of computationStore.variables.entries()) {
-        // Extract the variable symbol from id (remove 'var-' prefix)
         const symbol = variable.symbol;
         variablesMap[symbol] = variable.value;
       }
@@ -344,9 +341,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
         // Get only the variables we care about
         const relevantVariables = new Set([
-          "var-m", // Mass - affects the y-values
-          `var-${xVar}`, // X-axis variable
-          `var-${yVar}`, // Y-axis variable
+          "m", // Mass - affects the y-values
+          xVar, // X-axis variable
+          yVar, // Y-axis variable
         ]);
 
         // Extract just the values we need
@@ -364,7 +361,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Return a simpler object that only includes what we need to track
         return {
           // Track m value which affects ALL y-values (scaling factor)
-          m: trackedValues["var-m"] ?? 0,
+          m: trackedValues["m"] ?? 0,
 
           // Only track the current values of x and y axis variables
           // for current point highlighting - we don't need to track
@@ -591,7 +588,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
         // Update the x-axis variable when user clicks on the plot
         try {
-          const xVarId = `var-${xVar}`;
+          const xVarId = xVar;
           // Use runInAction to comply with MobX strict mode
           runInAction(() => {
             computationStore.setValue(xVarId, x0);
