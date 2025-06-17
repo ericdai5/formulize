@@ -1,9 +1,10 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
 import { computationStore } from "../../api/computation";
 import { ISliderControl } from "../../types/control";
+import { getVariable } from "../../util/computation-helpers";
 
 interface SliderProps {
   control: ISliderControl;
@@ -19,9 +20,10 @@ const Slider = observer(({ control }: SliderProps) => {
   }, [control.variable]);
 
   const variableId = getVariableId();
-  const variable = variableId
-    ? computationStore.variables.get(variableId)
-    : null;
+  const variable = useMemo(
+    () => (variableId ? getVariable(variableId) : null),
+    [variableId]
+  );
 
   // Get min, max, step from variable definition
   const getSliderConfig = useCallback(() => {

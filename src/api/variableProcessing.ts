@@ -18,6 +18,7 @@ import {
   deriveTreeWithVars,
   parseVariableStrings,
 } from "../FormulaTree";
+import { getVariable } from "../util/computation-helpers";
 import { computationStore } from "./computation";
 
 /**
@@ -201,7 +202,7 @@ export const getInputVariableState = (
   varId: string,
   variableRanges: Record<string, [number, number]> = {}
 ): { stepSize: number; minValue: number; maxValue: number } | null => {
-  const variable = computationStore.variables.get(varId);
+  const variable = getVariable(varId);
   if (!variable) {
     return null;
   }

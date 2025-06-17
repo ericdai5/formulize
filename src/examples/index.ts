@@ -1,3 +1,4 @@
+import bayesWithCustomVisualization from "./bayesVisualization";
 import gravitationalPotential from "./gravitationalPotential";
 import kineticEnergy from "./kineticEnergy";
 import kineticEnergy3D from "./kineticEnergy3D";
@@ -18,6 +19,7 @@ export const examples = {
   rationalNumbers,
   parameterizedPlane,
   testing,
+  bayesWithCustomVisualization,
 };
 
 export const exampleDisplayNames = {
@@ -30,6 +32,7 @@ export const exampleDisplayNames = {
   rationalNumbers: "Rational Numbers",
   parameterizedPlane: "Parameterized Plane",
   testing: "Testing",
+  bayesWithCustomVisualization: "Bayes Custom Visualization",
 } as const;
 
 export default examples;

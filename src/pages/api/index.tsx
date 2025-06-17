@@ -42,7 +42,7 @@ export default function APIPage() {
               {currentFormulaConfig?.visualizations?.map(
                 (visualization, index) => (
                   <VisualizationRenderer
-                    key={`viz-${index}-${JSON.stringify(visualization)}`}
+                    key={`viz-${index}`}
                     visualization={visualization}
                   />
                 )

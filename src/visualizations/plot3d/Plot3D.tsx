@@ -19,6 +19,7 @@ import {
   solveSingularFormula,
 } from "../../api/computation-engines/singular-formula-solver";
 import { IPoint3D, ISurface } from "../../types/plot3d";
+import { getVariable, getVariableValue } from "../../util/computation-helpers";
 import { getFormulaByName } from "../../util/formula-by-name";
 import { getDefaultColorScale, resolveLineColor } from "./color";
 import { getSurfaces } from "./surfaces";
@@ -82,21 +83,10 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     return Math.min(maxResolution, Math.max(baseResolution, dynamicSamples));
   }, [xMax, xMin, yMax, yMin]);
 
-  // Function to get variable value from computation store
-  const getVariableValue = useCallback((variableName: string): number => {
-    try {
-      const varId = variableName;
-      const variable = computationStore.variables.get(varId);
-      return variable?.value ?? 0;
-    } catch (error) {
-      return 0;
-    }
-  }, []);
-
   // Helper function to get variable label from computation store
   const getVariableLabel = useCallback((variableName: string): string => {
     const varId = variableName;
-    const variable = computationStore.variables.get(varId);
+    const variable = getVariable(varId);
     return variable?.label || variableName; // Fallback to variable name if no label
   }, []);
 
@@ -324,14 +314,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       setLinesData([]);
       setCurrentPoint(null);
     }
-  }, [
-    calculateSurfacesDataWrapper,
-    calculateLinesData,
-    xVar,
-    yVar,
-    zVar,
-    getVariableValue,
-  ]);
+  }, [calculateSurfacesDataWrapper, calculateLinesData, xVar, yVar, zVar]);
 
   useEffect(() => {
     setSurfacesData([]);
@@ -375,7 +358,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     );
 
     return disposer;
-  }, [xVar, yVar, zVar, getVariableValue, calculateDataPoints]);
+  }, [xVar, yVar, zVar, calculateDataPoints]);
 
   // Optimized plotting effect
   useEffect(() => {
