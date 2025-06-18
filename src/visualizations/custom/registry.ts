@@ -14,7 +14,6 @@ export const register = (
   component: React.ComponentType<{ context: IContext }>
 ) => {
   CUSTOM_COMPONENT_REGISTRY[name] = component;
-  console.log(`Registered custom component: ${name}`); // Debug log
 };
 
 // Get all registered component names

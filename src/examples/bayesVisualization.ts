@@ -1,4 +1,4 @@
-const bayesWithCustomVisualization = `const config = {
+export const bayesWithCustomVisualization = `const config = {
     formulas: [
       {
         name: "Bayes' Theorem",
@@ -87,5 +87,3 @@ const bayesWithCustomVisualization = `const config = {
   };
   
   const formula = await Formulize.create(config);`;
-
-export default bayesWithCustomVisualization;

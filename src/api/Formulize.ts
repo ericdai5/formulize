@@ -129,7 +129,7 @@ async function create(
     // Trigger initial evaluation now that everything is set up
     computationStore.updateAllDependentVariables();
 
-    console.log(`✅ Created ${formulaStores.length} individual formula stores`);
+    console.log(`Created ${formulaStores.length} individual formula stores`);
 
     // Store the formulaId for setVariable method to use
     const instance = {

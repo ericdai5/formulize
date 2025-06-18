@@ -1538,12 +1538,6 @@ export const groupVariablesByTrees = (
   variableTrees: AugmentedFormula[],
   originalSymbols?: string[]
 ): AugmentedFormula => {
-  console.log(
-    "TREE: groupVariablesByTrees called with",
-    variableTrees.length,
-    "variable trees"
-  );
-
   if (variableTrees.length === 0) {
     return formula;
   }
@@ -1560,24 +1554,9 @@ export const groupVariablesByTrees = (
     (a, b) => getTreeComplexity(b.tree) - getTreeComplexity(a.tree)
   );
 
-  console.log(
-    "TREE:Sorted variable trees by complexity:",
-    sortedPairs.map((pair) => ({
-      latex: pair.tree.toLatex("no-id"),
-      originalSymbol: pair.originalSymbol,
-      complexity: getTreeComplexity(pair.tree),
-    }))
-  );
-
   // Find and group matching subtrees for each variable tree
   let newFormula = formula;
   for (const { tree: variableTree, originalSymbol } of sortedPairs) {
-    console.log(
-      "TREE: Processing variable tree:",
-      variableTree.toLatex("no-id"),
-      "originalSymbol:",
-      originalSymbol
-    );
     newFormula = findAndGroupVariableTree(
       newFormula,
       variableTree,
@@ -1623,13 +1602,6 @@ const findAndGroupVariableTree = (
   variableTree: AugmentedFormula,
   originalSymbol: string
 ): AugmentedFormula => {
-  console.log(
-    "🔍 Finding matches for variable tree:",
-    variableTree.toLatex("no-id"),
-    "originalSymbol:",
-    originalSymbol
-  );
-
   // Recursively process the entire tree to find and replace patterns at any level
   const newChildren = formula.children.map((child) =>
     recursivelyFindAndGroupVariableTree(
@@ -1645,12 +1617,6 @@ const findAndGroupVariableTree = (
     newChildren,
     variableTree.children
   );
-  console.log(
-    "🔍 Found",
-    topLevelMatches.length,
-    "top-level matching subsequences for variable:",
-    variableTree.toLatex("no-id")
-  );
 
   let finalChildren = newChildren;
   if (topLevelMatches.length > 0) {
@@ -1661,17 +1627,6 @@ const findAndGroupVariableTree = (
       originalSymbol
     );
   }
-
-  console.log(
-    "🔍 Created new formula with",
-    finalChildren.length,
-    "children for variable:",
-    variableTree.toLatex("no-id")
-  );
-  console.log(
-    "🔍 Children types:",
-    finalChildren.map((c) => c.type)
-  );
 
   return new AugmentedFormula(finalChildren);
 };
@@ -1690,11 +1645,6 @@ const recursivelyFindAndGroupVariableTree = (
     variableTreeChildren.length === 1 &&
     nodeMatches(node, variableTreeChildren[0])
   ) {
-    console.log(
-      `🔍 Found direct node match for variable ${originalSymbol}:`,
-      node.type,
-      node.toLatex("no-id", 0)[0]
-    );
     return new Variable(
       `var-${Date.now()}`,
       node,
@@ -1749,9 +1699,6 @@ const recursivelyFindAndGroupVariableTree = (
       let finalSup = processedSup;
 
       if (baseMatches && !(processedBase.type === "variable")) {
-        console.log(
-          `🔍 Found base match in script for variable ${originalSymbol}`
-        );
         finalBase = new Variable(
           `var-${Date.now()}`,
           nodeScript.base,
@@ -1760,9 +1707,6 @@ const recursivelyFindAndGroupVariableTree = (
         );
       }
       if (subMatches && processedSub && !(processedSub.type === "variable")) {
-        console.log(
-          `🔍 Found sub match in script for variable ${originalSymbol}`
-        );
         finalSub = new Variable(
           `var-${Date.now()}`,
           nodeScript.sub!,
@@ -1771,9 +1715,6 @@ const recursivelyFindAndGroupVariableTree = (
         );
       }
       if (supMatches && processedSup && !(processedSup.type === "variable")) {
-        console.log(
-          `🔍 Found sup match in script for variable ${originalSymbol}`
-        );
         finalSup = new Variable(
           `var-${Date.now()}`,
           nodeScript.sup!,
@@ -1818,9 +1759,6 @@ const recursivelyFindAndGroupVariableTree = (
       let finalDenominator = processedDenominator;
 
       if (numeratorMatches && !(processedNumerator.type === "variable")) {
-        console.log(
-          `🔍 Found numerator match in fraction for variable ${originalSymbol}`
-        );
         finalNumerator = new Variable(
           `var-${Date.now()}`,
           nodeFrac.numerator,
@@ -1829,9 +1767,6 @@ const recursivelyFindAndGroupVariableTree = (
         );
       }
       if (denominatorMatches && !(processedDenominator.type === "variable")) {
-        console.log(
-          `🔍 Found denominator match in fraction for variable ${originalSymbol}`
-        );
         finalDenominator = new Variable(
           `var-${Date.now()}`,
           nodeFrac.denominator,
@@ -1862,14 +1797,6 @@ const recursivelyFindAndGroupVariableTree = (
       const matches = findMatchingSubsequences(
         processedChildren,
         variableTreeChildren
-      );
-      console.log(
-        "🔍 Found",
-        matches.length,
-        "matches in group",
-        nodeGroup.id,
-        "for variable:",
-        originalSymbol
       );
 
       let finalChildren = processedChildren;
@@ -1904,14 +1831,6 @@ const recursivelyFindAndGroupVariableTree = (
         processedChildren,
         variableTreeChildren
       );
-      console.log(
-        "🔍 Found",
-        matches.length,
-        "matches in color",
-        nodeColor.id,
-        "for variable:",
-        originalSymbol
-      );
 
       let finalChildren = processedChildren;
       if (matches.length > 0) {
@@ -1945,14 +1864,6 @@ const recursivelyFindAndGroupVariableTree = (
         processedChildren,
         variableTreeChildren
       );
-      console.log(
-        "🔍 Found",
-        matches.length,
-        "matches in text",
-        nodeText.id,
-        "for variable:",
-        originalSymbol
-      );
 
       let finalChildren = processedChildren;
       if (matches.length > 0) {
@@ -1985,9 +1896,6 @@ const recursivelyFindAndGroupVariableTree = (
 
       let finalBody = processedBody;
       if (bodyMatches && !(processedBody.type === "variable")) {
-        console.log(
-          `🔍 Found body match in box for variable ${originalSymbol}`
-        );
         finalBody = new Variable(
           `var-${Date.now()}`,
           nodeBox.body,
@@ -2017,9 +1925,6 @@ const recursivelyFindAndGroupVariableTree = (
 
       let finalBody = processedBody;
       if (bodyMatches && !(processedBody.type === "variable")) {
-        console.log(
-          `🔍 Found body match in strikethrough for variable ${originalSymbol}`
-        );
         finalBody = new Variable(
           `var-${Date.now()}`,
           nodeStrike.body,
@@ -2061,9 +1966,6 @@ const recursivelyFindAndGroupVariableTree = (
 
       let finalBase = processedBase;
       if (baseMatches && !(processedBase.type === "variable")) {
-        console.log(
-          `🔍 Found base match in brace for variable ${originalSymbol}`
-        );
         finalBase = new Variable(
           `var-${Date.now()}`,
           nodeBrace.base,
@@ -2123,9 +2025,6 @@ const recursivelyFindAndGroupVariableTree = (
       let finalIndex = processedIndex;
 
       if (bodyMatches && !(processedBody.type === "variable")) {
-        console.log(
-          `🔍 Found body match in root for variable ${originalSymbol}`
-        );
         finalBody = new Variable(
           `var-${Date.now()}`,
           nodeRoot.body,
@@ -2138,9 +2037,6 @@ const recursivelyFindAndGroupVariableTree = (
         processedIndex &&
         !(processedIndex.type === "variable")
       ) {
-        console.log(
-          `🔍 Found index match in root for variable ${originalSymbol}`
-        );
         finalIndex = new Variable(
           `var-${Date.now()}`,
           nodeRoot.index!,
@@ -2185,14 +2081,6 @@ const replaceSubsequencesWithVariables = (
   const newChildren = [...children];
 
   for (const match of sortedMatches) {
-    console.log(
-      "🔍 Replacing subsequence at",
-      match.startIndex,
-      "to",
-      match.endIndex,
-      "with VariableName"
-    );
-
     // Create a group containing all the matched nodes
     const groupedBody =
       match.nodes.length === 1
@@ -2252,23 +2140,11 @@ const findMatchingSubsequences = (
       )
     ) {
       const matchedNodes = children.slice(i, i + patternChildren.length);
-      console.log(
-        "🔍 Found subsequence match at index",
-        i,
-        "to",
-        i + patternChildren.length - 1
-      );
-      console.log(
-        "🔍 Matched nodes:",
-        matchedNodes.map((n) => `${n.type}:${n.toLatex("no-id", 0)[0]}`)
-      );
-
       matches.push({
         startIndex: i,
         endIndex: i + patternChildren.length - 1,
         nodes: matchedNodes,
       });
-
       // Skip past this match to avoid overlapping matches
       i += patternChildren.length - 1;
     }

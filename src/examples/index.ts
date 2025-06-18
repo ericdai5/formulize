@@ -1,13 +1,14 @@
-import bayesWithCustomVisualization from "./bayesVisualization";
-import gravitationalPotential from "./gravitationalPotential";
-import kineticEnergy from "./kineticEnergy";
-import kineticEnergy3D from "./kineticEnergy3D";
-import parameterizedPlane from "./parameterizedPlane";
-import parametric3D from "./parametric3D";
-import quadraticEquation from "./quadraticEquation";
-import quadraticEquation3D from "./quadraticEquation3D";
-import rationalNumbers from "./rationalNumbers";
-import testing from "./testing";
+import { bayesWithCustomVisualization } from "./bayesVisualization";
+import { gravitationalPotential } from "./gravitationalPotential";
+import { kineticEnergy } from "./kineticEnergy";
+import { kineticEnergy3D } from "./kineticEnergy3D";
+import { parameterizedPlane } from "./parameterizedPlane";
+import { parametric3D } from "./parametric3D";
+import { quadraticEquation } from "./quadraticEquation";
+import { quadraticEquation3D } from "./quadraticEquation3D";
+import { rationalNumbers } from "./rationalNumbers";
+import { summationBasic } from "./summationBasic";
+import { testing } from "./testing";
 
 export const examples = {
   kineticEnergy,
@@ -20,6 +21,7 @@ export const examples = {
   parameterizedPlane,
   testing,
   bayesWithCustomVisualization,
+  summationBasic,
 };
 
 export const exampleDisplayNames = {
@@ -33,6 +35,7 @@ export const exampleDisplayNames = {
   parameterizedPlane: "Parameterized Plane",
   testing: "Testing",
   bayesWithCustomVisualization: "Bayes Custom Visualization",
+  summationBasic: "Summation Basic",
 } as const;
 
 export default examples;

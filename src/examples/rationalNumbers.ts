@@ -1,4 +1,4 @@
-const rationalNumbers = `const config = {
+export const rationalNumbers = `const config = {
   formulas: [
     {
       name: "Rational Numbers Set",
@@ -34,5 +34,3 @@ const rationalNumbers = `const config = {
 };
 
 const formula = await Formulize.create(config);`;
-
-export default rationalNumbers;

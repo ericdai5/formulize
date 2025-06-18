@@ -1,4 +1,4 @@
-const quadraticEquationExample = `const config = {
+export const quadraticEquation = `const config = {
   formulas: [
     {
       name: "Quadratic Equation",
@@ -61,5 +61,3 @@ const quadraticEquationExample = `const config = {
 };
 
 const formula = await Formulize.create(config);`;
-
-export default quadraticEquationExample;

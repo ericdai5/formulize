@@ -1,4 +1,4 @@
-const parametric3DExample = `const config = {
+export const parametric3D = `const config = {
   formulas: [
     {
       name: "x and t",
@@ -103,5 +103,3 @@ const parametric3DExample = `const config = {
 };
 
 const formula = await Formulize.create(config);`;
-
-export default parametric3DExample;

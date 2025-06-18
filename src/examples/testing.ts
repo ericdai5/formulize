@@ -1,4 +1,4 @@
-const bayesTheoremExample = `const config = {
+export const testing = `const config = {
     formulas: [
       {
         name: "Bayes' Theorem",
@@ -47,5 +47,3 @@ const bayesTheoremExample = `const config = {
   };
   
   const formula = await Formulize.create(config);`;
-
-export default bayesTheoremExample;

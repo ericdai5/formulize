@@ -29,7 +29,6 @@ export default function APIPage() {
           <FormulaCanvas
             formulizeConfig={currentFormulaConfig}
             onConfigChange={(config) => {
-              console.log("Config changed:", config);
               setCurrentFormulaConfig(config);
             }}
             onOpenEvaluationModal={() => setIsEvaluationModalOpen(true)}
