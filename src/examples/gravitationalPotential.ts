@@ -1,4 +1,4 @@
-const gravitationalPotentialExample = `const config = {
+export const gravitationalPotential = `const config = {
   formulas: [
     {
       name: "Gravitational Potential Energy Formula",
@@ -55,5 +55,3 @@ const gravitationalPotentialExample = `const config = {
 };
 
 const formula = await Formulize.create(config);`;
-
-export default gravitationalPotentialExample;

@@ -10,6 +10,7 @@ import {
 } from "../store/FormulaStoreManager";
 import { IEnvironment } from "../types/environment";
 import { IVariable } from "../types/variable";
+import { getVariable } from "../util/computation-helpers";
 import { computationStore } from "./computation";
 import { setVariable } from "./propagation";
 
@@ -128,7 +129,7 @@ async function create(
     // Trigger initial evaluation now that everything is set up
     computationStore.updateAllDependentVariables();
 
-    console.log(`✅ Created ${formulaStores.length} individual formula stores`);
+    console.log(`Created ${formulaStores.length} individual formula stores`);
 
     // Store the formulaId for setVariable method to use
     const instance = {
@@ -141,7 +142,7 @@ async function create(
         }
 
         const varId = name;
-        const computationVariable = computationStore.variables.get(varId);
+        const computationVariable = getVariable(varId);
 
         return {
           type: variable.type,

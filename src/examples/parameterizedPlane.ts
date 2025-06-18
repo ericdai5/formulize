@@ -1,4 +1,4 @@
-const parameterizedPlaneExample = `const config = {
+export const parameterizedPlane = `const config = {
   formulas: [
     {
       name: "x parameterization",
@@ -112,5 +112,3 @@ const parameterizedPlaneExample = `const config = {
 };
 
 const formula = await Formulize.create(config);`;
-
-export default parameterizedPlaneExample;

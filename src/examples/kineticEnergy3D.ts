@@ -1,4 +1,4 @@
-const kineticEnergy3DExample = `const config = {
+export const kineticEnergy3D = `const config = {
   formulas: [
     {
       name: "Kinetic Energy Formula",
@@ -59,5 +59,3 @@ const kineticEnergy3DExample = `const config = {
 };
 
 const formula = await Formulize.create(config);`;
-
-export default kineticEnergy3DExample;

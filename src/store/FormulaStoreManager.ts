@@ -29,31 +29,19 @@ export class FormulaStore {
   @action
   updateFormula(newFormula: AugmentedFormula) {
     if (this.augmentedFormula.equals(newFormula)) {
-      console.log(
-        `[Store ${this.id}] Skipping formula update - formula is the same`
-      );
       return;
     }
-
     const canonicalized = canonicalizeFormula(newFormula);
-    console.log(`🔍 [Store ${this.id}] Canonicalized formula:`, canonicalized);
-
     const { renderSpec } = updateFormula(canonicalized);
     this.renderSpec = renderSpec;
     this.augmentedFormula = canonicalized;
-
-    console.log(`🔍 [Store ${this.id}] Updated formula in store:`);
-    console.log(`   - With styling: ${this.latexWithStyling}`);
-    console.log(`   - Without styling: ${this.latexWithoutStyling}`);
   }
 
   @action
   restoreFormulaState(latex: string) {
-    // Get all variables from computation store and convert to trees
     const allVariableSymbols = Array.from(computationStore.variables.values())
       .map((variable) => variable.symbol)
       .filter((symbol) => symbol && symbol.length > 0);
-    console.log("🔍 Creating variable trees for:", allVariableSymbols);
     const variableTrees = parseVariableStrings(allVariableSymbols);
     const newFormula = deriveTreeWithVars(
       latex,
@@ -67,7 +55,6 @@ export class FormulaStore {
 
   @action
   overrideStyledRanges(styledRanges: FormulaLatexRanges | null) {
-    console.log(`[Store ${this.id}] Overriding styled ranges`, styledRanges);
     this.styledRangesOverride = styledRanges;
   }
 
@@ -79,10 +66,6 @@ export class FormulaStore {
   @computed
   get latexWithoutStyling() {
     const result = this.augmentedFormula.toLatex("content-only");
-    console.log(
-      `🔍 [Store ${this.id}] latexWithoutStyling called, returning:`,
-      result
-    );
     return result;
   }
 
@@ -111,11 +94,6 @@ export class FormulaStore {
 
     const rootNode = this.augmentedFormula.children[0];
     if (rootNode instanceof Aligned) {
-      console.log(
-        `[Store ${this.id}] Found align columns`,
-        rootNode.body[0].length,
-        rootNode
-      );
       return [
         ...Array(Math.max(...rootNode.body.map((row) => row.length))).keys(),
       ].map((col) =>
@@ -148,11 +126,8 @@ export class FormulaStore {
 
   @computed
   get mathML() {
-    console.log(`[Store ${this.id}] mathML getter called`);
     const latex = this.augmentedFormula.toLatex("content-only");
-    console.log(`[Store ${this.id}] Getting MathML for LaTeX:`, latex);
     const result = convertLatexToMathML(latex);
-    console.log(`[Store ${this.id}] MathML result:`, result);
     return result;
   }
 }
@@ -164,17 +139,13 @@ export class FormulaStoreManager {
 
   @action
   createStore(id: string, formulaLatex?: string): FormulaStore {
-    console.log(`Creating formula store with id: ${id}`);
     const store = new FormulaStore(id);
     if (formulaLatex) {
       // Get all variables from computation store and convert to trees
       const allVariableSymbols = Array.from(computationStore.variables.values())
         .map((variable) => variable.symbol)
         .filter((symbol) => symbol && symbol.length > 0);
-
-      console.log("🔍 Creating variable trees for:", allVariableSymbols);
       const variableTrees = parseVariableStrings(allVariableSymbols);
-
       const formula = deriveTreeWithVars(
         formulaLatex,
         variableTrees,
@@ -194,13 +165,11 @@ export class FormulaStoreManager {
 
   @action
   removeStore(id: string): void {
-    console.log(`Removing formula store with id: ${id}`);
     this.stores.delete(id);
   }
 
   @action
   clearAllStores(): void {
-    console.log("Clearing all formula stores");
     this.stores.clear();
   }
 

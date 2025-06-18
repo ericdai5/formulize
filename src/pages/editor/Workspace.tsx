@@ -6,6 +6,7 @@ import { AlignmentGuides } from "../../AlignmentGuides";
 import { MathSymbol } from "../../FormulaTree";
 import { computationStore } from "../../api/computation";
 import { editingStore, formulaStore, selectionStore } from "../../store";
+import { getVariable } from "../../util/computation-helpers";
 import { RenderedFormula } from "./RenderedFormula";
 import VariableTooltip from "./VariableTooltip";
 
@@ -117,7 +118,7 @@ export const Workspace = observer(() => {
     const activeVar = getActiveVariable();
     if (!activeVar) return "none";
 
-    return computationStore.variables.get(activeVar.id)?.type || "none";
+    return getVariable(activeVar.id)?.type || "none";
   }, [getActiveVariable]);
 
   const handleVariableTypeSelect = useCallback(
@@ -301,7 +302,7 @@ export const EnlivenMode = observer(() => {
     <VariableTooltip
       position={tooltipPosition}
       onSelect={handleVariableTypeSelect}
-      currentType={computationStore.variables.get(variableId)?.type || "none"}
+      currentType={getVariable(variableId)?.type || "none"}
       id={variableId}
     />
   );

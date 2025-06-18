@@ -81,15 +81,6 @@ export const FormulaElementPane = observer(
       );
     }
 
-    console.log(
-      "🔍 FormulaElementPane rendering with formula:",
-      store.augmentedFormula
-    );
-    console.log(
-      "🔍 Formula children:",
-      store.augmentedFormula.children.map((c) => ({ type: c.type, id: c.id }))
-    );
-
     return (
       <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
         <div className="flex flex-row justify-between items-center">
@@ -198,8 +189,6 @@ const TreeElement = ({
   tree: AugmentedFormulaNode;
   store: FormulaStore;
 }) => {
-  console.log("🔍 TreeElement rendering node:", tree.type, tree.id);
-
   switch (tree.type) {
     case "symbol":
       return <LabeledNode tree={tree} label={tree.value} store={store} />;
@@ -255,7 +244,6 @@ const TreeElement = ({
         />
       );
     case "variable":
-      console.log("🔍 Found variable node:", tree);
       return (
         <LabeledNode
           tree={tree}

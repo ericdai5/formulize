@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import { computationStore } from "../../api/computation";
+import { getVariable } from "../../util/computation-helpers";
 
 const VariableTooltip = ({
   position,
@@ -14,7 +15,7 @@ const VariableTooltip = ({
   id: string;
 }) => {
   const [value, setValue] = useState("0");
-  const variable = computationStore.variables.get(id);
+  const variable = getVariable(id);
 
   // Initialize value from variable state
   useEffect(() => {

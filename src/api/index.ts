@@ -8,6 +8,15 @@ export { computationStore } from "./computation";
 // Export utility functions
 export { setVariable } from "./propagation";
 
+// Export custom visualization registration functions
+export {
+  register,
+  unRegister,
+  getAllRegistered,
+  getRegistered,
+  isRegistered,
+} from "../visualizations/custom/registry";
+
 // Export types
 export type { IComputation } from "../types/computation";
 export type { IEnvironment } from "../types/environment";
@@ -16,3 +25,4 @@ export type { IVariable } from "../types/variable";
 export type { IVisualization } from "../types/visualization";
 export type { IPlot2D } from "../types/plot2d";
 export type { IPlot3D } from "../types/plot3d";
+export type { ICustom, IContext } from "../types/custom";

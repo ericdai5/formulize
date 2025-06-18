@@ -12,6 +12,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/language": "^6.10.1",
     "@codemirror/legacy-modes": "^6.4.0",
     "@codemirror/state": "^6.4.1",

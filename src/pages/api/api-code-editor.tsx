@@ -1,3 +1,6 @@
+import { javascript } from "@codemirror/lang-javascript";
+import CodeMirror from "@uiw/react-codemirror";
+
 import {
   exampleDisplayNames,
   examples as formulaExamples,
@@ -23,6 +26,11 @@ const FormulaCodeEditor = ({
     onRender(newFormula); // Pass the new formula directly to render
   };
 
+  // Handler for CodeMirror value changes
+  const handleCodeMirrorChange = (value: string) => {
+    onInputChange(value);
+  };
+
   return (
     <div className="p-4 flex flex-col gap-3 border-t border-slate-200 h-full">
       <div className="flex flex-row gap-0 border border-slate-200 rounded-xl">
@@ -44,12 +52,32 @@ const FormulaCodeEditor = ({
         </div>
       </div>
 
-      <textarea
-        value={formulizeInput}
-        onChange={(e) => onInputChange(e.target.value)}
-        onBlur={() => onRender()}
-        className="w-full p-4 border bg-slate-50 rounded-xl font-mono text-sm h-full"
-      />
+      <div className="w-full h-full border bg-slate-50 rounded-xl overflow-auto scrollbar-hide">
+        <CodeMirror
+          value={formulizeInput}
+          onChange={handleCodeMirrorChange}
+          onBlur={() => onRender()}
+          extensions={[javascript()]}
+          theme="light"
+          style={{
+            fontSize: "14px",
+            fontFamily:
+              'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+          }}
+          basicSetup={{
+            lineNumbers: true,
+            foldGutter: true,
+            dropCursor: false,
+            allowMultipleSelections: false,
+            indentOnInput: true,
+            bracketMatching: true,
+            closeBrackets: true,
+            autocompletion: true,
+            highlightSelectionMatches: false,
+            searchKeymap: true,
+          }}
+        />
+      </div>
 
       {error && (
         <div className="p-3 bg-red-100 text-red-700 rounded">{error}</div>

@@ -18,6 +18,7 @@ import {
   deriveTreeWithVars,
   parseVariableStrings,
 } from "../FormulaTree";
+import { getVariable } from "../util/computation-helpers";
 import { computationStore } from "./computation";
 
 /**
@@ -26,7 +27,7 @@ import { computationStore } from "./computation";
  */
 export const processVariablesInFormula = (
   formula: AugmentedFormula,
-  precision: number = 2
+  defaultPrecision: number = 2
 ): string => {
   const processNode = (node: AugmentedFormulaNode): string => {
     if (node.type === "variable") {
@@ -39,14 +40,17 @@ export const processVariablesInFormula = (
           ? variableNode.body.toLatex("no-id", 0)[0]
           : originalSymbol;
 
-      // Get the value and type from the computation store
+      // Get the value, type, and precision from the computation store
       let value = 0;
       let isInputVariable = false;
+      let variablePrecision = defaultPrecision;
 
       for (const [, variable] of computationStore.variables.entries()) {
         if (variable.symbol === originalSymbol) {
           value = variable.value;
           isInputVariable = variable.type === "input";
+          // Use the variable's precision if defined, otherwise use default
+          variablePrecision = variable.precision ?? defaultPrecision;
           break;
         }
       }
@@ -59,8 +63,8 @@ export const processVariablesInFormula = (
         ? "interactive-var-slidable"
         : "interactive-var-dependent";
 
-      // Wrap the token with CSS classes
-      const result = `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(precision)}}}`;
+      // Wrap the token with CSS classes using the variable's specific precision
+      const result = `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(variablePrecision)}}}`;
       return result;
     }
 
@@ -201,7 +205,7 @@ export const getInputVariableState = (
   varId: string,
   variableRanges: Record<string, [number, number]> = {}
 ): { stepSize: number; minValue: number; maxValue: number } | null => {
-  const variable = computationStore.variables.get(varId);
+  const variable = getVariable(varId);
   if (!variable) {
     return null;
   }
@@ -249,7 +253,7 @@ export const findVariableByElement = (
  */
 export const processLatexContent = (
   latex: string,
-  precision: number = 2
+  defaultPrecision: number = 2
 ): string => {
   try {
     // Get variable patterns from computation store
@@ -263,7 +267,7 @@ export const processLatexContent = (
     // Create formula tree with variables grouped, passing original symbols
     const formula = deriveTreeWithVars(latex, variableTrees, variablePatterns);
 
-    return processVariablesInFormula(formula, precision);
+    return processVariablesInFormula(formula, defaultPrecision);
   } catch (error) {
     console.warn("Failed to process latex content:", error);
     return latex; // Return original latex if processing fails

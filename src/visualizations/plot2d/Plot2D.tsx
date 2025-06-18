@@ -7,6 +7,7 @@ import * as d3 from "d3";
 
 import { IPlot2D } from "../../api";
 import { computationStore } from "../../api/computation";
+import { getVariable, getVariableValue } from "../../util/computation-helpers";
 
 interface Plot2DProps {
   config: IPlot2D;
@@ -70,35 +71,21 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   // Helper function to get variable precision
   const getVariablePrecision = (variableName: string): number => {
     const varId = variableName;
-    const variable = computationStore.variables.get(varId);
-    return variable?.precision ?? 2; // Default to 2 decimal places if not specified
+    const variable = getVariable(varId);
+    return variable?.precision ?? 2;
   };
 
   // Helper function to format a number with variable precision
   const formatVariableValue = (value: number, variableName: string): string => {
-    return value.toFixed(getVariablePrecision(variableName));
+    const precision = getVariablePrecision(variableName);
+    return value.toFixed(precision);
   };
 
   // Helper function to get variable label from computation store
   const getVariableLabel = (variableName: string): string => {
     const varId = variableName;
-    const variable = computationStore.variables.get(varId);
+    const variable = getVariable(varId);
     return variable?.label || variableName; // Fallback to variable name if no label
-  };
-
-  // Get variable value from computation store
-  const getVariableValue = (variableName: string): number => {
-    // First try to get value through binding system if it's been registered
-    try {
-      const varId = variableName;
-      const variable = computationStore.variables.get(varId);
-      return variable?.value ?? 0;
-    } catch (error) {
-      // Fallback to direct computation store access
-      const varId = variableName;
-      const variable = computationStore.variables.get(varId);
-      return variable?.value ?? 0;
-    }
   };
 
   // Get or create evaluation function with enhanced validation for example transitions

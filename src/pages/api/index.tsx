@@ -29,7 +29,6 @@ export default function APIPage() {
           <FormulaCanvas
             formulizeConfig={currentFormulaConfig}
             onConfigChange={(config) => {
-              console.log("Config changed:", config);
               setCurrentFormulaConfig(config);
             }}
             onOpenEvaluationModal={() => setIsEvaluationModalOpen(true)}
@@ -42,7 +41,7 @@ export default function APIPage() {
               {currentFormulaConfig?.visualizations?.map(
                 (visualization, index) => (
                   <VisualizationRenderer
-                    key={`viz-${index}-${JSON.stringify(visualization)}`}
+                    key={`viz-${index}`}
                     visualization={visualization}
                   />
                 )
