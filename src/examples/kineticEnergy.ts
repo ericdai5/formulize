@@ -1,64 +1,63 @@
-// Kinetic Energy example formula code
-const kineticEnergyExample = `// Formulize configuration - Kinetic Energy Example
-// This JavaScript code is directly executed by the Formulize API
-
-const config = {
-  formula: {
-    expression: "K = \\\\frac{1}{2}mv^2",
-    variables: {
-      K: {
-        type: "dependent",
-        units: "J",
-        label: "Kinetic Energy",
-        precision: 2
-      },
-      m: {
-        type: "input",
-        value: 1,
-        range: [0.1, 10],
-        units: "kg",
-        label: "Mass"
-      },
-      v: {
-        type: "input",
-        value: 2,
-        range: [0.1, 100],
-        units: "m/s",
-        label: "Velocity"
-      }
-    },
-    computation: {
-      engine: "symbolic-algebra",
-      formula: "{K} = 0.5 * {m} * {v} * {v}"
+const kineticEnergyExample = `const config = {
+  formulas: [
+    {
+      name: "Kinetic Energy Formula",
+      function: "K = \\\\frac{1}{2}mv^2",
+      expression: "{K} = 0.5 * {m} * {v} * {v}"
     }
+  ],
+  variables: {
+    K: {
+      type: "dependent",
+      units: "J",
+      label: "Kinetic Energy",
+      precision: 2
+    },
+    m: {
+      type: "input",
+      value: 1,
+      range: [0.1, 10],
+      step: 1,
+      units: "kg",
+      label: "Mass"
+    },
+    v: {
+      type: "input",
+      value: 2,
+      range: [0.1, 100],
+      step: 1,
+      units: "m/s",
+      label: "Velocity"
+    }
+  },
+  computation: {
+    engine: "symbolic-algebra"
   },
   
   visualizations: [
     {
       type: "plot2d",
       id: "energyPlot",
-      config: {
-        title: "Kinetic Energy vs. Velocity",
-        xAxis: {
-          variable: "v",
-          label: "Velocity (m/s)",
-          min: 0,
-          max: 20
-        },
-        yAxis: {
-          variable: "K",
-          label: "Kinetic Energy (J)",
-          min: 0,
-          max: 200
-        },
-        width: 800,
-        height: 500
-      }
+      title: "Kinetic Energy vs. Velocity",
+      xVar: "v",
+      xRange: [0, 20],
+      yVar: "K",
+      yRange: [0, 200],
+      width: 600,
+      height: 600,
+      surfaces: [
+        {
+          formulaName: "Kinetic Energy Formula",
+          color: "Viridis",
+          opacity: 0.7,
+          showInLegend: true
+        }
+      ]
     }
-  ]
+  ],
+  fontSize: 0.8
 };
 
-// Create the Formulize instance with the configuration
 const formula = await Formulize.create(config);`;
 
 export default kineticEnergyExample;

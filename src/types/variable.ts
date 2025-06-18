@@ -1,13 +1,9 @@
-export interface IVariableBind {
-  source?: {
-    component: string;
-    property: string;
-  };
-  direction?: "bidirectional" | "to-target";
-  transform?: (value: any) => any;
-  reverseTransform?: (value: any) => any;
-  condition?: (context: any) => boolean;
-}
+export const INPUT_VARIABLE_DEFAULT = {
+  MIN_VALUE: -10 as number,
+  MAX_VALUE: 10 as number,
+  STEP_SIZE: 0.5 as number,
+  VALUE: 0 as number,
+};
 
 export interface IVariable {
   type: "constant" | "input" | "dependent";
@@ -21,5 +17,13 @@ export interface IVariable {
   range?: [number, number];
   step?: number;
   options?: string[];
-  bind?: IVariableBind;
+}
+
+export interface IVariableInput {
+  value: number;
+  minValue: number;
+  maxValue: number;
+  stepSize: number;
+  symbol: string;
+  varId: string;
 }

@@ -13,9 +13,9 @@ import {
   AugmentedFormulaNode,
   Group,
   RenderSpec,
-  deriveAugmentedFormula,
+  convertLatexToMathML,
+  deriveTree,
   updateFormula,
-  convertLatexToMathML // NEW: importing MathML conversion
 } from "./FormulaTree";
 import { canonicalizeFormula } from "./formulaTransformations";
 
@@ -59,7 +59,7 @@ class FormulaStore {
    */
   @action
   restoreFormulaState(latex: string) {
-    const newFormula = deriveAugmentedFormula(latex);
+    const newFormula = deriveTree(latex);
     const { renderSpec } = updateFormula(newFormula);
     this.renderSpec = renderSpec;
     this.augmentedFormula = newFormula;
@@ -82,6 +82,11 @@ class FormulaStore {
     const result = this.augmentedFormula.toLatex("content-only");
     console.log("🔍 latexWithoutStyling called, returning:", result);
     return result;
+  }
+
+  @computed
+  get latexRanges() {
+    return this.augmentedFormula.toLatexRanges("no-id")[1];
   }
 
   @computed
@@ -721,8 +726,8 @@ export const undoStore = new UndoStore();
 class EditingStore {
   @observable
   accessor showAlignMode: boolean = false;
-  
-  @observable 
+
+  @observable
   accessor showEnlivenMode: boolean = false;
 
   @action
@@ -730,7 +735,7 @@ class EditingStore {
     this.showAlignMode = show;
   }
 
-  @action 
+  @action
   setShowEnlivenMode(show: boolean) {
     this.showEnlivenMode = show;
     if (!show) {
