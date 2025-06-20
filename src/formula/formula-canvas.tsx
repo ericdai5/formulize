@@ -139,8 +139,7 @@ const FormulaCanvas = ({
         
         const Formulize = {
           create: async function(config) {
-            // Make a deep copy to prevent any reference issues
-            capturedConfig = JSON.parse(JSON.stringify(config));
+            capturedConfig = config;
             
             // Return a mock instance
             return {

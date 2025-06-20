@@ -75,7 +75,7 @@ async function create(
       controls: config.controls,
     };
 
-    // CRITICAL: Reset all state to ensure we start fresh
+    // Reset all state to ensure we start fresh
     // Clear computation store variables and state
     computationStore.clearAllVariables();
     computationStore.setLastGeneratedCode(null);
@@ -87,22 +87,23 @@ async function create(
     // Clear all individual formula stores
     formulaStoreManager.clearAllStores();
 
-    // Add variables to computation store from the configuration FIRST
-    // This must happen before creating formula stores so variable trees can be generated
-    Object.entries(environment.variables).forEach(([varName, variable]) => {
-      const varId = varName;
-      computationStore.addVariable(varId, varName, variable);
+    // Add variables to computation store from the config
+    // Do this before creating formula stores
+    // so variable trees can be generated
+    Object.entries(environment.variables).forEach(([varId, variable]) => {
+      computationStore.addVariable(varId, variable);
       computationStore.setVariableType(varId, variable.type);
       if (variable.value !== undefined) {
         computationStore.setValue(varId, variable.value);
       }
     });
 
-    // Now create individual formula stores for each formula (with variable trees available)
-    const formulas = environment.formulas.map((f) => f.function);
+    // Now create individual formula stores for each formula
+    // With variable trees available
+    const formulaLatex = environment.formulas.map((f) => f.function);
     const formulaStores: FormulaStore[] = [];
 
-    formulas.forEach((formulaLatex, index) => {
+    formulaLatex.forEach((formulaLatex, index) => {
       const storeId = index.toString();
       const store = formulaStoreManager.createStore(storeId, formulaLatex);
       formulaStores.push(store);
@@ -111,23 +112,37 @@ async function create(
     // Set up the computation engine
     setupComputationEngine(environment);
 
+    // Store the formulas from the environment in the computation store
+    computationStore.setEnvironment(environment);
+
     // Extract computation expressions from individual formulas
-    const computationFunctions = environment.formulas
+    const symbolicFunctions = environment.formulas
       .map((formula) => formula.expression)
       .filter((expression): expression is string => expression !== undefined);
 
+    // Extract manual functions from individual formulas
+    const manualFunctions = environment.formulas
+      .map((formula) => formula.manual)
+      .filter(
+        (manual): manual is (variables: Record<string, number>) => number =>
+          typeof manual === "function"
+      );
+
+    const formulaObjects = environment.formulas;
+
     // Store the display formulas for rendering and the computation expressions for evaluation
-    computationStore.setDisplayedFormulas(formulas);
-    computationStore.setComputationFunctions(computationFunctions);
+    computationStore.setDisplayedFormulas(
+      formulaObjects.map((f) => f.function)
+    );
 
     // Set up expressions and enable evaluation
-    await computationStore.setAllExpressions(computationFunctions);
+    await computationStore.setComputation(symbolicFunctions, manualFunctions);
 
     // Clear initialization flag to enable normal evaluation
     computationStore.setInitializing(false);
 
     // Trigger initial evaluation now that everything is set up
-    computationStore.updateAllDependentVariables();
+    computationStore.updateAllDependentVars();
 
     console.log(`Created ${formulaStores.length} individual formula stores`);
 

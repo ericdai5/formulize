@@ -45,9 +45,9 @@ export const processVariablesInFormula = (
       let isInputVariable = false;
       let variablePrecision = defaultPrecision;
 
-      for (const [, variable] of computationStore.variables.entries()) {
-        if (variable.symbol === originalSymbol) {
-          value = variable.value;
+      for (const [symbol, variable] of computationStore.variables.entries()) {
+        if (symbol === originalSymbol) {
+          value = variable.value ?? 0;
           isInputVariable = variable.type === "input";
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
@@ -211,7 +211,7 @@ export const getInputVariableState = (
   }
 
   // Get range from variable definition or provided ranges or use defaults
-  const range = variable.range || variableRanges[variable.symbol] || [-10, 10];
+  const range = variable.range || variableRanges[varId] || [-10, 10];
   const [minValue, maxValue] = range;
 
   // Use the variable's step property if defined, otherwise calculate from range
@@ -239,8 +239,8 @@ export const findVariableByElement = (
   // The CSS ID should be the original variable symbol
   // Find the corresponding variable in the computation store
   for (const [varId, variable] of computationStore.variables.entries()) {
-    if (variable.symbol === cssId) {
-      return { varId, symbol: variable.symbol };
+    if (varId === cssId) {
+      return { varId, symbol: varId };
     }
   }
 
@@ -257,9 +257,7 @@ export const processLatexContent = (
 ): string => {
   try {
     // Get variable patterns from computation store
-    const variablePatterns = Array.from(
-      computationStore.variables.values()
-    ).map((v) => v.symbol);
+    const variablePatterns = Array.from(computationStore.variables.keys());
 
     // Parse variable patterns into trees for grouping
     const variableTrees = parseVariableStrings(variablePatterns);

@@ -197,8 +197,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       // This prevents us from modifying the original variables
       const variablesMap: Record<string, number> = {};
       for (const [id, variable] of computationStore.variables.entries()) {
-        const symbol = variable.symbol;
-        variablesMap[symbol] = variable.value;
+        variablesMap[id] = variable.value ?? 0;
       }
 
       // For each x value, calculate the y value using the CACHED evaluation function
@@ -339,7 +338,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         Array.from(computationStore.variables.entries())
           .filter(([id]) => relevantVariables.has(id))
           .forEach(([id, v]) => {
-            trackedValues[id] = v.value;
+            trackedValues[id] = v.value ?? 0;
           });
 
         // Log only occasionally to prevent excessive logging

@@ -17,6 +17,11 @@ const engineDescriptions = {
     description:
       "The LLM engine generates JavaScript code on-the-fly to evaluate the formula based on its mathematical understanding. This allows handling complex equations without predefined rules.",
   },
+  manual: {
+    title: "Manual JavaScript",
+    description:
+      "The manual engine allows authors to define custom JavaScript functions for computing dependent variables. This provides maximum flexibility for complex calculations and custom logic.",
+  },
 };
 
 const EvaluationFunctionPane = observer(
@@ -33,6 +38,8 @@ const EvaluationFunctionPane = observer(
       // If no code is available yet, show appropriate placeholder
       if (engineType === "symbolic-algebra") {
         return "// Symbolic Algebra engine will generate code when the formula is rendered";
+      } else if (engineType === "manual") {
+        return "// Manual engine will show custom JavaScript functions when configured";
       } else {
         return "// LLM will generate code when formula is rendered";
       }

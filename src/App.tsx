@@ -17,7 +17,9 @@ declare global {
 
 function App() {
   // View mode: "editor" (default) or "formulizeAPI"
-  const [viewMode, setViewMode] = useState<"editor" | "formulizeAPI">("editor");
+  const [viewMode, setViewMode] = useState<"editor" | "formulizeAPI">(
+    "formulizeAPI"
+  );
 
   // Reset all formula state when switching to API examples or symbolic algebra test
   useEffect(() => {
