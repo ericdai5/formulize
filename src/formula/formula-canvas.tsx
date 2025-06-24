@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "../api/index.ts";
+import DebugModal from "../components/DebugModal.tsx";
 import IconButton from "../components/IconButton.tsx";
 import Modal from "../components/Modal.tsx";
 import StorePane from "../components/StorePane.tsx";
@@ -88,6 +89,7 @@ const FormulaCanvas = ({
   const [showElementPane, setShowElementPane] = useState<boolean>(false);
   const [showVariableTreePane, setShowVariableTreePane] =
     useState<boolean>(false);
+  const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Extract variable ranges from Formulize configuration
@@ -289,6 +291,12 @@ const FormulaCanvas = ({
             title="Show Variable Trees"
           />
           <IconButton
+            icon={functionIcon}
+            alt="Debug Manual Functions"
+            onClick={() => setShowDebugModal(true)}
+            title="Debug Manual Functions"
+          />
+          <IconButton
             icon={storeIcon}
             alt="Store"
             onClick={handleOpenStoreModal}
@@ -353,6 +361,13 @@ const FormulaCanvas = ({
       >
         <StorePane className="h-full" />
       </Modal>
+
+      {/* Debug Modal */}
+      <DebugModal
+        isOpen={showDebugModal}
+        onClose={() => setShowDebugModal(false)}
+        environment={currentConfig}
+      />
     </div>
   );
 };

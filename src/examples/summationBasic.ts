@@ -3,18 +3,19 @@ export const summationBasic = `const config = {
     {
       name: "Summation Basic",
       function: "E = \\\\sum_{x \\\\in X} x P(x)",
-      manual: (variables) => {
-        const x = variables.x;
-        const px = variables["P(x)"];
-        const xValues = x.set;
-        let expectedValue = 0;
-        for (const x of xValues) {
-          const probability = px.map[x];
-          expectedValue += x * probability;
+      manual: function(variables) {
+        var x = variables.x;
+        var px = variables["P(x)"];
+        var xValues = x.set;
+        var expectedValue = 0;
+        for (var i = 0; i < xValues.length; i++) {
+          var xi = xValues[i];
+          var probability = px.map[xi];
+          expectedValue += xi * probability;
         }
         return expectedValue;
-      }
-    }
+      },
+    },
   ],
   variables: {
     E: {
