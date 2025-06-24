@@ -17,6 +17,9 @@ export interface IVariable {
   range?: [number, number];
   step?: number;
   options?: string[];
+  set?: (string | number)[];
+  key?: string;
+  map?: Record<string | number, number>;
 }
 
 export interface IVariableInput {

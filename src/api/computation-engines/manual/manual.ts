@@ -51,14 +51,6 @@ export function computeWithManualEngine(
       return {};
     }
 
-    // Prepare a numeric variable map from environment variables
-    const numericVars: Record<string, number> = {};
-    for (const [name, varDef] of Object.entries(environment.variables)) {
-      if (typeof varDef.value === "number" && isFinite(varDef.value)) {
-        numericVars[name] = varDef.value;
-      }
-    }
-
     // Execute manual functions for each dependent variable
     for (const dependentVar of dependentVars) {
       let computed = false;
@@ -66,8 +58,8 @@ export function computeWithManualEngine(
       // Try to find a formula that can compute this dependent variable
       for (const formula of formulasWithManualFunctions) {
         try {
-          // Execute the manual function using the numeric variables map
-          const computedValue = formula.manual!(numericVars);
+          // Execute the manual function with the full variable definitions
+          const computedValue = formula.manual!(environment.variables);
 
           // Validate the result
           if (typeof computedValue === "number" && isFinite(computedValue)) {

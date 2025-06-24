@@ -4,7 +4,11 @@ export const kineticEnergy = `const config = {
       name: "Kinetic Energy Formula",
       function: "K = \\\\frac{1}{2}mv^2",
       expression: "{K} = 0.5 * {m} * {v} * {v}",
-      manual: ({ m, v }) => 0.5 * m * Math.pow(v, 2)
+      manual: (variables) => {
+        const m = variables.m.value;
+        const v = variables.v.value;
+        return 0.5 * m * Math.pow(v, 2);
+      }
     }
   ],
   variables: {

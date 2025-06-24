@@ -37,8 +37,9 @@ class ComputationStore {
   accessor symbolicFunctions: string[] = [];
 
   @observable
-  accessor manualFunctions: ((variables: Record<string, number>) => number)[] =
-    [];
+  accessor manualFunctions: ((
+    variables: Record<string, IVariable>
+  ) => number)[] = [];
 
   @observable
   accessor environment: IEnvironment | null = null;
@@ -119,7 +120,7 @@ class ComputationStore {
 
   @action
   setManualFunctions(
-    manual: ((variables: Record<string, number>) => number)[]
+    manual: ((variables: Record<string, IVariable>) => number)[]
   ): void {
     this.manualFunctions = manual;
   }
@@ -138,9 +139,44 @@ class ComputationStore {
     }
     variable.value = value;
 
+    // Update any mapped variables that use this variable as their key
+    this.updateMappedVariables(id, value);
+
     // Only update dependent variables if we're not initializing and not already in an update cycle
     if (!this.isUpdatingDependents && !this.isInitializing) {
       this.updateAllDependentVars();
+    }
+  }
+
+  // Resolve any key-map relationships after all variables have been added
+  @action
+  resolveKeyMapRelationships() {
+    for (const variable of this.variables.values()) {
+      if (variable.key && variable.map) {
+        const keyVariable = this.variables.get(variable.key);
+        if (keyVariable && keyVariable.value !== undefined) {
+          const mappedValue = variable.map[keyVariable.value];
+          if (mappedValue !== undefined) {
+            variable.value = mappedValue;
+          }
+        }
+      }
+    }
+  }
+
+  // Update variables that have a map based on a key variable
+  @action
+  private updateMappedVariables(keyVariableId: string, keyValue: number) {
+    // Find all variables that use this variable as their key
+    for (const variable of this.variables.values()) {
+      if (variable.key === keyVariableId && variable.map) {
+        // Look up the mapped value for this key
+        const mappedValue = variable.map[keyValue];
+        if (mappedValue !== undefined) {
+          // Update the mapped variable's value without triggering recursive updates
+          variable.value = mappedValue;
+        }
+      }
     }
   }
 
@@ -148,7 +184,7 @@ class ComputationStore {
   @action
   async setComputation(
     expressions: string[],
-    manual: ((variables: Record<string, number>) => number)[]
+    manual: ((variables: Record<string, IVariable>) => number)[]
   ) {
     this.setSymbolicFunctions(expressions);
     this.setManualFunctions(manual);
@@ -214,10 +250,12 @@ class ComputationStore {
     return (variables) => {
       if (!this.environment) return {};
       // Sync incoming variable values with the environment's variable definitions
-      for (const [symbol, value] of Object.entries(variables)) {
-        const envVar = this.environment.variables[symbol];
-        if (envVar) {
-          envVar.value = value;
+      if (this.environment.variables) {
+        for (const [symbol, value] of Object.entries(variables)) {
+          const envVar = this.environment.variables[symbol];
+          if (envVar) {
+            envVar.value = value;
+          }
         }
       }
       return computeWithManualEngine(this.environment);
@@ -239,7 +277,21 @@ class ComputationStore {
         range: variableDefinition?.range,
         step: variableDefinition?.step,
         options: variableDefinition?.options,
+        set: variableDefinition?.set,
+        key: variableDefinition?.key,
+        map: variableDefinition?.map,
       });
+
+      // If this variable has a key-map relationship, update its value based on the key variable
+      if (variableDefinition?.key && variableDefinition?.map) {
+        const keyVariable = this.variables.get(variableDefinition.key);
+        if (keyVariable && keyVariable.value !== undefined) {
+          const mappedValue = variableDefinition.map[keyVariable.value];
+          if (mappedValue !== undefined) {
+            this.variables.get(id)!.value = mappedValue;
+          }
+        }
+      }
     }
   }
 
@@ -252,7 +304,13 @@ class ComputationStore {
 
     variable.type = type;
 
-    if (type === "input" && !variable.range) {
+    // Get the environment variable if it exists
+    if (this.environment?.variables) {
+      const envVar = this.environment.variables[id];
+      if (envVar && envVar.type === "input" && !variable.range) {
+        variable.range = envVar.range || [-10, 10];
+      }
+    } else if (type === "input" && !variable.range) {
       // Only set default range if no range is already defined
       variable.range = [-10, 10];
     }
