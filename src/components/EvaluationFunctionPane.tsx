@@ -70,7 +70,6 @@ const EvaluationFunctionPane = observer(
               </div>
             )}
           </div>
-
           <div className="mt-4 p-3 bg-slate-50 rounded text-sm">
             <p className="text-gray-700">{currentEngine.description}</p>
           </div>
