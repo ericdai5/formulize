@@ -149,3 +149,91 @@ export const extractVariableNames = (code: string): string[] => {
     return [];
   }
 };
+
+/**
+ * Helper function to extract breakpoint positions from JavaScript code.
+ * This function parses JavaScript code using the acorn parser and extracts
+ * all view() function calls and their positions.
+ *
+ * @param code - The JavaScript code to parse
+ * @returns Array of breakpoint positions found in the code
+ *
+ * @example
+ * extractViews("var x = 1;\nview();\nvar y = 2;")
+ * // Returns: [{ start: 11, end: 18, line: 2, column: 0 }]
+ */
+export const extractViews = (
+  code: string
+): Array<{
+  start: number;
+  end: number;
+  line?: number;
+  column?: number;
+}> => {
+  try {
+    console.log("Extracting view() function calls from code:", code);
+
+    // Use acorn parser from the JS-Interpreter to parse the code
+    if (!window.acorn || !window.acorn.parse) {
+      console.warn("Acorn parser not available");
+      console.log("window.acorn:", window.acorn);
+      return [];
+    }
+
+    const breakpoints: Array<{
+      start: number;
+      end: number;
+      line?: number;
+      column?: number;
+    }> = [];
+
+    // Parse the code to get the AST
+    const ast = window.acorn.parse(code, {
+      allowReturnOutsideFunction: true,
+      strictSemicolons: false,
+      allowTrailingCommas: true,
+      locations: true, // Enable line/column tracking
+    });
+
+    // Walk through the AST to find view() function calls
+    const walkAst = (node: any) => {
+      if (!node || typeof node !== "object") return;
+
+      // Check for CallExpression where callee is an Identifier named 'view'
+      if (
+        node.type === "CallExpression" &&
+        node.callee?.type === "Identifier" &&
+        node.callee?.name === "view"
+      ) {
+        console.log(`Found view() call at position ${node.start}-${node.end}`);
+        breakpoints.push({
+          start: node.start || 0,
+          end: node.end || 0,
+          line: node.loc?.start?.line,
+          column: node.loc?.start?.column,
+        });
+      }
+
+      // Recursively walk through child nodes
+      for (const key in node) {
+        if (key === "parent") continue; // Avoid circular references
+        const child = node[key];
+        if (Array.isArray(child)) {
+          for (const item of child) {
+            walkAst(item);
+          }
+        } else if (child && typeof child === "object") {
+          walkAst(child);
+        }
+      }
+    };
+
+    walkAst(ast);
+
+    console.log(`Total view() calls found: ${breakpoints.length}`, breakpoints);
+    return breakpoints;
+  } catch (error) {
+    console.error("Error parsing code to extract view() calls:", error);
+    return [];
+  }
+};

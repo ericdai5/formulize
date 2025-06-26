@@ -11,7 +11,9 @@ export const summationBasic = `const config = {
         for (var i = 0; i < xValues.length; i++) {
           var xi = xValues[i];
           var probability = px.map[xi];
+          // @View
           expectedValue += xi * probability;
+          // @View
         }
         return expectedValue;
       },

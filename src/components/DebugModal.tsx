@@ -9,9 +9,10 @@ import {
   StackFrame,
   collectVariablesFromStack,
   initializeInterpreter,
+  isAtView,
 } from "../api/computation-engines/manual/interpreter";
 import { IEnvironment } from "../types/environment";
-import { extractVariableNames } from "../util/acorn";
+import { extractVariableNames, extractViews } from "../util/acorn";
 import { highlightCode } from "../util/codemirror";
 import Button from "./Button";
 import Modal from "./Modal";
@@ -42,6 +43,10 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const [interpreter, setInterpreter] = useState<JSInterpreter | null>(null);
   const [code, setCode] = useState<string>("");
   const [history, setHistory] = useState<DebugState[]>([]);
+  const [views, setViews] = useState<
+    Array<{ start: number; end: number; line?: number; column?: number }>
+  >([]);
+  const [isSteppingToView, setIsSteppingToView] = useState(false);
   const autoPlayIntervalRef = useRef<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const codeMirrorRef = useRef<any>(null);
@@ -58,6 +63,10 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
     if (result.code) {
       setCode(result.code);
+      const foundViews = extractViews(result.code);
+      console.log("Views extracted:", foundViews);
+      setViews(foundViews);
+      console.log("Views state set to:", foundViews);
       // Clear previous errors
       setError(null);
     }
@@ -199,18 +208,130 @@ const DebugModal: React.FC<DebugModalProps> = ({
       if (!canContinue) {
         setIsComplete(true);
         setIsRunning(false);
+        setIsSteppingToView(false);
         if (autoPlayIntervalRef.current) {
           clearInterval(autoPlayIntervalRef.current);
           autoPlayIntervalRef.current = null;
         }
       }
+
+      // Check if we've hit a view() breakpoint while stepping to breakpoint
+      if (isSteppingToView && isAtView(interpreter)) {
+        setIsSteppingToView(false);
+        console.log("Hit view() breakpoint at step:", history.length);
+      }
     } catch (err) {
       setError(`Execution error: ${err}`);
       setIsRunning(false);
+      setIsSteppingToView(false);
       if (autoPlayIntervalRef.current) {
         clearInterval(autoPlayIntervalRef.current);
         autoPlayIntervalRef.current = null;
       }
+    }
+  };
+
+  // Step to the next breakpoint
+  const stepToView = () => {
+    if (!interpreter || isComplete) {
+      return;
+    }
+
+    setIsSteppingToView(true);
+    console.log("Stepping to next view()");
+
+    try {
+      // Limit steps to prevent infinite loops
+      let stepsCount = 0;
+      const maxSteps = 100000;
+
+      // If we're currently at a view() breakpoint, step past it first
+      if (isAtView(interpreter)) {
+        console.log("At view(), stepping past it.");
+
+        // Step until we're no longer at the same view() breakpoint
+        let stillAtSameView = true;
+        while (stillAtSameView && stepsCount < maxSteps) {
+          const canContinue = interpreter.step();
+          stepsCount++;
+
+          const newState = getCurrentState(interpreter, history.length);
+          setHistory((prev) => [...prev, newState]);
+          highlightCode(
+            codeMirrorRef,
+            newState.highlight.start,
+            newState.highlight.end
+          );
+
+          if (!canContinue) {
+            setIsComplete(true);
+            setIsSteppingToView(false);
+            console.log(
+              "Execution completed while stepping past view() breakpoint"
+            );
+            return;
+          }
+
+          // Check if we're still at the same view() breakpoint
+          stillAtSameView = isAtView(interpreter);
+          if (!stillAtSameView) {
+            console.log(
+              `Stepped past view() breakpoint after ${stepsCount} steps`
+            );
+          }
+        }
+
+        if (stepsCount >= maxSteps) {
+          setError(
+            "Maximum steps reached while trying to step past view() breakpoint"
+          );
+          setIsSteppingToView(false);
+          return;
+        }
+      }
+
+      // Now step until we hit the next view() breakpoint
+      console.log("Looking for next view() breakpoint...");
+      let foundNextView = false;
+
+      while (!foundNextView && stepsCount < maxSteps) {
+        const canContinue = interpreter.step();
+        stepsCount++;
+
+        const state = getCurrentState(interpreter, history.length);
+        setHistory((prev) => [...prev, state]);
+        highlightCode(
+          codeMirrorRef,
+          state.highlight.start,
+          state.highlight.end
+        );
+
+        if (!canContinue) {
+          setIsComplete(true);
+          setIsSteppingToView(false);
+          console.log(
+            `Execution completed without finding another View after ${stepsCount} steps`
+          );
+          return;
+        }
+
+        if (isAtView(interpreter)) {
+          foundNextView = true;
+          setIsSteppingToView(false);
+          console.log(`Found next View after ${stepsCount} steps`);
+          return;
+        }
+      }
+
+      if (stepsCount >= maxSteps) {
+        setError("Maximum steps reached while looking for next View");
+        setIsSteppingToView(false);
+        return;
+      }
+    } catch (err) {
+      setError(`Execution error: ${err}`);
+      setIsSteppingToView(false);
+      console.error("Error during step to View:", err);
     }
   };
 
@@ -246,6 +367,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     setIsComplete(false);
     setError(null);
     setIsRunning(false);
+    setIsSteppingToView(false);
 
     if (autoPlayIntervalRef.current) {
       clearInterval(autoPlayIntervalRef.current);
@@ -275,6 +397,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const currentState = history[history.length - 1];
   const hasSteps = history.length > 0;
 
+  // Debug button state - now checking for view() functions instead of comment breakpoints
+  const buttonDisabled = !interpreter || isComplete || isSteppingToView;
+  console.log("Step to @View button disabled:", buttonDisabled, {
+    noInterpreter: !interpreter,
+    isComplete,
+    isSteppingToView,
+  });
+
   return (
     <Modal
       isOpen={isOpen}
@@ -285,26 +415,37 @@ const DebugModal: React.FC<DebugModalProps> = ({
       <div className="h-[85vh] flex flex-col">
         {/* Controls Header */}
         <div className="flex justify-start items-center p-2 border-b gap-2">
-          <Button onClick={startDebugging} disabled={isRunning} icon="🔄">
-            Initialize Debug
+          <Button
+            onClick={startDebugging}
+            disabled={isRunning || isSteppingToView}
+            icon="🔄"
+          >
+            Initialize
           </Button>
           <Button
             onClick={stepForward}
-            disabled={!interpreter || isRunning || isComplete}
+            disabled={
+              !interpreter || isRunning || isComplete || isSteppingToView
+            }
             icon="➡️"
           >
             Step Forward
           </Button>
           <Button
             onClick={stepBackward}
-            disabled={history.length <= 1 || isRunning}
+            disabled={history.length <= 1 || isRunning || isSteppingToView}
             icon="⬅️"
           >
             Step Back
           </Button>
+          <Button onClick={stepToView} disabled={buttonDisabled} icon="🎯">
+            {isSteppingToView
+              ? "Stepping..."
+              : `Step to @View (${views.length})`}
+          </Button>
           <Button
             onClick={toggleAutoPlay}
-            disabled={!interpreter || isComplete}
+            disabled={!interpreter || isComplete || isSteppingToView}
             icon={isRunning ? "⏸️" : "▶️"}
           >
             {isRunning ? "Pause" : "Auto Play"}
@@ -338,7 +479,17 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   {isRunning && (
                     <span className="text-blue-600 ml-2">🔄 Running...</span>
                   )}
+                  {isSteppingToView && (
+                    <span className="text-orange-600 ml-2">
+                      🎯 Stepping to breakpoint...
+                    </span>
+                  )}
                 </>
+              )}
+              {views.length > 0 && (
+                <span className="text-purple-600 ml-4">
+                  🎯 Views: {views.length}
+                </span>
               )}
             </span>
             {currentState?.variables && (

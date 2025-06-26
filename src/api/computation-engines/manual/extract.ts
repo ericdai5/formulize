@@ -8,6 +8,25 @@ interface ExtractResult {
   isLoading?: boolean;
 }
 
+/**
+ * Replace `// @view` comments with `view()` function calls for breakpoint debugging
+ * @param code - The JavaScript code containing `// @view` comments
+ * @returns Code with comments replaced by function calls
+ */
+export function addViewFunctions(code: string): string {
+  // Replace `// @view` comments (case insensitive) with `view()` function calls
+  // This regex matches:
+  // - Optional whitespace at start of line
+  // - // followed by optional whitespace
+  // - @view (case insensitive)
+  // - Optional additional text after @view
+  // - End of line
+  const viewCommentRegex = /^(\s*)\/\/\s*@view.*$/gim;
+  return code.replace(viewCommentRegex, (_, leadingWhitespace) => {
+    return `${leadingWhitespace}view();`;
+  });
+}
+
 export function extractManual(environment: IEnvironment | null): ExtractResult {
   // Environment not loaded yet
   if (!environment) {
@@ -38,10 +57,13 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
       functionBody = functionString.substring(bodyStart + 1, bodyEnd).trim();
     }
 
+    // Replace @view comments with view() function calls
+    const processedFunctionBody = addViewFunctions(functionBody);
+
     // Wrap the function body in a proper function declaration
     const wrappedCode = [
       "function executeManualFunction() {",
-      functionBody,
+      processedFunctionBody,
       "}",
       "",
       "// Parse Formulize variables",

@@ -3,6 +3,13 @@
  */
 import { IEnvironment } from "../../../types/environment";
 
+// Window interface extension for JS-Interpreter
+declare global {
+  interface Window {
+    Interpreter: InterpreterConstructor;
+  }
+}
+
 // Comprehensive interface for JS-Interpreter
 interface JSInterpreter {
   step(): boolean;
@@ -34,6 +41,11 @@ interface StackFrame {
     operator?: string;
     left?: { name?: string; type?: string };
     right?: { type?: string };
+    callee?: { name?: string; type?: string };
+    expression?: {
+      type?: string;
+      callee?: { name?: string; type?: string };
+    };
   };
   scope?: {
     object: unknown;
@@ -44,6 +56,9 @@ interface StackFrame {
       id?: { name: string };
     };
   };
+  // Interpreter state properties
+  doneCallee_?: boolean;
+  func_?: unknown;
 }
 
 // Helper function to get scope name based on stack position
@@ -66,11 +81,9 @@ const findVariableInFrame = (
 ): { found: boolean; value?: unknown; scopeName: string } => {
   const scopeName = getScopeName(frameIndex, stackLength);
   const stackFrame = state as StackFrame;
-
   if (!stackFrame.scope?.object) {
     return { found: false, scopeName };
   }
-
   try {
     const varValue = interpreter.getProperty(stackFrame.scope.object, varName);
     if (varValue !== undefined) {
@@ -115,23 +128,105 @@ const collectVariablesFromStack = (
   stack: unknown[],
   varNames: string[]
 ) => {
-  // Early return for invalid conditions
   if (!stack?.length || !varNames?.length) {
     return {};
   }
-
   const variables: Record<string, unknown> = {};
-
   for (const varName of varNames) {
     console.log(`Checking for variable: ${varName}`);
     const result = findVariableInStack(interpreter, stack, varName);
-
     if (result.found && result.value !== undefined && !(varName in variables)) {
       variables[varName] = result.value;
     }
   }
 
   return variables;
+};
+
+/**
+ * Check if the interpreter is currently about to execute a view() function call
+ * This replaces the old comment-based breakpoint checking system
+ * @param interpreter - The JS-Interpreter instance
+ * @returns boolean indicating if we're at a view() breakpoint
+ */
+const isAtView = (interpreter: JSInterpreter): boolean => {
+  if (!interpreter) return false;
+
+  try {
+    const stack = interpreter.getStateStack();
+    if (!stack || stack.length === 0) return false;
+
+    // Check the current execution stack frame
+    const currentFrame = stack[stack.length - 1] as StackFrame;
+
+    if (currentFrame?.node) {
+      const node = currentFrame.node;
+
+      // Check for CallExpression where callee is an Identifier named 'view'
+      if (
+        node.type === "CallExpression" &&
+        node.callee?.type === "Identifier" &&
+        node.callee?.name === "view"
+      ) {
+        console.log("Detected view() function call breakpoint");
+        return true;
+      }
+
+      // Also check for ExpressionStatement containing a CallExpression to view()
+      if (node.type === "ExpressionStatement") {
+        // The expression property might contain the actual call
+        const expression = node.expression;
+        if (
+          expression?.type === "CallExpression" &&
+          expression.callee?.type === "Identifier" &&
+          expression.callee?.name === "view"
+        ) {
+          console.log(
+            "Detected view() function call breakpoint in expression statement"
+          );
+          return true;
+        }
+      }
+
+      // Check if we're in the middle of processing a CallExpression
+      // and the state contains information about calling 'view'
+      if (node.type === "CallExpression") {
+        // Check if we're currently processing the callee and it's 'view'
+        if (currentFrame.doneCallee_ && currentFrame.func_) {
+          // We've evaluated the callee, check if it's our view function
+          if (
+            node.callee?.type === "Identifier" &&
+            node.callee?.name === "view"
+          ) {
+            console.log("Detected view() function call during execution phase");
+            return true;
+          }
+        }
+      }
+
+      // Additional check: look at the raw node to see if we're about to execute view()
+      if (
+        node.type === "Identifier" &&
+        node.name === "view" &&
+        stack.length > 1
+      ) {
+        // Check the parent context to see if this identifier is part of a call
+        const parentFrame = stack[stack.length - 2] as StackFrame;
+        if (
+          parentFrame?.node?.type === "CallExpression" &&
+          parentFrame.node.callee === node
+        ) {
+          console.log("Detected view() identifier about to be called");
+          return true;
+        }
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking for view() breakpoint:", error);
+    return false;
+  }
 };
 
 /**
@@ -146,8 +241,8 @@ export const initializeInterpreter = (
   environment: IEnvironment | null,
   setError: (error: string) => void
 ): JSInterpreter | null => {
-  if (!(window as any).Interpreter) {
-    setError("JS-Interpreter not loaded. Please refresh the page.");
+  if (!window.Interpreter) {
+    setError("JS-Interpreter not loaded.");
     return null;
   }
   if (!currentCode.trim()) {
@@ -174,21 +269,32 @@ export const initializeInterpreter = (
         }
       }
 
+      // Set up the view() function as a breakpoint trigger
+      // This function acts as a breakpoint marker
+      // When called, it signals that execution should pause for debugging
+      const view = function () {
+        console.log("view() called");
+        return undefined;
+      };
+      interpreter.setProperty(
+        globalObject,
+        "view",
+        interpreter.createNativeFunction(view)
+      );
+
       // Also provide the getVariablesJSON function
-      const getVariablesJSONWrapper = function () {
+      const getVariablesJSON = function () {
         return JSON.stringify(envVariables);
       };
       interpreter.setProperty(
         globalObject,
         "getVariablesJSON",
-        interpreter.createNativeFunction(getVariablesJSONWrapper)
+        interpreter.createNativeFunction(getVariablesJSON)
       );
     };
 
     // Create interpreter with the code and proper variable setup
-    const InterpreterClass = (window as any)
-      .Interpreter as InterpreterConstructor;
-    return new InterpreterClass(currentCode, initFunc);
+    return new window.Interpreter(currentCode, initFunc);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     setError(`Code error: ${errorMessage}`);
@@ -196,14 +302,13 @@ export const initializeInterpreter = (
   }
 };
 
-// Export the helper functions for use in other modules
 export {
   getScopeName,
   convertToNativeValue,
   findVariableInFrame,
   findVariableInStack,
   collectVariablesFromStack,
+  isAtView,
 };
 
-// Export the interfaces for type checking
 export type { JSInterpreter, StackFrame };
