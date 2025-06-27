@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "../api/index.ts";
-import IconButton from "../components/IconButton.tsx";
-import StorePane from "../components/StorePane.tsx";
+import IconButton from "../components/icon-button.tsx";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
+import StorePane from "../components/variable-overview.tsx";
 import { kineticEnergy } from "../examples/kineticEnergy";
 import { FormulaElementPane } from "../pages/api/FormulaElementPane.tsx";
 import FormulaCodeEditor from "../pages/api/api-code-editor.tsx";
