@@ -2,6 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
+import {
+  Eye,
+  Pause,
+  Play,
+  RotateCcw,
+  StepBack,
+  StepForward,
+  X,
+} from "lucide-react";
 
 import { extractManual } from "../api/computation-engines/manual/extract";
 import {
@@ -14,8 +23,8 @@ import {
 import { IEnvironment } from "../types/environment";
 import { extractVariableNames, extractViews } from "../util/acorn";
 import { highlightCode } from "../util/codemirror";
-import Button from "./Button";
-import Modal from "./Modal";
+import Button from "./button";
+import Select from "./select";
 
 interface DebugModalProps {
   isOpen: boolean;
@@ -29,6 +38,9 @@ interface DebugState {
   variables: Record<string, unknown>;
   stackTrace: string[];
   timestamp: number;
+  viewParams?: {
+    pairs?: Array<[string, string]>;
+  };
 }
 
 const DebugModal: React.FC<DebugModalProps> = ({
@@ -152,6 +164,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
       variables["[Error]"] = `Could not extract variables: ${err}`;
     }
 
+    // Capture view parameters if available
+    const viewParams = interpreter._currentViewParams;
+
     return {
       step: stepNumber,
       highlight: { start: node?.start || 0, end: node?.end || 0 },
@@ -161,11 +176,34 @@ const DebugModal: React.FC<DebugModalProps> = ({
         return `Frame ${i}: ${frame.node?.type || "Unknown"}${frame.func?.node?.id?.name ? ` (${frame.func.node.id.name})` : ""}`;
       }),
       timestamp: Date.now(),
+      viewParams,
     };
   };
 
-  // Start debugging
-  const startDebugging = () => {
+  const refresh = () => {
+    setInterpreter(null);
+    setHistory([]);
+    setIsComplete(false);
+    setError(null);
+    setIsRunning(false);
+    setIsSteppingToView(false);
+
+    if (autoPlayIntervalRef.current) {
+      clearInterval(autoPlayIntervalRef.current);
+      autoPlayIntervalRef.current = null;
+    }
+
+    if (codeMirrorRef.current) {
+      const view = codeMirrorRef.current.view;
+      if (view) {
+        view.dispatch({
+          selection: { anchor: 0, head: 0 },
+          scrollIntoView: true,
+        });
+      }
+    }
+
+    // Then initialize if we have code
     if (!code.trim()) {
       setError("No code to debug");
       return;
@@ -175,10 +213,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     if (!newInterpreter) return;
 
     setInterpreter(newInterpreter);
-    setHistory([]);
-    setIsComplete(false);
-    setError(null);
-    setIsRunning(false);
 
     // Add initial state
     const initialState = getCurrentState(newInterpreter, 0);
@@ -195,6 +229,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
     if (!interpreter || isComplete) return;
 
     try {
+      // Clear any previous view parameters at the start of each step
+      if (interpreter._currentViewParams) {
+        interpreter._currentViewParams = undefined;
+      }
+
       const canContinue = interpreter.step();
       const newState = getCurrentState(interpreter, history.length);
 
@@ -360,31 +399,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   };
 
-  // Reset debug session
-  const resetDebug = () => {
-    setInterpreter(null);
-    setHistory([]);
-    setIsComplete(false);
-    setError(null);
-    setIsRunning(false);
-    setIsSteppingToView(false);
-
-    if (autoPlayIntervalRef.current) {
-      clearInterval(autoPlayIntervalRef.current);
-      autoPlayIntervalRef.current = null;
-    }
-
-    if (codeMirrorRef.current) {
-      const view = codeMirrorRef.current.view;
-      if (view) {
-        view.dispatch({
-          selection: { anchor: 0, head: 0 },
-          scrollIntoView: true,
-        });
-      }
-    }
-  };
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -405,99 +419,54 @@ const DebugModal: React.FC<DebugModalProps> = ({
     isSteppingToView,
   });
 
+  if (!isOpen) return null;
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Manual Function Step-Through"
-      maxWidth="max-w-6xl"
-    >
-      <div className="h-[85vh] flex flex-col">
+    <>
+      <div
+        className={`fixed top-0 right-0 h-full w-1/2 max-w-3xl bg-white z-50 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         {/* Controls Header */}
         <div className="flex justify-start items-center p-2 border-b gap-2">
           <Button
-            onClick={startDebugging}
+            onClick={refresh}
             disabled={isRunning || isSteppingToView}
-            icon="🔄"
-          >
-            Initialize
-          </Button>
+            icon={RotateCcw}
+          />
+          <Button
+            onClick={stepBackward}
+            disabled={history.length <= 1 || isRunning || isSteppingToView}
+            icon={StepBack}
+          />
           <Button
             onClick={stepForward}
             disabled={
               !interpreter || isRunning || isComplete || isSteppingToView
             }
-            icon="➡️"
-          >
-            Step Forward
-          </Button>
-          <Button
-            onClick={stepBackward}
-            disabled={history.length <= 1 || isRunning || isSteppingToView}
-            icon="⬅️"
-          >
-            Step Back
-          </Button>
-          <Button onClick={stepToView} disabled={buttonDisabled} icon="🎯">
-            {isSteppingToView
-              ? "Stepping..."
-              : `Step to @View (${views.length})`}
+            icon={StepForward}
+          />
+          <Button onClick={stepToView} disabled={buttonDisabled} icon={Eye}>
+            {views.length}
           </Button>
           <Button
             onClick={toggleAutoPlay}
             disabled={!interpreter || isComplete || isSteppingToView}
-            icon={isRunning ? "⏸️" : "▶️"}
-          >
-            {isRunning ? "Pause" : "Auto Play"}
-          </Button>
-          <Button onClick={resetDebug} icon="🛑">
-            Reset
-          </Button>
-          <select
+            icon={isRunning ? Pause : Play}
+          />
+          <Select
             value={autoPlaySpeed}
-            onChange={(e) => setAutoPlaySpeed(Number(e.target.value))}
-            className="border rounded-xl px-3 py-2 border-slate-200"
-          >
-            <option value={100}>100ms</option>
-            <option value={300}>300ms</option>
-            <option value={500}>500ms</option>
-            <option value={1000}>1s</option>
-            <option value={2000}>2s</option>
-          </select>
-        </div>
-
-        {/* Status Bar */}
-        <div className="px-4 py-2 border-b">
-          <div className="flex justify-between items-center">
-            <span>
-              {hasSteps && (
-                <>
-                  <strong>Steps: {history.length}</strong>
-                  {isComplete && (
-                    <span className="text-green-600 ml-2">✅ Complete</span>
-                  )}
-                  {isRunning && (
-                    <span className="text-blue-600 ml-2">🔄 Running...</span>
-                  )}
-                  {isSteppingToView && (
-                    <span className="text-orange-600 ml-2">
-                      🎯 Stepping to breakpoint...
-                    </span>
-                  )}
-                </>
-              )}
-              {views.length > 0 && (
-                <span className="text-purple-600 ml-4">
-                  🎯 Views: {views.length}
-                </span>
-              )}
-            </span>
-            {currentState?.variables && (
-              <span>
-                Variables: {Object.keys(currentState.variables).length}
-              </span>
-            )}
-          </div>
+            onChange={(value) => setAutoPlaySpeed(Number(value))}
+            options={[
+              { value: 100, label: "100 ms" },
+              { value: 300, label: "300 ms" },
+              { value: 500, label: "500 ms" },
+              { value: 1000, label: "1 s" },
+              { value: 2000, label: "2 s" },
+            ]}
+          />
+          <Button onClick={onClose} icon={X} />
         </div>
 
         {/* Error Display */}
@@ -509,7 +478,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Code with Highlighting */}
+          {/* Code with Highlighting */}
           <div className="w-1/2 border-r flex flex-col">
             <CodeMirror
               value={code}
@@ -536,17 +505,22 @@ const DebugModal: React.FC<DebugModalProps> = ({
             />
           </div>
 
-          {/* Right Panel - Debug Info */}
+          {/* Debug Info */}
           <div className="w-1/2 flex flex-col">
             {/* Current Variables */}
             {currentState && (
               <div className="border-b max-h-1/2">
-                <div className="px-4 py-2 font-semibold border-b border-slate-200">
-                  Visible Variables
+                <div className="flex flex-row justify-between px-4 py-2 font-medium border-b border-slate-200">
+                  <div className="font-medium">Variables</div>
+                  {currentState?.variables && (
+                    <div className="text-slate-500">
+                      Qty: {Object.keys(currentState.variables).length}
+                    </div>
+                  )}
                 </div>
-                <div className="p-4 overflow-y-auto max-h-64">
+                <div className="overflow-y-auto max-h-64">
                   {Object.keys(currentState.variables).length > 0 ? (
-                    <div className="space-y-2">
+                    <div>
                       {/* Display regular variables */}
                       {Object.entries(currentState.variables)
                         .filter(([key]) => {
@@ -565,14 +539,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         .map(([key, value]) => (
                           <div
                             key={key}
-                            className="bg-blue-50 border border-blue-200 rounded-lg p-3"
+                            className="border-b border-slate-200 p-3"
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-blue-800">
-                                {key}
-                              </span>
-                              <span className="text-gray-500">=</span>
-                              <span className="font-mono text-blue-700 break-all min-w-0 flex-1">
+                            <div className="flex items-center gap-2 font-mono text-sm">
+                              <span>{key}</span>
+                              <span>=</span>
+                              <span className="break-all min-w-0 flex-1">
                                 {typeof value === "object"
                                   ? JSON.stringify(value)
                                   : String(value)}
@@ -599,9 +571,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         .map(([key, value]) => (
                           <div
                             key={key}
-                            className="bg-gray-50 border border-gray-200 rounded-lg p-2"
+                            className="bg-slate-50 border-b border-slate-200 p-2"
                           >
-                            <div className="text-xs text-gray-600 break-words">
+                            <div className="text-sm text-gray-600 break-words">
                               <span className="font-semibold">{key}:</span>
                               <div className="ml-2 font-mono mt-1 whitespace-pre-wrap break-all">
                                 {typeof value === "object"
@@ -621,43 +593,50 @@ const DebugModal: React.FC<DebugModalProps> = ({
               </div>
             )}
 
-            {/* Step History */}
             <div className="flex-1 flex flex-col">
-              <div className="px-4 py-2 border-b border-slate-200 font-semibold">
+              <div className="px-4 py-2 border-b border-slate-200 font-medium flex flex-row justify-between">
                 Timeline
+                {hasSteps && (
+                  <div className="text-slate-500 flex flex-row gap-2">
+                    <span>Step {history.length}</span>
+                    {isComplete && (
+                      <span className="text-green-600">Complete</span>
+                    )}
+                    {isRunning && (
+                      <span className="text-blue-600">Running...</span>
+                    )}
+                    {isSteppingToView && (
+                      <span className="text-orange-600">
+                        Stepping to a View...
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex-1 overflow-y-auto p-4 max-h-96">
-                {/* Debug info */}
-                <div className="mb-2 p-2 bg-yellow-50 border rounded-xl border-yellow-200">
-                  Total Steps: {history.length} | Auto-playing:{" "}
-                  {isRunning ? "Yes" : "No"}
-                </div>
+              <div className="flex-1 overflow-y-auto max-h-96">
                 {history.map((state, index) => {
                   return (
                     <div
                       key={index}
-                      className={`mb-2 p-3 border rounded-xl transition-colors bg-slate-50 border-slate-200`}
+                      className={`py-3 px-4 border-b border-slate-200`}
                     >
                       <div className="flex justify-between items-start">
-                        <div className="font-semibold text-sm">
-                          Step {index}
+                        <div className="text-sm gap-2 flex">
+                          <span className="font-medium">Step {index}</span>
                           {index === history.length - 1 && (
-                            <span className="ml-2 text-blue-600">
-                              ← Current
-                            </span>
+                            <span className="text-blue-600">← Current</span>
                           )}
+                          <span>
+                            Pos: {state.highlight.start}-{state.highlight.end}
+                          </span>
                         </div>
                         <div className="text-sm text-gray-500">
                           {new Date(state.timestamp).toLocaleTimeString()}
                         </div>
                       </div>
-                      <div className="mt-1 text-sm text-gray-600">
-                        Code position: {state.highlight.start}-
-                        {state.highlight.end}
-                      </div>
                       {state.stackTrace.length > 0 && (
                         <div className="mt-1 text-sm text-gray-500">
-                          Stack: {state.stackTrace[state.stackTrace.length - 1]}
+                          {state.stackTrace[state.stackTrace.length - 1]}
                         </div>
                       )}
                     </div>
@@ -673,7 +652,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
           </div>
         </div>
       </div>
-    </Modal>
+    </>
   );
 };
 

@@ -21,8 +21,39 @@ export function addViewFunctions(code: string): string {
   // - @view (case insensitive)
   // - Optional additional text after @view
   // - End of line
-  const viewCommentRegex = /^(\s*)\/\/\s*@view.*$/gim;
-  return code.replace(viewCommentRegex, (_, leadingWhitespace) => {
+  const viewCommentRegex = /^(\s*)\/\/\s*@view(.*)$/gim;
+  return code.replace(viewCommentRegex, (match, leadingWhitespace, params) => {
+    // Parse parameters from the comment
+    const trimmedParams = params.trim();
+
+    if (trimmedParams) {
+      // Split parameters and clean them up
+      const paramList = trimmedParams
+        .split(/\s+/)
+        .filter((p: string) => p.length > 0);
+
+      if (paramList.length > 0) {
+        const pairs: string[] = [];
+
+        // Process parameters in pairs
+        for (let i = 0; i < paramList.length; i += 2) {
+          const localVar = paramList[i];
+          const envVar = paramList[i + 1];
+
+          if (envVar) {
+            // We have both local and environment variable
+            pairs.push(`["${localVar}", "${envVar}"]`);
+          } else {
+            // Only one parameter left, use it for both local and env
+            pairs.push(`["${localVar}", "${localVar}"]`);
+          }
+        }
+
+        return `${leadingWhitespace}view([${pairs.join(", ")}]);`;
+      }
+    }
+
+    // No parameters or invalid format, use default view() call
     return `${leadingWhitespace}view();`;
   });
 }

@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { FormulizeConfig } from "../../api/Formulize";
 import { computationStore } from "../../api/computation";
 import EvaluationFunctionPane from "../../components/EvaluationFunctionPane";
-import Modal from "../../components/Modal";
 import StorePane from "../../components/StorePane";
+import Modal from "../../components/modal";
 import FormulaCanvas from "../../formula/formula-canvas";
 import VisualizationRenderer from "../../visualizations/VisualizationRenderer";
 

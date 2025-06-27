@@ -22,6 +22,10 @@ interface JSInterpreter {
   createNativeFunction(func: (...args: unknown[]) => unknown): unknown;
   nativeToPseudo(obj: unknown): unknown;
   pseudoToNative?(obj: unknown): unknown;
+  // Custom property to store current view parameters
+  _currentViewParams?: {
+    pairs?: Array<[string, string]>;
+  };
 }
 
 interface InterpreterConstructor {
@@ -271,9 +275,16 @@ export const initializeInterpreter = (
 
       // Set up the view() function as a breakpoint trigger
       // This function acts as a breakpoint marker
-      // When called, it signals that execution should pause for debugging
-      const view = function () {
-        console.log("view() called");
+      // When called, it signals that execution should pause
+      // Store all pairs on the interpreter instance
+      const view = function (...args: unknown[]) {
+        if (args.length === 1 && Array.isArray(args[0])) {
+          const pairs = args[0] as Array<[string, string]>;
+          interpreter._currentViewParams = { pairs };
+        } else {
+          interpreter._currentViewParams = {};
+        }
+
         return undefined;
       };
       interpreter.setProperty(
