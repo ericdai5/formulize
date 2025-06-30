@@ -50,7 +50,8 @@ export const summationBasic = `const config = {
     }
   },
   computation: {
-    engine: "manual"
+    engine: "manual",
+    mode: "step"
   },
   fontSize: 0.7
 };

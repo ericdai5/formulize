@@ -46,6 +46,7 @@ interface StackFrame {
     left?: { name?: string; type?: string };
     right?: { type?: string };
     callee?: { name?: string; type?: string };
+    arguments?: Array<any>; // Generic AST nodes - let runtime handle the structure
     expression?: {
       type?: string;
       callee?: { name?: string; type?: string };
@@ -149,83 +150,25 @@ const collectVariablesFromStack = (
 
 /**
  * Check if the interpreter is currently about to execute a view() function call
- * This replaces the old comment-based breakpoint checking system
  * @param interpreter - The JS-Interpreter instance
  * @returns boolean indicating if we're at a view() breakpoint
  */
 const isAtView = (interpreter: JSInterpreter): boolean => {
   if (!interpreter) return false;
-
   try {
     const stack = interpreter.getStateStack();
     if (!stack || stack.length === 0) return false;
-
-    // Check the current execution stack frame
-    const currentFrame = stack[stack.length - 1] as StackFrame;
-
-    if (currentFrame?.node) {
-      const node = currentFrame.node;
-
-      // Check for CallExpression where callee is an Identifier named 'view'
-      if (
-        node.type === "CallExpression" &&
-        node.callee?.type === "Identifier" &&
-        node.callee?.name === "view"
-      ) {
-        console.log("Detected view() function call breakpoint");
-        return true;
-      }
-
-      // Also check for ExpressionStatement containing a CallExpression to view()
-      if (node.type === "ExpressionStatement") {
-        // The expression property might contain the actual call
-        const expression = node.expression;
-        if (
-          expression?.type === "CallExpression" &&
-          expression.callee?.type === "Identifier" &&
-          expression.callee?.name === "view"
-        ) {
-          console.log(
-            "Detected view() function call breakpoint in expression statement"
-          );
-          return true;
-        }
-      }
-
-      // Check if we're in the middle of processing a CallExpression
-      // and the state contains information about calling 'view'
-      if (node.type === "CallExpression") {
-        // Check if we're currently processing the callee and it's 'view'
-        if (currentFrame.doneCallee_ && currentFrame.func_) {
-          // We've evaluated the callee, check if it's our view function
-          if (
-            node.callee?.type === "Identifier" &&
-            node.callee?.name === "view"
-          ) {
-            console.log("Detected view() function call during execution phase");
-            return true;
-          }
-        }
-      }
-
-      // Additional check: look at the raw node to see if we're about to execute view()
-      if (
-        node.type === "Identifier" &&
-        node.name === "view" &&
-        stack.length > 1
-      ) {
-        // Check the parent context to see if this identifier is part of a call
-        const parentFrame = stack[stack.length - 2] as StackFrame;
-        if (
-          parentFrame?.node?.type === "CallExpression" &&
-          parentFrame.node.callee === node
-        ) {
-          console.log("Detected view() identifier about to be called");
+    // Check stack frames from most recent backwards, looking for view() call context
+    // Stop when we find frames that are clearly unrelated to a view() call
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const frame = stack[i] as StackFrame;
+      if (frame?.node) {
+        const node = frame.node;
+        if (node.callee?.name === "view") {
           return true;
         }
       }
     }
-
     return false;
   } catch (error) {
     console.error("Error checking for view() breakpoint:", error);
@@ -276,15 +219,7 @@ export const initializeInterpreter = (
       // Set up the view() function as a breakpoint trigger
       // This function acts as a breakpoint marker
       // When called, it signals that execution should pause
-      // Store all pairs on the interpreter instance
-      const view = function (...args: unknown[]) {
-        if (args.length === 1 && Array.isArray(args[0])) {
-          const pairs = args[0] as Array<[string, string]>;
-          interpreter._currentViewParams = { pairs };
-        } else {
-          interpreter._currentViewParams = {};
-        }
-
+      const view = function () {
         return undefined;
       };
       interpreter.setProperty(

@@ -20,6 +20,7 @@ import {
   initializeInterpreter,
   isAtView,
 } from "../api/computation-engines/manual/interpreter";
+import { updateStepModeVariables } from "../formula/stepHandler";
 import { IEnvironment } from "../types/environment";
 import { extractVariableNames, extractViews } from "../util/acorn";
 import { highlightCode } from "../util/codemirror";
@@ -38,9 +39,7 @@ interface DebugState {
   variables: Record<string, unknown>;
   stackTrace: string[];
   timestamp: number;
-  viewParams?: {
-    pairs?: Array<[string, string]>;
-  };
+  viewVariables: Record<string, unknown>;
 }
 
 const DebugModal: React.FC<DebugModalProps> = ({
@@ -76,9 +75,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     if (result.code) {
       setCode(result.code);
       const foundViews = extractViews(result.code);
-      console.log("Views extracted:", foundViews);
       setViews(foundViews);
-      console.log("Views state set to:", foundViews);
       // Clear previous errors
       setError(null);
     }
@@ -97,7 +94,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     try {
       // Extract variable names from code
       const varNames = extractVariableNames(code);
-      console.log("Variables names found:", varNames);
 
       // Use the refactored variable extraction
       const extractedVariables = collectVariablesFromStack(
@@ -158,14 +154,60 @@ const DebugModal: React.FC<DebugModalProps> = ({
         }
       }
 
-      console.log("All variables:", variables);
     } catch (err) {
       console.warn("Error extracting variables:", err);
       variables["[Error]"] = `Could not extract variables: ${err}`;
     }
 
-    // Capture view parameters if available
-    const viewParams = interpreter._currentViewParams;
+    // Check if we're currently at a view() breakpoint
+    const atView = isAtView(interpreter);
+    let viewVariables: Record<string, unknown> = {};
+
+    if (atView) {
+      // If we're at a view() call, extract fresh params from the AST
+      // This ensures we show the params for the CURRENT view(), not the previous one
+      const currentFrame = stack[stack.length - 1] as StackFrame;
+      if (
+        currentFrame?.node?.callee?.name === "view" &&
+        currentFrame.node.arguments?.[0]
+      ) {
+        const firstArg = currentFrame.node.arguments[0];
+        if (firstArg.type === "ArrayExpression" && firstArg.elements) {
+          try {
+            const pairs: Array<[string, string]> = [];
+            for (const element of firstArg.elements) {
+              if (
+                element.type === "ArrayExpression" &&
+                element.elements &&
+                element.elements.length >= 2
+              ) {
+                const first = element.elements[0];
+                const second = element.elements[1];
+                if (first.type === "Literal" && second.type === "Literal") {
+                  pairs.push([String(first.value), String(second.value)]);
+                }
+              }
+            }
+            if (pairs.length > 0) {
+              // Extract the view variables
+              const viewVarNames = pairs.map(([varName]) => varName);
+              viewVariables = collectVariablesFromStack(
+                interpreter,
+                stack,
+                viewVarNames
+              );
+
+              // Update step mode variables in Formulize
+              updateStepModeVariables(viewVariables, pairs);
+            }
+          } catch (err) {
+            console.warn("Error extracting view parameters:", err);
+            viewVariables["[View Error]"] =
+              `Could not extract view variables: ${err}`;
+          }
+        }
+      }
+    }
 
     return {
       step: stepNumber,
@@ -176,7 +218,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
         return `Frame ${i}: ${frame.node?.type || "Unknown"}${frame.func?.node?.id?.name ? ` (${frame.func.node.id.name})` : ""}`;
       }),
       timestamp: Date.now(),
-      viewParams,
+      viewVariables,
     };
   };
 
@@ -229,11 +271,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     if (!interpreter || isComplete) return;
 
     try {
-      // Clear any previous view parameters at the start of each step
-      if (interpreter._currentViewParams) {
-        interpreter._currentViewParams = undefined;
-      }
-
       const canContinue = interpreter.step();
       const newState = getCurrentState(interpreter, history.length);
 
@@ -257,7 +294,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
       // Check if we've hit a view() breakpoint while stepping to breakpoint
       if (isSteppingToView && isAtView(interpreter)) {
         setIsSteppingToView(false);
-        console.log("Hit view() breakpoint at step:", history.length);
       }
     } catch (err) {
       setError(`Execution error: ${err}`);
@@ -277,7 +313,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
 
     setIsSteppingToView(true);
-    console.log("Stepping to next view()");
 
     try {
       // Limit steps to prevent infinite loops
@@ -286,7 +321,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
       // If we're currently at a view() breakpoint, step past it first
       if (isAtView(interpreter)) {
-        console.log("At view(), stepping past it.");
 
         // Step until we're no longer at the same view() breakpoint
         let stillAtSameView = true;
@@ -305,19 +339,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
           if (!canContinue) {
             setIsComplete(true);
             setIsSteppingToView(false);
-            console.log(
-              "Execution completed while stepping past view() breakpoint"
-            );
             return;
           }
 
           // Check if we're still at the same view() breakpoint
           stillAtSameView = isAtView(interpreter);
-          if (!stillAtSameView) {
-            console.log(
-              `Stepped past view() breakpoint after ${stepsCount} steps`
-            );
-          }
         }
 
         if (stepsCount >= maxSteps) {
@@ -330,7 +356,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
       }
 
       // Now step until we hit the next view() breakpoint
-      console.log("Looking for next view() breakpoint...");
       let foundNextView = false;
 
       while (!foundNextView && stepsCount < maxSteps) {
@@ -348,16 +373,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
         if (!canContinue) {
           setIsComplete(true);
           setIsSteppingToView(false);
-          console.log(
-            `Execution completed without finding another View after ${stepsCount} steps`
-          );
           return;
         }
 
         if (isAtView(interpreter)) {
           foundNextView = true;
           setIsSteppingToView(false);
-          console.log(`Found next View after ${stepsCount} steps`);
           return;
         }
       }
@@ -370,7 +391,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     } catch (err) {
       setError(`Execution error: ${err}`);
       setIsSteppingToView(false);
-      console.error("Error during step to View:", err);
     }
   };
 
@@ -413,11 +433,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   // Debug button state - now checking for view() functions instead of comment breakpoints
   const buttonDisabled = !interpreter || isComplete || isSteppingToView;
-  console.log("Step to @View button disabled:", buttonDisabled, {
-    noInterpreter: !interpreter,
-    isComplete,
-    isSteppingToView,
-  });
 
   if (!isOpen) return null;
 
@@ -507,6 +522,42 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
           {/* Debug Info */}
           <div className="w-1/2 flex flex-col">
+            {/* View Variables - shown in green boxes when view() is called */}
+            {currentState &&
+              currentState.viewVariables &&
+              Object.keys(currentState.viewVariables).length > 0 && (
+                <div>
+                  <div className="flex flex-row justify-between px-4 py-2 font-medium border-b border-green-200 bg-green-100">
+                    <div className="font-medium text-green-800">
+                      View Variables
+                    </div>
+                    <div className="text-green-600">
+                      Qty: {Object.keys(currentState.viewVariables).length}
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto max-h-32">
+                    {Object.entries(currentState.viewVariables).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="border-b border-green-200 p-3 bg-green-50"
+                        >
+                          <div className="flex items-center gap-2 font-mono text-sm text-green-800">
+                            <span className="font-semibold">{key}</span>
+                            <span>=</span>
+                            <span className="break-all min-w-0 flex-1 bg-white px-2 py-1 rounded border border-green-200">
+                              {typeof value === "object"
+                                ? JSON.stringify(value)
+                                : String(value)}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
             {/* Current Variables */}
             {currentState && (
               <div className="border-b max-h-1/2">

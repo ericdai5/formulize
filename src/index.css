@@ -53,6 +53,15 @@
     @apply text-zinc-800 bg-zinc-100 m-1 p-2 rounded-xl;
   }
 
+  /* Step mode styles */
+  .step-mode {
+    @apply bg-green-50 text-green-800;
+  }
+
+  .interpreter-updated {
+    @apply bg-green-100 border-green-300;
+  }
+
   /* Hide scrollbar for webkit browsers (Chrome, Safari, Opera) */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;

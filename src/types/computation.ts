@@ -3,4 +3,5 @@ export interface IComputation {
   mappings?: Record<string, (...args: unknown[]) => unknown>;
   apiKey?: string;
   model?: string;
+  mode?: "step" | "normal";
 }

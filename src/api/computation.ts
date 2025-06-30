@@ -148,6 +148,23 @@ class ComputationStore {
     }
   }
 
+  @action
+  setValueInStepMode(id: string, value: number) {
+    const variable = this.variables.get(id);
+    if (!variable) {
+      console.log(`setValueInStepMode: Variable not found: ${id}`);
+      return;
+    }
+    console.log(`Step mode: Setting ${id} = ${value} (no recalculation)`);
+    variable.value = value;
+
+    // Update any mapped variables that use this variable as their key
+    this.updateMappedVariables(id, value);
+
+    // In step mode, we don't trigger automatic recalculation
+    // We want to show interpreter values, not computed values
+  }
+
   // Resolve any key-map relationships after all variables have been added
   @action
   resolveKeyMapRelationships() {
