@@ -39,9 +39,9 @@ export class FormulaStore {
 
   @action
   restoreFormulaState(latex: string) {
-    const allVariableSymbols = Array.from(computationStore.variables.values())
-      .map((variable) => variable.symbol)
-      .filter((symbol) => symbol && symbol.length > 0);
+    const allVariableSymbols = Array.from(
+      computationStore.variables.keys()
+    ).filter((symbol) => symbol && symbol.length > 0);
     const variableTrees = parseVariableStrings(allVariableSymbols);
     const newFormula = deriveTreeWithVars(
       latex,
@@ -142,9 +142,9 @@ export class FormulaStoreManager {
     const store = new FormulaStore(id);
     if (formulaLatex) {
       // Get all variables from computation store and convert to trees
-      const allVariableSymbols = Array.from(computationStore.variables.values())
-        .map((variable) => variable.symbol)
-        .filter((symbol) => symbol && symbol.length > 0);
+      const allVariableSymbols = Array.from(
+        computationStore.variables.keys()
+      ).filter((symbol) => symbol && symbol.length > 0);
       const variableTrees = parseVariableStrings(allVariableSymbols);
       const formula = deriveTreeWithVars(
         formulaLatex,

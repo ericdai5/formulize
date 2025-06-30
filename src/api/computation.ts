@@ -1,25 +1,25 @@
 import { action, observable } from "mobx";
 
 import { IComputation } from ".";
+import { IEnvironment } from "../types/environment";
 import { IVariable } from "../types/variable";
-import { generateEvaluationFunction as generateLLMFunction } from "./computation-engines/llm-function-generator";
-import { computeWithSymbolicEngine } from "./computation-engines/symbolic-algebra";
+import {
+  DisplayCodeGeneratorContext,
+  generateLLMDisplayCode,
+  generateManualDisplayCode,
+  generateSymbolicAlgebraDisplayCode,
+} from "./computation-engines/display-code-generator";
+import { generateEvaluationFunction as generateLLMFunction } from "./computation-engines/llm/llm-function-generator";
+import { computeWithManualEngine } from "./computation-engines/manual/manual";
+import { computeWithSymbolicEngine } from "./computation-engines/symbolic-algebra/symbolic-algebra";
 
-export interface ComputationVariable extends Omit<IVariable, "value"> {
-  value: number;
-  symbol: string;
-  error?: string;
-}
-
-// Map the new type values to match existing functionality
-export type VariableType = IVariable["type"] | "none";
 export type EvaluationFunction = (
   variables: Record<string, number>
 ) => Record<string, number>;
 
 class ComputationStore {
   @observable
-  accessor variables = new Map<string, ComputationVariable>();
+  accessor variables = new Map<string, IVariable>();
 
   @observable
   accessor lastGeneratedCode: string | null = null;
@@ -34,7 +34,15 @@ class ComputationStore {
   accessor displayedFormulas: string[] = [];
 
   @observable
-  accessor computationFunctions: string[] = [];
+  accessor symbolicFunctions: string[] = [];
+
+  @observable
+  accessor manualFunctions: ((
+    variables: Record<string, IVariable>
+  ) => number)[] = [];
+
+  @observable
+  accessor environment: IEnvironment | null = null;
 
   @observable
   accessor variableTypesChanged = 0;
@@ -43,29 +51,37 @@ class ComputationStore {
   private isUpdatingDependents = false;
   private isInitializing = false;
 
-  // Helper methods for dependent variable operations
-  private hasDependentVariables(): boolean {
+  private hasDependentVars(): boolean {
     return Array.from(this.variables.values()).some(
       (v) => v.type === "dependent"
     );
   }
 
-  private getDependentVariables(): ComputationVariable[] {
+  private getDependentVars(): IVariable[] {
     return Array.from(this.variables.values()).filter(
       (v) => v.type === "dependent"
     );
   }
 
-  private getDependentVariableSymbols(): string[] {
-    return Array.from(this.variables.values())
-      .filter((v) => v.type === "dependent")
-      .map((v) => v.symbol);
+  private getDependentVarSymbols(): string[] {
+    return Array.from(this.variables.entries())
+      .filter(([, v]) => v.type === "dependent")
+      .map(([id]) => id);
   }
 
-  private getInputVariableSymbols(): string[] {
-    return Array.from(this.variables.values())
-      .filter((v) => v.type !== "dependent")
-      .map((v) => v.symbol);
+  private getInputVarSymbols(): string[] {
+    return Array.from(this.variables.entries())
+      .filter(([, v]) => v.type === "input")
+      .map(([id]) => id);
+  }
+
+  private getDisplayCodeGeneratorContext(): DisplayCodeGeneratorContext {
+    return {
+      computationConfig: this.computationConfig,
+      variables: this.variables,
+      getDependentVariableSymbols: () => this.getDependentVarSymbols(),
+      getInputVariableSymbols: () => this.getInputVarSymbols(),
+    };
   }
 
   get evaluateFormula(): EvaluationFunction | null {
@@ -98,8 +114,20 @@ class ComputationStore {
   }
 
   @action
-  setComputationFunctions(functions: string[]) {
-    this.computationFunctions = functions;
+  setSymbolicFunctions(expressions: string[]) {
+    this.symbolicFunctions = expressions;
+  }
+
+  @action
+  setManualFunctions(
+    manual: ((variables: Record<string, IVariable>) => number)[]
+  ): void {
+    this.manualFunctions = manual;
+  }
+
+  @action
+  setEnvironment(environment: IEnvironment) {
+    this.environment = environment;
   }
 
   @action
@@ -111,93 +139,151 @@ class ComputationStore {
     }
     variable.value = value;
 
+    // Update any mapped variables that use this variable as their key
+    this.updateMappedVariables(id, value);
+
     // Only update dependent variables if we're not initializing and not already in an update cycle
     if (!this.isUpdatingDependents && !this.isInitializing) {
-      this.updateAllDependentVariables();
+      this.updateAllDependentVars();
+    }
+  }
+
+  @action
+  setValueInStepMode(id: string, value: number) {
+    const variable = this.variables.get(id);
+    if (!variable) {
+      console.log(`setValueInStepMode: Variable not found: ${id}`);
+      return;
+    }
+    console.log(`Step mode: Setting ${id} = ${value} (no recalculation)`);
+    variable.value = value;
+
+    // Update any mapped variables that use this variable as their key
+    this.updateMappedVariables(id, value);
+
+    // In step mode, we don't trigger automatic recalculation
+    // We want to show interpreter values, not computed values
+  }
+
+  // Resolve any key-map relationships after all variables have been added
+  @action
+  resolveKeyMapRelationships() {
+    for (const variable of this.variables.values()) {
+      if (variable.key && variable.map) {
+        const keyVariable = this.variables.get(variable.key);
+        if (keyVariable && keyVariable.value !== undefined) {
+          const mappedValue = variable.map[keyVariable.value];
+          if (mappedValue !== undefined) {
+            variable.value = mappedValue;
+          }
+        }
+      }
+    }
+  }
+
+  // Update variables that have a map based on a key variable
+  @action
+  private updateMappedVariables(keyVariableId: string, keyValue: number) {
+    // Find all variables that use this variable as their key
+    for (const variable of this.variables.values()) {
+      if (variable.key === keyVariableId && variable.map) {
+        // Look up the mapped value for this key
+        const mappedValue = variable.map[keyValue];
+        if (mappedValue !== undefined) {
+          // Update the mapped variable's value without triggering recursive updates
+          variable.value = mappedValue;
+        }
+      }
     }
   }
 
   // Set up all expressions for computation
   @action
-  async setAllExpressions(expressions: string[]) {
-    this.setComputationFunctions(expressions);
+  async setComputation(
+    expressions: string[],
+    manual: ((variables: Record<string, IVariable>) => number)[]
+  ) {
+    this.setSymbolicFunctions(expressions);
+    this.setManualFunctions(manual);
 
     // Set up the evaluation function to handle all expressions
     if (
       this.computationEngine === "symbolic-algebra" &&
       this.computationConfig
     ) {
-      this.evaluationFunction = this.createMultiExpressionEvaluator();
-      this.generateSymbolicAlgebraDisplayCode(expressions);
+      this.evaluationFunction =
+        this.createMultiExpressionEvaluator(expressions);
+      const displayCode = generateSymbolicAlgebraDisplayCode(
+        expressions,
+        this.getDisplayCodeGeneratorContext()
+      );
+      this.setLastGeneratedCode(displayCode);
     } else if (this.computationEngine === "llm") {
       // For LLM engine, create a multi-expression evaluator using the LLM approach
       await this.createLLMMultiExpressionEvaluator(expressions);
+    } else if (this.computationEngine === "manual" && this.computationConfig) {
+      // For manual engine, create an evaluator using manual functions
+      this.evaluationFunction = this.createManualEvaluator();
+      const displayCode = generateManualDisplayCode(
+        this.getDisplayCodeGeneratorContext()
+      );
+      this.setLastGeneratedCode(displayCode);
     }
 
     // Initial evaluation of all dependent variables
-    this.updateAllDependentVariables();
+    this.updateAllDependentVars();
   }
 
   // Create an evaluation function that handles multiple expressions
-  private createMultiExpressionEvaluator(): EvaluationFunction {
+  private createMultiExpressionEvaluator(
+    expressions: string[]
+  ): EvaluationFunction {
     return (variables: Record<string, number>) => {
-      if (!this.computationConfig) return {};
-      const result: Record<string, number> = {};
+      if (!this.computationConfig || !this.environment) return {};
 
-      // Create formulas from the stored expressions
-      const formulas = this.computationFunctions.map((expression, index) => ({
-        name: `Formula ${index + 1}`,
-        function: `Formula ${index + 1}`, // LaTeX display (not used for computation)
-        expression: expression, // The computational expression
-      }));
+      // Use expressions if available
+      if (!expressions || expressions.length === 0) {
+        console.warn("No expressions available for symbolic algebra engine");
+        return {};
+      }
 
-      // Create a formula object for the symbolic engine
-      const formulaObj = {
-        formulas: formulas, // ✅ Now includes actual formulas with expressions
-        variables: Object.fromEntries(
-          Array.from(this.variables.entries()).map(([id, v]) => {
-            const varType: "constant" | "input" | "dependent" =
-              v.type === "constant"
-                ? "constant"
-                : v.type === "input"
-                  ? "input"
-                  : v.type === "dependent"
-                    ? "dependent"
-                    : "constant";
-            return [v.symbol, { type: varType } as const];
-          })
-        ),
-        computation: this.computationConfig,
-      };
-
-      // Evaluate using the symbolic algebra engine
+      // Evaluate using the symbolic algebra engine with the stored environment directly
       try {
         const symbolResult = computeWithSymbolicEngine(
-          formulaObj,
+          this.environment,
           this.computationConfig,
           variables
         );
-
-        // Merge results
-        Object.assign(result, symbolResult);
+        return symbolResult;
       } catch (error) {
         console.error("❌ Error in multi-expression evaluation:", error);
+        return {};
       }
+    };
+  }
 
-      return result;
+  // Create an evaluation function for manual engine using manual functions
+  private createManualEvaluator(): EvaluationFunction {
+    return (variables) => {
+      if (!this.environment) return {};
+      // Sync incoming variable values with the environment's variable definitions
+      if (this.environment.variables) {
+        for (const [symbol, value] of Object.entries(variables)) {
+          const envVar = this.environment.variables[symbol];
+          if (envVar) {
+            envVar.value = value;
+          }
+        }
+      }
+      return computeWithManualEngine(this.environment);
     };
   }
 
   @action
-  addVariable(
-    id: string,
-    symbol: string,
-    variableDefinition?: Partial<IVariable>
-  ) {
+  addVariable(id: string, variableDefinition?: Partial<IVariable>) {
     if (!this.variables.has(id)) {
       this.variables.set(id, {
         value: variableDefinition?.value ?? 0,
-        symbol: symbol,
         type: variableDefinition?.type ?? "constant",
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
@@ -208,58 +294,40 @@ class ComputationStore {
         range: variableDefinition?.range,
         step: variableDefinition?.step,
         options: variableDefinition?.options,
+        set: variableDefinition?.set,
+        key: variableDefinition?.key,
+        map: variableDefinition?.map,
       });
+
+      // If this variable has a key-map relationship, update its value based on the key variable
+      if (variableDefinition?.key && variableDefinition?.map) {
+        const keyVariable = this.variables.get(variableDefinition.key);
+        if (keyVariable && keyVariable.value !== undefined) {
+          const mappedValue = variableDefinition.map[keyVariable.value];
+          if (mappedValue !== undefined) {
+            this.variables.get(id)!.value = mappedValue;
+          }
+        }
+      }
     }
   }
 
   @action
-  cleanup(currentVariables: Set<string>) {
-    const variablesToRemove = new Set<string>();
-
-    // Check which variables need to be removed
-    for (const [id, variable] of this.variables.entries()) {
-      if (!currentVariables.has(variable.symbol)) {
-        variablesToRemove.add(id);
-      }
-    }
-
-    if (variablesToRemove.size > 0) {
-      variablesToRemove.forEach((id) => {
-        this.variables.delete(id);
-      });
-
-      // Check if we still have dependent variables
-      const hasDependentVariables = this.hasDependentVariables();
-
-      if (!hasDependentVariables) {
-        this.setLastGeneratedCode(null);
-        this.evaluationFunction = null;
-      }
-    }
-
-    // Re-evaluate expressions if we still have expressions and dependent variables
-    const hasDependentVars = this.hasDependentVariables();
-
-    if (hasDependentVars && this.computationFunctions.length > 0) {
-      this.setAllExpressions(this.computationFunctions);
-    }
-  }
-
-  @action
-  setVariableType(id: string, type: VariableType) {
+  setVariableType(id: string, type: IVariable["type"]) {
     const variable = this.variables.get(id);
     if (!variable) {
       return;
     }
 
-    if (type === "none") {
-      variable.type = "constant";
-    } else {
-      variable.type = type;
-    }
-    variable.error = undefined;
+    variable.type = type;
 
-    if (type === "input" && !variable.range) {
+    // Get the environment variable if it exists
+    if (this.environment?.variables) {
+      const envVar = this.environment.variables[id];
+      if (envVar && envVar.type === "input" && !variable.range) {
+        variable.range = envVar.range || [-10, 10];
+      }
+    } else if (type === "input" && !variable.range) {
       // Only set default range if no range is already defined
       variable.range = [-10, 10];
     }
@@ -267,51 +335,45 @@ class ComputationStore {
     this.variableTypesChanged++;
 
     // Check if we have dependent variables and expressions to evaluate
-    const hasDependentVariables = this.hasDependentVariables();
+    const hasDependentVars = this.hasDependentVars();
 
-    if (hasDependentVariables && this.computationFunctions.length > 0) {
+    if (hasDependentVars && this.symbolicFunctions.length > 0) {
       // Re-evaluate all expressions when variable types change
-      this.setAllExpressions(this.computationFunctions);
-    } else if (!hasDependentVariables) {
+      this.setComputation(this.symbolicFunctions, this.manualFunctions);
+    } else if (!hasDependentVars) {
       // Clear evaluation function if no dependent variables
       this.evaluationFunction = null;
       this.lastGeneratedCode = null;
     }
 
     // Update all dependent variables
-    this.updateAllDependentVariables();
+    this.updateAllDependentVars();
   }
 
   @action
-  updateAllDependentVariables() {
+  updateAllDependentVars() {
     if (!this.evaluationFunction) return;
 
     try {
       this.isUpdatingDependents = true;
       const values = Object.fromEntries(
-        Array.from(this.variables.entries()).map(([, v]) => [v.symbol, v.value])
+        Array.from(this.variables.entries()).map(([symbol, v]) => [
+          symbol,
+          v.value ?? 0,
+        ])
       );
       const results = this.evaluationFunction(values);
-
       // Update all dependent variables with their computed values
-      for (const [, variable] of this.variables.entries()) {
+      for (const [symbol, variable] of this.variables.entries()) {
         if (variable.type === "dependent") {
-          const result = results[variable.symbol];
+          const result = results[symbol];
           if (typeof result === "number" && !isNaN(result)) {
             variable.value = result;
-            variable.error = undefined;
-          } else {
-            variable.error = "Invalid computation result";
           }
         }
       }
     } catch (error) {
       console.error("Error updating dependent variables:", error);
-      for (const [, variable] of this.variables.entries()) {
-        if (variable.type === "dependent") {
-          variable.error = "Evaluation error";
-        }
-      }
     } finally {
       this.isUpdatingDependents = false;
     }
@@ -321,7 +383,6 @@ class ComputationStore {
     return {
       variables: Array.from(this.variables.entries()).map(([id, v]) => ({
         id,
-        symbol: v.symbol,
         value: v.value,
         type: v.type,
       })),
@@ -329,15 +390,15 @@ class ComputationStore {
       hasFunction: !!this.evaluationFunction,
       computationEngine: this.computationEngine,
       displayedFormulas: this.displayedFormulas,
-      computationFunctions: this.computationFunctions,
+      computationFunctions: this.symbolicFunctions,
     };
   }
 
   // Create an LLM-based multi-expression evaluator
   private async createLLMMultiExpressionEvaluator(expressions: string[]) {
-    const dependentVariables = this.getDependentVariables();
+    const dependentVars = this.getDependentVars();
 
-    if (dependentVariables.length === 0) {
+    if (dependentVars.length === 0) {
       console.log(
         "🔎 No dependent variables, skipping LLM function generation"
       );
@@ -355,8 +416,8 @@ class ComputationStore {
 
       console.log("🚀 Generating LLM function for expressions:", expressions);
 
-      const dependentVars = dependentVariables.map((v) => v.symbol);
-      const inputVars = this.getInputVariableSymbols();
+      const dependentVars = this.getDependentVarSymbols();
+      const inputVars = this.getInputVarSymbols();
 
       // Generate function code via LLM
       const functionCode = await generateLLMFunction({
@@ -365,112 +426,15 @@ class ComputationStore {
         inputVars,
       });
 
-      this.setLastGeneratedCode(functionCode);
+      const displayCode = generateLLMDisplayCode(functionCode, expressions);
+      this.setLastGeneratedCode(displayCode);
       this.evaluationFunction = new Function(
         "variables",
         `"use strict";\n${functionCode}\nreturn evaluate(variables);`
       ) as EvaluationFunction;
     } catch (error) {
-      console.error("❌ Error creating LLM multi-expression evaluator:", error);
+      console.error("Error creating LLM multi-expression evaluator:", error);
     }
-  }
-
-  // Generate display code for the symbolic algebra engine
-  private generateSymbolicAlgebraDisplayCode(expressions: string[]) {
-    const dependentVars = this.getDependentVariableSymbols();
-
-    console.log("🔎 Generating display code for symbolic algebra engine");
-    console.log("🔎 Dependent variables:", dependentVars);
-
-    // Generate evaluation function that matches what's really used by SymbolicAlgebraEngine
-    let functionCode = `function evaluate(variables) {
-  // Using symbolic algebra engine with math.js
-  // Expressions: ${expressions.join(", ")}
-
-  try {`;
-
-    // Add input variable declarations
-    const inputVars = this.getInputVariableSymbols();
-
-    inputVars.forEach((varName) => {
-      functionCode += `
-    var ${varName} = variables.${varName};`;
-    });
-
-    // Structure the code to match the real implementation
-    functionCode += `
-    
-    // Create a scope object with input variables
-    const scope = { ...variables };
-    const result = {};
-`;
-
-    // For each dependent variable, find its expression and generate code
-    dependentVars.forEach((varName) => {
-      functionCode += `
-    // Calculate ${varName}`;
-
-      // Check if there's an explicit mapping function in the config
-      if (
-        this.computationConfig?.mappings &&
-        typeof this.computationConfig.mappings[varName] === "function"
-      ) {
-        // Use the mapping function if available
-        functionCode += `
-    // Using custom mapping function
-    result.${varName} = computation.mappings.${varName}(variables);`;
-      } else {
-        // Find the expression that defines this variable
-        let foundExpression = false;
-
-        for (const expression of expressions) {
-          const processedExpression = expression.replace(/\{([^}]+)\}/g, "$1");
-
-          // Check if variable is on the left side: varName = ...
-          const leftSideMatch = processedExpression.match(
-            new RegExp(`^\\s*${varName}\\s*=\\s*(.+)`)
-          );
-          if (leftSideMatch) {
-            const rightSide = leftSideMatch[1];
-            functionCode += `
-    // Found expression: ${varName} = ${rightSide}
-    result.${varName} = math.evaluate("${rightSide}", scope);`;
-            foundExpression = true;
-            break;
-          }
-
-          // Check if variable is on the right side: ... = varName
-          const rightSideMatch = processedExpression.match(
-            new RegExp(`^\\s*(.+?)\\s*=\\s*${varName}\\s*$`)
-          );
-          if (rightSideMatch) {
-            const leftSide = rightSideMatch[1];
-            functionCode += `
-    // Found expression: ${leftSide} = ${varName}
-    result.${varName} = math.evaluate("${leftSide}", scope);`;
-            foundExpression = true;
-            break;
-          }
-        }
-
-        if (!foundExpression) {
-          functionCode += `
-    // No explicit equation found for ${varName}, trying to solve from expressions
-    result.${varName} = NaN;`;
-        }
-      }
-    });
-
-    // Return the results
-    functionCode += `
-
-    return result;
-  } catch (error) {
-    console.error("Error in symbolic algebra evaluation:", error);
-    return { ${dependentVars.map((v) => `${v}: NaN`).join(", ")} };
-  }
-}`;
-    this.setLastGeneratedCode(functionCode);
   }
 }
 

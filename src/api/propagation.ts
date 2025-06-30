@@ -14,6 +14,10 @@ export function setVariable(
   value: number
 ): boolean {
   // Find the variable by name
+  if (!environment.variables) {
+    return false;
+  }
+
   const variable = environment.variables[name];
   if (!variable) {
     return false;

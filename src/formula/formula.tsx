@@ -10,6 +10,8 @@ import { FormulaStore } from "../store/FormulaStoreManager";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
 import { dragHandler } from "./dragHandler";
+import { dropdownHandler } from "./dropdownHandler";
+import { stepHandler } from "./stepHandler";
 
 export type VariableRange = [number, number];
 
@@ -128,6 +130,13 @@ const Formula = observer(
           containerRef.current.querySelectorAll(`.formula-expression`);
         expressionElements.forEach((element) => {
           dragHandler(element as HTMLElement, variableRanges);
+          // Check if we're in step mode
+          const isStepMode = environment?.computation?.mode === "step";
+          if (isStepMode) {
+            stepHandler(element as HTMLElement);
+          } else {
+            dropdownHandler(element as HTMLElement);
+          }
         });
       } catch (error) {
         console.error("Error rendering formulas:", error);

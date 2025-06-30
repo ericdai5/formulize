@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AugmentedFormula } from "./FormulaTree";
 import { FormulizeConfig } from "./api";
 import { computationStore } from "./api/computation";
-import Header from "./components/Header";
+import Header from "./components/navigation.tsx";
 import APIPage from "./pages/api/index.tsx";
 import EditorPage from "./pages/editor/EditorPage";
 import { formulaStore } from "./store";
@@ -17,7 +17,9 @@ declare global {
 
 function App() {
   // View mode: "editor" (default) or "formulizeAPI"
-  const [viewMode, setViewMode] = useState<"editor" | "formulizeAPI">("editor");
+  const [viewMode, setViewMode] = useState<"editor" | "formulizeAPI">(
+    "formulizeAPI"
+  );
 
   // Reset all formula state when switching to API examples or symbolic algebra test
   useEffect(() => {

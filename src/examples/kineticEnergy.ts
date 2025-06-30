@@ -3,7 +3,12 @@ export const kineticEnergy = `const config = {
     {
       name: "Kinetic Energy Formula",
       function: "K = \\\\frac{1}{2}mv^2",
-      expression: "{K} = 0.5 * {m} * {v} * {v}"
+      expression: "{K} = 0.5 * {m} * {v} * {v}",
+      manual: function(variables) {
+        var m = variables.m.value;
+        var v = variables.v.value;
+        return 0.5 * m * Math.pow(v, 2);
+      }
     }
   ],
   variables: {
@@ -31,7 +36,7 @@ export const kineticEnergy = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "manual"
   },
   
   visualizations: [

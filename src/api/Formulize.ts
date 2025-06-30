@@ -75,7 +75,7 @@ async function create(
       controls: config.controls,
     };
 
-    // CRITICAL: Reset all state to ensure we start fresh
+    // Reset all state to ensure we start fresh
     // Clear computation store variables and state
     computationStore.clearAllVariables();
     computationStore.setLastGeneratedCode(null);
@@ -87,22 +87,26 @@ async function create(
     // Clear all individual formula stores
     formulaStoreManager.clearAllStores();
 
-    // Add variables to computation store from the configuration FIRST
-    // This must happen before creating formula stores so variable trees can be generated
-    Object.entries(environment.variables).forEach(([varName, variable]) => {
-      const varId = varName;
-      computationStore.addVariable(varId, varName, variable);
-      computationStore.setVariableType(varId, variable.type);
-      if (variable.value !== undefined) {
-        computationStore.setValue(varId, variable.value);
-      }
-    });
+    // Setup variables
+    if (environment.variables) {
+      Object.entries(environment.variables).forEach(([varId, variable]) => {
+        computationStore.addVariable(varId, variable);
+        computationStore.setVariableType(varId, variable.type);
+        if (variable.value !== undefined) {
+          computationStore.setValue(varId, variable.value);
+        }
+      });
 
-    // Now create individual formula stores for each formula (with variable trees available)
-    const formulas = environment.formulas.map((f) => f.function);
+      // Resolve any key-map relationships after all variables have been added
+      computationStore.resolveKeyMapRelationships();
+    }
+
+    // Now create individual formula stores for each formula
+    // With variable trees available
+    const formulaLatex = environment.formulas.map((f) => f.function);
     const formulaStores: FormulaStore[] = [];
 
-    formulas.forEach((formulaLatex, index) => {
+    formulaLatex.forEach((formulaLatex, index) => {
       const storeId = index.toString();
       const store = formulaStoreManager.createStore(storeId, formulaLatex);
       formulaStores.push(store);
@@ -111,23 +115,36 @@ async function create(
     // Set up the computation engine
     setupComputationEngine(environment);
 
+    // Store the formulas from the environment in the computation store
+    computationStore.setEnvironment(environment);
+
     // Extract computation expressions from individual formulas
-    const computationFunctions = environment.formulas
-      .map((formula) => formula.expression)
-      .filter((expression): expression is string => expression !== undefined);
+    const symbolicFunctions = environment.formulas
+      .filter((f) => f.expression && f.name)
+      .map((f) => f.expression!);
+
+    // Extract manual functions from individual formulas
+    const manualFunctions = environment.formulas
+      .filter((f) => f.manual)
+      .map((f) => f.manual!);
+
+    const formulaObjects = environment.formulas;
 
     // Store the display formulas for rendering and the computation expressions for evaluation
-    computationStore.setDisplayedFormulas(formulas);
-    computationStore.setComputationFunctions(computationFunctions);
+    computationStore.setDisplayedFormulas(
+      formulaObjects.map((f) => f.function)
+    );
 
     // Set up expressions and enable evaluation
-    await computationStore.setAllExpressions(computationFunctions);
+    if (symbolicFunctions.length > 0 || manualFunctions.length > 0) {
+      await computationStore.setComputation(symbolicFunctions, manualFunctions);
+    }
 
     // Clear initialization flag to enable normal evaluation
     computationStore.setInitializing(false);
 
     // Trigger initial evaluation now that everything is set up
-    computationStore.updateAllDependentVariables();
+    computationStore.updateAllDependentVars();
 
     console.log(`Created ${formulaStores.length} individual formula stores`);
 
@@ -136,6 +153,9 @@ async function create(
       environment: environment,
       getVariable: (name: string): IVariable => {
         // Find the variable by name
+        if (!environment.variables) {
+          throw new Error("No variables defined in environment");
+        }
         const variable = environment.variables[name];
         if (!variable) {
           throw new Error(`Variable '${name}' not found`);
@@ -156,10 +176,20 @@ async function create(
           range: variable.range,
           step: variable.step,
           options: variable.options,
+          set: variable.set,
+          key: variable.key,
+          map: variable.map,
         };
       },
       setVariable: (name: string, value: number) => {
-        return setVariable(environment, name, value);
+        if (environment.variables) {
+          const variable = environment.variables[name];
+          if (variable && variable.type !== "dependent") {
+            computationStore.setValue(name, value);
+            return true;
+          }
+        }
+        return false;
       },
       update: async (updatedConfig: FormulizeConfig) => {
         return await create(updatedConfig, container);
@@ -193,8 +223,13 @@ async function create(
       },
       // Formula expression access
       getFormulaExpression: (name: string) => {
-        const formula = environment.formulas.find((f) => f.name === name);
-        return formula?.expression || null;
+        if (environment.formulas) {
+          const formula = environment.formulas.find((f) => f.name === name);
+          if (formula) {
+            return formula.expression ?? null;
+          }
+        }
+        return null;
       },
     };
     return instance;
@@ -239,8 +274,13 @@ const Formulize = {
     environment: IEnvironment,
     name: string
   ): string | null => {
-    const formula = environment.formulas.find((f) => f.name === name);
-    return formula?.expression || null;
+    if (environment.formulas) {
+      const formula = environment.formulas.find((f) => f.name === name);
+      if (formula) {
+        return formula.expression ?? null;
+      }
+    }
+    return null;
   },
 };
 

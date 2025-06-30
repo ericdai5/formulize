@@ -43,12 +43,19 @@ export const processVariablesInFormula = (
       // Get the value, type, and precision from the computation store
       let value = 0;
       let isInputVariable = false;
+      let hasDropdownOptions = false;
       let variablePrecision = defaultPrecision;
 
-      for (const [, variable] of computationStore.variables.entries()) {
-        if (variable.symbol === originalSymbol) {
-          value = variable.value;
+      for (const [symbol, variable] of computationStore.variables.entries()) {
+        if (symbol === originalSymbol) {
+          value = variable.value ?? 0;
           isInputVariable = variable.type === "input";
+          // Check if variable has dropdown options (set, options, or map property)
+          hasDropdownOptions = !!(
+            variable.set ||
+            variable.options ||
+            variable.map
+          );
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           break;
@@ -58,10 +65,13 @@ export const processVariablesInFormula = (
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
 
-      // Use different CSS classes based on variable type
-      const cssClass = isInputVariable
-        ? "interactive-var-slidable"
-        : "interactive-var-dependent";
+      // Use different CSS classes based on variable type and interaction mode
+      let cssClass = "interactive-var-dependent";
+      if (isInputVariable) {
+        cssClass = hasDropdownOptions
+          ? "interactive-var-dropdown"
+          : "interactive-var-slidable";
+      }
 
       // Wrap the token with CSS classes using the variable's specific precision
       const result = `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(variablePrecision)}}}`;
@@ -211,7 +221,7 @@ export const getInputVariableState = (
   }
 
   // Get range from variable definition or provided ranges or use defaults
-  const range = variable.range || variableRanges[variable.symbol] || [-10, 10];
+  const range = variable.range || variableRanges[varId] || [-10, 10];
   const [minValue, maxValue] = range;
 
   // Use the variable's step property if defined, otherwise calculate from range
@@ -238,9 +248,9 @@ export const findVariableByElement = (
 
   // The CSS ID should be the original variable symbol
   // Find the corresponding variable in the computation store
-  for (const [varId, variable] of computationStore.variables.entries()) {
-    if (variable.symbol === cssId) {
-      return { varId, symbol: variable.symbol };
+  for (const [varId] of computationStore.variables.entries()) {
+    if (varId === cssId) {
+      return { varId, symbol: varId };
     }
   }
 
@@ -257,9 +267,7 @@ export const processLatexContent = (
 ): string => {
   try {
     // Get variable patterns from computation store
-    const variablePatterns = Array.from(
-      computationStore.variables.values()
-    ).map((v) => v.symbol);
+    const variablePatterns = Array.from(computationStore.variables.keys());
 
     // Parse variable patterns into trees for grouping
     const variableTrees = parseVariableStrings(variablePatterns);

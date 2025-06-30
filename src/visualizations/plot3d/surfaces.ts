@@ -73,9 +73,9 @@ export const getSurface = (
 
   // Get current variable values as base context
   const baseVariables = Object.fromEntries(
-    Array.from(computationStore.variables.entries()).map(([, v]) => [
-      v.symbol,
-      v.value,
+    Array.from(computationStore.variables.entries()).map(([symbol, v]) => [
+      symbol,
+      v.value ?? 0,
     ])
   );
 

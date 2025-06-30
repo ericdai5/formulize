@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "../api/index.ts";
-import IconButton from "../components/IconButton.tsx";
-import Modal from "../components/Modal.tsx";
-import StorePane from "../components/StorePane.tsx";
+import IconButton from "../components/icon-button.tsx";
+import DebugModal from "../components/interpreter.tsx";
+import Modal from "../components/modal.tsx";
+import StorePane from "../components/variable-overview.tsx";
 import { kineticEnergy } from "../examples/kineticEnergy";
 import { FormulaElementPane } from "../pages/api/FormulaElementPane.tsx";
 import FormulaCodeEditor from "../pages/api/api-code-editor.tsx";
@@ -88,6 +89,7 @@ const FormulaCanvas = ({
   const [showElementPane, setShowElementPane] = useState<boolean>(false);
   const [showVariableTreePane, setShowVariableTreePane] =
     useState<boolean>(false);
+  const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Extract variable ranges from Formulize configuration
@@ -139,8 +141,7 @@ const FormulaCanvas = ({
         
         const Formulize = {
           create: async function(config) {
-            // Make a deep copy to prevent any reference issues
-            capturedConfig = JSON.parse(JSON.stringify(config));
+            capturedConfig = config;
             
             // Return a mock instance
             return {
@@ -290,6 +291,12 @@ const FormulaCanvas = ({
             title="Show Variable Trees"
           />
           <IconButton
+            icon={functionIcon}
+            alt="Debug Manual Functions"
+            onClick={() => setShowDebugModal(true)}
+            title="Debug Manual Functions"
+          />
+          <IconButton
             icon={storeIcon}
             alt="Store"
             onClick={handleOpenStoreModal}
@@ -354,6 +361,13 @@ const FormulaCanvas = ({
       >
         <StorePane className="h-full" />
       </Modal>
+
+      {/* Debug Modal */}
+      <DebugModal
+        isOpen={showDebugModal}
+        onClose={() => setShowDebugModal(false)}
+        environment={currentConfig}
+      />
     </div>
   );
 };
