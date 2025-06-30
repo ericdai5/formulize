@@ -22,7 +22,9 @@ export const getVariableValue = (variableName: string): number => {
 export const getAllVariables = (): Record<string, number> => {
   const variables: Record<string, number> = {};
   computationStore.variables.forEach((variable, name) => {
-    variables[name] = variable.value;
+    if (variable.value !== undefined) {
+      variables[name] = variable.value;
+    }
   });
   return variables;
 };

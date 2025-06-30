@@ -125,7 +125,7 @@ export const Workspace = observer(() => {
     (type: "constant" | "input" | "dependent") => {
       const activeVar = getActiveVariable();
       if (!activeVar) return;
-      computationStore.addVariable(activeVar.id, activeVar.symbol);
+      computationStore.addVariable(activeVar.id);
       computationStore.setVariableType(activeVar.id, type);
       // Only keep selection for constant variables
       if (type !== "constant") {
@@ -281,7 +281,7 @@ export const EnlivenMode = observer(() => {
     if (node?.type === "symbol") {
       const symbol = (node as MathSymbol).value;
       const id = symbol;
-      computationStore.addVariable(id, symbol);
+      computationStore.addVariable(id);
       computationStore.setVariableType(id, type);
 
       if (type === "constant") {

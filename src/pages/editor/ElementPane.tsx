@@ -166,6 +166,8 @@ const TreeElement = ({ tree }: { tree: AugmentedFormulaNode }) => {
       return <BoxNode tree={tree} />;
     case "strikethrough":
       return <LabeledNode tree={tree} label="Strikethrough" deletable />;
+    case "variable":
+      return <LabeledNode tree={tree} label="Variable" />;
     default:
       assertUnreachable(tree);
   }

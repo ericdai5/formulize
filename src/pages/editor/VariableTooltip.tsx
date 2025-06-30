@@ -19,7 +19,7 @@ const VariableTooltip = ({
 
   // Initialize value from variable state
   useEffect(() => {
-    if (variable) {
+    if (variable && variable.value !== undefined) {
       setValue(variable.value.toString());
     }
   }, [variable?.value]);
