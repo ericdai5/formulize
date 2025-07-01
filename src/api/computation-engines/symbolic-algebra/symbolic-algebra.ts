@@ -64,6 +64,84 @@ function extractVariableNames(formulaStr: string): string[] {
 }
 
 /**
+ * Safely converts a Math.js result to a number array
+ * @param result The result from math.evaluate()
+ * @returns A number array or null if conversion fails
+ */
+function toNumberArray(result: unknown): number[] | null {
+  // Handle Math.js DenseMatrix
+  if (result && typeof result === "object" && "_data" in result) {
+    const data = (result as { _data: unknown })._data;
+    return Array.isArray(data) && data.every(x => typeof x === "number") ? data : null;
+  }
+  
+  // Handle regular arrays
+  if (Array.isArray(result) && result.every(x => typeof x === "number")) {
+    return result;
+  }
+  
+  return null;
+}
+
+/**
+ * Tries to evaluate a matrix expression and assign results to variables
+ * @param expr The expression to evaluate
+ * @param scope The current variable scope
+ * @param translatedDependentVars Array of translated dependent variable names
+ * @param unresolved Set of unresolved variables
+ * @param result The result object to update
+ * @param reverseTranslationMap Map from translated names back to original names
+ * @returns true if successfully handled as matrix expression, false otherwise
+ */
+function tryEvaluateMatrixExpression(
+  expr: string,
+  scope: Record<string, number>,
+  translatedDependentVars: string[],
+  unresolved: Set<string>,
+  result: Record<string, number>,
+  reverseTranslationMap: Record<string, string>
+): boolean {
+  // Match matrix pattern: [var1, var2, ...] = expression
+  const matrixMatch = expr.match(/^\s*\[(.*?)\]\s*=\s*(.+)$/);
+  if (!matrixMatch) return false;
+  
+  const [, leftSide, rightSide] = matrixMatch;
+  const leftVarNames = leftSide.split(",").map(v => v.trim()).filter(Boolean);
+  
+  if (leftVarNames.length === 0) return false;
+  
+  try {
+    const rightResult = math.evaluate(rightSide, scope);
+    const resultArray = toNumberArray(rightResult);
+    
+    if (!resultArray || resultArray.length !== leftVarNames.length) {
+      console.log(`⚠️ Matrix dimension mismatch: expected ${leftVarNames.length}, got ${resultArray?.length || 0}`);
+      return false;
+    }
+    
+    // Assign each component to its corresponding variable
+    let anyAssigned = false;
+    for (let i = 0; i < leftVarNames.length; i++) {
+      const varName = leftVarNames[i];
+      const value = resultArray[i];
+      
+      if (translatedDependentVars.includes(varName) && unresolved.has(varName)) {
+        const originalVarName = reverseTranslationMap[varName] || varName;
+        result[originalVarName] = value;
+        scope[varName] = value;
+        unresolved.delete(varName);
+        anyAssigned = true;
+      }
+    }
+    
+    return anyAssigned;
+  } catch (error) {
+    console.log(`⚠️ Could not evaluate matrix expression ${expr}:`, error);
+    return false;
+  }
+}
+
+/**
  * Processes a formula string to replace variable names with math.js symbols
  * and applies variable name translation for Math.js compatibility
  * Variable names in the formula should be wrapped in curly braces: {variableName}
@@ -128,6 +206,12 @@ export function deriveSymbolicFunction(
       const initialUnresolvedCount = unresolved.size;
 
       for (const expr of processedExpressions) {
+        // Check for matrix expressions first
+        if (tryEvaluateMatrixExpression(expr, scope, translatedDependentVars, unresolved, result, reverseTranslationMap)) {
+          continue; // Successfully handled as matrix expression
+        }
+
+        // Regular scalar pattern matching for individual variables
         for (const depVar of unresolved) {
           // Check pattern: depVar = expression
           const match1 = expr.match(new RegExp(`^\\s*${depVar}\\s*=\\s*(.+)$`));

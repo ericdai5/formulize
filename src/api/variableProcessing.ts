@@ -5,9 +5,11 @@ import {
   Box,
   Brace,
   Color,
+  Delimited,
   Fraction,
   Group,
   MathSymbol,
+  Matrix,
   Op,
   Root,
   Script,
@@ -145,6 +147,23 @@ export const processVariablesInFormula = (
           numCols === 2 ? ["r", "l"] : Array(numCols).fill("l");
 
         return `\\begin{array}{${columnAlignment.join("")}}\n${rows}\n\\end{array}`;
+      }
+
+      case "matrix": {
+        const matrix = node as Matrix;
+        const rows = matrix.body
+          .map((row: AugmentedFormulaNode[]) =>
+            row.map((cell) => processNode(cell)).join(" & ")
+          )
+          .join(" \\\\ ");
+
+        return `\\begin{${matrix.matrixType}}\n${rows}\n\\end{${matrix.matrixType}}`;
+      }
+
+      case "delimited": {
+        const delimited = node as Delimited;
+        const children = delimited.body.map(processNode).join(" ");
+        return `\\left${delimited.left}${children}\\right${delimited.right}`;
       }
 
       case "root": {

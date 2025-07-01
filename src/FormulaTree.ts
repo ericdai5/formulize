@@ -294,6 +294,54 @@ const buildAugmentedFormula = (
           row.map((cell, c) => buildAugmentedFormula(cell, `${id}.${r}.${c}`))
         )
       );
+    case "leftright": {
+      // Handle matrix environments (bmatrix, pmatrix, etc.) and other delimited expressions
+      const body = katexTree.body.map((child, i) =>
+        buildAugmentedFormula(child, `${id}.${i}`)
+      );
+
+      // Determine matrix type based on delimiters
+      let matrixType:
+        | "bmatrix"
+        | "pmatrix"
+        | "vmatrix"
+        | "Vmatrix"
+        | "matrix"
+        | null = null;
+      if (katexTree.left === "[" && katexTree.right === "]") {
+        matrixType = "bmatrix";
+      } else if (katexTree.left === "(" && katexTree.right === ")") {
+        matrixType = "pmatrix";
+      } else if (katexTree.left === "|" && katexTree.right === "|") {
+        matrixType = "vmatrix";
+      } else if (katexTree.left === "\\Vert" && katexTree.right === "\\Vert") {
+        matrixType = "Vmatrix";
+      }
+
+      // If it's a matrix type and contains an array, create a Matrix node
+      if (matrixType && body.length === 1 && body[0].type === "array") {
+        const arrayNode = body[0] as Aligned;
+        return new Matrix(id, matrixType, arrayNode.body);
+      }
+
+      // Otherwise, create a generic delimited group
+      const delimited = new Delimited(
+        id,
+        katexTree.left,
+        katexTree.right,
+        body
+      );
+      body.forEach((child) => (child._parent = delimited));
+      body.forEach((child, i) => {
+        if (i > 0) {
+          child._leftSibling = body[i - 1];
+        }
+        if (i < body.length - 1) {
+          child._rightSibling = body[i + 1];
+        }
+      });
+      return delimited;
+    }
     case "op":
       if (katexTree.symbol) {
         return new Op(id, katexTree.name, katexTree.limits);
@@ -454,7 +502,9 @@ export type AugmentedFormulaNode =
   | Root
   | Op
   | Strikethrough
-  | Variable;
+  | Variable
+  | Matrix
+  | Delimited;
 
 abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
@@ -1475,6 +1525,179 @@ export class Variable extends AugmentedFormulaNodeBase {
   }
 }
 
+export class Matrix extends AugmentedFormulaNodeBase {
+  type = "matrix" as const;
+  constructor(
+    public id: string,
+    public matrixType: "bmatrix" | "pmatrix" | "vmatrix" | "Vmatrix" | "matrix",
+    public body: AugmentedFormulaNode[][]
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const rowElements = this.body
+      .flatMap((row) => [
+        ...row
+          .flatMap((cell) => [cell.toLatex(mode, offset), " & "])
+          .slice(0, -1),
+        String.raw` \\ `,
+      ])
+      .slice(0, -1);
+
+    if (mode === "content-only") {
+      return consolidateRanges(rowElements, offset, this.id);
+    }
+
+    return consolidateRanges(
+      this.latexWithId(mode, [
+        `\\begin{${this.matrixType}}`,
+        ...rowElements,
+        `\\end{${this.matrixType}}`,
+      ]),
+      offset,
+      this.id
+    );
+  }
+
+  withChanges({
+    id,
+    parent,
+    leftSibling,
+    rightSibling,
+    matrixType,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
+    matrixType?: "bmatrix" | "pmatrix" | "vmatrix" | "Vmatrix" | "matrix";
+    body?: AugmentedFormulaNode[][];
+  }): Matrix {
+    const matrix = new Matrix(
+      id ?? this.id,
+      matrixType ?? this.matrixType,
+      body ?? this.body
+    );
+    matrix._parent = parent === undefined ? this._parent : parent;
+    matrix._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    matrix._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
+    return matrix;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return this.body.flat();
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return [
+      new StyledRange(
+        this.id,
+        `\\begin{${this.matrixType}}`,
+        this.body.flatMap((row, i) =>
+          row
+            .flatMap((cell, j) =>
+              cell
+                .toStyledRanges()
+                .concat(j < row.length - 1 ? new UnstyledRange(" & ") : [])
+            )
+            .concat(
+              i < this.body.length - 1
+                ? new UnstyledRange(String.raw` \\` + "\n")
+                : []
+            )
+        ),
+        `\\end{${this.matrixType}}`,
+        {
+          tooltip: `Matrix: ${this.matrixType}`,
+        }
+      ),
+    ];
+  }
+}
+
+export class Delimited extends AugmentedFormulaNodeBase {
+  type = "delimited" as const;
+  constructor(
+    public id: string,
+    public left: string,
+    public right: string,
+    public body: AugmentedFormulaNode[]
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const childrenElements = this.body
+      .flatMap((child) => [child.toLatex(mode, offset), " "])
+      .slice(0, -1);
+
+    if (mode === "content-only") {
+      return consolidateRanges(childrenElements, offset, this.id);
+    }
+
+    return consolidateRanges(
+      this.latexWithId(mode, [
+        `\\left${this.left}`,
+        ...childrenElements,
+        `\\right${this.right}`,
+      ]),
+      offset,
+      this.id
+    );
+  }
+
+  withChanges({
+    id,
+    parent,
+    leftSibling,
+    rightSibling,
+    left,
+    right,
+    body,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
+    left?: string;
+    right?: string;
+    body?: AugmentedFormulaNode[];
+  }): Delimited {
+    const delimited = new Delimited(
+      id ?? this.id,
+      left ?? this.left,
+      right ?? this.right,
+      body ?? this.body
+    );
+    delimited._parent = parent === undefined ? this._parent : parent;
+    delimited._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    delimited._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
+    return delimited;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return this.body;
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return [
+      new UnstyledRange(`\\left${this.left}`),
+      ...this.body.flatMap((child, i) =>
+        child
+          .toStyledRanges()
+          .concat(i < this.body.length - 1 ? new UnstyledRange(" ") : [])
+      ),
+      new UnstyledRange(`\\right${this.right}`),
+    ];
+  }
+}
+
 export type RenderSpec = {
   tagName: string;
   id?: string;
@@ -1586,6 +1809,12 @@ const getTreeComplexity = (tree: AugmentedFormula): number => {
         break;
       case "group":
         complexity += 1; // groups add structure
+        break;
+      case "matrix":
+        complexity += 4; // matrices are very complex
+        break;
+      case "delimited":
+        complexity += 2; // delimited expressions add structure
         break;
     }
     node.children.forEach(traverse);
@@ -1995,6 +2224,55 @@ const recursivelyFindAndGroupVariableTree = (
       });
     }
 
+    case "matrix": {
+      const nodeMatrix = node as Matrix;
+      return nodeMatrix.withChanges({
+        body: nodeMatrix.body.map((row) =>
+          row.map((cell) =>
+            recursivelyFindAndGroupVariableTree(
+              cell,
+              variableTreeChildren,
+              variableLatex,
+              originalSymbol
+            )
+          )
+        ),
+      });
+    }
+
+    case "delimited": {
+      const nodeDelimited = node as Delimited;
+      // First recursively process all children
+      const processedChildren = nodeDelimited.body.map((child) =>
+        recursivelyFindAndGroupVariableTree(
+          child,
+          variableTreeChildren,
+          variableLatex,
+          originalSymbol
+        )
+      );
+
+      // Then look for patterns in this delimited node's children
+      const matches = findMatchingSubsequences(
+        processedChildren,
+        variableTreeChildren
+      );
+
+      let finalChildren = processedChildren;
+      if (matches.length > 0) {
+        finalChildren = replaceSubsequencesWithVariables(
+          processedChildren,
+          matches,
+          variableLatex,
+          originalSymbol
+        );
+      }
+
+      return nodeDelimited.withChanges({
+        body: finalChildren,
+      });
+    }
+
     case "root": {
       const nodeRoot = node as Root;
       const processedBody = recursivelyFindAndGroupVariableTree(
@@ -2308,6 +2586,38 @@ const nodeMatches = (
         (row, i) =>
           row.length === patternArray.body[i].length &&
           row.every((cell, j) => nodeMatches(cell, patternArray.body[i][j]))
+      );
+    }
+
+    case "matrix": {
+      // For matrices, check structure matches
+      const nodeMatrix = node as Matrix;
+      const patternMatrix = pattern as Matrix;
+      if (nodeMatrix.body.length !== patternMatrix.body.length) {
+        return false;
+      }
+      return nodeMatrix.body.every(
+        (row, i) =>
+          row.length === patternMatrix.body[i].length &&
+          row.every((cell, j) => nodeMatches(cell, patternMatrix.body[i][j]))
+      );
+    }
+
+    case "delimited": {
+      // For delimited nodes, check structure matches
+      const nodeDelimited = node as Delimited;
+      const patternDelimited = pattern as Delimited;
+      if (
+        nodeDelimited.left !== patternDelimited.left ||
+        nodeDelimited.right !== patternDelimited.right
+      ) {
+        return false;
+      }
+      return (
+        nodeDelimited.body.length === patternDelimited.body.length &&
+        nodeDelimited.body.every((child, i) =>
+          nodeMatches(child, patternDelimited.body[i])
+        )
       );
     }
 

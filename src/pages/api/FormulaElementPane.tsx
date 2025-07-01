@@ -251,6 +251,10 @@ const TreeElement = ({
           store={store}
         />
       );
+    case "matrix":
+      return <LabeledNode tree={tree} label="Matrix" store={store} />;
+    case "delimited":
+      return <LabeledNode tree={tree} label="Delimited" store={store} />;
     default:
       assertUnreachable(tree);
   }
