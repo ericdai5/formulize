@@ -20,6 +20,7 @@ export interface IVariable {
   set?: (string | number)[];
   key?: string;
   map?: Record<string | number, number>;
+  showName?: boolean;
 }
 
 export interface IVariableInput {

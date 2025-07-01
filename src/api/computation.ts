@@ -297,6 +297,7 @@ class ComputationStore {
         set: variableDefinition?.set,
         key: variableDefinition?.key,
         map: variableDefinition?.map,
+        showName: variableDefinition?.showName,
       });
 
       // If this variable has a key-map relationship, update its value based on the key variable

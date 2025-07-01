@@ -47,6 +47,7 @@ export const processVariablesInFormula = (
       let isInputVariable = false;
       let hasDropdownOptions = false;
       let variablePrecision = defaultPrecision;
+      let showName = true; // Default to showing name for backward compatibility
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
@@ -60,6 +61,8 @@ export const processVariablesInFormula = (
           );
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
+          // Use the variable's showName property if defined, otherwise default to true
+          showName = variable.showName ?? true;
           break;
         }
       }
@@ -76,7 +79,10 @@ export const processVariablesInFormula = (
       }
 
       // Wrap the token with CSS classes using the variable's specific precision
-      const result = `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(variablePrecision)}}}`;
+      // Conditionally show the variable name based on showName property
+      const result = showName
+        ? `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(variablePrecision)}}}`
+        : `\\cssId{${id}}{\\class{${cssClass}}{${value.toFixed(variablePrecision)}}}`;
       return result;
     }
 

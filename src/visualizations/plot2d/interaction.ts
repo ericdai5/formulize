@@ -1,9 +1,10 @@
-import * as d3 from "d3";
 import { runInAction } from "mobx";
-import { computationStore } from "../../api/computation";
-import { formatVariableValue, getVariableLabel } from "./utils";
 
+import * as d3 from "d3";
+
+import { computationStore } from "../../api/computation";
 import type { DataPoint } from "./Plot2D";
+import { formatVariableValue, getVariableLabel } from "./utils";
 
 /**
  * Adds interactive tooltip and hover functionality to the plot
@@ -22,10 +23,7 @@ export function addInteractions(
   if (!xVar || !yVar || dataPoints.length === 0) return;
 
   // Add invisible overlay for hover interaction
-  const focus = svg
-    .append("g")
-    .attr("class", "focus")
-    .style("display", "none");
+  const focus = svg.append("g").attr("class", "focus").style("display", "none");
 
   focus.append("circle").attr("r", 5).attr("fill", "#3b82f6");
 
@@ -49,6 +47,7 @@ export function addInteractions(
     .attr("height", plotHeight)
     .style("fill", "none")
     .style("pointer-events", "all")
+    .style("cursor", "crosshair")
     .on("mouseover", () => {
       focus.style("display", null);
       tooltip.style("display", null);

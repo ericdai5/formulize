@@ -2,46 +2,66 @@ export const vectorAddition = `const config = {
   formulas: [
     {
       name: "Vector Addition",
-      function: "\\\\begin{bmatrix} {ax} \\\\\\\\ {ay} \\\\end{bmatrix} + \\\\begin{bmatrix} {bx} \\\\\\\\ {by} \\\\end{bmatrix} = \\\\begin{bmatrix} {cx} \\\\\\\\ {cy} \\\\end{bmatrix}",
-      expression: "[{cx}, {cy}] = [{ax}, {ay}] + [{bx}, {by}]"
+      function: "{k_1} \\\\begin{bmatrix} {ax} \\\\\\\\ {ay} \\\\end{bmatrix} + {k_2} \\\\begin{bmatrix} {bx} \\\\\\\\ {by} \\\\end{bmatrix} = \\\\begin{bmatrix} {cx} \\\\\\\\ {cy} \\\\end{bmatrix}",
+      expression: "[{cx}, {cy}] = {k_1} * [{ax}, {ay}] + {k_2} * [{bx}, {by}]"
     }
   ],
   variables: {
+    k_1: {
+      type: "input",
+      value: 1,
+      range: [-3, 3],
+      step: 0.1,
+      precision: 1
+    },
+    k_2: {
+      type: "input",
+      value: 1,
+      range: [-3, 3],
+      step: 0.1,
+      precision: 1
+    },
     ax: {
       type: "input",
-      value: 3,
+      value: 2,
       range: [-10, 10],
       step: 0.5,
-      precision: 1
+      precision: 1,
+      showName: false
     },
     ay: {
       type: "input", 
-      value: 4,
+      value: 2,
       range: [-10, 10],
       step: 0.5,
-      precision: 1
+      precision: 1,
+      showName: false
     },
     bx: {
       type: "input",
-      value: 2,
+      value: -1,
       range: [-10, 10], 
       step: 0.5,
-      precision: 1
+      precision: 1,
+      showName: false
     },
     by: {
       type: "input",
       value: -1,
       range: [-10, 10],
       step: 0.5,
-      precision: 1
+      precision: 1,
+      showName: false
     },
     cx: {
       type: "dependent",
-      precision: 1
+      precision: 1,
+      showName: false
     },
     cy: {
       type: "dependent",
-      precision: 1
+      precision: 1,
+      showName: false
     },
   },
   computation: {
@@ -61,34 +81,29 @@ export const vectorAddition = `const config = {
       traces: [
         {
           shape: "arrow",
-          x: [0, "{ax}"],
-          y: [0, "{ay}"],
+          x: [0, "ax"],
+          y: [0, "ay"],
           name: "Vector A",
-          line: { color: "red", width: 2 },
-          marker: { size: 3, color: "red" }
+          color: "blue",
+          lineWidth: 2,
+          markerSize: 3
         },
         {
           shape: "arrow",
-          x: [0, "{bx}"],
-          y: [0, "{by}"],
+          x: [0, "bx"],
+          y: [0, "by"],
           name: "Vector B",
-          line: { color: "blue", width: 2 },
-          marker: { size: 3, color: "blue" }
+          color: "green",
+          lineWidth: 2,
+          markerSize: 3
         },
         {
-          shape: "arrow", 
-          x: [0, "{cx}"],
-          y: [0, "{cy}"],
-          name: "Vector Sum (A + B)",
-          line: { color: "green", width: 2 },
-          marker: { size: 3, color: "green" }
-        },
-        {
-          shape: "dash",
-          x: ["{ax}", "{cx}"],
-          y: ["{ay}", "{cy}"],
-          name: "Vector B (from tip of A)",
-          line: { color: "blue", width: 2 },
+          shape: "point",
+          x: ["cx"],
+          y: ["cy"],
+          name: "Tip of Vector C",
+          color: "red",
+          markerSize: 5,
           showlegend: false
         }
       ]

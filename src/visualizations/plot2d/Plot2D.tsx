@@ -1,15 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import * as d3 from "d3";
 
-import { IPlot2D, computationStore } from "../../api";
+import { computationStore } from "../../api/computation";
+import { type IPlot2D } from "../../types/plot2d";
+import { type TraceConfig } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
 import { addAxes, addGrid } from "./axes";
 import { addCurrentPointHighlight, addInteractions } from "./interaction";
-import { type TraceConfig, renderTraces } from "./traces";
+import { renderTraces } from "./traces";
 import { calculatePlotDimensions, getVariableLabel } from "./utils";
 
 interface Plot2DProps {
@@ -24,8 +26,6 @@ export interface DataPoint {
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
-  const [currentPoint, setCurrentPoint] = useState<DataPoint | null>(null);
 
   // Parse configuration options with defaults
   const {
@@ -65,7 +65,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     const debugState = computationStore.getDebugState();
     if (!debugState.hasFunction) return [];
 
-    const evalFunction = (computationStore as any).evaluationFunction;
+    const evalFunction = computationStore.evaluateFormula;
     if (!evalFunction) return [];
 
     for (let i = 0; i <= 100; i++) {
@@ -74,8 +74,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         const vars = { ...allVariables, [xVar]: x };
         const result = evalFunction(vars);
         const y = result[yVar];
-        
-        if (typeof y === 'number' && isFinite(y) && y >= yMin && y <= yMax) {
+
+        if (typeof y === "number" && isFinite(y) && y >= yMin && y <= yMax) {
           points.push({ x, y });
         }
       } catch (error) {
@@ -134,12 +134,19 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     if (hasTraces) {
       // Traces mode (vectors)
       const defs = svg.append("defs");
-      renderTraces(svg, defs, traces as TraceConfig[], xScale, yScale);
+      renderTraces(
+        svg,
+        defs,
+        traces as TraceConfig[],
+        xScale,
+        yScale,
+        plotWidth,
+        plotHeight
+      );
     } else if (hasTraditional) {
       // Traditional plotting mode (algebra examples)
       const points = calculateTraditionalDataPoints();
-      setDataPoints(points);
-      
+
       if (points.length > 0) {
         // Create line generator
         const line = d3
@@ -160,11 +167,16 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Add current point highlight
         const currentX = getVariableValue(xVar!);
         const currentY = getVariableValue(yVar!);
-        const currentPointData = { 
-          x: typeof currentX === 'number' ? currentX : parseFloat(String(currentX)) || 0,
-          y: typeof currentY === 'number' ? currentY : parseFloat(String(currentY)) || 0
+        const currentPointData = {
+          x:
+            typeof currentX === "number"
+              ? currentX
+              : parseFloat(String(currentX)) || 0,
+          y:
+            typeof currentY === "number"
+              ? currentY
+              : parseFloat(String(currentY)) || 0,
         };
-        setCurrentPoint(currentPointData);
 
         addCurrentPointHighlight(
           svg,
@@ -191,7 +203,18 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         );
       }
     }
-  }, [traces, plotWidth, plotHeight, margin, xMin, xMax, yMin, yMax, xVar, yVar, calculateTraditionalDataPoints]);
+  }, [
+    traces,
+    plotWidth,
+    plotHeight,
+    margin,
+    xMin,
+    xMax,
+    yMin,
+    yMax,
+    xVar,
+    yVar,
+  ]);
 
   // Set up reaction to re-render when any variable changes
   useEffect(() => {
