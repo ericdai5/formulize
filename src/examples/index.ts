@@ -9,6 +9,7 @@ import { quadraticEquation3D } from "./quadraticEquation3D";
 import { rationalNumbers } from "./rationalNumbers";
 import { summationBasic } from "./summationBasic";
 import { testing } from "./testing";
+import { vectorAddition } from "./vectorAddition";
 
 export const examples = {
   kineticEnergy,
@@ -22,6 +23,7 @@ export const examples = {
   testing,
   bayesWithCustomVisualization,
   summationBasic,
+  vectorAddition,
 };
 
 export const exampleDisplayNames = {
@@ -36,6 +38,7 @@ export const exampleDisplayNames = {
   testing: "Testing",
   bayesWithCustomVisualization: "Bayes Custom Visualization",
   summationBasic: "Summation Basic",
+  vectorAddition: "Vector Addition",
 } as const;
 
 export default examples;

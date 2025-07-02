@@ -76,6 +76,20 @@ const replaceNode = (
           ),
         })
       );
+    case "matrix":
+      return replacer(
+        node.withChanges({
+          body: node.body.map((row) =>
+            row.map((cell) => replaceNode(cell, replacer))
+          ),
+        })
+      );
+    case "delimited":
+      return replacer(
+        node.withChanges({
+          body: node.body.map((child) => replaceNode(child, replacer)),
+        })
+      );
     case "root":
       return replacer(
         node.withChanges({
@@ -146,6 +160,20 @@ const reassignIds = (
           )
         ),
       });
+    case "matrix":
+      return node.withChanges({
+        id,
+        body: node.body.map((row, rowNum) =>
+          row.map((cell, colNum) =>
+            reassignIds(cell, `${id}.${rowNum}.${colNum}`)
+          )
+        ),
+      });
+    case "delimited":
+      return node.withChanges({
+        id,
+        body: node.body.map((child, i) => reassignIds(child, `${id}.${i}`)),
+      });
     case "root":
       return node.withChanges({
         id,
@@ -213,6 +241,16 @@ const fixParent = (
       return node.withChanges({
         parent,
         body: node.body.map((row) => row.map((cell) => fixParent(cell, node))),
+      });
+    case "matrix":
+      return node.withChanges({
+        parent,
+        body: node.body.map((row) => row.map((cell) => fixParent(cell, node))),
+      });
+    case "delimited":
+      return node.withChanges({
+        parent,
+        body: node.body.map((child) => fixParent(child, node)),
       });
     case "root":
       return node.withChanges({
@@ -344,6 +382,28 @@ export const removeEmptyGroup = (
           ),
         }),
       ];
+    case "matrix":
+      return [
+        node.withChanges({
+          body: node.body.map((row) =>
+            atLeastOne(
+              row.flatMap((cell) =>
+                cell instanceof Group && cell.body.length === 0
+                  ? [cell]
+                  : removeEmptyGroup(cell)
+              )
+            )
+          ),
+        }),
+      ];
+    case "delimited":
+      return [
+        node.withChanges({
+          body: atLeastOne(
+            node.body.flatMap(removeEmptyGroup).flatMap(stripOuterGroup)
+          ),
+        }),
+      ];
     case "root":
       return [
         node.withChanges({
@@ -424,10 +484,29 @@ const fixSibling = (node: AugmentedFormulaNode): AugmentedFormulaNode => {
         body: newChildren,
       });
     }
+    case "delimited": {
+      const newChildren = node.body.map((child) => fixSibling(child));
+      newChildren.forEach((child, i) => {
+        if (i > 0) {
+          child._leftSibling = newChildren[i - 1];
+        }
+
+        if (i < newChildren.length - 1) {
+          child._rightSibling = newChildren[i + 1];
+        }
+      });
+      return node.withChanges({
+        body: newChildren,
+      });
+    }
     case "array":
       // Adjacent nodes in an array environment are not valid siblings
       // because they cannot be joined into a Group without removing a column.
       // The & column dividers must be at the top level of the Array.
+      return node.withChanges({
+        body: node.body.map((row) => row.map((cell) => fixSibling(cell))),
+      });
+    case "matrix":
       return node.withChanges({
         body: node.body.map((row) => row.map((cell) => fixSibling(cell))),
       });
@@ -503,9 +582,34 @@ const consolidateGroup = (
           row.map((cell) => consolidateGroup(cell, siblingGroups))
         ),
       });
+    case "matrix":
+      return node.withChanges({
+        body: node.body.map((row) =>
+          row.map((cell) => consolidateGroup(cell, siblingGroups))
+        ),
+      });
     case "color":
     case "group":
     case "text": {
+      let body = node.body.map((child) =>
+        consolidateGroup(child, siblingGroups)
+      );
+
+      for (const group of siblingGroups) {
+        for (let i = 0; i < body.length; i++) {
+          if (group.includes(body[i].id)) {
+            body = body
+              .slice(0, i)
+              .concat([new Group(body[i].id, body.slice(i, i + group.length))])
+              .concat(body.slice(i + group.length));
+          }
+        }
+      }
+      return node.withChanges({
+        body,
+      });
+    }
+    case "delimited": {
       let body = node.body.map((child) =>
         consolidateGroup(child, siblingGroups)
       );

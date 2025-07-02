@@ -35,16 +35,6 @@ const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
                 {config.title || "Plot Visualization"}
               </h4>
             </div>
-            <div className="flex text-sm text-gray-600 space-x-4 border border-slate-200 rounded-xl h-9 px-3">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-                <span>Function curve</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-                <span>Current value</span>
-              </div>
-            </div>
           </div>
         </div>
         {/* Use render key to force complete re-creation of Plot2D component when config changes */}

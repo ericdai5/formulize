@@ -5,9 +5,11 @@ import {
   Box,
   Brace,
   Color,
+  Delimited,
   Fraction,
   Group,
   MathSymbol,
+  Matrix,
   Op,
   Root,
   Script,
@@ -45,6 +47,7 @@ export const processVariablesInFormula = (
       let isInputVariable = false;
       let hasDropdownOptions = false;
       let variablePrecision = defaultPrecision;
+      let showName = true; // Default to showing name for backward compatibility
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
@@ -58,6 +61,8 @@ export const processVariablesInFormula = (
           );
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
+          // Use the variable's showName property if defined, otherwise default to true
+          showName = variable.showName ?? true;
           break;
         }
       }
@@ -74,7 +79,10 @@ export const processVariablesInFormula = (
       }
 
       // Wrap the token with CSS classes using the variable's specific precision
-      const result = `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(variablePrecision)}}}`;
+      // Conditionally show the variable name based on showName property
+      const result = showName
+        ? `\\cssId{${id}}{\\class{${cssClass}}{${token}: ${value.toFixed(variablePrecision)}}}`
+        : `\\cssId{${id}}{\\class{${cssClass}}{${value.toFixed(variablePrecision)}}}`;
       return result;
     }
 
@@ -145,6 +153,23 @@ export const processVariablesInFormula = (
           numCols === 2 ? ["r", "l"] : Array(numCols).fill("l");
 
         return `\\begin{array}{${columnAlignment.join("")}}\n${rows}\n\\end{array}`;
+      }
+
+      case "matrix": {
+        const matrix = node as Matrix;
+        const rows = matrix.body
+          .map((row: AugmentedFormulaNode[]) =>
+            row.map((cell) => processNode(cell)).join(" & ")
+          )
+          .join(" \\\\ ");
+
+        return `\\begin{${matrix.matrixType}}\n${rows}\n\\end{${matrix.matrixType}}`;
+      }
+
+      case "delimited": {
+        const delimited = node as Delimited;
+        const children = delimited.body.map(processNode).join(" ");
+        return `\\left${delimited.left}${children}\\right${delimited.right}`;
       }
 
       case "root": {
