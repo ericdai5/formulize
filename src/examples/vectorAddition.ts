@@ -78,7 +78,7 @@ export const vectorAddition = `const config = {
       yRange: [-5, 5],
       width: 600,
       height: 600,
-      traces: [
+      vectors: [
         {
           shape: "arrow",
           x: [0, "ax"],

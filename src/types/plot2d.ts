@@ -1,4 +1,4 @@
-export interface TraceConfig {
+export interface IVector {
   x: (string | number)[];
   y: (string | number)[];
   shape?: "arrow" | "dash" | "point";
@@ -18,7 +18,7 @@ export interface IPlot2D {
   xRange?: [number, number];
   yVar?: string;
   yRange?: [number, number];
-  traces?: TraceConfig[];
+  vectors?: IVector[];
   width?: number | string;
   height?: number | string;
 }

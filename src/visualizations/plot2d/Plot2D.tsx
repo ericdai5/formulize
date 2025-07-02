@@ -7,12 +7,13 @@ import * as d3 from "d3";
 
 import { computationStore } from "../../api/computation";
 import { type IPlot2D } from "../../types/plot2d";
-import { type TraceConfig } from "../../types/plot2d";
+import { type IVector } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
 import { addAxes, addGrid } from "./axes";
+import { PLOT2D_DEFAULTS } from "./defaults";
 import { addCurrentPointHighlight, addInteractions } from "./interaction";
-import { renderTraces } from "./traces";
 import { calculatePlotDimensions, getVariableLabel } from "./utils";
+import { renderVectors } from "./vectors";
 
 interface Plot2DProps {
   config: IPlot2D;
@@ -30,12 +31,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   // Parse configuration options with defaults
   const {
     xVar,
-    xRange = [0, 10],
+    xRange = PLOT2D_DEFAULTS.xRange,
     yVar,
-    yRange = [0, 100],
-    traces,
-    width = 600,
-    height = 600,
+    yRange = PLOT2D_DEFAULTS.yRange,
+    vectors,
+    width = PLOT2D_DEFAULTS.width,
+    height = PLOT2D_DEFAULTS.height,
   } = config;
 
   // Calculate plot dimensions using helper function
@@ -90,11 +91,11 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const drawPlot = useCallback(() => {
     if (!svgRef.current) return;
 
-    // Check if we have traces (vector mode) or traditional plotting
-    const hasTraces = traces && traces.length > 0;
-    const hasTraditional = xVar && yVar && !hasTraces;
+    // Check if we have vectors (vector mode) or traditional plotting
+    const hasVectors = vectors && vectors.length > 0;
+    const hasTraditional = xVar && yVar && !hasVectors;
 
-    if (!hasTraces && !hasTraditional) return;
+    if (!hasVectors && !hasTraditional) return;
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
@@ -131,13 +132,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       margin,
     });
 
-    if (hasTraces) {
-      // Traces mode (vectors)
+    if (hasVectors) {
+      // Vector mode
       const defs = svg.append("defs");
-      renderTraces(
+      renderVectors(
         svg,
         defs,
-        traces as TraceConfig[],
+        vectors as IVector[],
         xScale,
         yScale,
         plotWidth,
@@ -204,7 +205,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       }
     }
   }, [
-    traces,
+    vectors,
     plotWidth,
     plotHeight,
     margin,

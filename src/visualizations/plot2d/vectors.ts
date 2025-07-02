@@ -3,23 +3,24 @@ import { runInAction } from "mobx";
 import * as d3 from "d3";
 
 import { computationStore } from "../../api/computation";
-import { TraceConfig } from "../../types/plot2d";
+import { IVector } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
+import { VECTOR_DEFAULTS } from "./defaults";
 import { createArrowMarker, getMarkerUrl } from "./markers";
 
-export interface TraceData {
+export interface VectorData {
   x: number;
   y: number;
 }
 
 /**
- * Processes trace data by resolving variable references
+ * Processes vector data by resolving variable references
  */
-export function processTraceData(trace: TraceConfig): TraceData[] {
-  const xData = trace.x.map((val) =>
+export function processVectorData(vector: IVector): VectorData[] {
+  const xData = vector.x.map((val) =>
     typeof val === "string" ? getVariableValue(val) : val
   );
-  const yData = trace.y.map((val) =>
+  const yData = vector.y.map((val) =>
     typeof val === "string" ? getVariableValue(val) : val
   );
 
@@ -30,47 +31,49 @@ export function processTraceData(trace: TraceConfig): TraceData[] {
 }
 
 /**
- * Extracts variable names from trace config
+ * Extracts variable names from vector config
  */
-function getVariableNames(trace: TraceConfig): {
+function getVariableNames(vector: IVector): {
   xVars: string[];
   yVars: string[];
 } {
-  const xVars = trace.x.filter((val): val is string => typeof val === "string");
-
-  const yVars = trace.y.filter((val): val is string => typeof val === "string");
-
+  const xVars = vector.x.filter(
+    (val): val is string => typeof val === "string"
+  );
+  const yVars = vector.y.filter(
+    (val): val is string => typeof val === "string"
+  );
   return { xVars, yVars };
 }
 
 /**
- * Renders a single trace on the SVG
+ * Renders a single vector on the SVG
  */
-export function renderTrace(
+export function renderVector(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   defs: d3.Selection<SVGDefsElement, unknown, null, undefined>,
-  trace: TraceConfig,
-  traceIndex: number,
+  vector: IVector,
+  vectorIndex: number,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
   plotWidth?: number,
   plotHeight?: number
 ): void {
-  const traceData = processTraceData(trace);
-  const shape = trace.shape || "arrow";
-  const color = trace.color || "#3b82f6";
-  const isDraggable = trace.draggable !== false && shape === "arrow"; // Default to draggable for arrows
+  const vectorData = processVectorData(vector);
+  const shape = vector.shape || VECTOR_DEFAULTS.shape;
+  const color = vector.color || VECTOR_DEFAULTS.color;
+  const isDraggable = vector.draggable !== false && shape === "arrow";
 
   // Handle point shape differently
   if (shape === "point") {
     // For points, render circles at each data point
     // Always use line color for consistency
-    traceData.forEach((point) => {
+    vectorData.forEach((point) => {
       svg
         .append("circle")
         .attr("cx", xScale(point.x))
         .attr("cy", yScale(point.y))
-        .attr("r", trace.markerSize || 4)
+        .attr("r", vector.markerSize || 4)
         .attr("fill", color)
         .attr("stroke", color)
         .attr("stroke-width", 1);
@@ -81,41 +84,41 @@ export function renderTrace(
   // Create arrow marker if needed
   if (shape === "arrow") {
     createArrowMarker(defs, {
-      id: `arrowhead-${traceIndex}`,
-      color, // Always use line color for consistency
-      size: trace.markerSize || 6,
+      id: `arrowhead-${vectorIndex}`,
+      color,
+      size: vector.markerSize || VECTOR_DEFAULTS.markerSize,
     });
   }
 
   // Create line generator
   const line = d3
-    .line<TraceData>()
+    .line<VectorData>()
     .x((d) => xScale(d.x))
     .y((d) => yScale(d.y));
 
   // Add the path
   const path = svg
     .append("path")
-    .datum(traceData)
+    .datum(vectorData)
     .attr("fill", "none")
     .attr("stroke", color)
-    .attr("stroke-width", trace.lineWidth || 2)
+    .attr("stroke-width", vector.lineWidth || VECTOR_DEFAULTS.lineWidth)
     .attr("stroke-dasharray", shape === "dash" ? "5,5" : "none")
     .attr(
       "marker-end",
-      shape === "arrow" ? getMarkerUrl(`arrowhead-${traceIndex}`) : "none"
+      shape === "arrow" ? getMarkerUrl(`arrowhead-${vectorIndex}`) : "none"
     )
     .attr("d", line);
 
   // Add drag behavior for arrows
-  if (isDraggable && traceData.length >= 2) {
-    const { xVars, yVars } = getVariableNames(trace);
+  if (isDraggable && vectorData.length >= 2) {
+    const { xVars, yVars } = getVariableNames(vector);
 
     // Add invisible drag handle at the arrow tip
-    const tipData = traceData[traceData.length - 1];
+    const tipData = vectorData[vectorData.length - 1];
     const dragHandle = svg
       .append("circle")
-      .attr("class", `drag-handle-${traceIndex}`)
+      .attr("class", `drag-handle-${vectorIndex}`)
       .attr("cx", xScale(tipData.x))
       .attr("cy", yScale(tipData.y))
       .attr("r", 8)
@@ -128,7 +131,10 @@ export function renderTrace(
       .drag<SVGCircleElement, unknown>()
       .on("start", function () {
         d3.select(this).attr("stroke", color).attr("stroke-width", 2);
-        path.attr("stroke-width", (trace.lineWidth || 2) + 1);
+        path.attr(
+          "stroke-width",
+          (vector.lineWidth || VECTOR_DEFAULTS.lineWidth) + 1
+        );
       })
       .on("drag", function (event) {
         // Use delta-based movement for smooth dragging
@@ -159,7 +165,10 @@ export function renderTrace(
       })
       .on("end", function () {
         d3.select(this).attr("stroke", "none");
-        path.attr("stroke-width", trace.lineWidth || 2);
+        path.attr(
+          "stroke-width",
+          vector.lineWidth || VECTOR_DEFAULTS.lineWidth
+        );
 
         // Update variables only when dragging ends
         const finalData = d3.select(this).datum() as {
@@ -186,18 +195,27 @@ export function renderTrace(
 }
 
 /**
- * Renders all traces on the SVG
+ * Renders all vectors on the SVG
  */
-export function renderTraces(
+export function renderVectors(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   defs: d3.Selection<SVGDefsElement, unknown, null, undefined>,
-  traces: TraceConfig[],
+  vectors: IVector[],
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
   plotWidth?: number,
   plotHeight?: number
 ): void {
-  traces.forEach((trace, index) => {
-    renderTrace(svg, defs, trace, index, xScale, yScale, plotWidth, plotHeight);
+  vectors.forEach((vector, index) => {
+    renderVector(
+      svg,
+      defs,
+      vector,
+      index,
+      xScale,
+      yScale,
+      plotWidth,
+      plotHeight
+    );
   });
 }
