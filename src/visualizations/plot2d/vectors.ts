@@ -127,9 +127,19 @@ export function renderVector(
       .style("cursor", "move");
 
     // Add drag behavior
+    let currentTipX = tipData.x;
+    let currentTipY = tipData.y;
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
     const drag = d3
       .drag<SVGCircleElement, unknown>()
-      .on("start", function () {
+      .on("start", function (event) {
+        isDragging = true;
+        // Store initial mouse position in screen coordinates
+        lastMouseX = event.sourceEvent.clientX;
+        lastMouseY = event.sourceEvent.clientY;
         d3.select(this).attr("stroke", color).attr("stroke-width", 2);
         path.attr(
           "stroke-width",
@@ -137,12 +147,25 @@ export function renderVector(
         );
       })
       .on("drag", function (event) {
-        // Use delta-based movement for smooth dragging
-        const currentX = parseFloat(d3.select(this).attr("cx"));
-        const currentY = parseFloat(d3.select(this).attr("cy"));
+        if (!isDragging) return;
 
-        const newX = currentX + event.dx;
-        const newY = currentY + event.dy;
+        // Use absolute mouse coordinates instead of deltas
+        const currentMouseX = event.sourceEvent.clientX;
+        const currentMouseY = event.sourceEvent.clientY;
+
+        // Calculate our own delta from the last known mouse position
+        const deltaX = currentMouseX - lastMouseX;
+        const deltaY = currentMouseY - lastMouseY;
+
+        // Update last mouse position
+        lastMouseX = currentMouseX;
+        lastMouseY = currentMouseY;
+
+        // Get current handle position and apply our calculated delta
+        const currentHandleX = parseFloat(d3.select(this).attr("cx"));
+        const currentHandleY = parseFloat(d3.select(this).attr("cy"));
+        const newX = currentHandleX + deltaX;
+        const newY = currentHandleY + deltaY;
 
         // Clamp to plot boundaries if dimensions are provided
         const clampedX = plotWidth
@@ -152,42 +175,52 @@ export function renderVector(
           ? Math.max(0, Math.min(plotHeight, newY))
           : newY;
 
-        // Update the circle position immediately for visual feedback
+        // Update the drag handle position immediately
         d3.select(this).attr("cx", clampedX).attr("cy", clampedY);
 
-        // Store the final position for the end event (no live variable updates)
-        d3.select(this).datum({
-          finalX: clampedX,
-          finalY: clampedY,
-          dataX: xScale.invert(clampedX),
-          dataY: yScale.invert(clampedY),
-        });
-      })
-      .on("end", function () {
-        d3.select(this).attr("stroke", "none");
-        path.attr(
-          "stroke-width",
-          vector.lineWidth || VECTOR_DEFAULTS.lineWidth
-        );
+        // Convert to data coordinates
+        const dataX = xScale.invert(clampedX);
+        const dataY = yScale.invert(clampedY);
 
-        // Update variables only when dragging ends
-        const finalData = d3.select(this).datum() as {
-          dataX: number;
-          dataY: number;
-        };
-        if (finalData && xVars.length > 0 && yVars.length > 0) {
+        // Update our tracked tip position
+        currentTipX = dataX;
+        currentTipY = dataY;
+
+        // Update the vector path to point to new position
+        const startPoint = vectorData[0];
+        const updatedVectorData = [startPoint, { x: dataX, y: dataY }];
+
+        const line = d3
+          .line<VectorData>()
+          .x((d) => xScale(d.x))
+          .y((d) => yScale(d.y));
+
+        path.datum(updatedVectorData).attr("d", line);
+
+        // Update variables with new tip position
+        if (xVars.length > 0 && yVars.length > 0) {
           const endXVar = xVars[xVars.length - 1];
           const endYVar = yVars[yVars.length - 1];
 
           try {
             runInAction(() => {
-              computationStore.setValue(endXVar, finalData.dataX);
-              computationStore.setValue(endYVar, finalData.dataY);
+              computationStore.setValue(endXVar, currentTipX);
+              computationStore.setValue(endYVar, currentTipY);
             });
           } catch (error) {
-            console.error("Error updating variables:", error);
+            console.error("Error updating variables during drag:", error);
           }
+        } else {
+          console.log("No variables to update:", { xVars, yVars });
         }
+      })
+      .on("end", function () {
+        isDragging = false;
+        d3.select(this).attr("stroke", "none");
+        path.attr(
+          "stroke-width",
+          vector.lineWidth || VECTOR_DEFAULTS.lineWidth
+        );
       });
 
     dragHandle.call(drag);
