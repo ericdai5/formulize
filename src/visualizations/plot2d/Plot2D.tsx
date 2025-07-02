@@ -6,14 +6,12 @@ import { observer } from "mobx-react-lite";
 import * as d3 from "d3";
 
 import { computationStore } from "../../api/computation";
-import { type IPlot2D } from "../../types/plot2d";
-import { type IVector } from "../../types/plot2d";
-import { getVariableValue } from "../../util/computation-helpers";
+import { type IPlot2D, type IVector } from "../../types/plot2d";
 import { addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";
-import { addCurrentPointHighlight, addInteractions } from "./interaction";
 import { calculatePlotDimensions, getVariableLabel } from "./utils";
 import { renderVectors } from "./vectors";
+import { renderLines } from "./lines";
 
 interface Plot2DProps {
   config: IPlot2D;
@@ -35,6 +33,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     yVar,
     yRange = PLOT2D_DEFAULTS.yRange,
     vectors,
+    lines,
     width = PLOT2D_DEFAULTS.width,
     height = PLOT2D_DEFAULTS.height,
   } = config;
@@ -49,53 +48,17 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const [xMin, xMax] = xRange;
   const [yMin, yMax] = yRange;
 
-  // Simple function to calculate traditional plot data points
-  const calculateTraditionalDataPoints = useCallback(() => {
-    if (!xVar || !yVar) return [];
 
-    const points: DataPoint[] = [];
-    const step = (xMax - xMin) / 100; // 100 points for smooth curve
-
-    // Get current variable values
-    const allVariables: Record<string, number> = {};
-    for (const [id, variable] of computationStore.variables.entries()) {
-      allVariables[id] = variable.value ?? 0;
-    }
-
-    // Try to get evaluation function from store
-    const debugState = computationStore.getDebugState();
-    if (!debugState.hasFunction) return [];
-
-    const evalFunction = computationStore.evaluateFormula;
-    if (!evalFunction) return [];
-
-    for (let i = 0; i <= 100; i++) {
-      const x = xMin + i * step;
-      try {
-        const vars = { ...allVariables, [xVar]: x };
-        const result = evalFunction(vars);
-        const y = result[yVar];
-
-        if (typeof y === "number" && isFinite(y) && y >= yMin && y <= yMax) {
-          points.push({ x, y });
-        }
-      } catch (error) {
-        // Skip invalid points
-      }
-    }
-
-    return points;
-  }, [xVar, yVar, xMin, xMax, yMin, yMax]);
 
   // Function to draw the plot
   const drawPlot = useCallback(() => {
     if (!svgRef.current) return;
 
-    // Check if we have vectors (vector mode) or traditional plotting
+    // Check if we have vectors or lines
     const hasVectors = vectors && vectors.length > 0;
-    const hasTraditional = xVar && yVar && !hasVectors;
+    const hasLines = lines && lines.length > 0 && xVar && yVar;
 
-    if (!hasVectors && !hasTraditional) return;
+    if (!hasVectors && !hasLines) return;
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
@@ -119,8 +82,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       plotWidth,
       plotHeight,
       margin,
-      xLabel: hasTraditional ? getVariableLabel(xVar!) : "X",
-      yLabel: hasTraditional ? getVariableLabel(yVar!) : "Y",
+      xLabel: hasLines && xVar ? getVariableLabel(xVar) : "X",
+      yLabel: hasLines && yVar ? getVariableLabel(yVar) : "Y",
     });
 
     // Add grid using helper function
@@ -144,68 +107,25 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         plotWidth,
         plotHeight
       );
-    } else if (hasTraditional) {
-      // Traditional plotting mode (algebra examples)
-      const points = calculateTraditionalDataPoints();
-
-      if (points.length > 0) {
-        // Create line generator
-        const line = d3
-          .line<DataPoint>()
-          .x((d) => xScale(d.x))
-          .y((d) => yScale(d.y))
-          .curve(d3.curveBasis);
-
-        // Add the line path
-        svg
-          .append("path")
-          .datum(points)
-          .attr("fill", "none")
-          .attr("stroke", "#3b82f6")
-          .attr("stroke-width", 3)
-          .attr("d", line);
-
-        // Add current point highlight
-        const currentX = getVariableValue(xVar!);
-        const currentY = getVariableValue(yVar!);
-        const currentPointData = {
-          x:
-            typeof currentX === "number"
-              ? currentX
-              : parseFloat(String(currentX)) || 0,
-          y:
-            typeof currentY === "number"
-              ? currentY
-              : parseFloat(String(currentY)) || 0,
-        };
-
-        addCurrentPointHighlight(
-          svg,
-          currentPointData,
-          xScale,
-          yScale,
-          [xMin, xMax],
-          [yMin, yMax],
-          xVar,
-          yVar
-        );
-
-        // Add interactions
-        addInteractions(
-          svg,
-          tooltipRef,
-          points,
-          xScale,
-          yScale,
-          plotWidth,
-          plotHeight,
-          xVar,
-          yVar
-        );
-      }
+    } else if (hasLines) {
+      // Multiple lines mode
+      renderLines(
+        svg,
+        tooltipRef,
+        lines,
+        xVar!,
+        yVar!,
+        xScale,
+        yScale,
+        [xMin, xMax],
+        [yMin, yMax],
+        plotWidth,
+        plotHeight
+      );
     }
   }, [
     vectors,
+    lines,
     plotWidth,
     plotHeight,
     margin,

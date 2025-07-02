@@ -8,6 +8,7 @@ export interface AxisConfig {
   margin: { top: number; right: number; bottom: number; left: number };
   xLabel?: string;
   yLabel?: string;
+  tickFontSize?: number;
 }
 
 /**
@@ -17,14 +18,24 @@ export function addAxes(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   config: AxisConfig
 ): void {
-  const { xScale, yScale, plotWidth, plotHeight, margin, xLabel, yLabel } = config;
+  const { xScale, yScale, plotWidth, plotHeight, margin, xLabel, yLabel, tickFontSize = 12 } = config;
 
   // Add X axis
   const xAxis = svg
     .append("g")
     .attr("class", "x-axis")
     .attr("transform", `translate(0,${plotHeight})`)
-    .call(d3.axisBottom(xScale));
+    .call(d3.axisBottom(xScale).tickSize(0));
+
+  // Style X axis line to match grid opacity
+  xAxis.selectAll("path")
+    .attr("opacity", 0.1);
+
+  // Style X axis text to be black
+  xAxis.selectAll("text")
+    .attr("fill", "#000")
+    .attr("opacity", 1)
+    .attr("font-size", `${tickFontSize}px`);
 
   if (xLabel) {
     xAxis
@@ -33,6 +44,7 @@ export function addAxes(
       .attr("x", plotWidth / 2)
       .attr("y", 40)
       .attr("fill", "#000")
+      .attr("opacity", 1)
       .attr("text-anchor", "middle")
       .text(xLabel);
   }
@@ -41,7 +53,17 @@ export function addAxes(
   const yAxis = svg
     .append("g")
     .attr("class", "y-axis")
-    .call(d3.axisLeft(yScale));
+    .call(d3.axisLeft(yScale).tickSize(0));
+
+  // Style Y axis line to match grid opacity
+  yAxis.selectAll("path")
+    .attr("opacity", 0.1);
+
+  // Style Y axis text to be black
+  yAxis.selectAll("text")
+    .attr("fill", "#000")
+    .attr("opacity", 1)
+    .attr("font-size", `${tickFontSize}px`);
 
   if (yLabel) {
     yAxis
@@ -51,6 +73,7 @@ export function addAxes(
       .attr("y", -margin.left + 20)
       .attr("x", -plotHeight / 2)
       .attr("fill", "#000")
+      .attr("opacity", 1)
       .attr("text-anchor", "middle")
       .text(yLabel);
   }

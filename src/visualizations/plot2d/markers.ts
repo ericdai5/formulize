@@ -33,3 +33,26 @@ export function createArrowMarker(
 export function getMarkerUrl(markerId: string): string {
   return `url(#${markerId})`;
 }
+
+/**
+ * Renders point markers (circles) at specified data points
+ */
+export function renderPointMarkers(
+  svg: d3.Selection<SVGGElement, unknown, null, undefined>,
+  vectorData: Array<{ x: number; y: number }>,
+  xScale: d3.ScaleLinear<number, number>,
+  yScale: d3.ScaleLinear<number, number>,
+  color: string,
+  markerSize: number = 4
+): void {
+  vectorData.forEach((point) => {
+    svg
+      .append("circle")
+      .attr("cx", xScale(point.x))
+      .attr("cy", yScale(point.y))
+      .attr("r", markerSize)
+      .attr("fill", color)
+      .attr("stroke", color)
+      .attr("stroke-width", 1);
+  });
+}

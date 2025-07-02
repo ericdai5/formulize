@@ -6,7 +6,7 @@ import { computationStore } from "../../api/computation";
 import { IVector } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
 import { VECTOR_DEFAULTS } from "./defaults";
-import { createArrowMarker, getMarkerUrl } from "./markers";
+import { createArrowMarker, getMarkerUrl, renderPointMarkers } from "./markers";
 
 export interface VectorData {
   x: number;
@@ -66,18 +66,7 @@ export function renderVector(
 
   // Handle point shape differently
   if (shape === "point") {
-    // For points, render circles at each data point
-    // Always use line color for consistency
-    vectorData.forEach((point) => {
-      svg
-        .append("circle")
-        .attr("cx", xScale(point.x))
-        .attr("cy", yScale(point.y))
-        .attr("r", vector.markerSize || 4)
-        .attr("fill", color)
-        .attr("stroke", color)
-        .attr("stroke-width", 1);
-    });
+    renderPointMarkers(svg, vectorData, xScale, yScale, color, vector.markerSize || 4);
     return; // Exit early for points
   }
 

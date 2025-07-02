@@ -50,11 +50,10 @@ export const kineticEnergy = `const config = {
       yRange: [0, 200],
       width: 600,
       height: 600,
-      surfaces: [
+      lines: [
         {
-          formulaName: "Kinetic Energy Formula",
-          color: "Viridis",
-          opacity: 0.7,
+          color: "#3b82f6",
+          name: "Kinetic Energy",
           showInLegend: true
         }
       ]

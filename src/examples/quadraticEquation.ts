@@ -55,7 +55,14 @@ export const quadraticEquation = `const config = {
       yVar: "y",
       yRange: [-10, 10],
       width: 600,
-      height: 600
+      height: 600,
+      lines: [
+        {
+          color: "#ef4444",
+          name: "Quadratic",
+          showInLegend: true
+        }
+      ]
     }
   ]
 };

@@ -49,7 +49,14 @@ export const gravitationalPotential = `const config = {
       yVar: "U",
       yRange: [0, 10000],
       width: 600,
-      height: 600
+      height: 600,
+      lines: [
+        {
+          color: "#10b981",
+          name: "Potential Energy",
+          showInLegend: true
+        }
+      ]
     }
   ]
 };

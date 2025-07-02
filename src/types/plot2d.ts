@@ -10,6 +10,13 @@ export interface IVector {
   showlegend?: boolean;
 }
 
+export interface ILine {
+  color?: string;
+  lineWidth?: number;
+  name?: string;
+  showInLegend?: boolean;
+}
+
 export interface IPlot2D {
   type: "plot2d";
   id?: string;
@@ -19,6 +26,8 @@ export interface IPlot2D {
   yVar?: string;
   yRange?: [number, number];
   vectors?: IVector[];
+  lines?: ILine[];
   width?: number | string;
   height?: number | string;
+  tickFontSize?: number;
 }
