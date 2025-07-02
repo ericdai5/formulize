@@ -18,18 +18,14 @@ export const dragHandler = (
     let isDragging = false;
     let startY = 0;
 
-    // Find the variable using the improved matching function
     const variableMatch = findVariableByElement(element as HTMLElement);
     if (!variableMatch) {
-      // console.warn("❌ Could not find variable for element:", element.id);
       return;
     }
 
     const { varId } = variableMatch;
     const variableState = getInputVariableState(varId, variableRanges);
-
     if (!variableState) {
-      // console.warn("❌ Could not get variable state for:", varId);
       return;
     }
 

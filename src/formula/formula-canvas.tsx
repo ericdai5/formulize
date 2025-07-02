@@ -1,22 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "../api/index.ts";
-import IconButton from "../components/icon-button.tsx";
+import FormulaCodeEditor from "../components/api-code-editor.tsx";
+import FormulaToolbar from "../components/debug-toolbar.tsx";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
 import { kineticEnergy } from "../examples/kineticEnergy";
 import { FormulaElementPane } from "../pages/api/FormulaElementPane.tsx";
-import FormulaCodeEditor from "../pages/api/api-code-editor.tsx";
 import { IEnvironment } from "../types/environment.ts";
 import { VariableTreePane } from "./VariableTreePane.tsx";
 import Formula, { VariableRange } from "./formula.tsx";
-
-import codeIcon from "../Icons/code.svg";
-import functionIcon from "../Icons/function.svg";
-import storeIcon from "../Icons/store.svg";
-import treeIcon from "../Icons/tree.svg";
-import variableIcon from "../Icons/variable.svg";
 
 // Wrapper component to handle multiple variable trees
 const VariableTreesPane = ({ config }: { config: FormulizeConfig | null }) => {
@@ -265,43 +259,14 @@ const FormulaCanvas = ({
   return (
     <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
       <div className="flex flex-col w-full h-full relative">
-        <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
-          <IconButton
-            icon={codeIcon}
-            alt="Edit"
-            onClick={() => setIsRendered(!isRendered)}
-          />
-          {onOpenEvaluationModal && (
-            <IconButton
-              icon={functionIcon}
-              alt="Open Evaluation"
-              onClick={onOpenEvaluationModal}
-            />
-          )}
-          <IconButton
-            icon={treeIcon}
-            alt="Show Elements"
-            onClick={() => setShowElementPane(true)}
-            title="Show Elements"
-          />
-          <IconButton
-            icon={variableIcon}
-            alt="Show Variable Trees"
-            onClick={() => setShowVariableTreePane(true)}
-            title="Show Variable Trees"
-          />
-          <IconButton
-            icon={functionIcon}
-            alt="Debug Manual Functions"
-            onClick={() => setShowDebugModal(true)}
-            title="Debug Manual Functions"
-          />
-          <IconButton
-            icon={storeIcon}
-            alt="Store"
-            onClick={handleOpenStoreModal}
-          />
-        </div>
+        <FormulaToolbar
+          onToggleRender={() => setIsRendered(!isRendered)}
+          onOpenEvaluationModal={onOpenEvaluationModal}
+          onShowElementPane={() => setShowElementPane(true)}
+          onShowVariableTreePane={() => setShowVariableTreePane(true)}
+          onShowDebugModal={() => setShowDebugModal(true)}
+          onOpenStoreModal={handleOpenStoreModal}
+        />
         <div
           ref={containerRef}
           className={`interactive-formula-container w-full overflow-auto transition-all duration-300 ease-in-out ${

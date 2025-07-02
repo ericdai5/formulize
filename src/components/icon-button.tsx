@@ -1,7 +1,9 @@
 import React from "react";
 
+import { LucideIcon } from "lucide-react";
+
 interface IconButtonProps {
-  icon: string;
+  icon: LucideIcon;
   alt: string;
   onClick: () => void;
   title?: string;
@@ -9,7 +11,7 @@ interface IconButtonProps {
 }
 
 const IconButton: React.FC<IconButtonProps> = ({
-  icon,
+  icon: Icon,
   alt,
   onClick,
   title,
@@ -20,8 +22,9 @@ const IconButton: React.FC<IconButtonProps> = ({
       onClick={onClick}
       className={`bg-white border border-slate-200 h-8 w-8 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100 ${className}`}
       title={title}
+      aria-label={alt}
     >
-      <img src={icon} alt={alt} className="w-4 h-4" />
+      <Icon className="w-4 h-4 text-slate-700 hover:text-slate-950 transition-colors duration-100" />
     </button>
   );
 };
