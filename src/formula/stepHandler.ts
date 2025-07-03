@@ -40,10 +40,41 @@ export const updateStepModeVariables = (
   viewVariables: Record<string, unknown>,
   pairs: Array<[string, string]>
 ) => {
+  const updatedVarIds = new Set<string>();
   pairs.forEach(([localVarName, linkedVarId]) => {
     const value = viewVariables[localVarName];
     if (value !== undefined && typeof value === "number") {
       computationStore.setValueInStepMode(linkedVarId, value);
+      updatedVarIds.add(linkedVarId);
+    }
+  });
+  // Apply updated styling to variables that were changed
+  applyUpdatedVariableStyles(updatedVarIds);
+};
+
+/**
+ * Apply visual styling to variables that are being updated in step mode
+ * @param updatedVarIds - Set of variable IDs that were updated
+ */
+export const applyUpdatedVariableStyles = (updatedVarIds: Set<string>) => {
+  const interactiveElements = document.querySelectorAll(
+    ".interactive-var-dropdown, .interactive-var-slider, .interactive-var-dependent"
+  );
+
+  interactiveElements.forEach((element) => {
+    const variableMatch = findVariableByElement(element as HTMLElement);
+    if (!variableMatch) return;
+    const { varId } = variableMatch;
+    const htmlElement = element as HTMLElement;
+    // Remove existing update styling
+    htmlElement.classList.remove("step-mode-updated");
+    // Add updated styling if this variable was updated
+    if (updatedVarIds.has(varId)) {
+      htmlElement.classList.add("step-mode-updated");
+      // Remove the updated styling after animation completes
+      setTimeout(() => {
+        htmlElement.classList.remove("step-mode-updated");
+      }, 1000);
     }
   });
 };

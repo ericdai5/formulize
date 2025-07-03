@@ -1,7 +1,8 @@
 import { observer } from "mobx-react-lite";
 
-import { IControls, ISliderControl } from "../../types/control";
+import { IControls, ISliderControl, IArrayControl } from "../../types/control";
 import Slider from "./slider";
+import Array from "./array";
 
 interface ControlPanelProps {
   controls: IControls[];
@@ -16,6 +17,9 @@ const ControlPanel = observer(({ controls }: ControlPanelProps) => {
     switch (control.type) {
       case "slider":
         return <Slider key={control.id} control={control as ISliderControl} />;
+
+      case "array":
+        return <Array key={control.id} control={control as IArrayControl} />;
 
       case "dropdown":
         // TODO: Implement

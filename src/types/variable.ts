@@ -19,7 +19,6 @@ export interface IVariable {
   options?: string[];
   set?: (string | number)[];
   key?: string;
-  map?: Record<string | number, number>;
   showName?: boolean;
 }
 

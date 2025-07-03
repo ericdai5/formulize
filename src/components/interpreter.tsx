@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 
+import { computationStore } from "../api/computation";
 import { extractManual } from "../api/computation-engines/manual/extract";
 import {
   JSInterpreter,
@@ -58,6 +59,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
     Array<{ start: number; end: number; line?: number; column?: number }>
   >([]);
   const [isSteppingToView, setIsSteppingToView] = useState(false);
+  const [isSteppingToValue, setIsSteppingToValue] = useState(false);
+  const [targetValue, setTargetValue] = useState<{variableId: string, value: any} | null>(null);
   const autoPlayIntervalRef = useRef<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const codeMirrorRef = useRef<any>(null);
@@ -199,6 +202,15 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
               // Update step mode variables in Formulize
               updateStepModeVariables(viewVariables, pairs);
+              
+              // Set active values in computation store using linked variable IDs
+              computationStore.clearActiveValues();
+              pairs.forEach(([localVarName, linkedVarId]) => {
+                const value = viewVariables[localVarName];
+                if (value !== undefined) {
+                  computationStore.setActiveValue(linkedVarId, value);
+                }
+              });
             }
           } catch (err) {
             console.warn("Error extracting view parameters:", err);
@@ -207,6 +219,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
           }
         }
       }
+    } else {
+      // Clear active values when not at a view
+      computationStore.clearActiveValues();
     }
 
     return {
@@ -229,6 +244,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
     setError(null);
     setIsRunning(false);
     setIsSteppingToView(false);
+    setIsSteppingToValue(false);
+    setTargetValue(null);
 
     if (autoPlayIntervalRef.current) {
       clearInterval(autoPlayIntervalRef.current);
@@ -285,6 +302,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
         setIsComplete(true);
         setIsRunning(false);
         setIsSteppingToView(false);
+        setIsSteppingToValue(false);
         if (autoPlayIntervalRef.current) {
           clearInterval(autoPlayIntervalRef.current);
           autoPlayIntervalRef.current = null;
@@ -299,12 +317,119 @@ const DebugModal: React.FC<DebugModalProps> = ({
       setError(`Execution error: ${err}`);
       setIsRunning(false);
       setIsSteppingToView(false);
+      setIsSteppingToValue(false);
       if (autoPlayIntervalRef.current) {
         clearInterval(autoPlayIntervalRef.current);
         autoPlayIntervalRef.current = null;
       }
     }
   };
+
+  // Step until activeValue matches target value at a view point
+  const stepToValue = useCallback((variableId: string, targetVal: any) => {
+    if (!interpreter || isComplete) {
+      return;
+    }
+
+    setIsSteppingToValue(true);
+    setTargetValue({ variableId, value: targetVal });
+
+    try {
+      // Limit steps to prevent infinite loops
+      let stepsCount = 0;
+      const maxSteps = 100000;
+
+      // If we're currently at a view() breakpoint, step past it first
+      if (isAtView(interpreter)) {
+        // Step until we're no longer at the same view() breakpoint
+        let stillAtSameView = true;
+        while (stillAtSameView && stepsCount < maxSteps) {
+          const canContinue = interpreter.step();
+          stepsCount++;
+
+          const newState = getCurrentState(interpreter, history.length);
+          setHistory((prev) => [...prev, newState]);
+          highlightCode(
+            codeMirrorRef,
+            newState.highlight.start,
+            newState.highlight.end
+          );
+
+          if (!canContinue) {
+            setIsComplete(true);
+            setIsSteppingToValue(false);
+            setTargetValue(null);
+            return;
+          }
+
+          // Check if we're still at the same view() breakpoint
+          stillAtSameView = isAtView(interpreter);
+        }
+
+        if (stepsCount >= maxSteps) {
+          setError(
+            "Maximum steps reached while trying to step past view() breakpoint"
+          );
+          setIsSteppingToValue(false);
+          setTargetValue(null);
+          return;
+        }
+      }
+
+      // Now step until we hit a view() breakpoint with the target value
+      let foundTargetValue = false;
+
+      while (!foundTargetValue && stepsCount < maxSteps) {
+        const canContinue = interpreter.step();
+        stepsCount++;
+
+        const state = getCurrentState(interpreter, history.length);
+        setHistory((prev) => [...prev, state]);
+        highlightCode(
+          codeMirrorRef,
+          state.highlight.start,
+          state.highlight.end
+        );
+
+        if (!canContinue) {
+          setIsComplete(true);
+          setIsSteppingToValue(false);
+          setTargetValue(null);
+          return;
+        }
+
+        // Check if we're at a view with the target value
+        if (isAtView(interpreter)) {
+          const currentActiveValue = computationStore.activeValues.get(variableId);
+          if (currentActiveValue !== undefined && currentActiveValue === targetVal) {
+            foundTargetValue = true;
+            setIsSteppingToValue(false);
+            setTargetValue(null);
+            return;
+          }
+        }
+      }
+
+      if (stepsCount >= maxSteps) {
+        setError(`Maximum steps reached while looking for ${variableId} = ${targetVal}`);
+        setIsSteppingToValue(false);
+        setTargetValue(null);
+        return;
+      }
+    } catch (err) {
+      setError(`Execution error: ${err}`);
+      setIsSteppingToValue(false);
+      setTargetValue(null);
+    }
+  }, [interpreter, isComplete, history.length, computationStore]);
+
+  // Register stepToValue callback when component mounts
+  useEffect(() => {
+    computationStore.setStepToValueCallback(stepToValue);
+    return () => {
+      computationStore.setStepToValueCallback(null);
+    };
+  }, [stepToValue]);
 
   // Step to the next breakpoint
   const stepToView = () => {
@@ -432,7 +557,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const hasSteps = history.length > 0;
 
   // Debug button state - now checking for view() functions instead of comment breakpoints
-  const buttonDisabled = !interpreter || isComplete || isSteppingToView;
+  const buttonDisabled = !interpreter || isComplete || isSteppingToView || isSteppingToValue;
 
   if (!isOpen) return null;
 
@@ -447,18 +572,18 @@ const DebugModal: React.FC<DebugModalProps> = ({
         <div className="flex justify-start items-center p-2 border-b gap-2">
           <Button
             onClick={refresh}
-            disabled={isRunning || isSteppingToView}
+            disabled={isRunning || isSteppingToView || isSteppingToValue}
             icon={RotateCcw}
           />
           <Button
             onClick={stepBackward}
-            disabled={history.length <= 1 || isRunning || isSteppingToView}
+            disabled={history.length <= 1 || isRunning || isSteppingToView || isSteppingToValue}
             icon={StepBack}
           />
           <Button
             onClick={stepForward}
             disabled={
-              !interpreter || isRunning || isComplete || isSteppingToView
+              !interpreter || isRunning || isComplete || isSteppingToView || isSteppingToValue
             }
             icon={StepForward}
           />
@@ -467,7 +592,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
           </Button>
           <Button
             onClick={toggleAutoPlay}
-            disabled={!interpreter || isComplete || isSteppingToView}
+            disabled={!interpreter || isComplete || isSteppingToView || isSteppingToValue}
             icon={isRunning ? Pause : Play}
           />
           <Select
@@ -659,6 +784,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     {isSteppingToView && (
                       <span className="text-orange-600">
                         Stepping to a View...
+                      </span>
+                    )}
+                    {isSteppingToValue && targetValue && (
+                      <span className="text-purple-600">
+                        Stepping to {targetValue.variableId} = {targetValue.value}...
                       </span>
                     )}
                   </div>

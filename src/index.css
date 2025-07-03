@@ -55,7 +55,24 @@
 
   /* Step mode styles */
   .step-mode {
-    @apply bg-green-50 text-green-800;
+    @apply bg-slate-100 text-slate-800;
+  }
+
+  .step-mode-updated {
+    @apply bg-green-100 text-green-800 border border-green-300 shadow-sm;
+    animation: pulseUpdate 0.4s ease-in-out;
+  }
+
+  @keyframes pulseUpdate {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 
   .interpreter-updated {

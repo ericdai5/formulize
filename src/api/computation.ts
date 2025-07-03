@@ -50,6 +50,9 @@ class ComputationStore {
   @observable
   accessor isDragging = false;
 
+  @observable
+  accessor activeValues = new Map<string, any>();
+
   private evaluationFunction: EvaluationFunction | null = null;
   private isUpdatingDependents = false;
   private isInitializing = false;
@@ -142,8 +145,8 @@ class ComputationStore {
     }
     variable.value = value;
 
-    // Update any mapped variables that use this variable as their key
-    this.updateMappedVariables(id, value);
+    // Update any index-based dependent variables that use this variable as their key
+    this.updateIndexBasedVariables(id, value);
 
     // Only update dependent variables if we're not initializing and not already in an update cycle
     if (!this.isUpdatingDependents && !this.isInitializing) {
@@ -161,8 +164,8 @@ class ComputationStore {
     console.log(`Step mode: Setting ${id} = ${value} (no recalculation)`);
     variable.value = value;
 
-    // Update any mapped variables that use this variable as their key
-    this.updateMappedVariables(id, value);
+    // Update any index-based dependent variables that use this variable as their key
+    this.updateIndexBasedVariables(id, value);
 
     // In step mode, we don't trigger automatic recalculation
     // We want to show interpreter values, not computed values
@@ -173,33 +176,72 @@ class ComputationStore {
     this.isDragging = dragging;
   }
 
-  // Resolve any key-map relationships after all variables have been added
   @action
-  resolveKeyMapRelationships() {
+  setActiveValue(id: string, value: any) {
+    this.activeValues.set(id, value);
+  }
+
+  @action
+  clearActiveValues() {
+    this.activeValues.clear();
+  }
+
+  @observable
+  accessor stepToValueCallback: ((variableId: string, value: any) => void) | null = null;
+
+  @action
+  setStepToValueCallback(callback: ((variableId: string, value: any) => void) | null) {
+    this.stepToValueCallback = callback;
+  }
+
+  // Resolve any key-set relationships after all variables have been added
+  @action
+  resolveKeySetRelationships() {
     for (const variable of this.variables.values()) {
-      if (variable.key && variable.map) {
+      if (variable.key && variable.set) {
         const keyVariable = this.variables.get(variable.key);
-        if (keyVariable && keyVariable.value !== undefined) {
-          const mappedValue = variable.map[keyVariable.value];
-          if (mappedValue !== undefined) {
-            variable.value = mappedValue;
+        if (keyVariable && keyVariable.set && keyVariable.value !== undefined) {
+          const keyIndex = keyVariable.set.indexOf(keyVariable.value);
+          if (keyIndex !== -1 && keyIndex < variable.set.length) {
+            const setValue = variable.set[keyIndex];
+            variable.value = typeof setValue === 'number' ? setValue : parseFloat(String(setValue));
           }
         }
       }
     }
   }
 
-  // Update variables that have a map based on a key variable
+  // Update variables that have a set based on a key variable (bidirectional index-based matching)
   @action
-  private updateMappedVariables(keyVariableId: string, keyValue: number) {
-    // Find all variables that use this variable as their key
-    for (const variable of this.variables.values()) {
-      if (variable.key === keyVariableId && variable.map) {
-        // Look up the mapped value for this key
-        const mappedValue = variable.map[keyValue];
-        if (mappedValue !== undefined) {
-          // Update the mapped variable's value without triggering recursive updates
-          variable.value = mappedValue;
+  private updateIndexBasedVariables(changedVariableId: string, changedValue: number) {
+    const changedVariable = this.variables.get(changedVariableId);
+    if (!changedVariable) return;
+
+    // Case 1: The changed variable has a key (depends on another variable)
+    if (changedVariable.key && changedVariable.set) {
+      const keyVariable = this.variables.get(changedVariable.key);
+      if (keyVariable && keyVariable.set) {
+        // Find the index of the changed value in the changed variable's set
+        const changedIndex = changedVariable.set.indexOf(changedValue);
+        if (changedIndex !== -1 && changedIndex < keyVariable.set.length) {
+          // Update the key variable's value using the same index
+          const keyValue = keyVariable.set[changedIndex];
+          keyVariable.value = typeof keyValue === 'number' ? keyValue : parseFloat(String(keyValue));
+        }
+      }
+    }
+
+    // Case 2: Other variables depend on the changed variable (changed variable is a key)
+    for (const [varId, variable] of this.variables.entries()) {
+      if (variable.key === changedVariableId && variable.set && varId !== changedVariableId) {
+        if (changedVariable.set) {
+          // Find the index of the changed value in the changed variable's set
+          const changedIndex = changedVariable.set.indexOf(changedValue);
+          if (changedIndex !== -1 && changedIndex < variable.set.length) {
+            // Update the dependent variable's value using the same index
+            const setValue = variable.set[changedIndex];
+            variable.value = typeof setValue === 'number' ? setValue : parseFloat(String(setValue));
+          }
         }
       }
     }
@@ -304,17 +346,17 @@ class ComputationStore {
         options: variableDefinition?.options,
         set: variableDefinition?.set,
         key: variableDefinition?.key,
-        map: variableDefinition?.map,
         showName: variableDefinition?.showName,
       });
 
-      // If this variable has a key-map relationship, update its value based on the key variable
-      if (variableDefinition?.key && variableDefinition?.map) {
+      // If this variable has a key-set relationship, update its value based on the key variable
+      if (variableDefinition?.key && variableDefinition?.set) {
         const keyVariable = this.variables.get(variableDefinition.key);
-        if (keyVariable && keyVariable.value !== undefined) {
-          const mappedValue = variableDefinition.map[keyVariable.value];
-          if (mappedValue !== undefined) {
-            this.variables.get(id)!.value = mappedValue;
+        if (keyVariable && keyVariable.set && keyVariable.value !== undefined) {
+          const keyIndex = keyVariable.set.indexOf(keyVariable.value);
+          if (keyIndex !== -1 && keyIndex < variableDefinition.set.length) {
+            const setValue = variableDefinition.set[keyIndex];
+            this.variables.get(id)!.value = typeof setValue === 'number' ? setValue : parseFloat(String(setValue));
           }
         }
       }
