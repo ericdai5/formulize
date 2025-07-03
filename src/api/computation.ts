@@ -47,6 +47,9 @@ class ComputationStore {
   @observable
   accessor variableTypesChanged = 0;
 
+  @observable
+  accessor isDragging = false;
+
   private evaluationFunction: EvaluationFunction | null = null;
   private isUpdatingDependents = false;
   private isInitializing = false;
@@ -163,6 +166,11 @@ class ComputationStore {
 
     // In step mode, we don't trigger automatic recalculation
     // We want to show interpreter values, not computed values
+  }
+
+  @action
+  setDragging(dragging: boolean) {
+    this.isDragging = dragging;
   }
 
   // Resolve any key-map relationships after all variables have been added

@@ -67,7 +67,8 @@ export function renderLines(
   xRange: [number, number],
   yRange: [number, number],
   plotWidth: number,
-  plotHeight: number
+  plotHeight: number,
+  onDragEnd?: () => void
 ): void {
   const [xMin, xMax] = xRange;
   const [yMin, yMax] = yRange;
@@ -141,7 +142,8 @@ export function renderLines(
           plotWidth,
           plotHeight,
           xVar,
-          yVar
+          yVar,
+          onDragEnd
         );
       }
     }

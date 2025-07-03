@@ -120,7 +120,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         [xMin, xMax],
         [yMin, yMax],
         plotWidth,
-        plotHeight
+        plotHeight,
+        drawPlot
       );
     }
   }, [
@@ -141,6 +142,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   useEffect(() => {
     const disposer = reaction(
       () => {
+        // Skip tracking during dragging to prevent re-renders
+        if (computationStore.isDragging) return null;
+        
         // Track all variable values for live updates
         const allVariables: Record<string, number> = {};
         for (const [id, variable] of computationStore.variables.entries()) {
@@ -149,8 +153,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         return allVariables;
       },
       () => {
-        // Force re-render when variables change
-        drawPlot();
+        // Only re-render if not dragging
+        if (!computationStore.isDragging) {
+          drawPlot();
+        }
       },
       { fireImmediately: true }
     );
