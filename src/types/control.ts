@@ -1,6 +1,6 @@
 export interface IControl {
   id: string;
-  type: "slider" | "dropdown" | "checkbox" | "button" | "radio";
+  type: "slider" | "dropdown" | "checkbox" | "button" | "radio" | "array";
   variable?: string;
 }
 
@@ -8,6 +8,11 @@ export interface ISliderControl extends IControl {
   type: "slider";
   orientation?: "horizontal" | "vertical";
   showValue?: boolean;
+}
+
+export interface IArrayControl extends IControl {
+  type: "array";
+  orientation?: "horizontal" | "vertical";
 }
 
 export interface IDropdownControl extends IControl {
@@ -34,6 +39,7 @@ export interface IRadioControl extends IControl {
 
 export type IControls =
   | ISliderControl
+  | IArrayControl
   | IDropdownControl
   | ICheckboxControl
   | IButtonControl

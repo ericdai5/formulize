@@ -97,8 +97,8 @@ async function create(
         }
       });
 
-      // Resolve any key-map relationships after all variables have been added
-      computationStore.resolveKeyMapRelationships();
+      // Resolve any key-set relationships after all variables have been added
+      computationStore.resolveKeySetRelationships();
     }
 
     // Now create individual formula stores for each formula
@@ -178,7 +178,6 @@ async function create(
           options: variable.options,
           set: variable.set,
           key: variable.key,
-          map: variable.map,
         };
       },
       setVariable: (name: string, value: number) => {

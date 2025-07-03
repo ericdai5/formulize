@@ -22,20 +22,21 @@ export const dropdownHandler = (container: HTMLElement) => {
       return;
     }
 
-    // Get the available options from set, options, or map property
+    // Get the available options from set or options property
     let availableOptions: (string | number)[] = [];
-    let isMapVariable = false;
-    let keyVariable: string | null = null;
+    let isKeyVariable = false;
 
     if (variable.set) {
       availableOptions = variable.set;
     } else if (variable.options) {
       availableOptions = variable.options;
-    } else if (variable.map) {
-      // For map variables, the dropdown options are the values in the map
-      availableOptions = Object.values(variable.map);
-      isMapVariable = true;
-      keyVariable = variable.key || null;
+    } else if (variable.key) {
+      // For variables with a key, show options from the key variable's set
+      const keyVar = getVariable(variable.key);
+      if (keyVar && keyVar.set) {
+        availableOptions = keyVar.set;
+        isKeyVariable = true;
+      }
     }
 
     if (availableOptions.length === 0) {
@@ -59,22 +60,11 @@ export const dropdownHandler = (container: HTMLElement) => {
             typeof option === "number" ? option : parseFloat(String(option));
 
           if (!isNaN(numericValue)) {
-            if (isMapVariable && keyVariable && variable.map) {
-              // For map variables, update the key variable first
-              // This will automatically update the mapped variable via updateMappedVariables
-              const mapEntry = Object.entries(variable.map).find(
-                ([key, value]) => value === numericValue
-              );
-              if (mapEntry) {
-                const keyValue =
-                  typeof mapEntry[0] === "string"
-                    ? parseFloat(mapEntry[0])
-                    : mapEntry[0];
-                if (!isNaN(keyValue)) {
-                  computationStore.setValue(keyVariable, keyValue);
-                  // The mapped variable (this variable) will be updated automatically
-                }
-              }
+            if (isKeyVariable && variable.key) {
+              // For variables with a key, update the key variable first
+              // This will automatically update the dependent variable via updateIndexBasedVariables
+              computationStore.setValue(variable.key, numericValue);
+              // The dependent variable (this variable) will be updated automatically
             } else {
               // For regular set/options variables, update directly
               computationStore.setValue(varId, numericValue);

@@ -53,11 +53,10 @@ export const processVariablesInFormula = (
         if (symbol === originalSymbol) {
           value = variable.value ?? 0;
           isInputVariable = variable.type === "input";
-          // Check if variable has dropdown options (set, options, or map property)
+          // Check if variable has dropdown options (set or options property)
           hasDropdownOptions = !!(
             variable.set ||
-            variable.options ||
-            variable.map
+            variable.options
           );
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
