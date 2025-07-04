@@ -34,11 +34,11 @@ export const stepHandler = (container: HTMLElement) => {
 /**
  * Simple function to update step mode variables using view data from interpreter.tsx
  * @param viewVariables - The view variables already extracted by interpreter.tsx
- * @param pairs - The pairs from view() call: [localVarName, linkedVarId]
+ * @param pairs - The pairs from view() call: [localVarName, linkedVarId, indexVar?]
  */
 export const updateStepModeVariables = (
   viewVariables: Record<string, unknown>,
-  pairs: Array<[string, string]>
+  pairs: Array<[string, string, string?]>
 ) => {
   const updatedVarIds = new Set<string>();
   pairs.forEach(([localVarName, linkedVarId]) => {

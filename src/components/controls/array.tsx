@@ -65,11 +65,27 @@ const Array = observer(({ control }: ArrayProps) => {
   const arrayValues = getArrayValues();
 
   const handleValueClick = useCallback(
-    (clickedValue: any) => {
+    (clickedValue: any, index: number) => {
       if (variableId) {
-        // If there's a stepToValue callback available (debug mode), use it
-        if (computationStore.stepToValueCallback) {
-          computationStore.stepToValueCallback(variableId, clickedValue);
+        // If there's a stepToIndex callback available (debug mode), use it
+        if (computationStore.stepToIndexCallback) {
+          const processedIndices = computationStore.processedIndices.get(variableId) || new Set();
+          
+          // If this index is already processed, refresh and restart
+          if (processedIndices.has(index)) {
+            if (computationStore.refreshCallback) {
+              computationStore.refreshCallback();
+              // Use setTimeout to ensure refresh completes before stepping to index
+              setTimeout(() => {
+                if (computationStore.stepToIndexCallback) {
+                  computationStore.stepToIndexCallback(variableId, index);
+                }
+              }, 0);
+            }
+          } else {
+            // Otherwise, just step to the index normally
+            computationStore.stepToIndexCallback(variableId, index);
+          }
         } else {
           // Otherwise, just set the value normally
           computationStore.setValue(variableId, clickedValue);
@@ -79,12 +95,20 @@ const Array = observer(({ control }: ArrayProps) => {
     [variableId]
   );
 
-  // Get active value directly for MobX reactivity
-  const getActiveValue = () => {
+  // Get active index directly for MobX reactivity
+  const getActiveIndex = () => {
     if (variableId) {
-      return computationStore.activeValues.get(variableId);
+      return computationStore.activeIndices.get(variableId);
     }
     return null;
+  };
+
+  // Get processed indices for styling
+  const getProcessedIndices = () => {
+    if (variableId) {
+      return computationStore.processedIndices.get(variableId) || new Set();
+    }
+    return new Set();
   };
 
   const formatValue = useCallback((value: any) => {
@@ -120,12 +144,14 @@ const Array = observer(({ control }: ArrayProps) => {
           <div className="text-sm text-slate-400 italic">Empty array</div>
         ) : (
           arrayValues.map((value, index) => {
-            const activeValue = getActiveValue();
-            const isActive = activeValue !== null && activeValue === value;
+            const activeIndex = getActiveIndex();
+            const processedIndices = getProcessedIndices();
+            const isActive = activeIndex !== null && activeIndex === index;
+            const isProcessed = processedIndices.has(index);
             return (
               <div
                 key={index}
-                onClick={() => handleValueClick(value)}
+                onClick={() => handleValueClick(value, index)}
                 className={`
                   px-3 py-1 text-sm border rounded-xl
                   cursor-pointer transition-colors duration-150
@@ -133,7 +159,9 @@ const Array = observer(({ control }: ArrayProps) => {
                   ${
                     isActive
                       ? "bg-green-100 border-green-400 text-green-800 ring-1 ring-green-300"
-                      : "border-slate-200 hover:bg-slate-200 hover:border-slate-300"
+                      : isProcessed
+                        ? "bg-slate-100 border-slate-200 hover:bg-slate-200 hover:border-slate-400 hover:ring-1 hover:ring-slate-200"
+                        : "border-slate-200 hover:bg-slate-200 hover hover:border-slate-400 hover:ring-1 hover:ring-slate-200"
                   }
                 `}
               >

@@ -10,9 +10,9 @@ export const summationBasic = `const config = {
         for (var i = 0; i < xValues.length; i++) {
           var xi = xValues[i];
           var probability = pxValues[i];
-          // @view xi x probability P(x)
+          // @view xi->x->i probability->P(x)->i
           expectedValue += xi * probability;
-          // @view expectedValue E
+          // @view expectedValue->E
         }
         return expectedValue;
       },

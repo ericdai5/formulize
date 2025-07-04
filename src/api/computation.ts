@@ -51,7 +51,10 @@ class ComputationStore {
   accessor isDragging = false;
 
   @observable
-  accessor activeValues = new Map<string, any>();
+  accessor activeIndices = new Map<string, number>();
+
+  @observable
+  accessor processedIndices = new Map<string, Set<number>>();
 
   private evaluationFunction: EvaluationFunction | null = null;
   private isUpdatingDependents = false;
@@ -177,21 +180,47 @@ class ComputationStore {
   }
 
   @action
-  setActiveValue(id: string, value: any) {
-    this.activeValues.set(id, value);
+  setActiveIndex(id: string, index: number) {
+    this.activeIndices.set(id, index);
   }
 
   @action
-  clearActiveValues() {
-    this.activeValues.clear();
+  clearActiveIndices() {
+    this.activeIndices.clear();
+  }
+
+  @action
+  addProcessedIndex(id: string, index: number) {
+    if (!this.processedIndices.has(id)) {
+      this.processedIndices.set(id, new Set());
+    }
+    this.processedIndices.get(id)!.add(index);
+  }
+
+  @action
+  clearProcessedIndices() {
+    this.processedIndices.clear();
+  }
+
+  @action
+  clearProcessedIndicesForVariable(id: string) {
+    this.processedIndices.delete(id);
   }
 
   @observable
-  accessor stepToValueCallback: ((variableId: string, value: any) => void) | null = null;
+  accessor stepToIndexCallback: ((variableId: string, index: number) => void) | null = null;
+
+  @observable
+  accessor refreshCallback: (() => void) | null = null;
 
   @action
-  setStepToValueCallback(callback: ((variableId: string, value: any) => void) | null) {
-    this.stepToValueCallback = callback;
+  setStepToIndexCallback(callback: ((variableId: string, index: number) => void) | null) {
+    this.stepToIndexCallback = callback;
+  }
+
+  @action
+  setRefreshCallback(callback: (() => void) | null) {
+    this.refreshCallback = callback;
   }
 
   // Resolve any key-set relationships after all variables have been added
