@@ -32,49 +32,42 @@ export const stepHandler = (container: HTMLElement) => {
 };
 
 /**
- * Simple function to update step mode variables using view data from interpreter.tsx
+ * Function to update variables using view variable values from interpreter.tsx
  * @param viewVariables - The view variables already extracted by interpreter.tsx
  * @param pairs - The pairs from view() call: [localVarName, linkedVarId, indexVar?]
+ * @returns Set of variable IDs that were updated
  */
-export const updateStepModeVariables = (
+export const updateVariables = (
   viewVariables: Record<string, unknown>,
   pairs: Array<[string, string, string?]>
-) => {
+): Set<string> => {
   const updatedVarIds = new Set<string>();
-  pairs.forEach(([localVarName, linkedVarId]) => {
-    const value = viewVariables[localVarName];
+  pairs.forEach(([name, varId]) => {
+    const value = viewVariables[name];
     if (value !== undefined && typeof value === "number") {
-      computationStore.setValueInStepMode(linkedVarId, value);
-      updatedVarIds.add(linkedVarId);
+      computationStore.setValueInStepMode(varId, value);
+      updatedVarIds.add(varId);
     }
   });
-  // Apply updated styling to variables that were changed
-  applyUpdatedVariableStyles(updatedVarIds);
+  return updatedVarIds;
 };
 
 /**
- * Apply visual styling to variables that are being updated in step mode
+ * Apply a visual cue styling to variables that are being updated in step mode
  * @param updatedVarIds - Set of variable IDs that were updated
  */
-export const applyUpdatedVariableStyles = (updatedVarIds: Set<string>) => {
+export const applyCue = (updatedVarIds: Set<string>) => {
   const interactiveElements = document.querySelectorAll(
     ".interactive-var-dropdown, .interactive-var-slider, .interactive-var-dependent"
   );
-
   interactiveElements.forEach((element) => {
-    const variableMatch = findVariableByElement(element as HTMLElement);
-    if (!variableMatch) return;
-    const { varId } = variableMatch;
-    const htmlElement = element as HTMLElement;
-    // Remove existing update styling
-    htmlElement.classList.remove("step-mode-updated");
-    // Add updated styling if this variable was updated
+    const variables = findVariableByElement(element as HTMLElement);
+    if (!variables) return;
+    const { varId } = variables;
+    const target = element as HTMLElement;
+    target.classList.remove("step-cue");
     if (updatedVarIds.has(varId)) {
-      htmlElement.classList.add("step-mode-updated");
-      // Remove the updated styling after animation completes
-      setTimeout(() => {
-        htmlElement.classList.remove("step-mode-updated");
-      }, 1000);
+      target.classList.add("step-cue");
     }
   });
 };

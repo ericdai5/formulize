@@ -164,14 +164,9 @@ class ComputationStore {
       console.log(`setValueInStepMode: Variable not found: ${id}`);
       return;
     }
-    console.log(`Step mode: Setting ${id} = ${value} (no recalculation)`);
+    console.log(`Step mode: Setting ${id} = ${value}`);
     variable.value = value;
-
-    // Update any index-based dependent variables that use this variable as their key
     this.updateIndexBasedVariables(id, value);
-
-    // In step mode, we don't trigger automatic recalculation
-    // We want to show interpreter values, not computed values
   }
 
   @action
@@ -208,13 +203,17 @@ class ComputationStore {
   }
 
   @observable
-  accessor stepToIndexCallback: ((variableId: string, index: number) => void) | null = null;
+  accessor stepToIndexCallback:
+    | ((variableId: string, index: number) => void)
+    | null = null;
 
   @observable
   accessor refreshCallback: (() => void) | null = null;
 
   @action
-  setStepToIndexCallback(callback: ((variableId: string, index: number) => void) | null) {
+  setStepToIndexCallback(
+    callback: ((variableId: string, index: number) => void) | null
+  ) {
     this.stepToIndexCallback = callback;
   }
 
@@ -233,7 +232,10 @@ class ComputationStore {
           const keyIndex = keyVariable.set.indexOf(keyVariable.value);
           if (keyIndex !== -1 && keyIndex < variable.set.length) {
             const setValue = variable.set[keyIndex];
-            variable.value = typeof setValue === 'number' ? setValue : parseFloat(String(setValue));
+            variable.value =
+              typeof setValue === "number"
+                ? setValue
+                : parseFloat(String(setValue));
           }
         }
       }
@@ -242,7 +244,10 @@ class ComputationStore {
 
   // Update variables that have a set based on a key variable (bidirectional index-based matching)
   @action
-  private updateIndexBasedVariables(changedVariableId: string, changedValue: number) {
+  private updateIndexBasedVariables(
+    changedVariableId: string,
+    changedValue: number
+  ) {
     const changedVariable = this.variables.get(changedVariableId);
     if (!changedVariable) return;
 
@@ -255,21 +260,31 @@ class ComputationStore {
         if (changedIndex !== -1 && changedIndex < keyVariable.set.length) {
           // Update the key variable's value using the same index
           const keyValue = keyVariable.set[changedIndex];
-          keyVariable.value = typeof keyValue === 'number' ? keyValue : parseFloat(String(keyValue));
+          keyVariable.value =
+            typeof keyValue === "number"
+              ? keyValue
+              : parseFloat(String(keyValue));
         }
       }
     }
 
     // Case 2: Other variables depend on the changed variable (changed variable is a key)
     for (const [varId, variable] of this.variables.entries()) {
-      if (variable.key === changedVariableId && variable.set && varId !== changedVariableId) {
+      if (
+        variable.key === changedVariableId &&
+        variable.set &&
+        varId !== changedVariableId
+      ) {
         if (changedVariable.set) {
           // Find the index of the changed value in the changed variable's set
           const changedIndex = changedVariable.set.indexOf(changedValue);
           if (changedIndex !== -1 && changedIndex < variable.set.length) {
             // Update the dependent variable's value using the same index
             const setValue = variable.set[changedIndex];
-            variable.value = typeof setValue === 'number' ? setValue : parseFloat(String(setValue));
+            variable.value =
+              typeof setValue === "number"
+                ? setValue
+                : parseFloat(String(setValue));
           }
         }
       }
@@ -385,7 +400,10 @@ class ComputationStore {
           const keyIndex = keyVariable.set.indexOf(keyVariable.value);
           if (keyIndex !== -1 && keyIndex < variableDefinition.set.length) {
             const setValue = variableDefinition.set[keyIndex];
-            this.variables.get(id)!.value = typeof setValue === 'number' ? setValue : parseFloat(String(setValue));
+            this.variables.get(id)!.value =
+              typeof setValue === "number"
+                ? setValue
+                : parseFloat(String(setValue));
           }
         }
       }

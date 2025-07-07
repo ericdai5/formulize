@@ -201,7 +201,6 @@ export const initializeInterpreter = (
     // Create initialization function to set up variables properly
     const initFunc = (interpreter: JSInterpreter, globalObject: unknown) => {
       const envVariables = environment?.variables || {};
-
       // Set up each environment variable as a global property for tracking
       for (const [key, variable] of Object.entries(envVariables)) {
         try {

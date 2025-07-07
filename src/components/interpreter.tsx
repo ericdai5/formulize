@@ -13,17 +13,17 @@ import {
 } from "lucide-react";
 
 import { computationStore } from "../api/computation";
-import { extractManual } from "../api/computation-engines/manual/extract";
-import { JSInterpreter } from "../api/computation-engines/manual/interpreter";
 import {
   DebugState,
-  ExecutionContext,
+  Execution,
   refresh,
-  stepForward as stepForwardExec,
-  stepToIndex as stepToIndexExec,
-  stepToView as stepToViewExec,
-  stepBackward as stepBackwardExec,
+  stepBackward,
+  stepForward,
+  stepToIndex,
+  stepToView,
 } from "../api/computation-engines/manual/execute";
+import { extractManual } from "../api/computation-engines/manual/extract";
+import { JSInterpreter } from "../api/computation-engines/manual/interpreter";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
 import Button from "./button";
@@ -55,7 +55,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const [isSteppingToView, setIsSteppingToView] = useState(false);
   const [isSteppingToIndex, setIsSteppingToIndex] = useState(false);
   const [targetIndex, setTargetIndex] = useState<{
-    variableId: string;
+    varId: string;
     index: number;
   } | null>(null);
   const autoPlayIntervalRef = useRef<number | null>(null);
@@ -82,39 +82,59 @@ const DebugModal: React.FC<DebugModalProps> = ({
   }, [environment]);
 
   // Create execution context
-  const createExecutionContext = (): ExecutionContext => ({
-    interpreter,
-    code,
-    environment,
-    history,
-    isComplete,
-    isSteppingToView,
-    isSteppingToIndex,
-    targetIndex,
-    autoPlayIntervalRef,
-    codeMirrorRef,
-    setInterpreter,
-    setHistory,
-    setIsComplete,
-    setError,
-    setIsRunning,
-    setIsSteppingToView,
-    setIsSteppingToIndex,
-    setTargetIndex,
-  });
+  const createExecutionContext = useCallback(
+    (): Execution => ({
+      interpreter,
+      code,
+      environment,
+      history,
+      isComplete,
+      isSteppingToView,
+      isSteppingToIndex,
+      targetIndex,
+      autoPlayIntervalRef,
+      codeMirrorRef,
+      setInterpreter,
+      setHistory,
+      setIsComplete,
+      setError,
+      setIsRunning,
+      setIsSteppingToView,
+      setIsSteppingToIndex,
+      setTargetIndex,
+    }),
+    [
+      interpreter,
+      code,
+      environment,
+      history,
+      isComplete,
+      isSteppingToView,
+      isSteppingToIndex,
+      targetIndex,
+      setInterpreter,
+      setHistory,
+      setIsComplete,
+      setError,
+      setIsRunning,
+      setIsSteppingToView,
+      setIsSteppingToIndex,
+      setTargetIndex,
+    ]
+  );
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     refresh(createExecutionContext());
-  };
+  }, [createExecutionContext]);
 
   const handleStepForward = () => {
-    stepForwardExec(createExecutionContext());
+    stepForward(createExecutionContext());
   };
 
   const handleStepToIndex = useCallback(
     (variableId: string, targetIdx: number) => {
       const context = createExecutionContext();
-      stepToIndexExec(context, variableId, targetIdx);
+      stepToIndex(context, variableId, targetIdx);
     },
     [createExecutionContext]
   );
@@ -130,11 +150,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
   }, [handleStepToIndex, handleRefresh]);
 
   const handleStepToView = () => {
-    stepToViewExec(createExecutionContext());
+    stepToView(createExecutionContext());
   };
 
   const handleStepBackward = () => {
-    stepBackwardExec(createExecutionContext());
+    stepBackward(createExecutionContext());
   };
 
   // Toggle auto-play
@@ -205,7 +225,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
             }
             icon={StepForward}
           />
-          <Button onClick={handleStepToView} disabled={buttonDisabled} icon={Eye}>
+          <Button
+            onClick={handleStepToView}
+            disabled={buttonDisabled}
+            icon={Eye}
+          >
             {views.length}
           </Button>
           <Button
@@ -410,7 +434,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     )}
                     {isSteppingToIndex && targetIndex && (
                       <span className="text-purple-600">
-                        Stepping to {targetIndex.variableId} index {targetIndex.index}...
+                        Stepping to {targetIndex.varId} index{" "}
+                        {targetIndex.index}...
                       </span>
                     )}
                   </div>
