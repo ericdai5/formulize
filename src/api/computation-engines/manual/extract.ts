@@ -27,27 +27,36 @@ export function addViewFunctions(code: string): string {
     const trimmedParams = params.trim();
 
     if (trimmedParams) {
-      // Split parameters and clean them up
-      const paramList = trimmedParams
+      // Split parameters by whitespace to get individual view expressions
+      const viewExpressions = trimmedParams
         .split(/\s+/)
         .filter((p: string) => p.length > 0);
 
-      if (paramList.length > 0) {
+      if (viewExpressions.length > 0) {
         const pairs: string[] = [];
 
-        // Process parameters in pairs
-        for (let i = 0; i < paramList.length; i += 2) {
-          const localVar = paramList[i];
-          const envVar = paramList[i + 1];
-
-          if (envVar) {
-            // We have both local and environment variable
-            pairs.push(`["${localVar}", "${envVar}"]`);
+        // Process each view expression
+        viewExpressions.forEach((expression: string) => {
+          // Check if using arrow notation (localVar->envVar->indexVar or localVar->envVar)
+          if (expression.includes('->')) {
+            const parts = expression.split('->');
+            if (parts.length === 3) {
+              // Three parts: localVar->envVar->indexVar
+              const [localVar, envVar, indexVar] = parts;
+              pairs.push(`["${localVar}", "${envVar}", "${indexVar}"]`);
+            } else if (parts.length === 2) {
+              // Two parts: localVar->envVar
+              const [localVar, envVar] = parts;
+              pairs.push(`["${localVar}", "${envVar}"]`);
+            } else {
+              // Invalid arrow format, treat as single variable
+              pairs.push(`["${expression}", "${expression}"]`);
+            }
           } else {
-            // Only one parameter left, use it for both local and env
-            pairs.push(`["${localVar}", "${localVar}"]`);
+            // No arrow notation, use as single variable
+            pairs.push(`["${expression}", "${expression}"]`);
           }
-        }
+        });
 
         return `${leadingWhitespace}view([${pairs.join(", ")}]);`;
       }

@@ -58,7 +58,7 @@
     @apply bg-slate-100 text-slate-800;
   }
 
-  .step-mode-updated {
+  .step-cue {
     @apply bg-green-100 text-green-800 border border-green-300 shadow-sm;
     animation: pulseUpdate 0.4s ease-in-out;
   }

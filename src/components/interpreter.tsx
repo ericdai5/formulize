@@ -13,18 +13,19 @@ import {
 } from "lucide-react";
 
 import { computationStore } from "../api/computation";
-import { extractManual } from "../api/computation-engines/manual/extract";
 import {
-  JSInterpreter,
-  StackFrame,
-  collectVariablesFromStack,
-  initializeInterpreter,
-  isAtView,
-} from "../api/computation-engines/manual/interpreter";
-import { updateStepModeVariables } from "../formula/stepHandler";
+  DebugState,
+  Execution,
+  refresh,
+  stepBackward,
+  stepForward,
+  stepToIndex,
+  stepToView,
+} from "../api/computation-engines/manual/execute";
+import { extractManual } from "../api/computation-engines/manual/extract";
+import { JSInterpreter } from "../api/computation-engines/manual/interpreter";
 import { IEnvironment } from "../types/environment";
-import { extractVariableNames, extractViews } from "../util/acorn";
-import { highlightCode } from "../util/codemirror";
+import { extractViews } from "../util/acorn";
 import Button from "./button";
 import Select from "./select";
 
@@ -34,14 +35,7 @@ interface DebugModalProps {
   environment: IEnvironment | null;
 }
 
-interface DebugState {
-  step: number;
-  highlight: { start: number; end: number };
-  variables: Record<string, unknown>;
-  stackTrace: string[];
-  timestamp: number;
-  viewVariables: Record<string, unknown>;
-}
+// DebugState is now imported from execute.ts
 
 const DebugModal: React.FC<DebugModalProps> = ({
   isOpen,
@@ -59,8 +53,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
     Array<{ start: number; end: number; line?: number; column?: number }>
   >([]);
   const [isSteppingToView, setIsSteppingToView] = useState(false);
-  const [isSteppingToValue, setIsSteppingToValue] = useState(false);
-  const [targetValue, setTargetValue] = useState<{variableId: string, value: any} | null>(null);
+  const [isSteppingToIndex, setIsSteppingToIndex] = useState(false);
+  const [targetIndex, setTargetIndex] = useState<{
+    varId: string;
+    index: number;
+  } | null>(null);
   const autoPlayIntervalRef = useRef<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const codeMirrorRef = useRef<any>(null);
@@ -84,450 +81,80 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   }, [environment]);
 
-  const getCurrentState = (
-    interpreter: JSInterpreter,
-    stepNumber: number
-  ): DebugState => {
-    const stack = interpreter.getStateStack();
-    const node = stack.length
-      ? (stack[stack.length - 1] as StackFrame).node
-      : null;
-    const variables: Record<string, unknown> = {};
-
-    try {
-      // Extract variable names from code
-      const varNames = extractVariableNames(code);
-
-      // Use the refactored variable extraction
-      const extractedVariables = collectVariablesFromStack(
-        interpreter,
-        stack,
-        varNames
-      );
-      Object.assign(variables, extractedVariables);
-
-      // Capture the interpreter's current value (result of last statement)
-      if (interpreter.value !== undefined) {
-        try {
-          variables["Interpreter Value"] = interpreter.pseudoToNative
-            ? interpreter.pseudoToNative(interpreter.value)
-            : interpreter.value;
-        } catch {
-          variables["Interpreter Value"] = interpreter.value;
-        }
-      }
-
-      // Add debugging info about execution state
-      variables["Current Node Type"] = node?.type || "Unknown";
-      variables["Stack Depth"] = stack?.length || 0;
-      variables["Declared Variables"] = varNames;
-
-      // Add more detailed node information
-      if (node) {
-        variables["Node Info"] = {
-          type: node.type,
-          start: node.start,
-          end: node.end,
-          ...(node.type === "Identifier" && { name: node.name }),
-          ...(node.type === "VariableDeclaration" && {
-            declarations: node.declarations
-              ?.map((d: { id?: { name: string } }) => d.id?.name)
-              .filter(Boolean),
-          }),
-          ...(node.type === "AssignmentExpression" && {
-            operator: node.operator,
-            leftName: node.left?.name,
-          }),
-          ...(node.type === "BinaryExpression" && {
-            operator: node.operator,
-            left: node.left?.type,
-            right: node.right?.type,
-          }),
-        };
-      }
-
-      if (stack && stack.length > 0) {
-        const currentState = stack[stack.length - 1] as StackFrame;
-        if (currentState.scope) {
-          variables["Current Scope Type"] = currentState.scope.constructor.name;
-        }
-        if (currentState.func && currentState.func.node) {
-          variables["Current Function"] =
-            currentState.func.node.id?.name || "Anonymous";
-        }
-      }
-
-    } catch (err) {
-      console.warn("Error extracting variables:", err);
-      variables["[Error]"] = `Could not extract variables: ${err}`;
-    }
-
-    // Check if we're currently at a view() breakpoint
-    const atView = isAtView(interpreter);
-    let viewVariables: Record<string, unknown> = {};
-
-    if (atView) {
-      // If we're at a view() call, extract fresh params from the AST
-      // This ensures we show the params for the CURRENT view(), not the previous one
-      const currentFrame = stack[stack.length - 1] as StackFrame;
-      if (
-        currentFrame?.node?.callee?.name === "view" &&
-        currentFrame.node.arguments?.[0]
-      ) {
-        const firstArg = currentFrame.node.arguments[0];
-        if (firstArg.type === "ArrayExpression" && firstArg.elements) {
-          try {
-            const pairs: Array<[string, string]> = [];
-            for (const element of firstArg.elements) {
-              if (
-                element.type === "ArrayExpression" &&
-                element.elements &&
-                element.elements.length >= 2
-              ) {
-                const first = element.elements[0];
-                const second = element.elements[1];
-                if (first.type === "Literal" && second.type === "Literal") {
-                  pairs.push([String(first.value), String(second.value)]);
-                }
-              }
-            }
-            if (pairs.length > 0) {
-              // Extract the view variables
-              const viewVarNames = pairs.map(([varName]) => varName);
-              viewVariables = collectVariablesFromStack(
-                interpreter,
-                stack,
-                viewVarNames
-              );
-
-              // Update step mode variables in Formulize
-              updateStepModeVariables(viewVariables, pairs);
-              
-              // Set active values in computation store using linked variable IDs
-              computationStore.clearActiveValues();
-              pairs.forEach(([localVarName, linkedVarId]) => {
-                const value = viewVariables[localVarName];
-                if (value !== undefined) {
-                  computationStore.setActiveValue(linkedVarId, value);
-                }
-              });
-            }
-          } catch (err) {
-            console.warn("Error extracting view parameters:", err);
-            viewVariables["[View Error]"] =
-              `Could not extract view variables: ${err}`;
-          }
-        }
-      }
-    } else {
-      // Clear active values when not at a view
-      computationStore.clearActiveValues();
-    }
-
-    return {
-      step: stepNumber,
-      highlight: { start: node?.start || 0, end: node?.end || 0 },
-      variables,
-      stackTrace: stack.map((s, i: number) => {
-        const frame = s as StackFrame;
-        return `Frame ${i}: ${frame.node?.type || "Unknown"}${frame.func?.node?.id?.name ? ` (${frame.func.node.id.name})` : ""}`;
-      }),
-      timestamp: Date.now(),
-      viewVariables,
-    };
-  };
-
-  const refresh = () => {
-    setInterpreter(null);
-    setHistory([]);
-    setIsComplete(false);
-    setError(null);
-    setIsRunning(false);
-    setIsSteppingToView(false);
-    setIsSteppingToValue(false);
-    setTargetValue(null);
-
-    if (autoPlayIntervalRef.current) {
-      clearInterval(autoPlayIntervalRef.current);
-      autoPlayIntervalRef.current = null;
-    }
-
-    if (codeMirrorRef.current) {
-      const view = codeMirrorRef.current.view;
-      if (view) {
-        view.dispatch({
-          selection: { anchor: 0, head: 0 },
-          scrollIntoView: true,
-        });
-      }
-    }
-
-    // Then initialize if we have code
-    if (!code.trim()) {
-      setError("No code to debug");
-      return;
-    }
-
-    const newInterpreter = initializeInterpreter(code, environment, setError);
-    if (!newInterpreter) return;
-
-    setInterpreter(newInterpreter);
-
-    // Add initial state
-    const initialState = getCurrentState(newInterpreter, 0);
-    setHistory([initialState]);
-    highlightCode(
+  // Create execution context
+  const createExecutionContext = useCallback(
+    (): Execution => ({
+      interpreter,
+      code,
+      environment,
+      history,
+      isComplete,
+      isSteppingToView,
+      isSteppingToIndex,
+      targetIndex,
+      autoPlayIntervalRef,
       codeMirrorRef,
-      initialState.highlight.start,
-      initialState.highlight.end
-    );
+      setInterpreter,
+      setHistory,
+      setIsComplete,
+      setError,
+      setIsRunning,
+      setIsSteppingToView,
+      setIsSteppingToIndex,
+      setTargetIndex,
+    }),
+    [
+      interpreter,
+      code,
+      environment,
+      history,
+      isComplete,
+      isSteppingToView,
+      isSteppingToIndex,
+      targetIndex,
+      setInterpreter,
+      setHistory,
+      setIsComplete,
+      setError,
+      setIsRunning,
+      setIsSteppingToView,
+      setIsSteppingToIndex,
+      setTargetIndex,
+    ]
+  );
+
+  const handleRefresh = useCallback(() => {
+    refresh(createExecutionContext());
+  }, [createExecutionContext]);
+
+  const handleStepForward = () => {
+    stepForward(createExecutionContext());
   };
 
-  // Step forward
-  const stepForward = () => {
-    if (!interpreter || isComplete) return;
+  const handleStepToIndex = useCallback(
+    (variableId: string, targetIdx: number) => {
+      const context = createExecutionContext();
+      stepToIndex(context, variableId, targetIdx);
+    },
+    [createExecutionContext]
+  );
 
-    try {
-      const canContinue = interpreter.step();
-      const newState = getCurrentState(interpreter, history.length);
-
-      setHistory((prev) => [...prev, newState]);
-      highlightCode(
-        codeMirrorRef,
-        newState.highlight.start,
-        newState.highlight.end
-      );
-
-      if (!canContinue) {
-        setIsComplete(true);
-        setIsRunning(false);
-        setIsSteppingToView(false);
-        setIsSteppingToValue(false);
-        if (autoPlayIntervalRef.current) {
-          clearInterval(autoPlayIntervalRef.current);
-          autoPlayIntervalRef.current = null;
-        }
-      }
-
-      // Check if we've hit a view() breakpoint while stepping to breakpoint
-      if (isSteppingToView && isAtView(interpreter)) {
-        setIsSteppingToView(false);
-      }
-    } catch (err) {
-      setError(`Execution error: ${err}`);
-      setIsRunning(false);
-      setIsSteppingToView(false);
-      setIsSteppingToValue(false);
-      if (autoPlayIntervalRef.current) {
-        clearInterval(autoPlayIntervalRef.current);
-        autoPlayIntervalRef.current = null;
-      }
-    }
-  };
-
-  // Step until activeValue matches target value at a view point
-  const stepToValue = useCallback((variableId: string, targetVal: any) => {
-    if (!interpreter || isComplete) {
-      return;
-    }
-
-    setIsSteppingToValue(true);
-    setTargetValue({ variableId, value: targetVal });
-
-    try {
-      // Limit steps to prevent infinite loops
-      let stepsCount = 0;
-      const maxSteps = 100000;
-
-      // If we're currently at a view() breakpoint, step past it first
-      if (isAtView(interpreter)) {
-        // Step until we're no longer at the same view() breakpoint
-        let stillAtSameView = true;
-        while (stillAtSameView && stepsCount < maxSteps) {
-          const canContinue = interpreter.step();
-          stepsCount++;
-
-          const newState = getCurrentState(interpreter, history.length);
-          setHistory((prev) => [...prev, newState]);
-          highlightCode(
-            codeMirrorRef,
-            newState.highlight.start,
-            newState.highlight.end
-          );
-
-          if (!canContinue) {
-            setIsComplete(true);
-            setIsSteppingToValue(false);
-            setTargetValue(null);
-            return;
-          }
-
-          // Check if we're still at the same view() breakpoint
-          stillAtSameView = isAtView(interpreter);
-        }
-
-        if (stepsCount >= maxSteps) {
-          setError(
-            "Maximum steps reached while trying to step past view() breakpoint"
-          );
-          setIsSteppingToValue(false);
-          setTargetValue(null);
-          return;
-        }
-      }
-
-      // Now step until we hit a view() breakpoint with the target value
-      let foundTargetValue = false;
-
-      while (!foundTargetValue && stepsCount < maxSteps) {
-        const canContinue = interpreter.step();
-        stepsCount++;
-
-        const state = getCurrentState(interpreter, history.length);
-        setHistory((prev) => [...prev, state]);
-        highlightCode(
-          codeMirrorRef,
-          state.highlight.start,
-          state.highlight.end
-        );
-
-        if (!canContinue) {
-          setIsComplete(true);
-          setIsSteppingToValue(false);
-          setTargetValue(null);
-          return;
-        }
-
-        // Check if we're at a view with the target value
-        if (isAtView(interpreter)) {
-          const currentActiveValue = computationStore.activeValues.get(variableId);
-          if (currentActiveValue !== undefined && currentActiveValue === targetVal) {
-            foundTargetValue = true;
-            setIsSteppingToValue(false);
-            setTargetValue(null);
-            return;
-          }
-        }
-      }
-
-      if (stepsCount >= maxSteps) {
-        setError(`Maximum steps reached while looking for ${variableId} = ${targetVal}`);
-        setIsSteppingToValue(false);
-        setTargetValue(null);
-        return;
-      }
-    } catch (err) {
-      setError(`Execution error: ${err}`);
-      setIsSteppingToValue(false);
-      setTargetValue(null);
-    }
-  }, [interpreter, isComplete, history.length, computationStore]);
-
-  // Register stepToValue callback when component mounts
+  // Register stepToIndex callback when component mounts
   useEffect(() => {
-    computationStore.setStepToValueCallback(stepToValue);
+    computationStore.setStepToIndexCallback(handleStepToIndex);
+    computationStore.setRefreshCallback(handleRefresh);
     return () => {
-      computationStore.setStepToValueCallback(null);
+      computationStore.setStepToIndexCallback(null);
+      computationStore.setRefreshCallback(null);
     };
-  }, [stepToValue]);
+  }, [handleStepToIndex, handleRefresh]);
 
-  // Step to the next breakpoint
-  const stepToView = () => {
-    if (!interpreter || isComplete) {
-      return;
-    }
-
-    setIsSteppingToView(true);
-
-    try {
-      // Limit steps to prevent infinite loops
-      let stepsCount = 0;
-      const maxSteps = 100000;
-
-      // If we're currently at a view() breakpoint, step past it first
-      if (isAtView(interpreter)) {
-
-        // Step until we're no longer at the same view() breakpoint
-        let stillAtSameView = true;
-        while (stillAtSameView && stepsCount < maxSteps) {
-          const canContinue = interpreter.step();
-          stepsCount++;
-
-          const newState = getCurrentState(interpreter, history.length);
-          setHistory((prev) => [...prev, newState]);
-          highlightCode(
-            codeMirrorRef,
-            newState.highlight.start,
-            newState.highlight.end
-          );
-
-          if (!canContinue) {
-            setIsComplete(true);
-            setIsSteppingToView(false);
-            return;
-          }
-
-          // Check if we're still at the same view() breakpoint
-          stillAtSameView = isAtView(interpreter);
-        }
-
-        if (stepsCount >= maxSteps) {
-          setError(
-            "Maximum steps reached while trying to step past view() breakpoint"
-          );
-          setIsSteppingToView(false);
-          return;
-        }
-      }
-
-      // Now step until we hit the next view() breakpoint
-      let foundNextView = false;
-
-      while (!foundNextView && stepsCount < maxSteps) {
-        const canContinue = interpreter.step();
-        stepsCount++;
-
-        const state = getCurrentState(interpreter, history.length);
-        setHistory((prev) => [...prev, state]);
-        highlightCode(
-          codeMirrorRef,
-          state.highlight.start,
-          state.highlight.end
-        );
-
-        if (!canContinue) {
-          setIsComplete(true);
-          setIsSteppingToView(false);
-          return;
-        }
-
-        if (isAtView(interpreter)) {
-          foundNextView = true;
-          setIsSteppingToView(false);
-          return;
-        }
-      }
-
-      if (stepsCount >= maxSteps) {
-        setError("Maximum steps reached while looking for next View");
-        setIsSteppingToView(false);
-        return;
-      }
-    } catch (err) {
-      setError(`Execution error: ${err}`);
-      setIsSteppingToView(false);
-    }
+  const handleStepToView = () => {
+    stepToView(createExecutionContext());
   };
 
-  // Step backward - simplified to just highlight previous step
-  const stepBackward = () => {
-    if (history.length <= 1) return;
-    const prevState = history[history.length - 2];
-    highlightCode(
-      codeMirrorRef,
-      prevState.highlight.start,
-      prevState.highlight.end
-    );
+  const handleStepBackward = () => {
+    stepBackward(createExecutionContext());
   };
 
   // Toggle auto-play
@@ -539,7 +166,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     } else {
       setIsRunning(true);
       autoPlayIntervalRef.current = setInterval(() => {
-        stepForward();
+        handleStepForward();
       }, autoPlaySpeed);
     }
   };
@@ -557,7 +184,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const hasSteps = history.length > 0;
 
   // Debug button state - now checking for view() functions instead of comment breakpoints
-  const buttonDisabled = !interpreter || isComplete || isSteppingToView || isSteppingToValue;
+  const buttonDisabled =
+    !interpreter || isComplete || isSteppingToView || isSteppingToIndex;
 
   if (!isOpen) return null;
 
@@ -570,29 +198,48 @@ const DebugModal: React.FC<DebugModalProps> = ({
       >
         {/* Controls Header */}
         <div className="flex justify-start items-center p-2 border-b gap-2">
+          <Button onClick={onClose} icon={X} />
           <Button
-            onClick={refresh}
-            disabled={isRunning || isSteppingToView || isSteppingToValue}
+            onClick={handleRefresh}
+            disabled={isRunning || isSteppingToView || isSteppingToIndex}
             icon={RotateCcw}
           />
           <Button
-            onClick={stepBackward}
-            disabled={history.length <= 1 || isRunning || isSteppingToView || isSteppingToValue}
+            onClick={handleStepBackward}
+            disabled={
+              history.length <= 1 ||
+              isRunning ||
+              isSteppingToView ||
+              isSteppingToIndex
+            }
             icon={StepBack}
           />
           <Button
-            onClick={stepForward}
+            onClick={handleStepForward}
             disabled={
-              !interpreter || isRunning || isComplete || isSteppingToView || isSteppingToValue
+              !interpreter ||
+              isRunning ||
+              isComplete ||
+              isSteppingToView ||
+              isSteppingToIndex
             }
             icon={StepForward}
           />
-          <Button onClick={stepToView} disabled={buttonDisabled} icon={Eye}>
+          <Button
+            onClick={handleStepToView}
+            disabled={buttonDisabled}
+            icon={Eye}
+          >
             {views.length}
           </Button>
           <Button
             onClick={toggleAutoPlay}
-            disabled={!interpreter || isComplete || isSteppingToView || isSteppingToValue}
+            disabled={
+              !interpreter ||
+              isComplete ||
+              isSteppingToView ||
+              isSteppingToIndex
+            }
             icon={isRunning ? Pause : Play}
           />
           <Select
@@ -606,7 +253,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
               { value: 2000, label: "2 s" },
             ]}
           />
-          <Button onClick={onClose} icon={X} />
         </div>
 
         {/* Error Display */}
@@ -786,9 +432,10 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         Stepping to a View...
                       </span>
                     )}
-                    {isSteppingToValue && targetValue && (
+                    {isSteppingToIndex && targetIndex && (
                       <span className="text-purple-600">
-                        Stepping to {targetValue.variableId} = {targetValue.value}...
+                        Stepping to {targetIndex.varId} index{" "}
+                        {targetIndex.index}...
                       </span>
                     )}
                   </div>

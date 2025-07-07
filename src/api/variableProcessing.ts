@@ -54,10 +54,7 @@ export const processVariablesInFormula = (
           value = variable.value ?? 0;
           isInputVariable = variable.type === "input";
           // Check if variable has dropdown options (set or options property)
-          hasDropdownOptions = !!(
-            variable.set ||
-            variable.options
-          );
+          hasDropdownOptions = !!(variable.set || variable.options);
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           // Use the variable's showName property if defined, otherwise default to true
@@ -265,11 +262,9 @@ export const findVariableByElement = (
   element: HTMLElement
 ): { varId: string; symbol: string } | null => {
   const cssId = element.id;
-
   if (!cssId) {
     return null;
   }
-
   // The CSS ID should be the original variable symbol
   // Find the corresponding variable in the computation store
   for (const [varId] of computationStore.variables.entries()) {
@@ -277,7 +272,6 @@ export const findVariableByElement = (
       return { varId, symbol: varId };
     }
   }
-
   return null;
 };
 

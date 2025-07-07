@@ -92,7 +92,7 @@ const findVariableInFrame = (
   try {
     const varValue = interpreter.getProperty(stackFrame.scope.object, varName);
     if (varValue !== undefined) {
-      console.log(`${scopeName}: Found variable '${varName}':`, varValue);
+      // console.log(`${scopeName}: Found variable '${varName}':`, varValue);
       const nativeValue = convertToNativeValue(interpreter, varValue);
       return { found: true, value: nativeValue, scopeName };
     }
@@ -138,7 +138,7 @@ const collectVariablesFromStack = (
   }
   const variables: Record<string, unknown> = {};
   for (const varName of varNames) {
-    console.log(`Checking for variable: ${varName}`);
+    // console.log(`Checking for variable: ${varName}`);
     const result = findVariableInStack(interpreter, stack, varName);
     if (result.found && result.value !== undefined && !(varName in variables)) {
       variables[varName] = result.value;
@@ -201,14 +201,13 @@ export const initializeInterpreter = (
     // Create initialization function to set up variables properly
     const initFunc = (interpreter: JSInterpreter, globalObject: unknown) => {
       const envVariables = environment?.variables || {};
-
       // Set up each environment variable as a global property for tracking
       for (const [key, variable] of Object.entries(envVariables)) {
         try {
           // Convert the variable to a pseudo object that the interpreter can track
           const pseudoVariable = interpreter.nativeToPseudo(variable);
           interpreter.setProperty(globalObject, key, pseudoVariable);
-          console.log(`Set up variable ${key}:`, variable);
+          // console.log(`Set up variable ${key}:`, variable);
         } catch (err) {
           console.error(`Error setting up variable ${key}:`, err);
           // Fallback to setting as primitive value
