@@ -386,18 +386,18 @@ class ComputationStore {
   private createManualEvaluator(): EvaluationFunction {
     return (variables) => {
       if (!this.environment) return {};
-      const store = { ...this.environment };
-      store.variables = {};
-      // Use the resolved variables from computation store instead of original environment
+      // Create environment with updated variables from computation store
+      const updatedVariables: Record<string, IVariable> = {};
       for (const [varName, computationVar] of this.variables.entries()) {
-        // Update the value from incoming variables parameter
-        const updatedVar = { ...computationVar };
-        if (variables[varName] !== undefined) {
-          updatedVar.value = variables[varName];
-        }
-        store.variables[varName] = updatedVar;
+        updatedVariables[varName] = {
+          ...computationVar,
+          value: variables[varName] ?? computationVar.value,
+        };
       }
-      return computeWithManualEngine(store);
+      return computeWithManualEngine({
+        ...this.environment,
+        variables: updatedVariables,
+      });
     };
   }
 

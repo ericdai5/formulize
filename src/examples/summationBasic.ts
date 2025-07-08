@@ -42,13 +42,11 @@ export const summationBasic = `const config = {
   },
   controls: [
     {
-      id: "x-array",
       type: "array",
       variable: "x",
       orientation: "horizontal"
     },
     {
-      id: "px-array", 
       type: "array",
       variable: "P(x)",
       orientation: "horizontal"

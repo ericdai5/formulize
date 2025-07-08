@@ -59,8 +59,17 @@ const Array = observer(({ control }: ArrayProps) => {
     if (variable) {
       // If variable has memberOf, get values from parent variable
       if (variable.memberOf) {
-        const parentVariable = computationStore.variables.get(variable.memberOf);
-        if (parentVariable && parentVariable.set) {
+        // Prevent circular references by checking if parent points back to this variable
+        if (variable.memberOf === variableId) {
+          console.warn(
+            `Circular memberOf reference detected for variable ${variableId}`
+          );
+          return variable.set || [];
+        }
+        const parentVariable = computationStore.variables.get(
+          variable.memberOf
+        );
+        if (parentVariable?.set) {
           return parentVariable.set;
         }
       }
@@ -79,8 +88,9 @@ const Array = observer(({ control }: ArrayProps) => {
       if (variableId) {
         // If there's a stepToIndex callback available (debug mode), use it
         if (computationStore.stepToIndexCallback) {
-          const processedIndices = computationStore.processedIndices.get(variableId) || new Set();
-          
+          const processedIndices =
+            computationStore.processedIndices.get(variableId) || new Set();
+
           // If this index is already processed, refresh and restart
           if (processedIndices.has(index)) {
             if (computationStore.refreshCallback) {
