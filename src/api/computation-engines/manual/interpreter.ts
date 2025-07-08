@@ -1,7 +1,7 @@
 /**
  * JS-Interpreter utility functions for manual computation debugging
  */
-import { IEnvironment } from "../../../types/environment";
+import { IVariable } from "../../../types/variable";
 
 // Window interface extension for JS-Interpreter
 declare global {
@@ -181,12 +181,13 @@ const isAtView = (interpreter: JSInterpreter): boolean => {
  * @param currentCode - The JavaScript code to execute
  * @param environment - The Formulize environment containing variables
  * @param setError - Error callback function
+ * @param variables - Resolved variables from computation store
  * @returns Initialized interpreter instance or null if failed
  */
 export const initializeInterpreter = (
   currentCode: string,
-  environment: IEnvironment | null,
-  setError: (error: string) => void
+  setError: (error: string) => void,
+  variables: Record<string, IVariable>
 ): JSInterpreter | null => {
   if (!window.Interpreter) {
     setError("JS-Interpreter not loaded.");
@@ -200,14 +201,14 @@ export const initializeInterpreter = (
   try {
     // Create initialization function to set up variables properly
     const initFunc = (interpreter: JSInterpreter, globalObject: unknown) => {
-      const envVariables = environment?.variables || {};
-      // Set up each environment variable as a global property for tracking
-      for (const [key, variable] of Object.entries(envVariables)) {
+      const variablesToUse = variables;
+
+      // Set up each variable as a global property for tracking
+      for (const [key, variable] of Object.entries(variablesToUse)) {
         try {
           // Convert the variable to a pseudo object that the interpreter can track
           const pseudoVariable = interpreter.nativeToPseudo(variable);
           interpreter.setProperty(globalObject, key, pseudoVariable);
-          // console.log(`Set up variable ${key}:`, variable);
         } catch (err) {
           console.error(`Error setting up variable ${key}:`, err);
           // Fallback to setting as primitive value
@@ -229,7 +230,8 @@ export const initializeInterpreter = (
 
       // Also provide the getVariablesJSON function
       const getVariablesJSON = function () {
-        return JSON.stringify(envVariables);
+        // Variables are already cleaned by toJS() in computation store
+        return JSON.stringify(variablesToUse);
       };
       interpreter.setProperty(
         globalObject,

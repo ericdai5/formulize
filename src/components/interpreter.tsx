@@ -26,6 +26,13 @@ import { extractManual } from "../api/computation-engines/manual/extract";
 import { JSInterpreter } from "../api/computation-engines/manual/interpreter";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
+import {
+  addArrowMarker,
+  addLineMarker,
+  clearArrowMarkers,
+  clearLineMarkers,
+  debugExtensions,
+} from "../util/codeMirrorExtensions";
 import Button from "./button";
 import Select from "./select";
 
@@ -61,6 +68,30 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const autoPlayIntervalRef = useRef<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const codeMirrorRef = useRef<any>(null);
+
+  // Functions to control line markers and arrow gutter markers
+  const setCurrentLine = useCallback((line: number) => {
+    if (codeMirrorRef.current?.view) {
+      const view = codeMirrorRef.current.view;
+      view.dispatch({
+        effects: [
+          clearLineMarkers.of(null),
+          addLineMarker.of({ line }),
+          clearArrowMarkers.of(null),
+          addArrowMarker.of({ line }),
+        ],
+      });
+    }
+  }, []);
+
+  const clearCurrentLine = useCallback(() => {
+    if (codeMirrorRef.current?.view) {
+      const view = codeMirrorRef.current.view;
+      view.dispatch({
+        effects: [clearLineMarkers.of(null), clearArrowMarkers.of(null)],
+      });
+    }
+  }, []);
 
   // Initialize interpreter and code when environment changes
   useEffect(() => {
@@ -171,6 +202,21 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   };
 
+  const currentState = history[history.length - 1];
+  const hasSteps = history.length > 0;
+
+  // Update line marker when current state changes
+  useEffect(() => {
+    if (currentState?.highlight) {
+      // Convert character position to line number
+      const lines = code.substring(0, currentState.highlight.start).split("\n");
+      const currentLine = lines.length - 1; // 0-based line number
+      setCurrentLine(currentLine);
+    } else {
+      clearCurrentLine();
+    }
+  }, [currentState, code, setCurrentLine, clearCurrentLine]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -179,9 +225,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
       }
     };
   }, []);
-
-  const currentState = history[history.length - 1];
-  const hasSteps = history.length > 0;
 
   // Debug button state - now checking for view() functions instead of comment breakpoints
   const buttonDisabled =
@@ -269,7 +312,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
             <CodeMirror
               value={code}
               readOnly
-              extensions={[javascript()]}
+              extensions={[javascript(), ...debugExtensions]}
               style={{
                 fontSize: "14px",
                 fontFamily: "monospace",

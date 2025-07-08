@@ -34,10 +34,11 @@ export class Controller {
   // ============================================================================
 
   private static initializeExecution(ctx: Execution): void {
+    const variables = computationStore.getVariables();
     const interpreter = initializeInterpreter(
       ctx.code,
-      ctx.environment,
-      ctx.setError
+      ctx.setError,
+      variables
     );
     if (!interpreter) return;
     ctx.setInterpreter(interpreter);

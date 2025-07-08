@@ -1,5 +1,5 @@
 export interface IControl {
-  id: string;
+  id?: string;
   type: "slider" | "dropdown" | "checkbox" | "button" | "radio" | "array";
   variable?: string;
 }

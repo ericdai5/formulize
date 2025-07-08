@@ -19,6 +19,7 @@ export interface IVariable {
   options?: string[];
   set?: (string | number)[];
   key?: string;
+  memberOf?: string;
   showName?: boolean;
 }
 

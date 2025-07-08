@@ -1,4 +1,4 @@
-import { action, observable } from "mobx";
+import { action, observable, toJS } from "mobx";
 
 import { IComputation } from ".";
 import { IEnvironment } from "../types/environment";
@@ -148,7 +148,7 @@ class ComputationStore {
     }
     variable.value = value;
 
-    // Update any index-based dependent variables that use this variable as their key
+    // Update index-based dependent variables
     this.updateIndexBasedVariables(id, value);
 
     // Only update dependent variables if we're not initializing and not already in an update cycle
@@ -236,6 +236,32 @@ class ComputationStore {
               typeof setValue === "number"
                 ? setValue
                 : parseFloat(String(setValue));
+          }
+        }
+      }
+    }
+  }
+
+  // Resolve memberOf relationships after all variables have been added
+  @action
+  resolveMemberOfRelationships() {
+    for (const [, variable] of this.variables.entries()) {
+      if (variable.memberOf) {
+        const parentVar = this.variables.get(variable.memberOf);
+        if (parentVar?.set) {
+          variable.set = [...parentVar.set];
+          // If the parent variable has a value, set this variable's value to match
+          if (
+            parentVar.value !== undefined &&
+            parentVar.set.includes(parentVar.value)
+          ) {
+            variable.value = parentVar.value;
+          } else if (parentVar.set.length > 0) {
+            // If parent doesn't have a value, set to first element
+            variable.value =
+              typeof parentVar.set[0] === "number"
+                ? parentVar.set[0]
+                : parseFloat(String(parentVar.set[0]));
           }
         }
       }
@@ -360,16 +386,18 @@ class ComputationStore {
   private createManualEvaluator(): EvaluationFunction {
     return (variables) => {
       if (!this.environment) return {};
-      // Sync incoming variable values with the environment's variable definitions
-      if (this.environment.variables) {
-        for (const [symbol, value] of Object.entries(variables)) {
-          const envVar = this.environment.variables[symbol];
-          if (envVar) {
-            envVar.value = value;
-          }
-        }
+      // Create environment with updated variables from computation store
+      const updatedVariables: Record<string, IVariable> = {};
+      for (const [varName, computationVar] of this.variables.entries()) {
+        updatedVariables[varName] = {
+          ...computationVar,
+          value: variables[varName] ?? computationVar.value,
+        };
       }
-      return computeWithManualEngine(this.environment);
+      return computeWithManualEngine({
+        ...this.environment,
+        variables: updatedVariables,
+      });
     };
   }
 
@@ -390,6 +418,7 @@ class ComputationStore {
         options: variableDefinition?.options,
         set: variableDefinition?.set,
         key: variableDefinition?.key,
+        memberOf: variableDefinition?.memberOf,
         showName: variableDefinition?.showName,
       });
 
@@ -490,6 +519,18 @@ class ComputationStore {
       displayedFormulas: this.displayedFormulas,
       computationFunctions: this.symbolicFunctions,
     };
+  }
+
+  // Get resolved variables as a plain object for external use
+  // This is the total collection of variables after the system
+  // has processed the user-written variables settings.
+  // Converts MobX observables to plain JavaScript objects for serialization.
+  getVariables(): Record<string, IVariable> {
+    const variables: Record<string, IVariable> = {};
+    for (const [varName, variable] of this.variables.entries()) {
+      variables[varName] = toJS(variable);
+    }
+    return variables;
   }
 
   // Create an LLM-based multi-expression evaluator

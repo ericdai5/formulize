@@ -13,13 +13,15 @@ const ControlPanel = observer(({ controls }: ControlPanelProps) => {
     return null;
   }
 
-  const renderControl = (control: IControls) => {
+  const renderControl = (control: IControls, index: number) => {
+    const key = control.id || `control-${index}`;
+    
     switch (control.type) {
       case "slider":
-        return <Slider key={control.id} control={control as ISliderControl} />;
+        return <Slider key={key} control={control as ISliderControl} />;
 
       case "array":
-        return <Array key={control.id} control={control as IArrayControl} />;
+        return <Array key={key} control={control as IArrayControl} />;
 
       case "dropdown":
         // TODO: Implement

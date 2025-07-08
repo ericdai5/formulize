@@ -96,9 +96,8 @@ async function create(
           computationStore.setValue(varId, variable.value);
         }
       });
-
-      // Resolve any key-set relationships after all variables have been added
       computationStore.resolveKeySetRelationships();
+      computationStore.resolveMemberOfRelationships();
     }
 
     // Now create individual formula stores for each formula
