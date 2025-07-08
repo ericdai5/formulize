@@ -207,7 +207,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   // Update line marker when current state changes
   useEffect(() => {
-    if (currentState && currentState.highlight) {
+    if (currentState?.highlight) {
       // Convert character position to line number
       const lines = code.substring(0, currentState.highlight.start).split("\n");
       const currentLine = lines.length - 1; // 0-based line number

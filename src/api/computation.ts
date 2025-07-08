@@ -248,7 +248,7 @@ class ComputationStore {
     for (const [, variable] of this.variables.entries()) {
       if (variable.memberOf) {
         const parentVar = this.variables.get(variable.memberOf);
-        if (parentVar && parentVar.set) {
+        if (parentVar?.set) {
           variable.set = [...parentVar.set];
           // If the parent variable has a value, set this variable's value to match
           if (
