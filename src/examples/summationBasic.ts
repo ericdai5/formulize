@@ -25,6 +25,11 @@ export const summationBasic = `const config = {
     },
     x: {
       type: "input",
+      memberOf: "X",
+      precision: 0
+    },
+    X: {
+      type: "input",
       set: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       precision: 0
     },

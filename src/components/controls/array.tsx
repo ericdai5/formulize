@@ -54,10 +54,20 @@ const Array = observer(({ control }: ArrayProps) => {
     [variableId]
   );
 
-  // Get array values from the variable's set property
+  // Get array values from the variable's set property or from memberOf parent
   const getArrayValues = useCallback(() => {
-    if (variable && variable.set) {
-      return variable.set;
+    if (variable) {
+      // If variable has memberOf, get values from parent variable
+      if (variable.memberOf) {
+        const parentVariable = computationStore.variables.get(variable.memberOf);
+        if (parentVariable && parentVariable.set) {
+          return parentVariable.set;
+        }
+      }
+      // Otherwise, get values from the variable's own set property
+      if (variable.set) {
+        return variable.set;
+      }
     }
     return [];
   }, [variable]);
