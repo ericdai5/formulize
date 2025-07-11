@@ -79,6 +79,32 @@
     @apply bg-green-100 border-green-300;
   }
 
+  /* Make interpreter CodeMirror non-clickable and green focus */
+  .cm-editor {
+    pointer-events: none; /* Disable all mouse interactions */
+  }
+
+  .cm-editor .cm-content {
+    pointer-events: none; /* Disable content interactions */
+  }
+
+  .cm-editor .cm-scroller {
+    pointer-events: none; /* Disable scroller interactions */
+  }
+
+  .cm-editor.cm-focused {
+    outline: 2px solid #16a34a !important; /* Green focus outline */
+  }
+
+  .cm-editor .cm-selectionBackground {
+    background-color: rgba(
+      22,
+      163,
+      74,
+      0.2
+    ) !important; /* Green selection background */
+  }
+
   /* Hide scrollbar for webkit browsers (Chrome, Safari, Opera) */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;

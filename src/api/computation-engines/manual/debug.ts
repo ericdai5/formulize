@@ -1,4 +1,5 @@
 import { highlightCode } from "../../../util/codemirror";
+import { Assignment, Connector } from "./connector";
 import { JSInterpreter, StackFrame } from "./interpreter";
 import { VariableExtractor } from "./variableExtractor";
 import { View } from "./view";
@@ -10,6 +11,7 @@ export interface DebugState {
   stackTrace: string[];
   timestamp: number;
   viewVariables: Record<string, unknown>;
+  variableAssignments: Assignment[];
 }
 
 export class Debugger {
@@ -27,6 +29,9 @@ export class Debugger {
     );
     const viewVariables = View.processView(interpreter, stack);
     const stackTrace = this.buildStackTrace(stack);
+    // Update step number and track variable assignments
+    Connector.updateStepNum(stepNumber);
+    const variableAssignments = Connector.trackAssignments(interpreter, stack);
     return {
       step: stepNumber,
       highlight: { start: node?.start || 0, end: node?.end || 0 },
@@ -34,6 +39,7 @@ export class Debugger {
       stackTrace,
       timestamp: Date.now(),
       viewVariables,
+      variableAssignments,
     };
   }
 

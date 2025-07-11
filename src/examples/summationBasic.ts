@@ -16,6 +16,11 @@ export const summationBasic = `const config = {
         }
         return expectedValue;
       },
+      variableLinkage: {
+        "xi": "x",
+        "probability": "P(x)",
+        "expectedValue": "E"
+      },
     },
   ],
   variables: {

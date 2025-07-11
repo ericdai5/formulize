@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { javascript } from "@codemirror/lang-javascript";
-import CodeMirror from "@uiw/react-codemirror";
+import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import beautify from "js-beautify";
 import {
+  ChevronDown,
+  ChevronUp,
   Eye,
   Pause,
   Play,
@@ -35,6 +38,8 @@ import {
 } from "../util/codeMirrorExtensions";
 import Button from "./button";
 import Select from "./select";
+import Timeline from "./timeline";
+import { VariablesSection } from "./variable-section";
 
 interface DebugModalProps {
   isOpen: boolean;
@@ -56,6 +61,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const [interpreter, setInterpreter] = useState<JSInterpreter | null>(null);
   const [code, setCode] = useState<string>("");
   const [history, setHistory] = useState<DebugState[]>([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState<number>(0);
   const [views, setViews] = useState<
     Array<{ start: number; end: number; line?: number; column?: number }>
   >([]);
@@ -66,8 +72,30 @@ const DebugModal: React.FC<DebugModalProps> = ({
     index: number;
   } | null>(null);
   const autoPlayIntervalRef = useRef<number | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const codeMirrorRef = useRef<any>(null);
+  const codeMirrorRef = useRef<ReactCodeMirrorRef>(null);
+  const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
+  const [userCode, setUserCode] = useState<string>("");
+  const [isInterpreterViewCollapsed, setIsInterpreterViewCollapsed] =
+    useState(false);
+  const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
+  const toggleInterpreterViewCollapse = () => {
+    setIsInterpreterViewCollapsed(!isInterpreterViewCollapsed);
+  };
+
+  const toggleUserViewCollapse = () => {
+    setIsUserViewCollapsed(!isUserViewCollapsed);
+  };
+
+  const getViewMaxHeight = () => {
+    const interpreterOpen = !isInterpreterViewCollapsed;
+    const userOpen = !isUserViewCollapsed;
+    if (interpreterOpen && userOpen) {
+      return "50%";
+    } else if (interpreterOpen || userOpen) {
+      return "100%";
+    }
+    return "auto";
+  };
 
   // Functions to control line markers and arrow gutter markers
   const setCurrentLine = useCallback((line: number) => {
@@ -109,16 +137,39 @@ const DebugModal: React.FC<DebugModalProps> = ({
       setViews(foundViews);
       // Clear previous errors
       setError(null);
+
+      // Set the user view code to the original manual function
+      if (environment?.formulas?.[0]?.manual) {
+        const manualFunction = environment.formulas[0].manual;
+        // Extract the function body and format it nicely
+        const functionString = manualFunction.toString();
+
+        // Use js-beautify to format the code with proper indentation
+        const formattedCode = beautify.js(functionString, {
+          indent_size: 2,
+          space_in_empty_paren: false,
+          preserve_newlines: true,
+          max_preserve_newlines: 2,
+          brace_style: "collapse",
+          keep_array_indentation: false,
+        });
+
+        setUserCode(formattedCode);
+      }
     }
   }, [environment]);
 
-  // Create execution context
-  const createExecutionContext = useCallback(
-    (): Execution => ({
+  // Create a single execution context that stays current
+  const executionContextRef = useRef<Execution | null>(null);
+
+  // Update the execution context whenever state changes
+  useEffect(() => {
+    executionContextRef.current = {
       interpreter,
       code,
       environment,
       history,
+      currentHistoryIndex,
       isComplete,
       isSteppingToView,
       isSteppingToIndex,
@@ -127,47 +178,45 @@ const DebugModal: React.FC<DebugModalProps> = ({
       codeMirrorRef,
       setInterpreter,
       setHistory,
+      setCurrentHistoryIndex,
       setIsComplete,
       setError,
       setIsRunning,
       setIsSteppingToView,
       setIsSteppingToIndex,
       setTargetIndex,
-    }),
-    [
-      interpreter,
-      code,
-      environment,
-      history,
-      isComplete,
-      isSteppingToView,
-      isSteppingToIndex,
-      targetIndex,
-      setInterpreter,
-      setHistory,
-      setIsComplete,
-      setError,
-      setIsRunning,
-      setIsSteppingToView,
-      setIsSteppingToIndex,
-      setTargetIndex,
-    ]
-  );
+    };
+  }, [
+    interpreter,
+    code,
+    environment,
+    history,
+    currentHistoryIndex,
+    isComplete,
+    isSteppingToView,
+    isSteppingToIndex,
+    targetIndex,
+  ]);
 
   const handleRefresh = useCallback(() => {
-    refresh(createExecutionContext());
-  }, [createExecutionContext]);
+    if (executionContextRef.current) {
+      refresh(executionContextRef.current);
+    }
+  }, []);
 
   const handleStepForward = () => {
-    stepForward(createExecutionContext());
+    if (executionContextRef.current) {
+      stepForward(executionContextRef.current);
+    }
   };
 
   const handleStepToIndex = useCallback(
     (variableId: string, targetIdx: number) => {
-      const context = createExecutionContext();
-      stepToIndex(context, variableId, targetIdx);
+      if (executionContextRef.current) {
+        stepToIndex(executionContextRef.current, variableId, targetIdx);
+      }
     },
-    [createExecutionContext]
+    []
   );
 
   // Register stepToIndex callback when component mounts
@@ -181,11 +230,15 @@ const DebugModal: React.FC<DebugModalProps> = ({
   }, [handleStepToIndex, handleRefresh]);
 
   const handleStepToView = () => {
-    stepToView(createExecutionContext());
+    if (executionContextRef.current) {
+      stepToView(executionContextRef.current);
+    }
   };
 
   const handleStepBackward = () => {
-    stepBackward(createExecutionContext());
+    if (executionContextRef.current) {
+      stepBackward(executionContextRef.current);
+    }
   };
 
   // Toggle auto-play
@@ -202,7 +255,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   };
 
-  const currentState = history[history.length - 1];
+  const currentState = history[currentHistoryIndex];
   const hasSteps = history.length > 0;
 
   // Update line marker when current state changes
@@ -226,16 +279,21 @@ const DebugModal: React.FC<DebugModalProps> = ({
     };
   }, []);
 
-  // Debug button state - now checking for view() functions instead of comment breakpoints
-  const buttonDisabled =
-    !interpreter || isComplete || isSteppingToView || isSteppingToIndex;
+  // When browsing history, we can still use play/stepToView buttons as they auto-move to end
+  // But only if execution isn't complete OR if we're not at the end of history yet
+  const isBrowsingHistory = currentHistoryIndex < history.length - 1;
+  const playStepToViewDisabled =
+    !interpreter ||
+    (isComplete && !isBrowsingHistory) ||
+    isSteppingToView ||
+    isSteppingToIndex;
 
   if (!isOpen) return null;
 
   return (
     <>
       <div
-        className={`fixed top-0 right-0 h-full w-1/2 max-w-3xl bg-white z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-1/2 max-w-3xl bg-white z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -250,7 +308,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
           <Button
             onClick={handleStepBackward}
             disabled={
-              history.length <= 1 ||
+              currentHistoryIndex <= 0 ||
               isRunning ||
               isSteppingToView ||
               isSteppingToIndex
@@ -270,19 +328,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
           />
           <Button
             onClick={handleStepToView}
-            disabled={buttonDisabled}
+            disabled={playStepToViewDisabled}
             icon={Eye}
           >
             {views.length}
           </Button>
           <Button
             onClick={toggleAutoPlay}
-            disabled={
-              !interpreter ||
-              isComplete ||
-              isSteppingToView ||
-              isSteppingToIndex
-            }
+            disabled={playStepToViewDisabled}
             icon={isRunning ? Pause : Play}
           />
           <Select
@@ -306,220 +359,136 @@ const DebugModal: React.FC<DebugModalProps> = ({
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Code with Highlighting */}
+        <div className="flex-1 flex border-b overflow-hidden">
+          {/* Code Editors Column */}
           <div className="w-1/2 border-r flex flex-col">
-            <CodeMirror
-              value={code}
-              readOnly
-              extensions={[javascript(), ...debugExtensions]}
+            {/* Interpreter View */}
+            <div
+              className={`flex flex-col border-b ${
+                isInterpreterViewCollapsed ? "" : "flex-1"
+              }`}
               style={{
-                fontSize: "14px",
-                fontFamily: "monospace",
-                height: "100%",
+                maxHeight: isInterpreterViewCollapsed
+                  ? "auto"
+                  : getViewMaxHeight(),
               }}
-              basicSetup={{
-                lineNumbers: true,
-                foldGutter: false,
-                dropCursor: false,
-                allowMultipleSelections: false,
-                indentOnInput: false,
-                bracketMatching: true,
-                closeBrackets: false,
-                autocompletion: false,
-                highlightSelectionMatches: false,
-                searchKeymap: false,
+            >
+              <div
+                className={`px-4 py-2 bg-white font-medium flex items-center justify-between ${
+                  isInterpreterViewCollapsed ? "" : "border-b"
+                }`}
+              >
+                <span>Interpreter View</span>
+                <button
+                  onClick={toggleInterpreterViewCollapse}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  title={isInterpreterViewCollapsed ? "Expand" : "Collapse"}
+                >
+                  {isInterpreterViewCollapsed ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronUp size={16} />
+                  )}
+                </button>
+              </div>
+              {!isInterpreterViewCollapsed && (
+                <CodeMirror
+                  value={code}
+                  readOnly
+                  extensions={[javascript(), ...debugExtensions]}
+                  style={{
+                    fontSize: "14px",
+                    fontFamily: "monospace",
+                    height: "100%",
+                    overflow: "auto",
+                  }}
+                  basicSetup={{
+                    lineNumbers: true,
+                    foldGutter: false,
+                    dropCursor: false,
+                    allowMultipleSelections: false,
+                    indentOnInput: false,
+                    bracketMatching: true,
+                    closeBrackets: false,
+                    autocompletion: false,
+                    highlightSelectionMatches: false,
+                    searchKeymap: false,
+                  }}
+                  editable={false}
+                  ref={codeMirrorRef}
+                />
+              )}
+            </div>
+
+            {/* User View */}
+            <div
+              className={`flex flex-col ${isUserViewCollapsed ? "" : "flex-1"}`}
+              style={{
+                maxHeight: isUserViewCollapsed ? "auto" : getViewMaxHeight(),
               }}
-              ref={codeMirrorRef}
-            />
+            >
+              <div className="px-4 py-2 bg-white border-b font-medium flex items-center justify-between">
+                <span>User View</span>
+                <button
+                  onClick={toggleUserViewCollapse}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  title={isUserViewCollapsed ? "Expand" : "Collapse"}
+                >
+                  {isUserViewCollapsed ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronUp size={16} />
+                  )}
+                </button>
+              </div>
+              {!isUserViewCollapsed && (
+                <CodeMirror
+                  value={userCode}
+                  onChange={(value) => setUserCode(value)}
+                  extensions={[javascript(), ...debugExtensions]}
+                  style={{
+                    fontSize: "14px",
+                    fontFamily: "monospace",
+                    height: "100%",
+                    overflow: "auto",
+                  }}
+                  basicSetup={{
+                    lineNumbers: true,
+                    foldGutter: true,
+                    dropCursor: true,
+                    allowMultipleSelections: false,
+                    indentOnInput: true,
+                    bracketMatching: true,
+                    closeBrackets: true,
+                    autocompletion: true,
+                    highlightSelectionMatches: true,
+                    searchKeymap: true,
+                  }}
+                  ref={userViewCodeMirrorRef}
+                />
+              )}
+            </div>
           </div>
 
-          {/* Debug Info */}
-          <div className="w-1/2 flex flex-col">
-            {/* View Variables - shown in green boxes when view() is called */}
-            {currentState &&
-              currentState.viewVariables &&
-              Object.keys(currentState.viewVariables).length > 0 && (
-                <div>
-                  <div className="flex flex-row justify-between px-4 py-2 font-medium border-b border-green-200 bg-green-100">
-                    <div className="font-medium text-green-800">
-                      View Variables
-                    </div>
-                    <div className="text-green-600">
-                      Qty: {Object.keys(currentState.viewVariables).length}
-                    </div>
-                  </div>
-                  <div className="overflow-y-auto max-h-32">
-                    {Object.entries(currentState.viewVariables).map(
-                      ([key, value]) => (
-                        <div
-                          key={key}
-                          className="border-b border-green-200 p-3 bg-green-50"
-                        >
-                          <div className="flex items-center gap-2 font-mono text-sm text-green-800">
-                            <span className="font-semibold">{key}</span>
-                            <span>=</span>
-                            <span className="break-all min-w-0 flex-1 bg-white px-2 py-1 rounded border border-green-200">
-                              {typeof value === "object"
-                                ? JSON.stringify(value)
-                                : String(value)}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
-
-            {/* Current Variables */}
-            {currentState && (
-              <div className="border-b max-h-1/2">
-                <div className="flex flex-row justify-between px-4 py-2 font-medium border-b border-slate-200">
-                  <div className="font-medium">Variables</div>
-                  {currentState?.variables && (
-                    <div className="text-slate-500">
-                      Qty: {Object.keys(currentState.variables).length}
-                    </div>
-                  )}
-                </div>
-                <div className="overflow-y-auto max-h-64">
-                  {Object.keys(currentState.variables).length > 0 ? (
-                    <div>
-                      {/* Display regular variables */}
-                      {Object.entries(currentState.variables)
-                        .filter(([key]) => {
-                          const debugVariables = [
-                            "Interpreter Value",
-                            "Current Node Type",
-                            "Stack Depth",
-                            "Declared Variables",
-                            "Node Info",
-                            "Current Scope Type",
-                            "Current Function",
-                            "Error",
-                          ];
-                          return !debugVariables.includes(key);
-                        })
-                        .map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="border-b border-slate-200 p-3"
-                          >
-                            <div className="flex items-center gap-2 font-mono text-sm">
-                              <span>{key}</span>
-                              <span>=</span>
-                              <span className="break-all min-w-0 flex-1">
-                                {typeof value === "object"
-                                  ? JSON.stringify(value)
-                                  : String(value)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-
-                      {/* Display debug info variables */}
-                      {Object.entries(currentState.variables)
-                        .filter(([key]) => {
-                          const debugVariables = [
-                            "Interpreter Value",
-                            "Current Node Type",
-                            "Stack Depth",
-                            "Declared Variables",
-                            "Node Info",
-                            "Current Scope Type",
-                            "Current Function",
-                            "Error",
-                          ];
-                          return debugVariables.includes(key);
-                        })
-                        .map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="bg-slate-50 border-b border-slate-200 p-2"
-                          >
-                            <div className="text-sm text-gray-600 break-words">
-                              <span className="font-semibold">{key}:</span>
-                              <div className="ml-2 font-mono mt-1 whitespace-pre-wrap break-all">
-                                {typeof value === "object"
-                                  ? JSON.stringify(value, null, 2)
-                                  : String(value)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500 p-8">
-                      No variables captured yet
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="flex-1 flex flex-col">
-              <div className="px-4 py-2 border-b border-slate-200 font-medium flex flex-row justify-between">
-                Timeline
-                {hasSteps && (
-                  <div className="text-slate-500 flex flex-row gap-2">
-                    <span>Step {history.length}</span>
-                    {isComplete && (
-                      <span className="text-green-600">Complete</span>
-                    )}
-                    {isRunning && (
-                      <span className="text-blue-600">Running...</span>
-                    )}
-                    {isSteppingToView && (
-                      <span className="text-orange-600">
-                        Stepping to a View...
-                      </span>
-                    )}
-                    {isSteppingToIndex && targetIndex && (
-                      <span className="text-purple-600">
-                        Stepping to {targetIndex.varId} index{" "}
-                        {targetIndex.index}...
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 overflow-y-auto max-h-96">
-                {history.map((state, index) => {
-                  return (
-                    <div
-                      key={index}
-                      className={`py-3 px-4 border-b border-slate-200`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="text-sm gap-2 flex">
-                          <span className="font-medium">Step {index}</span>
-                          {index === history.length - 1 && (
-                            <span className="text-blue-600">← Current</span>
-                          )}
-                          <span>
-                            Pos: {state.highlight.start}-{state.highlight.end}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(state.timestamp).toLocaleTimeString()}
-                        </div>
-                      </div>
-                      {state.stackTrace.length > 0 && (
-                        <div className="mt-1 text-sm text-gray-500">
-                          {state.stackTrace[state.stackTrace.length - 1]}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {history.length === 0 && (
-                  <div className="text-center text-gray-500 p-8">
-                    Initialize debugging to see execution steps
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* Debug Info Column */}
+          <div className="w-1/2 flex flex-col overflow-hidden">
+            <VariablesSection currentState={currentState} />
+            <Timeline
+              history={history}
+              currentHistoryIndex={currentHistoryIndex}
+              hasSteps={hasSteps}
+              isComplete={isComplete}
+              isRunning={isRunning}
+              isSteppingToView={isSteppingToView}
+              isSteppingToIndex={isSteppingToIndex}
+              targetIndex={targetIndex}
+              lineNumber={
+                currentState
+                  ? code.substring(0, currentState.highlight.start).split("\n")
+                      .length
+                  : 1
+              }
+            />
           </div>
         </div>
       </div>
