@@ -4,8 +4,6 @@ import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import beautify from "js-beautify";
 import {
-  ChevronDown,
-  ChevronUp,
   Eye,
   Pause,
   Play,
@@ -37,6 +35,7 @@ import {
   debugExtensions,
 } from "../util/codeMirrorExtensions";
 import Button from "./button";
+import CollapsibleSection from "./collapsible-section";
 import Select from "./select";
 import Timeline from "./timeline";
 import { VariablesSection } from "./variable-section";
@@ -79,7 +78,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
     useState(false);
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
-  const [isVariablesSectionCollapsed, setIsVariablesSectionCollapsed] = useState(false);
+  const [isVariablesSectionCollapsed, setIsVariablesSectionCollapsed] =
+    useState(false);
   const toggleInterpreterViewCollapse = () => {
     setIsInterpreterViewCollapsed(!isInterpreterViewCollapsed);
   };
@@ -96,27 +96,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     setIsVariablesSectionCollapsed(!isVariablesSectionCollapsed);
   };
 
-  const getViewMaxHeight = () => {
-    const interpreterOpen = !isInterpreterViewCollapsed;
-    const userOpen = !isUserViewCollapsed;
-    if (interpreterOpen && userOpen) {
-      return "50%";
-    } else if (interpreterOpen || userOpen) {
-      return "100%";
-    }
-    return "auto";
-  };
-
-  const getDebugSectionMaxHeight = () => {
-    const variablesOpen = !isVariablesSectionCollapsed;
-    const timelineOpen = !isTimelineCollapsed;
-    if (variablesOpen && timelineOpen) {
-      return "50%";
-    } else if (variablesOpen || timelineOpen) {
-      return "100%";
-    }
-    return "auto";
-  };
 
   // Functions to control line markers and arrow gutter markers
   const setCurrentLine = useCallback((line: number) => {
@@ -277,7 +256,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
   };
 
   const currentState = history[currentHistoryIndex];
-  const hasSteps = history.length > 0;
 
   // Update line marker when current state changes
   useEffect(() => {
@@ -382,142 +360,135 @@ const DebugModal: React.FC<DebugModalProps> = ({
         {/* Main Content */}
         <div className="flex-1 flex border-b overflow-hidden">
           {/* Code Editors Column */}
-          <div className="w-1/2 border-r flex flex-col">
+          <div className="w-1/2 border-r flex flex-col h-full">
             {/* Interpreter View */}
-            <div
-              className={`flex flex-col border-b ${
-                isInterpreterViewCollapsed ? "" : "flex-1"
-              }`}
-              style={{
-                maxHeight: isInterpreterViewCollapsed
-                  ? "auto"
-                  : getViewMaxHeight(),
-              }}
+            <CollapsibleSection
+              title="Interpreter View"
+              isCollapsed={isInterpreterViewCollapsed}
+              onToggleCollapse={toggleInterpreterViewCollapse}
+              className="border-b"
+              contentClassName="p-0"
             >
-              <div
-                className={`px-4 py-2 bg-white font-medium flex items-center justify-between ${
-                  isInterpreterViewCollapsed ? "" : "border-b"
-                }`}
-              >
-                <span>Interpreter View</span>
-                <button
-                  onClick={toggleInterpreterViewCollapse}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
-                  title={isInterpreterViewCollapsed ? "Expand" : "Collapse"}
-                >
-                  {isInterpreterViewCollapsed ? (
-                    <ChevronDown size={16} />
-                  ) : (
-                    <ChevronUp size={16} />
-                  )}
-                </button>
-              </div>
-              {!isInterpreterViewCollapsed && (
-                <CodeMirror
-                  value={code}
-                  readOnly
-                  extensions={[javascript(), ...debugExtensions]}
-                  style={{
-                    fontSize: "14px",
-                    fontFamily: "monospace",
-                    height: "100%",
-                    overflow: "auto",
-                  }}
-                  basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: false,
-                    dropCursor: false,
-                    allowMultipleSelections: false,
-                    indentOnInput: false,
-                    bracketMatching: true,
-                    closeBrackets: false,
-                    autocompletion: false,
-                    highlightSelectionMatches: false,
-                    searchKeymap: false,
-                  }}
-                  editable={false}
-                  ref={codeMirrorRef}
-                />
-              )}
-            </div>
+              <CodeMirror
+                value={code}
+                readOnly
+                extensions={[javascript(), ...debugExtensions]}
+                style={{
+                  fontSize: "14px",
+                  fontFamily: "monospace",
+                  height: "100%",
+                  overflow: "auto",
+                }}
+                basicSetup={{
+                  lineNumbers: true,
+                  foldGutter: false,
+                  dropCursor: false,
+                  allowMultipleSelections: false,
+                  indentOnInput: false,
+                  bracketMatching: true,
+                  closeBrackets: false,
+                  autocompletion: false,
+                  highlightSelectionMatches: false,
+                  searchKeymap: false,
+                }}
+                editable={false}
+                ref={codeMirrorRef}
+              />
+            </CollapsibleSection>
 
             {/* User View */}
-            <div
-              className={`flex flex-col ${isUserViewCollapsed ? "" : "flex-1"}`}
-              style={{
-                maxHeight: isUserViewCollapsed ? "auto" : getViewMaxHeight(),
-              }}
+            <CollapsibleSection
+              title="User View"
+              isCollapsed={isUserViewCollapsed}
+              onToggleCollapse={toggleUserViewCollapse}
+              contentClassName="p-0"
             >
-              <div className="px-4 py-2 bg-white border-b font-medium flex items-center justify-between">
-                <span>User View</span>
-                <button
-                  onClick={toggleUserViewCollapse}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
-                  title={isUserViewCollapsed ? "Expand" : "Collapse"}
-                >
-                  {isUserViewCollapsed ? (
-                    <ChevronDown size={16} />
-                  ) : (
-                    <ChevronUp size={16} />
-                  )}
-                </button>
-              </div>
-              {!isUserViewCollapsed && (
-                <CodeMirror
-                  value={userCode}
-                  onChange={(value) => setUserCode(value)}
-                  extensions={[javascript(), ...debugExtensions]}
-                  style={{
-                    fontSize: "14px",
-                    fontFamily: "monospace",
-                    height: "100%",
-                    overflow: "auto",
-                  }}
-                  basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: true,
-                    dropCursor: true,
-                    allowMultipleSelections: false,
-                    indentOnInput: true,
-                    bracketMatching: true,
-                    closeBrackets: true,
-                    autocompletion: true,
-                    highlightSelectionMatches: true,
-                    searchKeymap: true,
-                  }}
-                  ref={userViewCodeMirrorRef}
-                />
-              )}
-            </div>
+              <CodeMirror
+                value={userCode}
+                onChange={(value) => setUserCode(value)}
+                extensions={[javascript(), ...debugExtensions]}
+                style={{
+                  fontSize: "14px",
+                  fontFamily: "monospace",
+                  height: "100%",
+                  overflow: "auto",
+                }}
+                basicSetup={{
+                  lineNumbers: true,
+                  foldGutter: true,
+                  dropCursor: true,
+                  allowMultipleSelections: false,
+                  indentOnInput: true,
+                  bracketMatching: true,
+                  closeBrackets: true,
+                  autocompletion: true,
+                  highlightSelectionMatches: true,
+                  searchKeymap: true,
+                }}
+                ref={userViewCodeMirrorRef}
+              />
+            </CollapsibleSection>
           </div>
-
           {/* Debug Info Column */}
-          <div className="w-1/2 flex flex-col overflow-hidden">
-            <VariablesSection 
-              currentState={currentState} 
+          <div className="w-1/2 flex flex-col h-full overflow-hidden">
+            <CollapsibleSection
+              title="Variables"
               isCollapsed={isVariablesSectionCollapsed}
               onToggleCollapse={toggleVariablesSectionCollapse}
-              maxHeight={isVariablesSectionCollapsed ? "auto" : getDebugSectionMaxHeight()}
-            />
-            <Timeline
-              history={history}
-              currentHistoryIndex={currentHistoryIndex}
-              hasSteps={hasSteps}
-              isComplete={isComplete}
-              isRunning={isRunning}
-              isSteppingToView={isSteppingToView}
-              isSteppingToIndex={isSteppingToIndex}
-              targetIndex={targetIndex}
-              lineNumber={
-                currentState
-                  ? code.substring(0, currentState.highlight.start).split("\n")
-                      .length
-                  : 1
+              headerContent={
+                currentState?.variables && (
+                  <div className="text-slate-500">
+                    Qty: {Object.keys(currentState.variables).length}
+                  </div>
+                )
               }
+            >
+              <VariablesSection currentState={currentState} />
+            </CollapsibleSection>
+            <CollapsibleSection
+              title="Timeline"
               isCollapsed={isTimelineCollapsed}
               onToggleCollapse={toggleTimelineCollapse}
-              maxHeight={isTimelineCollapsed ? "auto" : getDebugSectionMaxHeight()}
-            />
+              className="border-t"
+              headerContent={
+                history.length > 0 && (
+                  <div className="text-slate-500 flex flex-row gap-2">
+                    <span>
+                      Step {currentHistoryIndex + 1} of {history.length}
+                    </span>
+                    {isComplete && (
+                      <span className="text-green-600">Complete</span>
+                    )}
+                    {isRunning && (
+                      <span className="text-blue-600">Running...</span>
+                    )}
+                    {isSteppingToView && (
+                      <span className="text-orange-600">
+                        Stepping to a View...
+                      </span>
+                    )}
+                    {isSteppingToIndex && targetIndex && (
+                      <span className="text-purple-600">
+                        Stepping to {targetIndex.varId} index{" "}
+                        {targetIndex.index}...
+                      </span>
+                    )}
+                  </div>
+                )
+              }
+            >
+              <Timeline
+                history={history}
+                currentHistoryIndex={currentHistoryIndex}
+                lineNumber={
+                  currentState
+                    ? code
+                        .substring(0, currentState.highlight.start)
+                        .split("\n").length
+                    : 1
+                }
+              />
+            </CollapsibleSection>
           </div>
         </div>
       </div>
