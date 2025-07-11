@@ -78,6 +78,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const [isInterpreterViewCollapsed, setIsInterpreterViewCollapsed] =
     useState(false);
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
+  const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
+  const [isVariablesSectionCollapsed, setIsVariablesSectionCollapsed] = useState(false);
   const toggleInterpreterViewCollapse = () => {
     setIsInterpreterViewCollapsed(!isInterpreterViewCollapsed);
   };
@@ -86,12 +88,31 @@ const DebugModal: React.FC<DebugModalProps> = ({
     setIsUserViewCollapsed(!isUserViewCollapsed);
   };
 
+  const toggleTimelineCollapse = () => {
+    setIsTimelineCollapsed(!isTimelineCollapsed);
+  };
+
+  const toggleVariablesSectionCollapse = () => {
+    setIsVariablesSectionCollapsed(!isVariablesSectionCollapsed);
+  };
+
   const getViewMaxHeight = () => {
     const interpreterOpen = !isInterpreterViewCollapsed;
     const userOpen = !isUserViewCollapsed;
     if (interpreterOpen && userOpen) {
       return "50%";
     } else if (interpreterOpen || userOpen) {
+      return "100%";
+    }
+    return "auto";
+  };
+
+  const getDebugSectionMaxHeight = () => {
+    const variablesOpen = !isVariablesSectionCollapsed;
+    const timelineOpen = !isTimelineCollapsed;
+    if (variablesOpen && timelineOpen) {
+      return "50%";
+    } else if (variablesOpen || timelineOpen) {
       return "100%";
     }
     return "auto";
@@ -472,7 +493,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
           {/* Debug Info Column */}
           <div className="w-1/2 flex flex-col overflow-hidden">
-            <VariablesSection currentState={currentState} />
+            <VariablesSection 
+              currentState={currentState} 
+              isCollapsed={isVariablesSectionCollapsed}
+              onToggleCollapse={toggleVariablesSectionCollapse}
+              maxHeight={isVariablesSectionCollapsed ? "auto" : getDebugSectionMaxHeight()}
+            />
             <Timeline
               history={history}
               currentHistoryIndex={currentHistoryIndex}
@@ -488,6 +514,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
                       .length
                   : 1
               }
+              isCollapsed={isTimelineCollapsed}
+              onToggleCollapse={toggleTimelineCollapse}
+              maxHeight={isTimelineCollapsed ? "auto" : getDebugSectionMaxHeight()}
             />
           </div>
         </div>
