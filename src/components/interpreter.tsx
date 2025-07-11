@@ -96,7 +96,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
     setIsVariablesSectionCollapsed(!isVariablesSectionCollapsed);
   };
 
-
   // Functions to control line markers and arrow gutter markers
   const setCurrentLine = useCallback((line: number) => {
     if (codeMirrorRef.current?.view) {
@@ -366,7 +365,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
               title="Interpreter View"
               isCollapsed={isInterpreterViewCollapsed}
               onToggleCollapse={toggleInterpreterViewCollapse}
-              className="border-b"
               contentClassName="p-0"
             >
               <CodeMirror
@@ -435,13 +433,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
               title="Variables"
               isCollapsed={isVariablesSectionCollapsed}
               onToggleCollapse={toggleVariablesSectionCollapse}
-              headerContent={
-                currentState?.variables && (
-                  <div className="text-slate-500">
-                    Qty: {Object.keys(currentState.variables).length}
-                  </div>
-                )
-              }
             >
               <VariablesSection currentState={currentState} />
             </CollapsibleSection>
@@ -449,29 +440,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
               title="Timeline"
               isCollapsed={isTimelineCollapsed}
               onToggleCollapse={toggleTimelineCollapse}
-              className="border-t"
               headerContent={
                 history.length > 0 && (
                   <div className="text-slate-500 flex flex-row gap-2">
-                    <span>
-                      Step {currentHistoryIndex + 1} of {history.length}
-                    </span>
                     {isComplete && (
                       <span className="text-green-600">Complete</span>
                     )}
                     {isRunning && (
                       <span className="text-blue-600">Running...</span>
-                    )}
-                    {isSteppingToView && (
-                      <span className="text-orange-600">
-                        Stepping to a View...
-                      </span>
-                    )}
-                    {isSteppingToIndex && targetIndex && (
-                      <span className="text-purple-600">
-                        Stepping to {targetIndex.varId} index{" "}
-                        {targetIndex.index}...
-                      </span>
                     )}
                   </div>
                 )

@@ -28,8 +28,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       className={`flex flex-col ${isCollapsed ? "" : "flex-1 min-h-0"} ${className}`}
     >
       <div
-        className={`px-4 py-2 bg-white font-medium flex flex-row justify-between ${
-          isCollapsed ? "" : "border-b border-slate-200"
+        className={`px-4 py-2 bg-white font-medium flex flex-row justify-between border-b border-slate-200"
         } ${headerClassName}`}
       >
         <div className="flex items-center gap-2">
@@ -45,7 +44,9 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         </button>
       </div>
       {!isCollapsed && (
-        <div className={`flex-1 overflow-y-auto h-0 ${contentClassName}`}>
+        <div
+          className={`flex-1 overflow-y-auto h-0 border-b border-slate-200 ${contentClassName}`}
+        >
           {children}
         </div>
       )}
