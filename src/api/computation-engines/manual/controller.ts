@@ -4,43 +4,25 @@ import { IEnvironment } from "../../../types/environment";
 import { computationStore } from "../../computation";
 import { Connector } from "./connector";
 import { ERROR_MESSAGES } from "./constants";
-import { DebugState, Debugger } from "./debug";
-import { JSInterpreter, initializeInterpreter, isAtView } from "./interpreter";
-
-export interface Execution {
-  code: string;
-  environment: IEnvironment | null;
-  interpreter: JSInterpreter | null;
-  history: DebugState[];
-  currentHistoryIndex: number;
-  isComplete: boolean;
-  isSteppingToView: boolean;
-  isSteppingToIndex: boolean;
-  targetIndex: { varId: string; index: number } | null;
-  autoPlayIntervalRef: React.MutableRefObject<number | null>;
-  codeMirrorRef: React.MutableRefObject<unknown>;
-
-  setInterpreter: (interpreter: JSInterpreter | null) => void;
-  setHistory: React.Dispatch<React.SetStateAction<DebugState[]>>;
-  setCurrentHistoryIndex: (index: number) => void;
-  setIsComplete: (complete: boolean) => void;
-  setError: (error: string | null) => void;
-  setIsRunning: (running: boolean) => void;
-  setIsSteppingToView: (stepping: boolean) => void;
-  setIsSteppingToIndex: (stepping: boolean) => void;
-  setTargetIndex: (target: { varId: string; index: number } | null) => void;
-}
+import { Debugger } from "./debug";
+import { executionStore as ctx } from "./executionStore";
+import {
+  JSInterpreter,
+  initializeInterpreter,
+  isAtBlock,
+  isAtView,
+} from "./interpreter";
 
 export class Controller {
   // ============================================================================
   // Execution Lifecycle Management
   // ============================================================================
 
-  private static initializeExecution(ctx: Execution): void {
+  private static initializeExecution(): void {
     const variables = computationStore.getVariables();
     const interpreter = initializeInterpreter(
       ctx.code,
-      ctx.setError,
+      ctx.setError.bind(ctx),
       variables
     );
     if (!interpreter) return;
@@ -53,56 +35,49 @@ export class Controller {
     ctx.setInterpreter(interpreter);
     const initialState = Debugger.snapshot(interpreter, 0, ctx.code);
     ctx.setHistory([initialState]);
-    ctx.setCurrentHistoryIndex(0);
+    ctx.setHistoryIndex(0);
     Debugger.updateHighlight(ctx.codeMirrorRef, initialState.highlight);
   }
 
-  private static finishExecution(ctx: Execution): void {
+  private static finishExecution(): void {
     ctx.setIsComplete(true);
     ctx.setIsRunning(false);
     ctx.setIsSteppingToView(false);
     ctx.setIsSteppingToIndex(false);
-    this.clearAutoPlay(ctx);
+    ctx.setIsSteppingToBlock(false);
+    this.clearAutoPlay();
   }
 
-  static refresh(ctx: Execution): void {
-    ctx.setInterpreter(null);
-    ctx.setHistory([]);
-    ctx.setCurrentHistoryIndex(0);
-    ctx.setIsComplete(false);
-    ctx.setError(null);
-    ctx.setIsRunning(false);
-    ctx.setIsSteppingToView(false);
-    ctx.setIsSteppingToIndex(false);
-    ctx.setTargetIndex(null);
+  static refresh(code: string, environment: IEnvironment | null): void {
+    ctx.reset();
+    ctx.setCode(code);
+    ctx.setEnvironment(environment);
     this.clearProcessedIndices();
-    this.clearAutoPlay(ctx);
-    this.resetCodeMirror(ctx);
+    this.clearAutoPlay();
+    this.resetCodeMirror();
 
     // Clear variable linkage tracker
     Connector.clearAssignments();
 
-    if (!ctx.code.trim()) {
+    if (!code.trim()) {
       ctx.setError(ERROR_MESSAGES.NO_CODE);
       return;
     }
-    this.initializeExecution(ctx);
+    this.initializeExecution();
   }
 
   // ============================================================================
   // Singular Stepping
   // ============================================================================
 
-  static stepForward(ctx: Execution): void {
+  static stepForward(): void {
     if (!ctx.interpreter || ctx.isComplete) return;
     try {
       // Check if we're at the end of history or behind
-      if (ctx.currentHistoryIndex < ctx.history.length - 1) {
+      if (ctx.historyIndex < ctx.history.length - 1) {
         // We're behind in history, just move forward in existing history
-        const newIndex = ctx.currentHistoryIndex + 1;
-        ctx.setCurrentHistoryIndex(newIndex);
-        // Also update the execution context immediately for UI consistency
-        ctx.currentHistoryIndex = newIndex;
+        const newIndex = ctx.historyIndex + 1;
+        ctx.setHistoryIndex(newIndex);
         const state = ctx.history[newIndex];
         Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
       } else {
@@ -113,39 +88,39 @@ export class Controller {
           ctx.history.length,
           ctx.code
         );
-        ctx.setHistory((prev) => [...prev, newState]);
-        const newIndex = ctx.currentHistoryIndex + 1; // Increment from current index
-        ctx.setCurrentHistoryIndex(newIndex);
-        // Also update the execution context immediately for UI consistency
-        ctx.currentHistoryIndex = newIndex;
+        ctx.addToHistory(newState);
+        const newIndex = ctx.historyIndex + 1; // Increment from current index
+        ctx.setHistoryIndex(newIndex);
         Debugger.updateHighlight(ctx.codeMirrorRef, newState.highlight);
         if (!canContinue) {
-          this.finishExecution(ctx);
+          this.finishExecution();
         }
       }
 
       if (ctx.isSteppingToView && isAtView(ctx.interpreter)) {
         ctx.setIsSteppingToView(false);
       }
+
+      if (ctx.isSteppingToBlock && isAtBlock(ctx.history, ctx.historyIndex)) {
+        ctx.setIsSteppingToBlock(false);
+      }
     } catch (err) {
-      this.handleError(ctx, err);
+      this.handleError(err);
     }
   }
 
   // Helper method to ensure we're at the end of history before executing new steps
-  static moveToEndOfHistory(ctx: Execution): void {
-    if (ctx.currentHistoryIndex < ctx.history.length - 1) {
-      ctx.setCurrentHistoryIndex(ctx.history.length - 1);
+  static moveToEndOfHistory(): void {
+    if (ctx.historyIndex < ctx.history.length - 1) {
+      ctx.setHistoryIndex(ctx.history.length - 1);
     }
   }
 
-  static stepBackward(ctx: Execution): void {
-    if (ctx.currentHistoryIndex <= 0) return;
+  static stepBackward(): void {
+    if (ctx.historyIndex <= 0) return;
     // Decrement the history index
-    const newIndex = ctx.currentHistoryIndex - 1;
-    ctx.setCurrentHistoryIndex(newIndex);
-    // Also update the execution context immediately for UI consistency
-    ctx.currentHistoryIndex = newIndex;
+    const newIndex = ctx.historyIndex - 1;
+    ctx.setHistoryIndex(newIndex);
     // Get the state at the new index
     const prevState = ctx.history[newIndex];
     // Update highlight to show the previous state
@@ -156,32 +131,30 @@ export class Controller {
   // Step to Specific Destination
   // ============================================================================
 
-  static stepToView(ctx: Execution): void {
+  static stepToView(): void {
     if (!ctx.interpreter || ctx.isComplete) return;
 
     // If we're browsing history, move to the end first
-    if (ctx.currentHistoryIndex < ctx.history.length - 1) {
+    if (ctx.historyIndex < ctx.history.length - 1) {
       const endIndex = ctx.history.length - 1;
-      ctx.setCurrentHistoryIndex(endIndex);
-      // Also update the execution context immediately for UI consistency
-      ctx.currentHistoryIndex = endIndex;
+      ctx.setHistoryIndex(endIndex);
     }
 
     ctx.setIsSteppingToView(true);
     try {
-      this.stepPastCurrentView(ctx);
+      this.stepPastCurrentView();
       if (ctx.isComplete) {
         ctx.setIsSteppingToView(false);
         return;
       }
-      this.stepToNextView(ctx);
+      this.stepToNextView();
     } catch (err) {
-      this.handleError(ctx, err);
+      this.handleError(err);
       ctx.setIsSteppingToView(false);
     }
   }
 
-  static stepToIndex(ctx: Execution, varId: string, targetIndex: number): void {
+  static stepToIndex(varId: string, targetIndex: number): void {
     if (!ctx.interpreter || ctx.isComplete) return;
     ctx.setIsSteppingToIndex(true);
     ctx.setTargetIndex({ varId, index: targetIndex });
@@ -189,18 +162,36 @@ export class Controller {
       const searching = true;
       while (searching) {
         if (this.atTargetIndex(ctx.interpreter, varId, targetIndex)) {
-          this.completeStepToIndex(ctx);
+          this.completeStepToIndex();
           return;
         }
-        this.stepToView(ctx);
+        this.stepToView();
         if (ctx.isComplete) {
-          this.completeStepToIndex(ctx);
+          this.completeStepToIndex();
           return;
         }
       }
     } catch (err) {
-      this.handleError(ctx, err);
-      this.completeStepToIndex(ctx);
+      this.handleError(err);
+      this.completeStepToIndex();
+    }
+  }
+
+  static stepToBlock(): void {
+    if (!ctx.interpreter || ctx.isComplete) return;
+
+    // If we're browsing history, move to the end first
+    if (ctx.historyIndex < ctx.history.length - 1) {
+      const endIndex = ctx.history.length - 1;
+      ctx.setHistoryIndex(endIndex);
+    }
+
+    ctx.setIsSteppingToBlock(true);
+    try {
+      this.stepToNextBlock();
+    } catch (err) {
+      this.handleError(err);
+      ctx.setIsSteppingToBlock(false);
     }
   }
 
@@ -208,14 +199,14 @@ export class Controller {
     computationStore.clearProcessedIndices();
   }
 
-  private static clearAutoPlay(ctx: Execution): void {
+  private static clearAutoPlay(): void {
     if (ctx.autoPlayIntervalRef.current) {
       clearInterval(ctx.autoPlayIntervalRef.current);
       ctx.autoPlayIntervalRef.current = null;
     }
   }
 
-  private static resetCodeMirror(ctx: Execution): void {
+  private static resetCodeMirror(): void {
     if (ctx.codeMirrorRef.current) {
       const codeMirrorInstance = ctx.codeMirrorRef.current as {
         view?: EditorView;
@@ -230,21 +221,22 @@ export class Controller {
     }
   }
 
-  private static handleError(ctx: Execution, err: unknown): void {
+  private static handleError(err: unknown): void {
     ctx.setError(`${ERROR_MESSAGES.EXECUTION_ERROR}: ${err}`);
     ctx.setIsRunning(false);
     ctx.setIsSteppingToView(false);
     ctx.setIsSteppingToIndex(false);
-    this.clearAutoPlay(ctx);
+    ctx.setIsSteppingToBlock(false);
+    this.clearAutoPlay();
   }
 
-  private static stepPastCurrentView(ctx: Execution): void {
+  private static stepPastCurrentView(): void {
     if (!ctx.interpreter || !isAtView(ctx.interpreter)) {
       return;
     }
     let atSameView = true;
     const interpreter = ctx.interpreter;
-    let currentIndex = ctx.currentHistoryIndex;
+    let currentIndex = ctx.historyIndex;
     while (atSameView) {
       const canContinue = interpreter.step();
       const newState = Debugger.snapshot(
@@ -252,11 +244,9 @@ export class Controller {
         ctx.history.length,
         ctx.code
       );
-      ctx.setHistory((prev) => [...prev, newState]);
+      ctx.addToHistory(newState);
       currentIndex = currentIndex + 1; // Track the correct index
-      ctx.setCurrentHistoryIndex(currentIndex);
-      // Also update the execution context immediately for UI consistency
-      ctx.currentHistoryIndex = currentIndex;
+      ctx.setHistoryIndex(currentIndex);
       Debugger.updateHighlight(ctx.codeMirrorRef, newState.highlight);
       if (!canContinue) {
         ctx.setIsComplete(true);
@@ -266,11 +256,11 @@ export class Controller {
     }
   }
 
-  private static stepToNextView(ctx: Execution): void {
+  private static stepToNextView(): void {
     if (!ctx.interpreter) return;
     let foundNextView = false;
     const interpreter = ctx.interpreter;
-    let currentIndex = ctx.currentHistoryIndex;
+    let currentIndex = ctx.historyIndex;
     while (!foundNextView) {
       const canContinue = interpreter.step();
       const state = Debugger.snapshot(
@@ -278,11 +268,9 @@ export class Controller {
         ctx.history.length,
         ctx.code
       );
-      ctx.setHistory((prev) => [...prev, state]);
+      ctx.addToHistory(state);
       currentIndex = currentIndex + 1; // Track the correct index
-      ctx.setCurrentHistoryIndex(currentIndex);
-      // Also update the execution context immediately for UI consistency
-      ctx.currentHistoryIndex = currentIndex;
+      ctx.setHistoryIndex(currentIndex);
       Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
       if (!canContinue) {
         ctx.setIsComplete(true);
@@ -292,6 +280,41 @@ export class Controller {
       if (isAtView(interpreter)) {
         foundNextView = true;
         ctx.setIsSteppingToView(false);
+        return;
+      }
+    }
+  }
+
+  private static stepToNextBlock(): void {
+    if (!ctx.interpreter) return;
+    let foundNextBlock = false;
+    const interpreter = ctx.interpreter;
+    let currentIndex = ctx.historyIndex;
+
+    while (!foundNextBlock) {
+      const canContinue = interpreter.step();
+      const state = Debugger.snapshot(
+        interpreter,
+        ctx.history.length,
+        ctx.code
+      );
+
+      ctx.addToHistory(state);
+      currentIndex = currentIndex + 1;
+      ctx.setHistoryIndex(currentIndex);
+      Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
+
+      if (!canContinue) {
+        ctx.setIsComplete(true);
+        ctx.setIsSteppingToBlock(false);
+        return;
+      }
+
+      const atBlock = isAtBlock(ctx.history, currentIndex);
+
+      if (atBlock) {
+        foundNextBlock = true;
+        ctx.setIsSteppingToBlock(false);
         return;
       }
     }
@@ -307,7 +330,7 @@ export class Controller {
     return activeIndex !== undefined && activeIndex === targetIndex;
   }
 
-  private static completeStepToIndex(ctx: Execution): void {
+  private static completeStepToIndex(): void {
     ctx.setIsSteppingToIndex(false);
     ctx.setTargetIndex(null);
   }

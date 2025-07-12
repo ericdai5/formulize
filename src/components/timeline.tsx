@@ -4,14 +4,20 @@ import { DebugState } from "../api/computation-engines/manual/execute";
 
 interface TimelineProps {
   history: DebugState[];
-  currentHistoryIndex: number;
-  lineNumber: number;
+  historyIndex: number;
+  code: string;
+  getLineFromCharPosition: (code: string, charPosition: number) => number;
+  isAtBlock: (index: number) => boolean;
+  onTimelineItemClick: (index: number) => void;
 }
 
 const Timeline: React.FC<TimelineProps> = ({
   history,
-  currentHistoryIndex,
-  lineNumber,
+  historyIndex,
+  code,
+  getLineFromCharPosition,
+  isAtBlock,
+  onTimelineItemClick,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -29,27 +35,31 @@ const Timeline: React.FC<TimelineProps> = ({
         return (
           <div
             key={index}
-            className={`py-3 px-4 border-b border-slate-200 ${
-              index === currentHistoryIndex ? "bg-blue-50" : ""
+            className={`py-3 px-4 border-b border-slate-200 cursor-pointer hover:bg-slate-50 ${
+              index === historyIndex ? "bg-blue-50" : ""
             }`}
+            onClick={() => onTimelineItemClick(index)}
           >
             <div
               className={`text-sm flex items-center gap-2 ${
-                index === currentHistoryIndex
-                  ? "text-blue-800"
-                  : "text-slate-600"
+                index === historyIndex ? "text-blue-800" : "text-slate-600"
               }`}
             >
-              <span className="font-semibold">{index + 1}</span>
+              <span className="font-semibold">{index}</span>
               <span>
                 P: {state.highlight.start}-{state.highlight.end}
               </span>
-              <span>L: {lineNumber}</span>
+              <span>
+                L: {getLineFromCharPosition(code, state.highlight.start) + 1}
+              </span>
               <span>
                 {state.stackTrace.length > 0
                   ? state.stackTrace[state.stackTrace.length - 1]
                   : "-"}
               </span>
+              {isAtBlock(index) && (
+                <div className="w-3 h-3 bg-green-500 rounded-sm" />
+              )}
             </div>
           </div>
         );
