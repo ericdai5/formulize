@@ -73,25 +73,24 @@ export class Controller {
   static stepForward(): void {
     if (!ctx.interpreter || ctx.isComplete) return;
     try {
-      // Check if we're at the end of history or behind
       if (ctx.historyIndex < ctx.history.length - 1) {
-        // We're behind in history, just move forward in existing history
-        const newIndex = ctx.historyIndex + 1;
-        ctx.setHistoryIndex(newIndex);
-        const state = ctx.history[newIndex];
-        Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
+        // Behind in history, move forward in existing history
+        const nextIndex = ctx.historyIndex + 1;
+        ctx.setHistoryIndex(nextIndex);
+        const next = ctx.history[nextIndex];
+        Debugger.updateHighlight(ctx.codeMirrorRef, next.highlight);
       } else {
-        // We're at the end of history, create a new state
+        // End of history, create new state
         const canContinue = ctx.interpreter.step();
-        const newState = Debugger.snapshot(
+        const next = Debugger.snapshot(
           ctx.interpreter,
           ctx.history.length,
           ctx.code
         );
-        ctx.addToHistory(newState);
-        const newIndex = ctx.historyIndex + 1; // Increment from current index
-        ctx.setHistoryIndex(newIndex);
-        Debugger.updateHighlight(ctx.codeMirrorRef, newState.highlight);
+        ctx.addToHistory(next);
+        const nextIndex = ctx.historyIndex + 1;
+        ctx.setHistoryIndex(nextIndex);
+        Debugger.updateHighlight(ctx.codeMirrorRef, next.highlight);
         if (!canContinue) {
           this.finishExecution();
         }
@@ -109,37 +108,35 @@ export class Controller {
     }
   }
 
-  // Helper method to ensure we're at the end of history before executing new steps
-  static moveToEndOfHistory(): void {
-    if (ctx.historyIndex < ctx.history.length - 1) {
-      ctx.setHistoryIndex(ctx.history.length - 1);
-    }
-  }
-
+  /**
+   * Step backward in history by one step.
+   */
   static stepBackward(): void {
     if (ctx.historyIndex <= 0) return;
-    // Decrement the history index
-    const newIndex = ctx.historyIndex - 1;
-    ctx.setHistoryIndex(newIndex);
-    // Get the state at the new index
-    const prevState = ctx.history[newIndex];
-    // Update highlight to show the previous state
-    Debugger.updateHighlight(ctx.codeMirrorRef, prevState.highlight);
+    const prevIndex = ctx.historyIndex - 1;
+    ctx.setHistoryIndex(prevIndex);
+    const prev = ctx.history[prevIndex];
+    Debugger.updateHighlight(ctx.codeMirrorRef, prev.highlight);
   }
 
   // ============================================================================
   // Step to Specific Destination
   // ============================================================================
 
+  /**
+   * Method to ensure we're at the end of history before executing new steps.
+   * This is needed when the user is browsing through execution history and then
+   * wants to continue forward execution from the current point.
+   */
+  static stepToNewest(): void {
+    if (ctx.historyIndex >= ctx.history.length - 1) return;
+    const endIndex = ctx.history.length - 1;
+    ctx.setHistoryIndex(endIndex);
+  }
+
   static stepToView(): void {
     if (!ctx.interpreter || ctx.isComplete) return;
-
-    // If we're browsing history, move to the end first
-    if (ctx.historyIndex < ctx.history.length - 1) {
-      const endIndex = ctx.history.length - 1;
-      ctx.setHistoryIndex(endIndex);
-    }
-
+    this.stepToNewest();
     ctx.setIsSteppingToView(true);
     try {
       this.stepPastCurrentView();
@@ -177,21 +174,57 @@ export class Controller {
     }
   }
 
-  static stepToBlock(): void {
+  static stepToNextBlock(): void {
     if (!ctx.interpreter || ctx.isComplete) return;
-
-    // If we're browsing history, move to the end first
-    if (ctx.historyIndex < ctx.history.length - 1) {
-      const endIndex = ctx.history.length - 1;
-      ctx.setHistoryIndex(endIndex);
-    }
-
+    this.stepToNewest();
     ctx.setIsSteppingToBlock(true);
     try {
-      this.stepToNextBlock();
+      let foundNextBlock = false;
+      const interpreter = ctx.interpreter;
+      let currentIndex = ctx.historyIndex;
+      while (!foundNextBlock) {
+        const canContinue = interpreter.step();
+        const state = Debugger.snapshot(
+          interpreter,
+          ctx.history.length,
+          ctx.code
+        );
+        ctx.addToHistory(state);
+        currentIndex = currentIndex + 1;
+        ctx.setHistoryIndex(currentIndex);
+        Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
+        if (!canContinue) {
+          ctx.setIsComplete(true);
+          ctx.setIsSteppingToBlock(false);
+          return;
+        }
+        const atBlock = isAtBlock(ctx.history, currentIndex);
+        if (atBlock) {
+          foundNextBlock = true;
+          ctx.setIsSteppingToBlock(false);
+          return;
+        }
+      }
     } catch (err) {
       this.handleError(err);
       ctx.setIsSteppingToBlock(false);
+    }
+  }
+
+  static stepToPrevBlock(): void {
+    if (ctx.historyIndex <= 0) return;
+    let foundPrevBlock = false;
+    let prevIndex = ctx.historyIndex - 1;
+    while (prevIndex >= 0 && !foundPrevBlock) {
+      const atBlock = isAtBlock(ctx.history, prevIndex);
+      if (atBlock) {
+        foundPrevBlock = true;
+        ctx.setHistoryIndex(prevIndex);
+        const prev = ctx.history[prevIndex];
+        Debugger.updateHighlight(ctx.codeMirrorRef, prev.highlight);
+        return;
+      }
+      prevIndex = prevIndex - 1;
     }
   }
 
@@ -236,7 +269,7 @@ export class Controller {
     }
     let atSameView = true;
     const interpreter = ctx.interpreter;
-    let currentIndex = ctx.historyIndex;
+    let nextIndex = ctx.historyIndex;
     while (atSameView) {
       const canContinue = interpreter.step();
       const newState = Debugger.snapshot(
@@ -245,8 +278,8 @@ export class Controller {
         ctx.code
       );
       ctx.addToHistory(newState);
-      currentIndex = currentIndex + 1; // Track the correct index
-      ctx.setHistoryIndex(currentIndex);
+      nextIndex = nextIndex + 1;
+      ctx.setHistoryIndex(nextIndex);
       Debugger.updateHighlight(ctx.codeMirrorRef, newState.highlight);
       if (!canContinue) {
         ctx.setIsComplete(true);
@@ -280,41 +313,6 @@ export class Controller {
       if (isAtView(interpreter)) {
         foundNextView = true;
         ctx.setIsSteppingToView(false);
-        return;
-      }
-    }
-  }
-
-  private static stepToNextBlock(): void {
-    if (!ctx.interpreter) return;
-    let foundNextBlock = false;
-    const interpreter = ctx.interpreter;
-    let currentIndex = ctx.historyIndex;
-
-    while (!foundNextBlock) {
-      const canContinue = interpreter.step();
-      const state = Debugger.snapshot(
-        interpreter,
-        ctx.history.length,
-        ctx.code
-      );
-
-      ctx.addToHistory(state);
-      currentIndex = currentIndex + 1;
-      ctx.setHistoryIndex(currentIndex);
-      Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
-
-      if (!canContinue) {
-        ctx.setIsComplete(true);
-        ctx.setIsSteppingToBlock(false);
-        return;
-      }
-
-      const atBlock = isAtBlock(ctx.history, currentIndex);
-
-      if (atBlock) {
-        foundNextBlock = true;
-        ctx.setIsSteppingToBlock(false);
         return;
       }
     }

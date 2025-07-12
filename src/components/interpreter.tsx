@@ -5,26 +5,13 @@ import { observer } from "mobx-react-lite";
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import beautify from "js-beautify";
-import {
-  Eye,
-  Pause,
-  Play,
-  RotateCcw,
-  SkipForward,
-  StepBack,
-  StepForward,
-  X,
-} from "lucide-react";
 
 import { computationStore } from "../api/computation";
 import { Debugger } from "../api/computation-engines/manual/debug";
 import {
   refresh,
-  stepBackward,
   stepForward,
-  stepToBlock,
   stepToIndex,
-  stepToView,
 } from "../api/computation-engines/manual/execute";
 import { executionStore as ctx } from "../api/computation-engines/manual/executionStore";
 import { extractManual } from "../api/computation-engines/manual/extract";
@@ -39,9 +26,8 @@ import {
   debugExtensions,
 } from "../util/codeMirrorExtensions";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
-import Button from "./button";
 import CollapsibleSection from "./collapsible-section";
-import Select from "./select";
+import InterpreterControls from "./interpreter-controls";
 import Timeline from "./timeline";
 import { VariablesSection } from "./variable-section";
 
@@ -55,30 +41,18 @@ interface DebugModalProps {
 
 const DebugModal: React.FC<DebugModalProps> = observer(
   ({ isOpen, onClose, environment }) => {
-    // Only keep UI-specific state that doesn't belong in ctx
     const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
     const [userCode, setUserCode] = useState<string>("");
-    const [isInterpreterViewCollapsed, setIsInterpreterViewCollapsed] =
-      useState(false);
+    const [isInterpreterCollapsed, setIsInterpreterCollapsed] = useState(false);
     const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
     const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
-    const [isVariablesSectionCollapsed, setIsVariablesSectionCollapsed] =
-      useState(false);
-    const toggleInterpreterViewCollapse = () => {
-      setIsInterpreterViewCollapsed(!isInterpreterViewCollapsed);
-    };
-
-    const toggleUserViewCollapse = () => {
-      setIsUserViewCollapsed(!isUserViewCollapsed);
-    };
-
-    const toggleTimelineCollapse = () => {
-      setIsTimelineCollapsed(!isTimelineCollapsed);
-    };
-
-    const toggleVariablesSectionCollapse = () => {
-      setIsVariablesSectionCollapsed(!isVariablesSectionCollapsed);
-    };
+    const [isVariablesCollapsed, setIsVariablesCollapsed] = useState(false);
+    const toggleInterpreter = () =>
+      setIsInterpreterCollapsed(!isInterpreterCollapsed);
+    const toggleUserView = () => setIsUserViewCollapsed(!isUserViewCollapsed);
+    const toggleTimeline = () => setIsTimelineCollapsed(!isTimelineCollapsed);
+    const toggleVariables = () =>
+      setIsVariablesCollapsed(!isVariablesCollapsed);
 
     // Functions to control line markers and arrow gutter markers
     const setCurrentLine = useCallback((line: number) => {
@@ -119,15 +93,11 @@ const DebugModal: React.FC<DebugModalProps> = observer(
         ctx.setEnvironment(environment);
         const foundViews = extractViews(result.code);
         ctx.setViews(foundViews);
-        // Clear previous ctx.errors
         ctx.setError(null);
-
         // Set the user view code to the original manual function
         if (environment?.formulas?.[0]?.manual) {
           const manualFunction = environment.formulas[0].manual;
-          // Extract the function body and format it nicely
           const functionString = manualFunction.toString();
-
           // Use js-beautify to format the code with proper indentation
           const formattedCode = beautify.js(functionString, {
             indent_size: 2,
@@ -137,7 +107,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
             brace_style: "collapse",
             keep_array_indentation: false,
           });
-
           setUserCode(formattedCode);
         }
       }
@@ -169,14 +138,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       []
     );
 
-    const handleStepBackward = () => {
-      stepBackward();
-    };
-
-    const handleStepToBlock = () => {
-      stepToBlock();
-    };
-
     // Register stepToIndex callback when component mounts
     useEffect(() => {
       computationStore.setStepToIndexCallback(handleStepToIndex);
@@ -186,10 +147,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
         computationStore.setRefreshCallback(null);
       };
     }, [handleStepToIndex, handleRefresh]);
-
-    const handleStepToView = () => {
-      stepToView();
-    };
 
     // Toggle auto-play
     const toggleAutoPlay = () => {
@@ -307,22 +264,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       };
     }, []);
 
-    // When browsing history, we can still use play/stepToView buttons as they auto-move to end
-    // But only if execution isn't complete OR if we're not at the end of history yet
-    const isBrowsingHistory = ctx.historyIndex < ctx.history.length - 1;
-    const playStepToViewDisabled =
-      !ctx.interpreter ||
-      (ctx.isComplete && !isBrowsingHistory) ||
-      ctx.isSteppingToView ||
-      ctx.isSteppingToIndex;
-
-    const stepToBlockDisabled =
-      !ctx.interpreter ||
-      (ctx.isComplete && !isBrowsingHistory) ||
-      ctx.isSteppingToView ||
-      ctx.isSteppingToIndex ||
-      ctx.isSteppingToBlock;
-
     if (!isOpen) return null;
 
     return (
@@ -333,70 +274,12 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           }`}
         >
           {/* Controls Header */}
-          <div className="flex justify-start items-center p-2 border-b gap-2">
-            <Button onClick={onClose} icon={X} />
-            <Button
-              onClick={handleRefresh}
-              disabled={
-                ctx.isRunning ||
-                ctx.isSteppingToView ||
-                ctx.isSteppingToIndex ||
-                ctx.isSteppingToBlock
-              }
-              icon={RotateCcw}
-            />
-            <Button
-              onClick={handleStepBackward}
-              disabled={
-                ctx.historyIndex <= 0 ||
-                ctx.isRunning ||
-                ctx.isSteppingToView ||
-                ctx.isSteppingToIndex ||
-                ctx.isSteppingToBlock
-              }
-              icon={StepBack}
-            />
-            <Button
-              onClick={handleStepForward}
-              disabled={
-                !ctx.interpreter ||
-                ctx.isRunning ||
-                ctx.isComplete ||
-                ctx.isSteppingToView ||
-                ctx.isSteppingToIndex ||
-                ctx.isSteppingToBlock
-              }
-              icon={StepForward}
-            />
-            <Button
-              onClick={handleStepToBlock}
-              disabled={stepToBlockDisabled}
-              icon={SkipForward}
-            />
-            <Button
-              onClick={handleStepToView}
-              disabled={playStepToViewDisabled}
-              icon={Eye}
-            >
-              {ctx.views.length}
-            </Button>
-            <Button
-              onClick={toggleAutoPlay}
-              disabled={playStepToViewDisabled}
-              icon={ctx.isRunning ? Pause : Play}
-            />
-            <Select
-              value={ctx.autoPlaySpeed}
-              onChange={(value) => ctx.setAutoPlaySpeed(Number(value))}
-              options={[
-                { value: 100, label: "100 ms" },
-                { value: 300, label: "300 ms" },
-                { value: 500, label: "500 ms" },
-                { value: 1000, label: "1 s" },
-                { value: 2000, label: "2 s" },
-              ]}
-            />
-          </div>
+          <InterpreterControls
+            onClose={onClose}
+            onRefresh={handleRefresh}
+            onStepToIndex={handleStepToIndex}
+            onToggleAutoPlay={toggleAutoPlay}
+          />
           {/* Error Display */}
           {ctx.error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mx-4 mt-2 rounded">
@@ -410,8 +293,8 @@ const DebugModal: React.FC<DebugModalProps> = observer(
               {/* Interpreter View */}
               <CollapsibleSection
                 title="Interpreter View"
-                isCollapsed={isInterpreterViewCollapsed}
-                onToggleCollapse={toggleInterpreterViewCollapse}
+                isCollapsed={isInterpreterCollapsed}
+                onToggleCollapse={toggleInterpreter}
                 contentClassName="p-0"
               >
                 <CodeMirror
@@ -428,7 +311,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
               <CollapsibleSection
                 title="User View"
                 isCollapsed={isUserViewCollapsed}
-                onToggleCollapse={toggleUserViewCollapse}
+                onToggleCollapse={toggleUserView}
                 contentClassName="p-0"
               >
                 <CodeMirror
@@ -445,15 +328,15 @@ const DebugModal: React.FC<DebugModalProps> = observer(
             <div className="w-1/2 flex flex-col h-full overflow-hidden">
               <CollapsibleSection
                 title="Variables"
-                isCollapsed={isVariablesSectionCollapsed}
-                onToggleCollapse={toggleVariablesSectionCollapse}
+                isCollapsed={isVariablesCollapsed}
+                onToggleCollapse={toggleVariables}
               >
                 <VariablesSection currentState={currentState} />
               </CollapsibleSection>
               <CollapsibleSection
                 title="Timeline"
                 isCollapsed={isTimelineCollapsed}
-                onToggleCollapse={toggleTimelineCollapse}
+                onToggleCollapse={toggleTimeline}
                 headerContent={
                   ctx.history.length > 0 && (
                     <div className="text-slate-500 flex flex-row gap-2">

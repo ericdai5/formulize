@@ -1,5 +1,5 @@
-import { Controller } from "./controller";
 import { IEnvironment } from "../../../types/environment";
+import { Controller } from "./controller";
 
 export type { DebugState } from "./debug";
 
@@ -15,10 +15,7 @@ export function stepBackward(): void {
   Controller.stepBackward();
 }
 
-export function stepToIndex(
-  varId: string,
-  index: number
-): void {
+export function stepToIndex(varId: string, index: number): void {
   Controller.stepToIndex(varId, index);
 }
 
@@ -26,6 +23,10 @@ export function stepToView(): void {
   Controller.stepToView();
 }
 
-export function stepToBlock(): void {
-  Controller.stepToBlock();
+export function stepToNextBlock(): void {
+  Controller.stepToNextBlock();
+}
+
+export function stepToPrevBlock(): void {
+  Controller.stepToPrevBlock();
 }

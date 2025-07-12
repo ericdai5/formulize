@@ -189,26 +189,32 @@ const isAtBlock = (history: DebugState[], currentIndex: number): boolean => {
   if (currentIndex === 0 || !history || history.length === 0) {
     return false;
   }
-
   try {
     const current = history[currentIndex];
     const prev = history[currentIndex - 1];
-
     if (!current || !prev) {
       return false;
     }
-
     // Check if current state's last stack frame is BlockStatement
     const currentLastFrame = current.stackTrace[current.stackTrace.length - 1];
     const isCurrentBlock = currentLastFrame?.includes("BlockStatement");
-
     // Check if previous state's last stack frame was VariableDeclaration, ExpressionStatement, or ForStatement
     const prevLastFrame = prev.stackTrace[prev.stackTrace.length - 1];
     const isPreviousTarget =
       prevLastFrame?.includes("VariableDeclaration") ||
       prevLastFrame?.includes("ExpressionStatement") ||
-      prevLastFrame?.includes("ForStatement");
-
+      prevLastFrame?.includes("ForStatement") ||
+      prevLastFrame?.includes("IfStatement") ||
+      prevLastFrame?.includes("WhileStatement") ||
+      prevLastFrame?.includes("DoWhileStatement") ||
+      prevLastFrame?.includes("FunctionDeclaration") ||
+      prevLastFrame?.includes("ClassDeclaration") ||
+      prevLastFrame?.includes("SwitchStatement") ||
+      prevLastFrame?.includes("TryStatement") ||
+      prevLastFrame?.includes("CatchClause") ||
+      prevLastFrame?.includes("ThrowStatement") ||
+      prevLastFrame?.includes("ReturnStatement") ||
+      prevLastFrame?.includes("BreakStatement");
     return isCurrentBlock && isPreviousTarget;
   } catch (error) {
     console.error("Error checking for block statement:", error);
