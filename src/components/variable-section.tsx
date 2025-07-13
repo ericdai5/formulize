@@ -66,111 +66,109 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
       {/* Current Variables */}
       {currentState && (
         <div className="h-full overflow-y-auto">
-            {Object.keys(currentState.variables).length > 0 ? (
-              <div>
-                {/* Variable Assignments - shown in blue boxes when variables are assigned */}
-                {currentState &&
-                  currentState.variableAssignments &&
-                  currentState.variableAssignments.length > 0 && (
-                    <VariableType
-                      title="Variable Assignments"
-                      count={currentState.variableAssignments.length}
-                      colorScheme="blue"
-                    >
-                      {currentState.variableAssignments.map(
-                        (assignment, index) => (
-                          <div
-                            key={index}
-                            className="border-b border-blue-200 p-3 bg-blue-50"
-                          >
-                            <div className="flex items-center gap-2 font-mono text-sm font-semibold text-blue-800">
-                              <span>{assignment.localVar}</span>
-                              <span>→</span>
-                              <span>{assignment.storeVar}</span>
-                              <span>=</span>
-                              <span className="break-all min-w-0 flex-1 bg-white px-2 py-1 rounded border border-blue-200">
-                                {typeof assignment.value === "object"
-                                  ? JSON.stringify(assignment.value)
-                                  : String(assignment.value)}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </VariableType>
-                  )}
-
-                {/* View Variables - shown in green boxes when view() is called */}
-                {currentState &&
-                  currentState.viewVariables &&
-                  Object.keys(currentState.viewVariables).length > 0 && (
-                    <VariableType
-                      title="View Variables"
-                      count={Object.keys(currentState.viewVariables).length}
-                      colorScheme="green"
-                    >
-                      {Object.entries(currentState.viewVariables).map(
-                        ([key, value]) => (
-                          <div
-                            key={key}
-                            className="border-b border-green-200 p-3 bg-green-50"
-                          >
-                            <div className="flex items-center gap-2 font-mono text-sm text-green-800">
-                              <span className="font-semibold">{key}</span>
-                              <span>=</span>
-                              <span className="break-all min-w-0 flex-1 bg-white px-2 py-1 rounded border border-green-200">
-                                {typeof value === "object"
-                                  ? JSON.stringify(value)
-                                  : String(value)}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </VariableType>
-                  )}
-
-                {/* Display regular variables */}
-                {Object.entries(currentState.variables)
-                  .filter(([key]) => !DEBUG_VARIABLES.includes(key))
-                  .map(([key, value]) => (
-                    <div key={key} className="border-b border-slate-200 p-3">
-                      <div className="flex items-center gap-2 font-mono text-sm">
-                        <span>{key}</span>
-                        <span>=</span>
-                        <span className="break-all min-w-0 flex-1">
-                          {typeof value === "object"
-                            ? JSON.stringify(value)
-                            : String(value)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                {/* Display debug info variables */}
-                {Object.entries(currentState.variables)
-                  .filter(([key]) => DEBUG_VARIABLES.includes(key))
-                  .map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="bg-slate-50 border-b border-slate-200 p-2"
-                    >
-                      <div className="text-sm text-gray-600 break-words">
-                        <span className="font-semibold">{key}:</span>
-                        <div className="ml-2 font-mono mt-1 whitespace-pre-wrap break-all">
-                          {typeof value === "object"
-                            ? JSON.stringify(value, null, 2)
-                            : String(value)}
+          {Object.keys(currentState.variables).length > 0 ? (
+            <div>
+              {/* Variable Assignments - shown in blue boxes when variables are assigned */}
+              {/* {currentState &&
+                currentState.assignments &&
+                currentState.assignments.length > 0 && (
+                  <VariableType
+                    title="Variable Assignments"
+                    count={currentState.assignments.length}
+                    colorScheme="blue"
+                  >
+                    {currentState.assignments.map((assignment, index) => (
+                      <div
+                        key={index}
+                        className="border-b border-blue-200 p-3 bg-blue-50"
+                      >
+                        <div className="flex items-center gap-2 font-mono text-sm font-semibold text-blue-800">
+                          <span>{assignment.localVar}</span>
+                          <span>→</span>
+                          <span>{assignment.storeVar}</span>
+                          <span>=</span>
+                          <span className="break-all min-w-0 flex-1 bg-white px-2 py-1 rounded border border-blue-200">
+                            {typeof assignment.value === "object"
+                              ? JSON.stringify(assignment.value)
+                              : String(assignment.value)}
+                          </span>
                         </div>
                       </div>
+                    ))}
+                  </VariableType>
+                )} */}
+
+              {/* View Variables - shown in green boxes when view() is called */}
+              {currentState &&
+                currentState.viewVariables &&
+                Object.keys(currentState.viewVariables).length > 0 && (
+                  <VariableType
+                    title="View Variables"
+                    count={Object.keys(currentState.viewVariables).length}
+                    colorScheme="green"
+                  >
+                    {Object.entries(currentState.viewVariables).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="border-b border-green-200 p-3 bg-green-50"
+                        >
+                          <div className="flex items-center gap-2 font-mono text-sm text-green-800">
+                            <span className="font-semibold">{key}</span>
+                            <span>=</span>
+                            <span className="break-all min-w-0 flex-1 bg-white px-2 py-1 rounded border border-green-200">
+                              {typeof value === "object"
+                                ? JSON.stringify(value)
+                                : String(value)}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </VariableType>
+                )}
+
+              {/* Display regular variables */}
+              {Object.entries(currentState.variables)
+                .filter(([key]) => !DEBUG_VARIABLES.includes(key))
+                .map(([key, value]) => (
+                  <div key={key} className="border-b border-slate-200 p-3">
+                    <div className="flex items-center gap-2 font-mono text-sm">
+                      <span>{key}</span>
+                      <span>=</span>
+                      <span className="break-all min-w-0 flex-1">
+                        {typeof value === "object"
+                          ? JSON.stringify(value)
+                          : String(value)}
+                      </span>
                     </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 p-8">
-                No variables captured yet
-              </div>
-            )}
+                  </div>
+                ))}
+
+              {/* Display debug info variables */}
+              {Object.entries(currentState.variables)
+                .filter(([key]) => DEBUG_VARIABLES.includes(key))
+                .map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="bg-slate-50 border-b border-slate-200 p-2"
+                  >
+                    <div className="text-sm text-gray-600 break-words">
+                      <span className="font-semibold">{key}:</span>
+                      <div className="ml-2 font-mono mt-1 whitespace-pre-wrap break-all">
+                        {typeof value === "object"
+                          ? JSON.stringify(value, null, 2)
+                          : String(value)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 p-8">
+              No variables captured yet
+            </div>
+          )}
         </div>
       )}
     </>

@@ -49,12 +49,14 @@ export const summationBasic = `const config = {
     {
       type: "array",
       variable: "x",
-      orientation: "horizontal"
+      orientation: "horizontal",
+      index: "i"
     },
     {
       type: "array",
       variable: "P(x)",
-      orientation: "horizontal"
+      orientation: "horizontal",
+      index: "i"
     }
   ],
   computation: {

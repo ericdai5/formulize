@@ -1,8 +1,8 @@
 import { EditorView } from "@codemirror/view";
 
+import { applyCue, updateAllVariables } from "../../../formula/stepHandler";
 import { IEnvironment } from "../../../types/environment";
 import { computationStore } from "../../computation";
-import { Connector } from "./connector";
 import { ERROR_MESSAGES } from "./constants";
 import { Debugger } from "./debug";
 import { executionStore as ctx } from "./executionStore";
@@ -12,6 +12,7 @@ import {
   isAtBlock,
   isAtView,
 } from "./interpreter";
+import { VariableExtractor } from "./variableExtractor";
 
 export class Controller {
   // ============================================================================
@@ -30,7 +31,7 @@ export class Controller {
     // Initialize variable linkage tracker with configuration from environment
     const variableLinkage =
       ctx.environment?.formulas?.[0]?.variableLinkage || {};
-    Connector.initialize(variableLinkage);
+    ctx.setLinkageMap(variableLinkage);
 
     ctx.setInterpreter(interpreter);
     const initialState = Debugger.snapshot(interpreter, 0, ctx.code);
@@ -55,10 +56,6 @@ export class Controller {
     this.clearProcessedIndices();
     this.clearAutoPlay();
     this.resetCodeMirror();
-
-    // Clear variable linkage tracker
-    Connector.clearAssignments();
-
     if (!code.trim()) {
       ctx.setError(ERROR_MESSAGES.NO_CODE);
       return;
@@ -202,6 +199,7 @@ export class Controller {
         if (atBlock) {
           foundNextBlock = true;
           ctx.setIsSteppingToBlock(false);
+          this.processVariableUpdates();
           return;
         }
       }
@@ -313,6 +311,7 @@ export class Controller {
       if (isAtView(interpreter)) {
         foundNextView = true;
         ctx.setIsSteppingToView(false);
+        this.processVariableUpdates();
         return;
       }
     }
@@ -331,5 +330,34 @@ export class Controller {
   private static completeStepToIndex(): void {
     ctx.setIsSteppingToIndex(false);
     ctx.setTargetIndex(null);
+  }
+
+  /**
+   * Process variable updates and apply visual cues
+   * This should be called when the interpreter stops at meaningful breakpoints
+   */
+  private static processVariableUpdates(): void {
+    if (!ctx.interpreter) return;
+
+    try {
+      const stack =
+        ctx.interpreter.getStateStack() as import("./interpreter").StackFrame[];
+      const variables = VariableExtractor.extractVariables(
+        ctx.interpreter,
+        stack,
+        ctx.code
+      );
+      const updatedVarIds = updateAllVariables(variables, ctx.linkageMap);
+
+      console.log("Controller - updatedVarIds", updatedVarIds);
+
+      if (updatedVarIds.size > 0) {
+        requestAnimationFrame(() => {
+          applyCue(updatedVarIds);
+        });
+      }
+    } catch (err) {
+      console.warn("Error processing variable updates:", err);
+    }
   }
 }

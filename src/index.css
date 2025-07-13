@@ -79,6 +79,11 @@
     @apply bg-green-100 border-green-300;
   }
 
+  .variable-assignment {
+    @apply bg-purple-100 text-purple-800 border border-purple-300 shadow-sm;
+    animation: pulseUpdate 0.4s ease-in-out;
+  }
+
   /* Make interpreter CodeMirror non-clickable and green focus */
   .cm-editor {
     pointer-events: none; /* Disable all mouse interactions */

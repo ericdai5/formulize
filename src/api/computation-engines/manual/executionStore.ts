@@ -33,6 +33,9 @@ class ExecutionStore {
   autoPlaySpeed: number = 1000; // Default 1 second
   views: any[] = []; // Type can be refined based on actual usage
   
+  // Variable linkage tracking
+  linkageMap: Record<string, string> = {};
+  
   // Refs for UI components
   autoPlayIntervalRef: React.MutableRefObject<number | null> = React.createRef() as React.MutableRefObject<number | null>;
   codeMirrorRef: React.MutableRefObject<ReactCodeMirrorRef | null> = React.createRef() as React.MutableRefObject<ReactCodeMirrorRef | null>;
@@ -102,6 +105,10 @@ class ExecutionStore {
     this.views = views;
   }
 
+  setLinkageMap(linkageMap: Record<string, string>) {
+    this.linkageMap = linkageMap;
+  }
+
   // Computed getters for convenience
   get currentState(): DebugState | undefined {
     return this.history[this.historyIndex];
@@ -131,6 +138,7 @@ class ExecutionStore {
     this.error = null;
     this.autoPlaySpeed = 1000;
     this.views = [];
+    this.linkageMap = {};
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<number | null>;
     this.codeMirrorRef = React.createRef() as React.MutableRefObject<ReactCodeMirrorRef | null>;

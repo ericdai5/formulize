@@ -145,7 +145,6 @@ const collectVariablesFromStack = (
       variables[varName] = result.value;
     }
   }
-
   return variables;
 };
 

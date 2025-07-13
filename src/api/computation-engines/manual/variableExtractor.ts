@@ -7,6 +7,24 @@ import {
 } from "./interpreter";
 
 export class VariableExtractor {
+  /**
+   * Extracts all available variables from the current interpreter state for debugging.
+   *
+   * This function creates a comprehensive snapshot of the execution state by:
+   * 1. Parsing the code to find all declared variable names
+   * 2. Collecting current values of those variables from the interpreter's execution stack
+   * 3. Adding interpreter metadata (current value, node info, scope info)
+   * 4. Including debug information about the current execution context
+   *
+   * The returned object contains both user variables (from the code) and debug variables
+   * (prefixed with special names like "[Error]", "Current Node Type", etc.) that help
+   * understand the interpreter's internal state during step-by-step execution.
+   *
+   * @param interpreter - The JS interpreter instance executing the code
+   * @param stack - Current execution stack frames from the interpreter
+   * @param code - The source code being executed (used to extract variable names)
+   * @returns Object containing all variables and debug info for the current execution step
+   */
   static extractVariables(
     interpreter: JSInterpreter,
     stack: StackFrame[],

@@ -53,6 +53,31 @@ export const updateVariables = (
 };
 
 /**
+ * Function to update all variables using all extracted variables
+ * @param variables - All variables extracted from interpreter state
+ * @param linkageMap - Map of local variable names to variable IDs
+ * @returns Set of variable IDs that were updated
+ */
+export const updateAllVariables = (
+  variables: Record<string, unknown>,
+  linkageMap: Record<string, string>
+): Set<string> => {
+  const updatedVarIds = new Set<string>();
+  Object.entries(linkageMap).forEach(([localVarName, varId]) => {
+    const value = variables[localVarName];
+    if (value !== undefined && typeof value === "number") {
+      const variable = computationStore.variables.get(varId);
+      const currentValue = variable?.value;
+      if (currentValue !== value) {
+        computationStore.setValueInStepMode(varId, value);
+        updatedVarIds.add(varId);
+      }
+    }
+  });
+  return updatedVarIds;
+};
+
+/**
  * Apply a visual cue styling to variables that are being updated in step mode
  * @param updatedVarIds - Set of variable IDs that were updated
  */
