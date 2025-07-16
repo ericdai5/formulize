@@ -3,9 +3,9 @@ import { EditorView } from "@codemirror/view";
 import { applyCue, updateAllVariables } from "../../../formula/stepHandler";
 import { IEnvironment } from "../../../types/environment";
 import { computationStore } from "../../computation";
+import { executionStore as ctx } from "../../execution";
 import { ERROR_MESSAGES } from "./constants";
 import { Debugger } from "./debug";
-import { executionStore as ctx } from "./executionStore";
 import {
   JSInterpreter,
   initializeInterpreter,

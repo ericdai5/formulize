@@ -1,10 +1,12 @@
-import { makeAutoObservable } from "mobx";
 import React from "react";
+
+import { makeAutoObservable } from "mobx";
+
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
-import { IEnvironment } from "../../../types/environment";
-import { DebugState } from "./debug";
-import { JSInterpreter } from "./interpreter";
+import { IEnvironment } from "../types/environment";
+import { DebugState } from "./computation-engines/manual/debug";
+import { JSInterpreter } from "./computation-engines/manual/interpreter";
 
 /**
  * MobX store for execution state that provides immediate updates
@@ -32,13 +34,15 @@ class ExecutionStore {
   error: string | null = null;
   autoPlaySpeed: number = 1000; // Default 1 second
   views: any[] = []; // Type can be refined based on actual usage
-  
+
   // Variable linkage tracking
   linkageMap: Record<string, string> = {};
-  
+
   // Refs for UI components
-  autoPlayIntervalRef: React.MutableRefObject<number | null> = React.createRef() as React.MutableRefObject<number | null>;
-  codeMirrorRef: React.MutableRefObject<ReactCodeMirrorRef | null> = React.createRef() as React.MutableRefObject<ReactCodeMirrorRef | null>;
+  autoPlayIntervalRef: React.MutableRefObject<number | null> =
+    React.createRef() as React.MutableRefObject<number | null>;
+  codeMirrorRef: React.MutableRefObject<ReactCodeMirrorRef | null> =
+    React.createRef() as React.MutableRefObject<ReactCodeMirrorRef | null>;
 
   constructor() {
     makeAutoObservable(this);
@@ -140,8 +144,11 @@ class ExecutionStore {
     this.views = [];
     this.linkageMap = {};
     // Reset refs
-    this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<number | null>;
-    this.codeMirrorRef = React.createRef() as React.MutableRefObject<ReactCodeMirrorRef | null>;
+    this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
+      number | null
+    >;
+    this.codeMirrorRef =
+      React.createRef() as React.MutableRefObject<ReactCodeMirrorRef | null>;
   }
 
   // Utility methods

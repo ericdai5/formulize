@@ -13,9 +13,9 @@ import {
   stepForward,
   stepToIndex,
 } from "../api/computation-engines/manual/execute";
-import { executionStore as ctx } from "../api/computation-engines/manual/executionStore";
 import { extractManual } from "../api/computation-engines/manual/extract";
 import { isAtBlock } from "../api/computation-engines/manual/interpreter";
+import { executionStore as ctx } from "../api/execution";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
 import {
