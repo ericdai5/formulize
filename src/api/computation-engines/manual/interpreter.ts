@@ -1,8 +1,8 @@
 /**
  * JS-Interpreter utility functions for manual computation debugging
  */
+import { IStep } from "../../../types/step";
 import { IVariable } from "../../../types/variable";
-import { DebugState } from "./debug";
 
 // Window interface extension for JS-Interpreter
 declare global {
@@ -184,7 +184,7 @@ const isAtView = (interpreter: JSInterpreter): boolean => {
  * @param currentIndex - Current index in the history
  * @returns boolean indicating if we're at a block statement after target
  */
-const isAtBlock = (history: DebugState[], currentIndex: number): boolean => {
+const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
   if (currentIndex === 0 || !history || history.length === 0) {
     return false;
   }

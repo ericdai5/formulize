@@ -5,7 +5,7 @@ import { makeAutoObservable } from "mobx";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
 import { IEnvironment } from "../types/environment";
-import { DebugState } from "./computation-engines/manual/debug";
+import { IStep } from "../types/step";
 import { JSInterpreter } from "./computation-engines/manual/interpreter";
 
 /**
@@ -17,7 +17,7 @@ class ExecutionStore {
   code: string = "";
   environment: IEnvironment | null = null;
   interpreter: JSInterpreter | null = null;
-  history: DebugState[] = [];
+  history: IStep[] = [];
   historyIndex: number = 0;
   isComplete: boolean = false;
 
@@ -61,11 +61,11 @@ class ExecutionStore {
     this.interpreter = interpreter;
   }
 
-  addToHistory(state: DebugState) {
+  addToHistory(state: IStep) {
     this.history.push(state);
   }
 
-  setHistory(history: DebugState[]) {
+  setHistory(history: IStep[]) {
     this.history = history;
   }
 
@@ -114,7 +114,7 @@ class ExecutionStore {
   }
 
   // Computed getters for convenience
-  get currentState(): DebugState | undefined {
+  get currentState(): IStep | undefined {
     return this.history[this.historyIndex];
   }
 

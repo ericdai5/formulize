@@ -7,7 +7,6 @@ import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import beautify from "js-beautify";
 
 import { computationStore } from "../api/computation";
-import { Debugger } from "../api/computation-engines/manual/debug";
 import {
   refresh,
   stepForward,
@@ -15,6 +14,7 @@ import {
 } from "../api/computation-engines/manual/execute";
 import { extractManual } from "../api/computation-engines/manual/extract";
 import { isAtBlock } from "../api/computation-engines/manual/interpreter";
+import { Step } from "../api/computation-engines/manual/step";
 import { executionStore as ctx } from "../api/execution";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
@@ -200,7 +200,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
             );
             setCurrentLine(currentLine);
             // Also update the code highlighting
-            Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
+            Step.highlight(ctx.codeMirrorRef, state.highlight);
 
             // Check if we should highlight the user view
             if (isAtBlock(ctx.history, index) && index > 0) {

@@ -5,13 +5,13 @@ import { IEnvironment } from "../../../types/environment";
 import { computationStore } from "../../computation";
 import { executionStore as ctx } from "../../execution";
 import { ERROR_MESSAGES } from "./constants";
-import { Debugger } from "./debug";
 import {
   JSInterpreter,
   initializeInterpreter,
   isAtBlock,
   isAtView,
 } from "./interpreter";
+import { Step } from "./step";
 import { VariableExtractor } from "./variableExtractor";
 
 export class Controller {
@@ -34,10 +34,10 @@ export class Controller {
     ctx.setLinkageMap(variableLinkage);
 
     ctx.setInterpreter(interpreter);
-    const initialState = Debugger.snapshot(interpreter, 0, ctx.code);
+    const initialState = Step.getState(interpreter, 0, ctx.code);
     ctx.setHistory([initialState]);
     ctx.setHistoryIndex(0);
-    Debugger.updateHighlight(ctx.codeMirrorRef, initialState.highlight);
+    Step.highlight(ctx.codeMirrorRef, initialState.highlight);
   }
 
   private static finishExecution(): void {
@@ -75,11 +75,11 @@ export class Controller {
         const nextIndex = ctx.historyIndex + 1;
         ctx.setHistoryIndex(nextIndex);
         const next = ctx.history[nextIndex];
-        Debugger.updateHighlight(ctx.codeMirrorRef, next.highlight);
+        Step.highlight(ctx.codeMirrorRef, next.highlight);
       } else {
         // End of history, create new state
         const canContinue = ctx.interpreter.step();
-        const next = Debugger.snapshot(
+        const next = Step.getState(
           ctx.interpreter,
           ctx.history.length,
           ctx.code
@@ -87,7 +87,7 @@ export class Controller {
         ctx.addToHistory(next);
         const nextIndex = ctx.historyIndex + 1;
         ctx.setHistoryIndex(nextIndex);
-        Debugger.updateHighlight(ctx.codeMirrorRef, next.highlight);
+        Step.highlight(ctx.codeMirrorRef, next.highlight);
         if (!canContinue) {
           this.finishExecution();
         }
@@ -113,7 +113,7 @@ export class Controller {
     const prevIndex = ctx.historyIndex - 1;
     ctx.setHistoryIndex(prevIndex);
     const prev = ctx.history[prevIndex];
-    Debugger.updateHighlight(ctx.codeMirrorRef, prev.highlight);
+    Step.highlight(ctx.codeMirrorRef, prev.highlight);
   }
 
   // ============================================================================
@@ -181,15 +181,11 @@ export class Controller {
       let currentIndex = ctx.historyIndex;
       while (!foundNextBlock) {
         const canContinue = interpreter.step();
-        const state = Debugger.snapshot(
-          interpreter,
-          ctx.history.length,
-          ctx.code
-        );
+        const state = Step.getState(interpreter, ctx.history.length, ctx.code);
         ctx.addToHistory(state);
         currentIndex = currentIndex + 1;
         ctx.setHistoryIndex(currentIndex);
-        Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
+        Step.highlight(ctx.codeMirrorRef, state.highlight);
         if (!canContinue) {
           ctx.setIsComplete(true);
           ctx.setIsSteppingToBlock(false);
@@ -219,7 +215,7 @@ export class Controller {
         foundPrevBlock = true;
         ctx.setHistoryIndex(prevIndex);
         const prev = ctx.history[prevIndex];
-        Debugger.updateHighlight(ctx.codeMirrorRef, prev.highlight);
+        Step.highlight(ctx.codeMirrorRef, prev.highlight);
         return;
       }
       prevIndex = prevIndex - 1;
@@ -270,15 +266,11 @@ export class Controller {
     let nextIndex = ctx.historyIndex;
     while (atSameView) {
       const canContinue = interpreter.step();
-      const newState = Debugger.snapshot(
-        interpreter,
-        ctx.history.length,
-        ctx.code
-      );
+      const newState = Step.getState(interpreter, ctx.history.length, ctx.code);
       ctx.addToHistory(newState);
       nextIndex = nextIndex + 1;
       ctx.setHistoryIndex(nextIndex);
-      Debugger.updateHighlight(ctx.codeMirrorRef, newState.highlight);
+      Step.highlight(ctx.codeMirrorRef, newState.highlight);
       if (!canContinue) {
         ctx.setIsComplete(true);
         return;
@@ -294,15 +286,11 @@ export class Controller {
     let currentIndex = ctx.historyIndex;
     while (!foundNextView) {
       const canContinue = interpreter.step();
-      const state = Debugger.snapshot(
-        interpreter,
-        ctx.history.length,
-        ctx.code
-      );
+      const state = Step.getState(interpreter, ctx.history.length, ctx.code);
       ctx.addToHistory(state);
       currentIndex = currentIndex + 1; // Track the correct index
       ctx.setHistoryIndex(currentIndex);
-      Debugger.updateHighlight(ctx.codeMirrorRef, state.highlight);
+      Step.highlight(ctx.codeMirrorRef, state.highlight);
       if (!canContinue) {
         ctx.setIsComplete(true);
         ctx.setIsSteppingToView(false);

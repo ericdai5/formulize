@@ -1,8 +1,6 @@
 import { IEnvironment } from "../../../types/environment";
 import { Controller } from "./controller";
 
-export type { DebugState } from "./debug";
-
 export function refresh(code: string, environment: IEnvironment | null): void {
   Controller.refresh(code, environment);
 }
