@@ -1,6 +1,7 @@
 /**
  * JS-Interpreter utility functions for manual computation debugging
  */
+import { IStep } from "../../../types/step";
 import { IVariable } from "../../../types/variable";
 
 // Window interface extension for JS-Interpreter
@@ -46,7 +47,7 @@ interface StackFrame {
     left?: { name?: string; type?: string };
     right?: { type?: string };
     callee?: { name?: string; type?: string };
-    arguments?: Array<any>; // Generic AST nodes - let runtime handle the structure
+    arguments?: Array<unknown>; // Generic AST nodes - let runtime handle the structure
     expression?: {
       type?: string;
       callee?: { name?: string; type?: string };
@@ -144,7 +145,6 @@ const collectVariablesFromStack = (
       variables[varName] = result.value;
     }
   }
-
   return variables;
 };
 
@@ -172,6 +172,51 @@ const isAtView = (interpreter: JSInterpreter): boolean => {
     return false;
   } catch (error) {
     console.error("Error checking for view() breakpoint:", error);
+    return false;
+  }
+};
+
+/**
+ * Check if the current history index represents a block statement after a target position
+ * This function identifies when we're at the beginning of a block statement (like if, for, while, function body)
+ * that follows a meaningful target statement - matches the logic from interpreter.tsx
+ * @param history - Array of debug states
+ * @param currentIndex - Current index in the history
+ * @returns boolean indicating if we're at a block statement after target
+ */
+const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
+  if (currentIndex === 0 || !history || history.length === 0) {
+    return false;
+  }
+  try {
+    const current = history[currentIndex];
+    const prev = history[currentIndex - 1];
+    if (!current || !prev) {
+      return false;
+    }
+    // Check if current state's last stack frame is BlockStatement
+    const currentLastFrame = current.stackTrace[current.stackTrace.length - 1];
+    const isCurrentBlock = currentLastFrame?.includes("BlockStatement");
+    // Check if previous state's last stack frame was VariableDeclaration, ExpressionStatement, or ForStatement
+    const prevLastFrame = prev.stackTrace[prev.stackTrace.length - 1];
+    const isPreviousTarget =
+      prevLastFrame?.includes("VariableDeclaration") ||
+      prevLastFrame?.includes("ExpressionStatement") ||
+      prevLastFrame?.includes("ForStatement") ||
+      prevLastFrame?.includes("IfStatement") ||
+      prevLastFrame?.includes("WhileStatement") ||
+      prevLastFrame?.includes("DoWhileStatement") ||
+      prevLastFrame?.includes("FunctionDeclaration") ||
+      prevLastFrame?.includes("ClassDeclaration") ||
+      prevLastFrame?.includes("SwitchStatement") ||
+      prevLastFrame?.includes("TryStatement") ||
+      prevLastFrame?.includes("CatchClause") ||
+      prevLastFrame?.includes("ThrowStatement") ||
+      prevLastFrame?.includes("ReturnStatement") ||
+      prevLastFrame?.includes("BreakStatement");
+    return isCurrentBlock && isPreviousTarget;
+  } catch (error) {
+    console.error("Error checking for block statement:", error);
     return false;
   }
 };
@@ -256,6 +301,7 @@ export {
   findVariableInStack,
   collectVariablesFromStack,
   isAtView,
+  isAtBlock,
 };
 
 export type { JSInterpreter, StackFrame };

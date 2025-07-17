@@ -93,6 +93,10 @@ class ComputationStore {
     };
   }
 
+  isStepMode(): boolean {
+    return this.computationConfig?.mode === "step";
+  }
+
   get evaluateFormula(): EvaluationFunction | null {
     return this.evaluationFunction;
   }
@@ -147,10 +151,8 @@ class ComputationStore {
       return;
     }
     variable.value = value;
-
     // Update index-based dependent variables
     this.updateIndexBasedVariables(id, value);
-
     // Only update dependent variables if we're not initializing and not already in an update cycle
     if (!this.isUpdatingDependents && !this.isInitializing) {
       this.updateAllDependentVars();
@@ -164,9 +166,7 @@ class ComputationStore {
       console.log(`setValueInStepMode: Variable not found: ${id}`);
       return;
     }
-    console.log(`Step mode: Setting ${id} = ${value}`);
     variable.value = value;
-    this.updateIndexBasedVariables(id, value);
   }
 
   @action
@@ -350,8 +350,10 @@ class ComputationStore {
       this.setLastGeneratedCode(displayCode);
     }
 
-    // Initial evaluation of all dependent variables
-    this.updateAllDependentVars();
+    // Initial evaluation of all dependent variables (skip in step mode)
+    if (!this.isStepMode()) {
+      this.updateAllDependentVars();
+    }
   }
 
   // Create an evaluation function that handles multiple expressions

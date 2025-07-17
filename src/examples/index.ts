@@ -8,6 +8,7 @@ import { quadraticEquation } from "./quadraticEquation";
 import { quadraticEquation3D } from "./quadraticEquation3D";
 import { rationalNumbers } from "./rationalNumbers";
 import { summationBasic } from "./summationBasic";
+import { summationDefault } from "./summationDefault";
 import { taylorSeries } from "./taylorSeries";
 import { testing } from "./testing";
 import { vectorAddition } from "./vectorAddition";
@@ -24,6 +25,7 @@ export const examples = {
   testing,
   bayesWithCustomVisualization,
   summationBasic,
+  summationDefault,
   taylorSeries,
   vectorAddition,
 };
@@ -40,6 +42,7 @@ export const exampleDisplayNames = {
   testing: "Testing",
   bayesWithCustomVisualization: "Bayes Custom Visualization",
   summationBasic: "Summation Basic",
+  summationDefault: "Summation Default",
   taylorSeries: "Taylor Series",
   vectorAddition: "Vector Addition",
 } as const;

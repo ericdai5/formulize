@@ -5,6 +5,34 @@ import React from "react";
  */
 
 /**
+ * Shared basic setup configuration for CodeMirror editors
+ * Provides consistent settings across all CodeMirror instances
+ */
+export const CodeMirrorSetup = {
+  lineNumbers: true,
+  foldGutter: false,
+  dropCursor: false,
+  allowMultipleSelections: false,
+  indentOnInput: false,
+  bracketMatching: true,
+  closeBrackets: false,
+  autocompletion: false,
+  highlightSelectionMatches: false,
+  searchKeymap: false,
+};
+
+/**
+ * Shared style configuration for CodeMirror editors
+ * Provides consistent appearance across all CodeMirror instances
+ */
+export const CodeMirrorStyle = {
+  fontSize: "14px",
+  fontFamily: "monospace",
+  height: "100%",
+  overflow: "auto" as const,
+};
+
+/**
  * Highlights a specific range of code in a CodeMirror editor
  * @param codeMirrorRef - React ref to the CodeMirror component
  * @param start - Start character position

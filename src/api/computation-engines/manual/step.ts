@@ -1,23 +1,15 @@
+import { IStep } from "../../../types/step";
 import { highlightCode } from "../../../util/codemirror";
 import { JSInterpreter, StackFrame } from "./interpreter";
 import { VariableExtractor } from "./variableExtractor";
 import { View } from "./view";
 
-export interface DebugState {
-  step: number;
-  highlight: { start: number; end: number };
-  variables: Record<string, unknown>;
-  stackTrace: string[];
-  timestamp: number;
-  viewVariables: Record<string, unknown>;
-}
-
-export class Debugger {
-  static snapshot(
+export class Step {
+  static getState(
     interpreter: JSInterpreter,
     stepNumber: number,
     code: string
-  ): DebugState {
+  ): IStep {
     const stack = interpreter.getStateStack() as StackFrame[];
     const node = stack.length ? stack[stack.length - 1].node : null;
     const variables = VariableExtractor.extractVariables(
@@ -37,7 +29,7 @@ export class Debugger {
     };
   }
 
-  static updateHighlight(
+  static highlight(
     codeMirrorRef: React.MutableRefObject<unknown>,
     highlight: { start: number; end: number }
   ): void {

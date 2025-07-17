@@ -1,7 +1,7 @@
-export const summationBasic = `const config = {
+export const summationDefault = `const config = {
   formulas: [
     {
-      name: "Summation Basic",
+      name: "Summation Default",
       function: "E = \\\\sum_{x \\\\in X} x P(x)",
       manual: function(variables) {
         var xValues = variables.x.set;
@@ -10,9 +10,7 @@ export const summationBasic = `const config = {
         for (var i = 0; i < xValues.length; i++) {
           var xi = xValues[i];
           var probability = pxValues[i];
-          // @view xi->x->i probability->P(x)->i
           expectedValue += xi * probability;
-          // @view expectedValue->E
         }
         return expectedValue;
       },

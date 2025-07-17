@@ -13,6 +13,7 @@ export interface ISliderControl extends IControl {
 export interface IArrayControl extends IControl {
   type: "array";
   orientation?: "horizontal" | "vertical";
+  index?: string; // Variable name for the index (e.g., "i" in for loops)
 }
 
 export interface IDropdownControl extends IControl {
