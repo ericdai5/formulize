@@ -13,20 +13,37 @@ interface ArrayProps {
 
 const LatexLabel = ({ latex }: { latex: string }) => {
   const labelRef = useRef<HTMLSpanElement>(null);
+
   useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+
     const renderLatex = async () => {
-      if (!labelRef.current || !window.MathJax) return;
+      if (!labelRef.current || !window.MathJax || !isMounted) return;
+
       try {
         await window.MathJax.startup.promise;
+
+        // Check again after async operation
+        if (!labelRef.current || !isMounted) return;
+
         labelRef.current.innerHTML = `\\(${latex}\\)`;
         await window.MathJax.typesetPromise([labelRef.current]);
       } catch (error) {
         console.error("Error rendering LaTeX label:", error);
-        // Fallback to plain text
-        labelRef.current.textContent = latex;
+
+        // Fallback to plain text with null check
+        if (labelRef.current && isMounted) {
+          labelRef.current.textContent = latex;
+        }
       }
     };
+
     renderLatex();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [latex]);
 
   return (
@@ -166,7 +183,7 @@ const Array = observer(({ control }: ArrayProps) => {
       )}
 
       <div
-        className={`${
+        className={`nodrag ${
           isVertical
             ? "flex flex-col gap-1 overflow-y-auto px-2 border-t border-slate-200 scrollbar-hide"
             : "flex flex-row gap-1 overflow-x-auto py-2 border-l border-slate-200 scrollbar-hide"

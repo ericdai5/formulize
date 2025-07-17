@@ -9,7 +9,7 @@ import {
 
 import IconButton from "./icon-button";
 
-interface FormulaToolbarProps {
+interface ToolbarProps {
   onToggleRender: () => void;
   onOpenEvaluationModal?: () => void;
   onShowElementPane: () => void;
@@ -18,21 +18,17 @@ interface FormulaToolbarProps {
   onOpenStoreModal: () => void;
 }
 
-const FormulaToolbar = ({
+const Toolbar = ({
   onToggleRender,
   onOpenEvaluationModal,
   onShowElementPane,
   onShowVariableTreePane,
   onShowDebugModal,
   onOpenStoreModal,
-}: FormulaToolbarProps) => {
+}: ToolbarProps) => {
   return (
     <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
-      <IconButton
-        icon={Code}
-        alt="Edit"
-        onClick={onToggleRender}
-      />
+      <IconButton icon={Code} alt="Edit" onClick={onToggleRender} />
       {onOpenEvaluationModal && (
         <IconButton
           icon={SquareFunction}
@@ -63,4 +59,4 @@ const FormulaToolbar = ({
   );
 };
 
-export default FormulaToolbar;
+export default Toolbar;

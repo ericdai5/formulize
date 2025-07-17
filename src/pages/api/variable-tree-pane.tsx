@@ -10,7 +10,8 @@ import {
   Variable,
   getVariableTokens,
   parseVariableString,
-} from "../FormulaTree";
+} from "../../FormulaTree";
+import { FormulizeConfig } from "../../api";
 
 interface VariableTreePaneProps {
   variableName: string;
@@ -220,4 +221,37 @@ const TreeElement = ({ tree }: { tree: AugmentedFormulaNode }) => {
   };
 
   return <span>{getLabel(tree)}</span>;
+};
+
+// Wrapper component to handle multiple variable trees
+export const VariableTreesPane = ({
+  config,
+}: {
+  config: FormulizeConfig | null;
+}) => {
+  const variableNames = config?.variables ? Object.keys(config.variables) : [];
+
+  // Empty state component
+  const EmptyState = ({ message }: { message: string }) => (
+    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+      <div className="text-gray-500 text-sm">{message}</div>
+    </div>
+  );
+
+  if (!config) return <EmptyState message="No configuration available" />;
+  if (variableNames.length === 0)
+    return <EmptyState message="No variables found in configuration" />;
+
+  return (
+    <div className="h-full overflow-hidden flex flex-col flex-1 overflow-y-auto">
+      {variableNames.map((variableName, index) => (
+        <div key={variableName} className={index > 0 ? "border-t" : ""}>
+          <VariableTreePane
+            variableName={variableName}
+            title={`Variable ${index + 1}: ${variableName}`}
+          />
+        </div>
+      ))}
+    </div>
+  );
 };
