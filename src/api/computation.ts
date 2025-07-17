@@ -93,6 +93,10 @@ class ComputationStore {
     };
   }
 
+  isStepMode(): boolean {
+    return this.computationConfig?.mode === "step";
+  }
+
   get evaluateFormula(): EvaluationFunction | null {
     return this.evaluationFunction;
   }
@@ -346,8 +350,10 @@ class ComputationStore {
       this.setLastGeneratedCode(displayCode);
     }
 
-    // Initial evaluation of all dependent variables
-    this.updateAllDependentVars();
+    // Initial evaluation of all dependent variables (skip in step mode)
+    if (!this.isStepMode()) {
+      this.updateAllDependentVars();
+    }
   }
 
   // Create an evaluation function that handles multiple expressions

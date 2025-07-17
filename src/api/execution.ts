@@ -159,6 +159,22 @@ class ExecutionStore {
   canStepBackward(): boolean {
     return this.historyIndex > 0;
   }
+
+  hasViews(): boolean {
+    return this.views.length > 0;
+  }
+
+  /**
+   * Gets the actual variable name that's linked to a variable ID
+   * Uses the linkage map to resolve the connection between UI controls and code variables
+   */
+  getLinkedVar(varId: string): string | null {
+    return (
+      Object.keys(this.linkageMap).find(
+        (key) => this.linkageMap[key] === varId
+      ) || null
+    );
+  }
 }
 
 // Create singleton instance

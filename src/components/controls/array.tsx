@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { observer } from "mobx-react-lite";
 
 import { computationStore } from "../../api/computation";
+import { executionStore as ctx } from "../../api/execution";
 import { IArrayControl } from "../../types/control";
 import { getVariable } from "../../util/computation-helpers";
 
@@ -117,8 +118,19 @@ const Array = observer(({ control }: ArrayProps) => {
 
   // Get active index directly for MobX reactivity
   const getActiveIndex = () => {
-    if (variableId) {
-      return computationStore.activeIndices.get(variableId);
+    if (!variableId) {
+      return null;
+    }
+
+    // Check if there's an active index from views
+    const viewActiveIndex = computationStore.activeIndices.get(variableId);
+    if (viewActiveIndex !== undefined) {
+      return viewActiveIndex;
+    }
+
+    // Check if there's a target index from stepToIndex (block mode)
+    if (ctx.targetIndex) {
+      return ctx.targetIndex.index;
     }
     return null;
   };

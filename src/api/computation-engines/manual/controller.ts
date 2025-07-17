@@ -1,7 +1,9 @@
 import { EditorView } from "@codemirror/view";
 
 import { applyCue, updateAllVariables } from "../../../formula/stepHandler";
+import { IArrayControl } from "../../../types/control";
 import { IEnvironment } from "../../../types/environment";
+import { extractViews } from "../../../util/acorn";
 import { computationStore } from "../../computation";
 import { executionStore as ctx } from "../../execution";
 import { ERROR_MESSAGES } from "./constants";
@@ -13,6 +15,15 @@ import {
 } from "./interpreter";
 import { Step } from "./step";
 import { VariableExtractor } from "./variableExtractor";
+
+export const getArrayControl = (
+  varId: string,
+  environment?: IEnvironment | null
+): IArrayControl | null => {
+  const controls = environment?.controls || [];
+  const config = controls.find((control) => control.variable === varId);
+  return config?.type === "array" ? (config as IArrayControl) : null;
+};
 
 export class Controller {
   // ============================================================================
@@ -34,6 +45,12 @@ export class Controller {
     ctx.setLinkageMap(variableLinkage);
 
     ctx.setInterpreter(interpreter);
+
+    // Extract views from the code in the beginning of the execution to always have them available
+    // This is because if refresh is called, then views are no longer available
+    const foundViews = extractViews(ctx.code);
+    ctx.setViews(foundViews);
+
     const initialState = Step.getState(interpreter, 0, ctx.code);
     ctx.setHistory([initialState]);
     ctx.setHistoryIndex(0);
@@ -152,14 +169,19 @@ export class Controller {
     if (!ctx.interpreter || ctx.isComplete) return;
     ctx.setIsSteppingToIndex(true);
     ctx.setTargetIndex({ varId, index: targetIndex });
+    const hasViewPoints = ctx.hasViews();
     try {
       const searching = true;
       while (searching) {
-        if (this.atTargetIndex(ctx.interpreter, varId, targetIndex)) {
+        if (this.atIndex(varId, targetIndex)) {
           this.completeStepToIndex();
           return;
         }
-        this.stepToView();
+        if (hasViewPoints) {
+          this.stepToView();
+        } else {
+          this.stepToNextBlock();
+        }
         if (ctx.isComplete) {
           this.completeStepToIndex();
           return;
@@ -305,19 +327,62 @@ export class Controller {
     }
   }
 
-  private static atTargetIndex(
-    interpreter: JSInterpreter,
-    varId: string,
-    targetIndex: number
+  private static atIndex(varId: string, targetIndex: number): boolean {
+    if (!ctx.interpreter || !ctx.targetIndex || !ctx.currentState) {
+      return false;
+    }
+
+    const variables = ctx.currentState.variables;
+
+    // Get the array control configuration
+    const array = getArrayControl(varId, ctx.environment);
+    if (!array?.index) {
+      return false;
+    }
+
+    // Check if the index variable has reached the target value
+    const indexValue = variables[array.index];
+    if (typeof indexValue !== "number" || indexValue !== targetIndex) {
+      return false;
+    }
+
+    // Check if linked variable has expected value
+    const linkedVar = ctx.getLinkedVar(varId);
+    if (linkedVar && variables[linkedVar] !== undefined) {
+      const variable = computationStore.variables.get(varId);
+      const actualValue = variables[linkedVar];
+      if (
+        variable &&
+        !this.isExpectedValue(variable, targetIndex, actualValue)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Validates that the current value matches what's expected at a specific array index
+   * Ensures data consistency during execution
+   * @param variable - The variable to check
+   * @param indexValue - The index value to check
+   * @param actualValue - The actual value to check
+   * @returns True if the expected value matches the actual value, false otherwise
+   */
+  private static isExpectedValue(
+    variable: { set?: unknown[] },
+    indexValue: number,
+    actualValue: unknown
   ): boolean {
-    if (!isAtView(interpreter)) return false;
-    const activeIndex = computationStore.activeIndices.get(varId);
-    return activeIndex !== undefined && activeIndex === targetIndex;
+    if (!variable?.set || !Array.isArray(variable.set)) {
+      return false;
+    }
+    const expectedValue = variable.set[indexValue];
+    return expectedValue === actualValue;
   }
 
   private static completeStepToIndex(): void {
     ctx.setIsSteppingToIndex(false);
-    ctx.setTargetIndex(null);
   }
 
   /**

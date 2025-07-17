@@ -142,8 +142,10 @@ async function create(
     // Clear initialization flag to enable normal evaluation
     computationStore.setInitializing(false);
 
-    // Trigger initial evaluation now that everything is set up
-    computationStore.updateAllDependentVars();
+    // Trigger initial evaluation now that everything is set up (skip in step mode)
+    if (!computationStore.isStepMode()) {
+      computationStore.updateAllDependentVars();
+    }
 
     console.log(`Created ${formulaStores.length} individual formula stores`);
 
