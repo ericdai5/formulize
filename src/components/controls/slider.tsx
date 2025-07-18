@@ -86,6 +86,7 @@ const Slider = observer(({ control }: SliderProps) => {
                 value={currentValue}
                 onChange={handleChange}
                 className="
+                  nodrag
                   h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50
                   [&::-webkit-slider-thumb]:appearance-none 
@@ -132,6 +133,7 @@ const Slider = observer(({ control }: SliderProps) => {
               value={currentValue}
               onChange={handleChange}
               className="
+                nodrag
                 w-full 
                 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer
                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50

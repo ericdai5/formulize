@@ -2,44 +2,15 @@ import { useEffect, useRef, useState } from "react";
 
 import { Formulize, FormulizeConfig } from "../api/index.ts";
 import FormulaCodeEditor from "../components/api-code-editor.tsx";
-import FormulaToolbar from "../components/debug-toolbar.tsx";
+import Toolbar from "../components/debug-toolbar.tsx";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
 import { kineticEnergy } from "../examples/kineticEnergy";
-import { FormulaElementPane } from "../pages/api/FormulaElementPane.tsx";
+import { FormulaElementPane } from "../pages/api/formula-tree-pane.tsx";
+import { VariableTreesPane } from "../pages/api/variable-tree-pane.tsx";
 import { IEnvironment } from "../types/environment.ts";
-import { VariableTreePane } from "./VariableTreePane.tsx";
-import Formula, { VariableRange } from "./formula.tsx";
-
-// Wrapper component to handle multiple variable trees
-const VariableTreesPane = ({ config }: { config: FormulizeConfig | null }) => {
-  const variableNames = config?.variables ? Object.keys(config.variables) : [];
-
-  // Empty state component
-  const EmptyState = ({ message }: { message: string }) => (
-    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
-      <div className="text-gray-500 text-sm">{message}</div>
-    </div>
-  );
-
-  if (!config) return <EmptyState message="No configuration available" />;
-  if (variableNames.length === 0)
-    return <EmptyState message="No variables found in configuration" />;
-
-  return (
-    <div className="h-full overflow-hidden flex flex-col flex-1 overflow-y-auto">
-      {variableNames.map((variableName, index) => (
-        <div key={variableName} className={index > 0 ? "border-t" : ""}>
-          <VariableTreePane
-            variableName={variableName}
-            title={`Variable ${index + 1}: ${variableName}`}
-          />
-        </div>
-      ))}
-    </div>
-  );
-};
+import Canvas from "./canvas.tsx";
 
 interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
@@ -91,8 +62,8 @@ const FormulaCanvas = ({
   // Variables with type 'input' and a range [min, max] become slidable with those limits
   const extractVariableRanges = (
     config: FormulizeConfig
-  ): Record<string, VariableRange> => {
-    const ranges: Record<string, VariableRange> = {};
+  ): Record<string, [number, number]> => {
+    const ranges: Record<string, [number, number]> = {};
     if (config.variables) {
       Object.entries(config.variables).forEach(
         ([variableName, variableConfig]) => {
@@ -259,7 +230,7 @@ const FormulaCanvas = ({
   return (
     <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
       <div className="flex flex-col w-full h-full relative">
-        <FormulaToolbar
+        <Toolbar
           onToggleRender={() => setIsRendered(!isRendered)}
           onOpenEvaluationModal={onOpenEvaluationModal}
           onShowElementPane={() => setShowElementPane(true)}
@@ -273,8 +244,8 @@ const FormulaCanvas = ({
             isRendered ? "h-full" : "h-1/2"
           }`}
         >
-          <div className="min-w-0 w-full h-full overflow-auto p-8 bg-slate-50 text-center">
-            <Formula
+          <div className="min-w-0 w-full h-full overflow-auto bg-slate-50 text-center">
+            <Canvas
               variableRanges={
                 currentConfig ? extractVariableRanges(currentConfig) : {}
               }
