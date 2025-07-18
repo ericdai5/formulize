@@ -51,7 +51,13 @@ const FormulaNode = observer(({ data }: { data: any }) => {
       window.MathJax.typesetClear([formulaContainer]);
 
       // Process the LaTeX to include interactive elements
-      const processedLatex = processLatexContent(latex);
+      let processedLatex;
+      try {
+        processedLatex = processLatexContent(latex);
+      } catch (latexError) {
+        console.error("Error processing LaTeX content:", latexError);
+        processedLatex = latex; // Fallback to original latex
+      }
 
       // Get font size from environment with fallback
       const fontSize = environment?.fontSize ?? 0.9;
@@ -59,11 +65,10 @@ const FormulaNode = observer(({ data }: { data: any }) => {
         typeof fontSize === "number" && fontSize >= 0.5 && fontSize <= 1
           ? fontSize
           : 0.9;
-      const fontSizeValue = `${validatedFontSize}em`;
 
       const formulaHTML = `
         <div class="formula-expression" data-expression-index="0">
-          <div class="border border-slate-200 bg-white rounded-2xl py-4 px-6 w-fit text-[${fontSizeValue}]">\\[${processedLatex}\\]</div>
+          <div class="border border-slate-200 bg-white rounded-2xl py-4 px-6 w-fit" style="font-size: ${validatedFontSize}em">\\[${processedLatex}\\]</div>
         </div>
       `;
 

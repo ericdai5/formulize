@@ -7,11 +7,10 @@ import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
 import { kineticEnergy } from "../examples/kineticEnergy";
-import { FormulaElementPane } from "../pages/api/FormulaElementPane.tsx";
-import { VariableTreesPane } from "../pages/api/VariableTreePane.tsx";
+import { FormulaElementPane } from "../pages/api/formula-tree-pane.tsx";
+import { VariableTreesPane } from "../pages/api/variable-tree-pane.tsx";
 import { IEnvironment } from "../types/environment.ts";
 import Canvas from "./canvas.tsx";
-import { VariableRange } from "./node.tsx";
 
 interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
@@ -63,8 +62,8 @@ const FormulaCanvas = ({
   // Variables with type 'input' and a range [min, max] become slidable with those limits
   const extractVariableRanges = (
     config: FormulizeConfig
-  ): Record<string, VariableRange> => {
-    const ranges: Record<string, VariableRange> = {};
+  ): Record<string, [number, number]> => {
+    const ranges: Record<string, [number, number]> = {};
     if (config.variables) {
       Object.entries(config.variables).forEach(
         ([variableName, variableConfig]) => {

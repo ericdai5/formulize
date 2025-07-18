@@ -69,10 +69,9 @@ const CustomControls = () => {
   );
 };
 
-export type VariableRange = [number, number];
 
 interface CanvasProps {
-  variableRanges?: Record<string, VariableRange>;
+  variableRanges?: Record<string, [number, number]>;
   formulaIndex?: number;
   formulaStore?: FormulaStore;
   controls?: IControls[];
