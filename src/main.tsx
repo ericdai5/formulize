@@ -1,8 +1,17 @@
+import { scan } from "react-scan";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import * as acorn from "acorn";
 
 import App from "./App.tsx";
 import "./index.css";
+
+// Make acorn globally available for JS-Interpreter
+(window as unknown as { acorn: typeof acorn }).acorn = acorn;
+
+scan({
+  enabled: true,
+});
 
 const loadMathJax = () => {
   return new Promise((resolve) => {
@@ -25,10 +34,10 @@ const loadMathJax = () => {
       // @ts-expect-error This is valid, MathJax types are incomplete
       startup: {
         pageReady: () => {
-          // @ts-expect-error
+          // @ts-expect-error MathJax startup types are incomplete
           return MathJax.startup.defaultPageReady().then(() => {
             console.log("MathJax is ready");
-            // @ts-expect-error
+            // @ts-expect-error Promise resolve callback lacks proper typing
             resolve();
           });
         },
