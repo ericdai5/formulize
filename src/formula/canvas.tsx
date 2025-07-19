@@ -199,9 +199,9 @@ const CanvasFlow = observer(
 
     // Function to add variable nodes as subnodes using React Flow's measurement system
     const addVariableNodes = useCallback(() => {
-      // Wait a bit for MathJax to finish rendering
-      setTimeout(() => {
-        // Get current values inside the timeout to avoid stale closures
+      // Wait for MathJax to finish rendering
+      const checkMathJaxAndProceed = async () => {
+        // Get current values inside the function to avoid stale closures
         const currentNodes = getNodes();
         const viewport = getViewport();
 
@@ -233,6 +233,9 @@ const CanvasFlow = observer(
               const htmlVarElement = varElement as HTMLElement;
               const cssId = htmlVarElement.id;
               if (!cssId) return;
+
+              // Verify this variable exists in the computation store
+              if (!computationStore.variables.has(cssId)) return;
 
               // Calculate position relative to the formula node, accounting for React Flow's zoom
               const varRect = htmlVarElement.getBoundingClientRect();
@@ -276,8 +279,147 @@ const CanvasFlow = observer(
           // Mark that variable nodes have been added
           variableNodesAddedRef.current = true;
         }
-      }, 200); // Wait for MathJax to finish
-    }, [getNodes, getViewport, nodesInitialized, setNodes]);
+      };
+
+      // Wait for MathJax to complete typesetting before proceeding
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise().then(checkMathJaxAndProceed);
+      } else if (window.MathJax && window.MathJax.startup) {
+        window.MathJax.startup.promise.then(checkMathJaxAndProceed);
+      } else {
+        checkMathJaxAndProceed();
+      }
+    }, [getNodes, getViewport, nodesInitialized, setNodes, getPosAndDim]);
+
+    // Function to update variable nodes or add new ones (hybrid approach)
+    const updateOrAddVariableNodes = useCallback(() => {
+      const processNodes = async () => {
+        const currentNodes = getNodes();
+        const viewport = getViewport();
+
+        if (!nodesInitialized) return;
+
+        // Create a map of existing variable node IDs for quick lookup
+        const existingVariableNodes = new Map<string, Node>();
+        currentNodes.forEach((node) => {
+          if (node.id.startsWith("variable-")) {
+            existingVariableNodes.set(node.id, node);
+          }
+        });
+
+        const updatedNodes: Node[] = [];
+        const newNodes: Node[] = [];
+        const foundNodeIds = new Set<string>();
+
+        // Find all formula nodes in the DOM
+        const formulaElements = document.querySelectorAll(".formula-node");
+
+        formulaElements.forEach((formulaElement, formulaIndex) => {
+          const formulaNodeId = `formula-${formulaIndex}`;
+          const formulaNode = currentNodes.find(
+            (node) => node.id === formulaNodeId
+          );
+
+          if (!formulaNode || !formulaNode.measured) return;
+
+          // Find variable elements within this formula
+          const variableElements = formulaElement.querySelectorAll(
+            '[class*="interactive-var-"]'
+          );
+
+          variableElements.forEach(
+            (varElement: Element, elementIndex: number) => {
+              const htmlVarElement = varElement as HTMLElement;
+              const cssId = htmlVarElement.id;
+              if (!cssId) return;
+
+              if (!computationStore.variables.has(cssId)) return;
+
+              const nodeId = `variable-${formulaIndex}-${cssId}-${elementIndex}`;
+              foundNodeIds.add(nodeId);
+
+              // Calculate new position and dimensions
+              const varRect = htmlVarElement.getBoundingClientRect();
+              const formulaRect = formulaElement.getBoundingClientRect();
+              const { relativePosition, dimensions } = getPosAndDim(
+                varRect,
+                formulaRect,
+                viewport
+              );
+
+              const existingNode = existingVariableNodes.get(nodeId);
+
+              if (existingNode) {
+                // Update existing node
+                updatedNodes.push({
+                  ...existingNode,
+                  position: relativePosition,
+                  data: {
+                    ...existingNode.data,
+                    width: dimensions.width,
+                    height: dimensions.height,
+                  },
+                });
+              } else {
+                // Create new node
+                newNodes.push({
+                  id: nodeId,
+                  type: "variable",
+                  position: relativePosition,
+                  parentId: formulaNodeId,
+                  extent: "parent",
+                  data: {
+                    varId: cssId,
+                    symbol: cssId,
+                    width: dimensions.width,
+                    height: dimensions.height,
+                  },
+                  draggable: false,
+                  selectable: true,
+                });
+              }
+            }
+          );
+        });
+
+        // Update the nodes state
+        setNodes((currentNodes) => {
+          // Keep non-variable nodes
+          const nonVariableNodes = currentNodes.filter(
+            (node) => !node.id.startsWith("variable-")
+          );
+
+          // Keep variable nodes that are still found in the DOM
+          const keptVariableNodes = currentNodes.filter(
+            (node) =>
+              node.id.startsWith("variable-") && foundNodeIds.has(node.id)
+          );
+
+          // Apply updates to kept variable nodes
+          const finalVariableNodes = keptVariableNodes.map((node) => {
+            const update = updatedNodes.find((u) => u.id === node.id);
+            return update || node;
+          });
+
+          // Combine all nodes
+          return [...nonVariableNodes, ...finalVariableNodes, ...newNodes];
+        });
+
+        // Mark that variable nodes have been added if we have any
+        if (foundNodeIds.size > 0) {
+          variableNodesAddedRef.current = true;
+        }
+      };
+
+      // Wait for MathJax to complete typesetting before proceeding
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise().then(processNodes);
+      } else if (window.MathJax && window.MathJax.startup) {
+        window.MathJax.startup.promise.then(processNodes);
+      } else {
+        processNodes();
+      }
+    }, [getNodes, getViewport, nodesInitialized, setNodes, getPosAndDim]);
 
     // Update nodes when formulas or controls change
     useEffect(() => {
@@ -311,22 +453,30 @@ const CanvasFlow = observer(
       }
     }, [nodesInitialized, addVariableNodes]);
 
-    // Re-add variable nodes when computation store variables change
+    // Re-add variable nodes when computation store variables or formulas change
     useEffect(() => {
       const disposer = reaction(
-        () => Array.from(computationStore.variables.keys()),
+        () => ({
+          // Watch for changes in the set of variables (additions/removals)
+          variableKeys: Array.from(computationStore.variables.keys()).sort(),
+          // Also watch for displayedFormulas changes which can trigger re-renders
+          displayedFormulas: computationStore.displayedFormulas?.slice(),
+        }),
         () => {
           if (nodesInitialized) {
-            // Reset the flag to allow re-adding variable nodes
+            // Variables set has changed or formulas changed, need to recreate all variable nodes
             variableNodesAddedRef.current = false;
             addVariableNodes();
           }
+        },
+        {
+          fireImmediately: false,
         }
       );
       return () => disposer();
     }, [nodesInitialized, addVariableNodes]);
 
-    // Update variable node widths when values change
+    // Update variable node positions/dimensions when values change
     useEffect(() => {
       const disposer = reaction(
         () =>
@@ -339,50 +489,13 @@ const CanvasFlow = observer(
           ),
         () => {
           if (nodesInitialized && variableNodesAddedRef.current) {
-            // Update existing variable nodes with new widths and positions
-            setTimeout(() => {
-              const currentNodes = getNodes();
-              const viewport = getViewport();
-              const updatedNodes = currentNodes.map((node) => {
-                if (node.id.startsWith("variable-")) {
-                  const varId = node.data.varId as string;
-                  // Find the corresponding DOM element to measure new width and position
-                  const element = document.querySelector(
-                    `#${CSS.escape(varId)}`
-                  );
-                  if (element) {
-                    const rect = element.getBoundingClientRect();
-                    // Find the parent formula element to calculate relative position
-                    const formulaElement = element.closest(".formula-node");
-                    if (formulaElement) {
-                      const formulaRect =
-                        formulaElement.getBoundingClientRect();
-                      const { relativePosition, dimensions } = getPosAndDim(
-                        rect,
-                        formulaRect,
-                        viewport
-                      );
-                      return {
-                        ...node,
-                        position: relativePosition,
-                        data: {
-                          ...node.data,
-                          width: dimensions.width,
-                          height: dimensions.height,
-                        },
-                      };
-                    }
-                  }
-                }
-                return node;
-              });
-              setNodes(updatedNodes);
-            });
+            // Use the hybrid approach for both normal and step modes
+            updateOrAddVariableNodes();
           }
         }
       );
       return () => disposer();
-    }, [nodesInitialized, getNodes, getViewport, setNodes]);
+    }, [nodesInitialized, updateOrAddVariableNodes]);
 
     return (
       <div ref={canvasContainerRef} className="w-full h-full min-h-[500px]">
