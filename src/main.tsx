@@ -1,6 +1,6 @@
-import { scan } from "react-scan";
 import React from "react";
 import ReactDOM from "react-dom/client";
+
 import * as acorn from "acorn";
 
 import App from "./App.tsx";
@@ -9,9 +9,14 @@ import "./index.css";
 // Make acorn globally available for JS-Interpreter
 (window as unknown as { acorn: typeof acorn }).acorn = acorn;
 
-scan({
-  enabled: true,
-});
+// Only enable react-scan in development
+if (import.meta.env.DEV) {
+  import("react-scan").then(({ scan }) => {
+    scan({
+      enabled: true,
+    });
+  });
+}
 
 const loadMathJax = () => {
   return new Promise((resolve) => {

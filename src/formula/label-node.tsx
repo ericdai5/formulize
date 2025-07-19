@@ -18,7 +18,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   return (
     <div
-      className="label-flow-node text-base text-slate-700 bg-white border border-slate-200 rounded-xl px-4 py-2 shadow-sm"
+      className="label-flow-node text-base text-slate-700 bg-white border border-slate-200 rounded-xl px-4 py-2"
       style={{
         pointerEvents: "none",
         width: "auto",

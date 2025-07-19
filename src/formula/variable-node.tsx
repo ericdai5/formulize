@@ -26,7 +26,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   return (
     <div
       ref={nodeRef}
-      className="variable-flow-node text-xs text-white border-blue-500 border-2 bg-blue-500/50 border-dashed rounded-lg px-3 py-2 text-center nodrag"
+      className="variable-flow-node text-xs text-white border-blue-500 border bg-blue-500/50 border-dashed rounded-lg px-3 py-2 text-center nodrag"
       style={{
         backgroundColor: "transparent",
         pointerEvents: "auto",

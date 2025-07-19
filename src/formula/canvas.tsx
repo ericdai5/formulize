@@ -530,7 +530,7 @@ const CanvasFlow = observer(
                 );
 
                 // Use the sophisticated label positioning system
-                const optimalLabelPosition = getLabelNodePos(
+                const labelPos = getLabelNodePos(
                   position,
                   dimensions,
                   formulaNode,
@@ -553,8 +553,8 @@ const CanvasFlow = observer(
                 const estimatedLabelHeight = 24 / viewport.zoom;
 
                 existingNodesInFormula.push({
-                  x: optimalLabelPosition.x,
-                  y: optimalLabelPosition.y,
+                  x: labelPos.x,
+                  y: labelPos.y,
                   width: estimatedLabelWidth,
                   height: estimatedLabelHeight,
                   id: labelNodeId,
@@ -569,12 +569,12 @@ const CanvasFlow = observer(
                   updatedNodes.push({
                     ...existingLabelNode,
                     position: {
-                      x: optimalLabelPosition.x,
-                      y: optimalLabelPosition.y,
+                      x: labelPos.x,
+                      y: labelPos.y,
                     },
                     data: {
                       ...existingLabelNode.data,
-                      placement: optimalLabelPosition.placement,
+                      placement: labelPos.placement,
                     },
                   });
                 } else {
@@ -583,16 +583,15 @@ const CanvasFlow = observer(
                     id: labelNodeId,
                     type: "label",
                     position: {
-                      x: optimalLabelPosition.x,
-                      y: optimalLabelPosition.y,
+                      x: labelPos.x,
+                      y: labelPos.y,
                     },
                     data: {
                       varId: cssId,
-                      placement: optimalLabelPosition.placement,
+                      placement: labelPos.placement,
                     },
-                    draggable: false,
+                    draggable: true,
                     selectable: true,
-                    // Remove parentId and extent - labels should be positioned absolutely
                   });
                 }
               }
