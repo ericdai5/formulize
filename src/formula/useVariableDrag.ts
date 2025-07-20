@@ -12,7 +12,6 @@ interface UseVariableDragProps {
 
 export const useVariableDrag = ({
   varId,
-  value,
   type,
   hasDropdownOptions,
 }: UseVariableDragProps) => {
@@ -24,12 +23,15 @@ export const useVariableDrag = ({
 
     let isDragging = false;
     let startY = 0;
-    let startValue = value;
 
     const variableState = getInputVariableState(varId);
     if (!variableState) return;
 
     const { stepSize, minValue, maxValue } = variableState;
+
+    // Get initial value from computation store
+    const currentVariable = computationStore.variables.get(varId);
+    let startValue = currentVariable?.value ?? 0;
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
@@ -56,7 +58,7 @@ export const useVariableDrag = ({
     const handleMouseDown = (e: MouseEvent) => {
       isDragging = true;
       startY = e.clientY;
-      // Get the current value from the computation store instead of using stale prop
+      // Update startValue to current value at drag start
       const currentVariable = computationStore.variables.get(varId);
       startValue = currentVariable?.value ?? 0;
       e.preventDefault();
@@ -75,7 +77,7 @@ export const useVariableDrag = ({
       document.removeEventListener("mousemove", handleMouseMove, true);
       document.removeEventListener("mouseup", handleMouseUp, true);
     };
-  }, [varId, value, type, hasDropdownOptions]);
+  }, [varId, type, hasDropdownOptions]);
 
   return nodeRef;
 };
