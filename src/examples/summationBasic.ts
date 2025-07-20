@@ -26,23 +26,27 @@ export const summationBasic = `const config = {
   variables: {
     E: {
       type: "dependent",
-      precision: 2
+      precision: 2,
+      label: "Expected Value"
     },
     x: {
       type: "input",
       memberOf: "X",
-      precision: 0
+      precision: 0,
+      label: "x: member of X"
     },
     X: {
       type: "input",
       set: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      precision: 0
+      precision: 0,
+      label: "Set X"
     },
     "P(x)": {
       type: "input",
       key: "x",
       set: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
-      precision: 2
+      precision: 2,
+      label: "Probability of x"
     }
   },
   controls: [

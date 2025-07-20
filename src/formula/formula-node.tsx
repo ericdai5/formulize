@@ -68,7 +68,7 @@ const FormulaNode = observer(({ data }: { data: any }) => {
 
       const formulaHTML = `
         <div class="formula-expression" data-expression-index="0">
-          <div class="border border-slate-200 bg-white rounded-2xl py-4 px-6 w-fit" style="font-size: ${validatedFontSize}em">\\[${processedLatex}\\]</div>
+          <div class="border border-slate-200 bg-white rounded-2xl px-6 w-fit" style="font-size: ${validatedFontSize}em">\\[${processedLatex}\\]</div>
         </div>
       `;
 
