@@ -75,7 +75,7 @@ export const useVariableDrag = ({
       document.removeEventListener("mousemove", handleMouseMove, true);
       document.removeEventListener("mouseup", handleMouseUp, true);
     };
-  }, [varId, type, hasDropdownOptions]);
+  }, [varId, value, type, hasDropdownOptions]);
 
   return nodeRef;
 };

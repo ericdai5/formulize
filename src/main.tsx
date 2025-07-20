@@ -11,11 +11,15 @@ import "./index.css";
 
 // Only enable react-scan in development
 if (import.meta.env.DEV) {
-  import("react-scan").then(({ scan }) => {
-    scan({
-      enabled: true,
+  import("react-scan")
+    .then(({ scan }) => {
+      scan({
+        enabled: true,
+      });
+    })
+    .catch((error) => {
+      console.warn("Failed to load react-scan:", error);
     });
-  });
 }
 
 const loadMathJax = () => {

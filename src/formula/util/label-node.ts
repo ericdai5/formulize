@@ -1,5 +1,8 @@
 import { Node } from "@xyflow/react";
 
+const CHAR_WIDTH_BASE = 8;
+const LINE_HEIGHT_BASE = 24;
+
 // Enhanced label positioning system
 export interface LabelPlacement {
   x: number;
@@ -30,12 +33,12 @@ export const getLabelNodePos = (
   viewport: { zoom: number }
 ): LabelPlacement => {
   // Estimate label dimensions (approximate based on text length and font size)
-  const charWidth = 8 / viewport.zoom; // Approximate character width accounting for zoom
+  const charWidth = CHAR_WIDTH_BASE / viewport.zoom;
   const estimatedLabelWidth = Math.max(
     labelText.length * charWidth,
     40 / viewport.zoom
   );
-  const estimatedLabelHeight = 24 / viewport.zoom; // Approximate line height
+  const estimatedLabelHeight = LINE_HEIGHT_BASE / viewport.zoom;
 
   // Define spacing constants (adjusted for zoom)
   const spacing = {
