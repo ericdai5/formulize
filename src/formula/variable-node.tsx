@@ -1,5 +1,7 @@
 import { observer } from "mobx-react-lite";
 
+import { Handle, Position } from "@xyflow/react";
+
 import { computationStore } from "../api/computation";
 import { useVariableDrag } from "./useVariableDrag";
 
@@ -33,7 +35,33 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
         width: width ? `${width}px` : "auto",
         height: height ? `${height}px` : "auto",
       }}
-    />
+    >
+      {/* Handle for incoming edges from label nodes positioned above - hidden */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="variable-handle-top"
+        style={{
+          opacity: 0,
+          pointerEvents: "none",
+          width: 1,
+          height: 1,
+        }}
+      />
+
+      {/* Handle for incoming edges from label nodes positioned below - hidden */}
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="variable-handle-bottom"
+        style={{
+          opacity: 0,
+          pointerEvents: "none",
+          width: 1,
+          height: 1,
+        }}
+      />
+    </div>
   );
 });
 

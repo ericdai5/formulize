@@ -39,7 +39,7 @@ export const getLabelNodePos = (
 
   // Define spacing constants (adjusted for zoom)
   const spacing = {
-    vertical: 16 / viewport.zoom, // Space between formula and labels
+    vertical: 2 / viewport.zoom, // Space between formula and labels
     labelSpacing: 8 / viewport.zoom, // Space between multiple labels
   };
 
@@ -136,7 +136,6 @@ export const getLabelNodePos = (
       } else {
         adjustedY -= estimatedLabelHeight + spacing.labelSpacing;
       }
-
       attempts++;
     }
   }
