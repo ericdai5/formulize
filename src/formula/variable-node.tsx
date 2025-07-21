@@ -14,13 +14,11 @@ export interface VariableNodeData {
 const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const { varId, width, height } = data;
   const variable = computationStore.variables.get(varId);
-  const value = variable?.value ?? 0;
   const type = variable?.type === "input" ? "input" : "output";
   const hasDropdownOptions = !!(variable?.set || variable?.options);
 
   const nodeRef = useVariableDrag({
     varId,
-    value,
     type,
     hasDropdownOptions,
   });

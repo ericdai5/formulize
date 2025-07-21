@@ -5,7 +5,6 @@ import { getInputVariableState } from "../api/variableProcessing";
 
 interface UseVariableDragProps {
   varId: string;
-  value: number;
   type: "input" | "output";
   hasDropdownOptions?: boolean;
 }

@@ -18,7 +18,6 @@ export const lossFunction = `const config = {
           mse += error * error;
         }
         mse = mse / m;
-        var lambda = variables["\\\\lambda"].value;
         var regularization = 0;
         for (var j = 0; j < theta.length; j++) {
           var indexj = j + 1;
