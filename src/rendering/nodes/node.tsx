@@ -5,6 +5,7 @@ import ControlNode from "./control-node";
 import FormulaNode from "./formula-node";
 import LabelNode from "./label-node";
 import VariableNode from "./variable-node";
+import VisualizationNode from "./visualization-node";
 
 // Define custom node types
 export const nodeTypes: NodeTypes = {
@@ -12,4 +13,5 @@ export const nodeTypes: NodeTypes = {
   controlPanel: ControlNode,
   variable: VariableNode,
   label: LabelNode,
+  visualization: VisualizationNode,
 };

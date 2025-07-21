@@ -6,7 +6,6 @@ import EvaluationFunctionPane from "../../components/evaluation-function";
 import Modal from "../../components/modal";
 import StorePane from "../../components/variable-overview";
 import FormulaCanvas from "../../rendering/formula-canvas";
-import VisualizationRenderer from "../../visualizations/VisualizationRenderer";
 
 export default function APIPage() {
   const [currentFormulaConfig, setCurrentFormulaConfig] = useState<
@@ -25,29 +24,14 @@ export default function APIPage() {
   return (
     <div className="bg-white overflow-auto w-full h-full mx-auto">
       <div className="flex flex-row w-full h-full">
-        <div className="w-1/2">
-          <FormulaCanvas
-            formulizeConfig={currentFormulaConfig}
-            onConfigChange={(config) => {
-              setCurrentFormulaConfig(config);
-            }}
-            onOpenEvaluationModal={() => setIsEvaluationModalOpen(true)}
-            onOpenStoreModal={() => setIsStoreModalOpen(true)}
-          />
-        </div>
-        {currentFormulaConfig?.visualizations &&
-          currentFormulaConfig?.visualizations?.length && (
-            <div className="w-1/2 h-full overflow-auto">
-              {currentFormulaConfig?.visualizations?.map(
-                (visualization, index) => (
-                  <VisualizationRenderer
-                    key={`viz-${index}`}
-                    visualization={visualization}
-                  />
-                )
-              )}
-            </div>
-          )}
+        <FormulaCanvas
+          formulizeConfig={currentFormulaConfig}
+          onConfigChange={(config) => {
+            setCurrentFormulaConfig(config);
+          }}
+          onOpenEvaluationModal={() => setIsEvaluationModalOpen(true)}
+          onOpenStoreModal={() => setIsStoreModalOpen(true)}
+        />
       </div>
 
       {/* Evaluation Modal */}

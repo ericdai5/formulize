@@ -34,6 +34,7 @@ interface CanvasProps {
   controls?: IControls[];
   environment?: IEnvironment;
   nodeTypes?: NodeTypes;
+  showVariableBorders?: boolean;
 }
 
 const CanvasFlow = observer(
@@ -44,6 +45,7 @@ const CanvasFlow = observer(
     controls,
     environment,
     nodeTypes: customNodeTypes = {},
+    showVariableBorders = false,
   }: CanvasProps = {}) => {
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -254,121 +256,27 @@ const CanvasFlow = observer(
         currentY += 200; // Vertical spacing between formula nodes
       });
 
+      // Add visualization nodes if they exist in the environment
+      if (
+        environment?.visualizations &&
+        environment.visualizations.length > 0
+      ) {
+        let vizY = 0; // Start visualizations at the same Y as formulas
+        environment.visualizations.forEach((visualization, index) => {
+          nodes.push({
+            id: `visualization-${index}`,
+            type: "visualization",
+            position: { x: 800, y: vizY }, // Position to the right of formulas
+            data: { visualization },
+            draggable: true,
+            dragHandle: ".visualization-drag-handle",
+          });
+          vizY += 300; // Vertical spacing between visualization nodes (larger spacing)
+        });
+      }
+
       return nodes;
     }, [getFormula, controls, environment, variableRanges]);
-
-    // Function to add variable nodes as subnodes using React Flow's measurement system
-    const addVariableNodes = useCallback(() => {
-      // Use requestAnimationFrame to ensure we're in a clean render cycle
-      requestAnimationFrame(() => {
-        const checkMathJaxAndProceed = () => {
-          // Get current values inside the function to avoid stale closures
-          const currentNodes = getNodes();
-          const viewport = getViewport();
-
-          // Only proceed if nodes are initialized and measured
-          if (!nodesInitialized) return;
-
-          const variableNodes: Node[] = [];
-
-          // Find all formula nodes in the DOM
-          const formulaElements = document.querySelectorAll(".formula-node");
-
-          // PHASE 1: Create only variable nodes first
-          formulaElements.forEach((formulaElement, formulaIndex) => {
-            // Get the corresponding formula node ID and its React Flow node data
-            const formulaNodeId = `formula-${formulaIndex}`;
-            const formulaNode = currentNodes.find(
-              (node) => node.id === formulaNodeId
-            );
-
-            // Skip if we can't find the React Flow node or it's not measured yet
-            if (!formulaNode || !formulaNode.measured) return;
-
-            // Find variable elements within this formula
-            const variableElements = formulaElement.querySelectorAll(
-              '[class*="interactive-var-"]'
-            );
-
-            variableElements.forEach(
-              (varElement: Element, elementIndex: number) => {
-                const htmlVarElement = varElement as HTMLElement;
-                const cssId = htmlVarElement.id;
-                if (!cssId) return;
-
-                // Verify this variable exists in the computation store
-                if (!computationStore.variables.has(cssId)) return;
-
-                // Calculate position relative to the formula node, accounting for React Flow's zoom
-                const varRect = htmlVarElement.getBoundingClientRect();
-                const formulaRect = formulaElement.getBoundingClientRect();
-                const { position, dimensions } = getPosAndDim(
-                  varRect,
-                  formulaRect,
-                  viewport
-                );
-
-                const nodeId = `variable-${formulaIndex}-${cssId}-${elementIndex}`;
-
-                // Create only the variable node - no labels yet
-                variableNodes.push({
-                  id: nodeId,
-                  type: "variable",
-                  position,
-                  parentId: formulaNodeId, // Make this a subnode of the formula
-                  extent: "parent", // Constrain to parent bounds
-                  data: {
-                    varId: cssId,
-                    symbol: cssId,
-                    // VariableNode will get all variable data reactively from the store
-                    width: dimensions.width,
-                    height: dimensions.height,
-                    labelPlacement: "below", // Default placement, will be updated in phase 2
-                  },
-                  draggable: false, // Subnodes typically aren't independently draggable
-                  selectable: true,
-                });
-              }
-            );
-          });
-
-          // Add variable nodes to existing nodes first
-          if (variableNodes.length > 0) {
-            setNodes((currentNodes) => {
-              // Remove existing variable and label nodes and add new variable nodes
-              const nonVariableNodes = currentNodes.filter(
-                (node) =>
-                  !node.id.startsWith("variable-") &&
-                  !node.id.startsWith("label-")
-              );
-              return [...nonVariableNodes, ...variableNodes];
-            });
-
-            // Mark that variable nodes have been added
-            variableNodesAddedRef.current = true;
-
-            // PHASE 2: Add label nodes after variable nodes are positioned
-            // Use a small delay to ensure variable nodes are fully positioned
-            setTimeout(() => {
-              addLabelNodes();
-            }, 50);
-          }
-        };
-
-        // Check if MathJax is ready, but don't wait for promises
-        if (
-          window.MathJax &&
-          window.MathJax.startup &&
-          window.MathJax.startup.document
-        ) {
-          // MathJax is ready, proceed immediately
-          checkMathJaxAndProceed();
-        } else {
-          // Fall back to setTimeout if MathJax isn't ready
-          setTimeout(checkMathJaxAndProceed, 200);
-        }
-      });
-    }, [getNodes, getViewport, nodesInitialized, setNodes, getPosAndDim]);
 
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {
@@ -499,7 +407,129 @@ const CanvasFlow = observer(
           return [...updatedNodes, ...labelNodes];
         });
       }
-    }, [getNodes, getViewport, getPosAndDim]);
+    }, [getNodes, getViewport, setNodes]);
+
+    // Function to add variable nodes as subnodes using React Flow's measurement system
+    const addVariableNodes = useCallback(() => {
+      // Use requestAnimationFrame to ensure we're in a clean render cycle
+      requestAnimationFrame(() => {
+        const checkMathJaxAndProceed = () => {
+          // Get current values inside the function to avoid stale closures
+          const currentNodes = getNodes();
+          const viewport = getViewport();
+
+          // Only proceed if nodes are initialized and measured
+          if (!nodesInitialized) return;
+
+          const variableNodes: Node[] = [];
+
+          // Find all formula nodes in the DOM
+          const formulaElements = document.querySelectorAll(".formula-node");
+
+          // PHASE 1: Create only variable nodes first
+          formulaElements.forEach((formulaElement, formulaIndex) => {
+            // Get the corresponding formula node ID and its React Flow node data
+            const formulaNodeId = `formula-${formulaIndex}`;
+            const formulaNode = currentNodes.find(
+              (node) => node.id === formulaNodeId
+            );
+
+            // Skip if we can't find the React Flow node or it's not measured yet
+            if (!formulaNode || !formulaNode.measured) return;
+
+            // Find variable elements within this formula
+            const variableElements = formulaElement.querySelectorAll(
+              '[class*="interactive-var-"]'
+            );
+
+            variableElements.forEach(
+              (varElement: Element, elementIndex: number) => {
+                const htmlVarElement = varElement as HTMLElement;
+                const cssId = htmlVarElement.id;
+                if (!cssId) return;
+
+                // Verify this variable exists in the computation store
+                if (!computationStore.variables.has(cssId)) return;
+
+                // Calculate position relative to the formula node, accounting for React Flow's zoom
+                const varRect = htmlVarElement.getBoundingClientRect();
+                const formulaRect = formulaElement.getBoundingClientRect();
+                const { position, dimensions } = getPosAndDim(
+                  varRect,
+                  formulaRect,
+                  viewport
+                );
+
+                const nodeId = `variable-${formulaIndex}-${cssId}-${elementIndex}`;
+
+                // Create only the variable node - no labels yet
+                variableNodes.push({
+                  id: nodeId,
+                  type: "variable",
+                  position,
+                  parentId: formulaNodeId, // Make this a subnode of the formula
+                  extent: "parent", // Constrain to parent bounds
+                  data: {
+                    varId: cssId,
+                    symbol: cssId,
+                    // VariableNode will get all variable data reactively from the store
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    labelPlacement: "below", // Default placement, will be updated in phase 2
+                    showBorders: showVariableBorders,
+                  },
+                  draggable: false, // Subnodes typically aren't independently draggable
+                  selectable: true,
+                });
+              }
+            );
+          });
+
+          // Add variable nodes to existing nodes first
+          if (variableNodes.length > 0) {
+            setNodes((currentNodes) => {
+              // Remove existing variable and label nodes and add new variable nodes
+              const nonVariableNodes = currentNodes.filter(
+                (node) =>
+                  !node.id.startsWith("variable-") &&
+                  !node.id.startsWith("label-")
+              );
+              return [...nonVariableNodes, ...variableNodes];
+            });
+
+            // Mark that variable nodes have been added
+            variableNodesAddedRef.current = true;
+
+            // PHASE 2: Add label nodes after variable nodes are positioned
+            // Use a small delay to ensure variable nodes are fully positioned
+            setTimeout(() => {
+              addLabelNodes();
+            }, 50);
+          }
+        };
+
+        // Check if MathJax is ready, but don't wait for promises
+        if (
+          window.MathJax &&
+          window.MathJax.startup &&
+          window.MathJax.startup.document
+        ) {
+          // MathJax is ready, proceed immediately
+          checkMathJaxAndProceed();
+        } else {
+          // Fall back to setTimeout if MathJax isn't ready
+          setTimeout(checkMathJaxAndProceed, 200);
+        }
+      });
+    }, [
+      getNodes,
+      getViewport,
+      nodesInitialized,
+      setNodes,
+      getPosAndDim,
+      showVariableBorders,
+      addLabelNodes,
+    ]);
 
     /**
      * Function to update variable nodes or add new ones (hybrid approach)
@@ -591,6 +621,7 @@ const CanvasFlow = observer(
                       width: dimensions.width,
                       height: dimensions.height,
                       labelPlacement: "below", // Default, will be updated when labels are recalculated
+                      showBorders: showVariableBorders,
                     },
                     draggable: false,
                     selectable: true,
@@ -662,7 +693,14 @@ const CanvasFlow = observer(
           setTimeout(processNodes, 200);
         }
       });
-    }, [getNodes, getViewport, nodesInitialized, setNodes, getPosAndDim]);
+    }, [
+      getNodes,
+      getViewport,
+      showVariableBorders,
+      nodesInitialized,
+      setNodes,
+      getPosAndDim,
+    ]);
 
     // Update nodes when formulas or controls change
     useEffect(() => {

@@ -59,6 +59,7 @@ const FormulaCanvas = observer(
     const [showVariableTreePane, setShowVariableTreePane] =
       useState<boolean>(false);
     const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
+    const [showVariableBorders, setShowVariableBorders] = useState<boolean>(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Extract variable ranges from Formulize configuration
@@ -249,6 +250,7 @@ const FormulaCanvas = observer(
             onShowVariableTreePane={() => setShowVariableTreePane(true)}
             onShowDebugModal={() => setShowDebugModal(true)}
             onOpenStoreModal={handleOpenStoreModal}
+            onToggleVariableBorders={() => setShowVariableBorders(!showVariableBorders)}
             showDebugButton={isStepMode}
           />
           <div
@@ -264,6 +266,7 @@ const FormulaCanvas = observer(
                 }
                 controls={currentConfig?.controls}
                 environment={currentConfig || undefined}
+                showVariableBorders={showVariableBorders}
               />
             </div>
           </div>
