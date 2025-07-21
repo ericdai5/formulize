@@ -99,6 +99,12 @@ const replaceNode = (
           }),
         })
       );
+    case "accent":
+      return replacer(
+        node.withChanges({
+          base: replaceNode(node.base, replacer),
+        })
+      );
   }
   return assertUnreachable(node);
 };
@@ -182,6 +188,11 @@ const reassignIds = (
           index: reassignIds(node.index, `${id}.index`),
         }),
       });
+    case "accent":
+      return node.withChanges({
+        id,
+        base: reassignIds(node.base, `${id}.base`),
+      });
   }
   return assertUnreachable(node);
 };
@@ -259,6 +270,11 @@ const fixParent = (
         ...(node.index !== undefined && {
           index: fixParent(node.index, node),
         }),
+      });
+    case "accent":
+      return node.withChanges({
+        parent,
+        base: fixParent(node.base, node),
       });
   }
   return assertUnreachable(node);
@@ -413,6 +429,12 @@ export const removeEmptyGroup = (
           }),
         }),
       ];
+    case "accent":
+      return [
+        node.withChanges({
+          base: exactlyOne(removeEmptyGroup(node.base)),
+        }),
+      ];
   }
   return assertUnreachable(node);
 };
@@ -465,6 +487,10 @@ const fixSibling = (node: AugmentedFormulaNode): AugmentedFormulaNode => {
         ...(node.index !== undefined && {
           index: fixSibling(node.index),
         }),
+      });
+    case "accent":
+      return node.withChanges({
+        base: fixSibling(node.base),
       });
     case "color":
     case "group":
@@ -575,6 +601,10 @@ const consolidateGroup = (
         ...(node.index !== undefined && {
           index: consolidateGroup(node.index, siblingGroups),
         }),
+      });
+    case "accent":
+      return node.withChanges({
+        base: consolidateGroup(node.base, siblingGroups),
       });
     case "array":
       return node.withChanges({

@@ -16,6 +16,7 @@ interface ToolbarProps {
   onShowVariableTreePane: () => void;
   onShowDebugModal: () => void;
   onOpenStoreModal: () => void;
+  showDebugButton?: boolean;
 }
 
 const Toolbar = ({
@@ -25,6 +26,7 @@ const Toolbar = ({
   onShowVariableTreePane,
   onShowDebugModal,
   onOpenStoreModal,
+  showDebugButton = false,
 }: ToolbarProps) => {
   return (
     <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
@@ -48,12 +50,14 @@ const Toolbar = ({
         onClick={onShowVariableTreePane}
         title="Show Variable Trees"
       />
-      <IconButton
-        icon={Footprints}
-        alt="Debug Manual Functions"
-        onClick={onShowDebugModal}
-        title="Debug Manual Functions"
-      />
+      {showDebugButton && (
+        <IconButton
+          icon={Footprints}
+          alt="Debug Manual Functions"
+          onClick={onShowDebugModal}
+          title="Debug Manual Functions"
+        />
+      )}
       <IconButton icon={Vault} alt="Store" onClick={onOpenStoreModal} />
     </div>
   );

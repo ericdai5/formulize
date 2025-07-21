@@ -197,24 +197,13 @@ const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
     // Check if current state's last stack frame is BlockStatement
     const currentLastFrame = current.stackTrace[current.stackTrace.length - 1];
     const isCurrentBlock = currentLastFrame?.includes("BlockStatement");
-    // Check if previous state's last stack frame was VariableDeclaration, ExpressionStatement, or ForStatement
+    // Check if previous state's last stack frame was NOT a BlockStatement
     const prevLastFrame = prev.stackTrace[prev.stackTrace.length - 1];
-    const isPreviousTarget =
-      prevLastFrame?.includes("VariableDeclaration") ||
-      prevLastFrame?.includes("ExpressionStatement") ||
-      prevLastFrame?.includes("ForStatement") ||
-      prevLastFrame?.includes("IfStatement") ||
-      prevLastFrame?.includes("WhileStatement") ||
-      prevLastFrame?.includes("DoWhileStatement") ||
-      prevLastFrame?.includes("FunctionDeclaration") ||
-      prevLastFrame?.includes("ClassDeclaration") ||
-      prevLastFrame?.includes("SwitchStatement") ||
-      prevLastFrame?.includes("TryStatement") ||
-      prevLastFrame?.includes("CatchClause") ||
-      prevLastFrame?.includes("ThrowStatement") ||
-      prevLastFrame?.includes("ReturnStatement") ||
-      prevLastFrame?.includes("BreakStatement");
-    return isCurrentBlock && isPreviousTarget;
+    const isPreviousNotBlock = !prevLastFrame?.includes("BlockStatement");
+
+    // We're at a block when we enter a BlockStatement from a non-BlockStatement
+    // This ensures we highlight the BlockStatement itself, not the statement after it
+    return isCurrentBlock && isPreviousNotBlock;
   } catch (error) {
     console.error("Error checking for block statement:", error);
     return false;

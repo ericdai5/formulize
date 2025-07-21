@@ -162,6 +162,20 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       }
     };
 
+    /*
+     * Helper function to convert character position from interpreter code to user code
+     * This is needed because the interpreter code is different from the user code
+     * The interpreter code starts with "function executeManualFunction() {"
+     * The user code starts with "function(variables) {"
+     * We need to find the offset difference
+     */
+    const convertCharPos = useCallback((interpreterCharPos: number): number => {
+      const interpreterHeader = "function executeManualFunction() {";
+      const userHeader = "function(variables) {";
+      const offset = interpreterHeader.length - userHeader.length;
+      return Math.max(0, interpreterCharPos - offset);
+    }, []);
+
     // Helper function to convert character position to line number
     const getLineFromCharPosition = useCallback(
       (code: string, charPosition: number): number => {
@@ -206,9 +220,12 @@ const DebugModal: React.FC<DebugModalProps> = observer(
             if (isAtBlock(ctx.history, index) && index > 0) {
               const previousState = ctx.history[index - 1];
               if (previousState?.highlight) {
+                const userCharPos = convertCharPos(
+                  previousState.highlight.start
+                );
                 const previousLine = getLineFromCharPosition(
                   userCode,
-                  previousState.highlight.start
+                  userCharPos
                 );
                 highlightUserViewLine(previousLine);
               }
@@ -216,7 +233,13 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           }
         }
       },
-      [setCurrentLine, getLineFromCharPosition, userCode, highlightUserViewLine]
+      [
+        setCurrentLine,
+        getLineFromCharPosition,
+        userCode,
+        highlightUserViewLine,
+        convertCharPos,
+      ]
     );
 
     const currentState = ctx.history[ctx.historyIndex];
@@ -234,10 +257,8 @@ const DebugModal: React.FC<DebugModalProps> = observer(
         if (isAtBlock(ctx.history, ctx.historyIndex) && ctx.historyIndex > 0) {
           const previousState = ctx.history[ctx.historyIndex - 1];
           if (previousState?.highlight) {
-            const previousLine = getLineFromCharPosition(
-              userCode,
-              previousState.highlight.start
-            );
+            const userCharPos = convertCharPos(previousState.highlight.start);
+            const previousLine = getLineFromCharPosition(userCode, userCharPos);
             highlightUserViewLine(previousLine);
           }
         }
@@ -253,6 +274,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       getLineFromCharPosition,
       userCode,
       highlightUserViewLine,
+      convertCharPos,
     ]);
 
     // Cleanup on unmount

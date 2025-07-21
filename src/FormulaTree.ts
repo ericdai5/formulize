@@ -397,6 +397,13 @@ const buildAugmentedFormula = (
       }
       break;
     }
+    case "accent": {
+      // Handle accent constructs like \hat{}, \bar{}, etc.
+      const base = buildAugmentedFormula(katexTree.base, `${id}.base`);
+      const accent = new Accent(id, katexTree.label, base);
+      base._parent = accent;
+      return accent;
+    }
   }
 
   console.log("Failed to build:", katexTree);
@@ -500,6 +507,7 @@ export type AugmentedFormulaNode =
   | Space
   | Aligned
   | Root
+  | Accent
   | Op
   | Strikethrough
   | Variable
@@ -1109,6 +1117,73 @@ export class Text extends AugmentedFormulaNodeBase {
       new UnstyledRange(String.raw`\text{`),
       ...this.children.flatMap((child) => child.toStyledRanges()),
       new UnstyledRange(String.raw`}`),
+    ];
+  }
+}
+
+/*
+ * ADDED DURING FORMULIZE DEVELOPMENT
+ * Still needs testing
+ */
+export class Accent extends AugmentedFormulaNodeBase {
+  type = "accent" as const;
+  constructor(
+    public id: string,
+    public label: string,
+    public base: AugmentedFormulaNode
+  ) {
+    super(id);
+  }
+
+  toLatex(mode: LatexMode, offset: number): LatexRange {
+    const baseElement = this.base.toLatex(mode, offset);
+    return consolidateRanges(
+      this.latexWithId(mode, [this.label, `{`, baseElement, `}`]),
+      offset,
+      this.id
+    );
+  }
+
+  withChanges({
+    id,
+    parent,
+    leftSibling,
+    rightSibling,
+    label,
+    base,
+  }: {
+    id?: string;
+    parent?: AugmentedFormulaNode | null;
+    leftSibling?: AugmentedFormulaNode | null;
+    rightSibling?: AugmentedFormulaNode | null;
+    label?: string;
+    base?: AugmentedFormulaNode;
+  }): Accent {
+    const accent = new Accent(
+      id ?? this.id,
+      label ?? this.label,
+      base ?? this.base
+    );
+    accent._parent = parent === undefined ? this._parent : parent;
+    accent._leftSibling =
+      leftSibling === undefined ? this._leftSibling : leftSibling;
+    accent._rightSibling =
+      rightSibling === undefined ? this._rightSibling : rightSibling;
+    return accent;
+  }
+
+  get children(): AugmentedFormulaNode[] {
+    return [this.base];
+  }
+
+  toStyledRanges(): FormulaLatexRangeNode[] {
+    return [
+      new StyledRange(
+        this.id,
+        this.label + "{",
+        this.base.toStyledRanges(),
+        "}"
+      ),
     ];
   }
 }
@@ -2329,6 +2404,35 @@ const recursivelyFindAndGroupVariableTree = (
       });
     }
 
+    case "accent": {
+      const nodeAccent = node as Accent;
+      const processedBase = recursivelyFindAndGroupVariableTree(
+        nodeAccent.base,
+        variableTreeChildren,
+        variableLatex,
+        originalSymbol
+      );
+
+      // Check if the base itself matches the variable pattern
+      const baseMatches =
+        variableTreeChildren.length === 1 &&
+        nodeMatches(nodeAccent.base, variableTreeChildren[0]);
+
+      let finalBase = processedBase;
+      if (baseMatches && !(processedBase.type === "variable")) {
+        finalBase = new Variable(
+          `var-${Date.now()}`,
+          nodeAccent.base,
+          variableLatex,
+          originalSymbol
+        );
+      }
+
+      return nodeAccent.withChanges({
+        base: finalBase,
+      });
+    }
+
     // For leaf nodes (symbol, space, op), just return them as-is
     case "symbol":
     case "space":
@@ -2641,6 +2745,16 @@ const nodeMatches = (
       return (
         nodeOp.operator === patternOp.operator &&
         nodeOp.limits === patternOp.limits
+      );
+    }
+
+    case "accent": {
+      // For accent nodes, check label and base
+      const nodeAccent = node as Accent;
+      const patternAccent = pattern as Accent;
+      return (
+        nodeAccent.label === patternAccent.label &&
+        nodeMatches(nodeAccent.base, patternAccent.base)
       );
     }
 

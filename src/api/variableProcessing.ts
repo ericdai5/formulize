@@ -1,4 +1,5 @@
 import {
+  Accent,
   Aligned,
   AugmentedFormula,
   AugmentedFormulaNode,
@@ -197,6 +198,12 @@ export const processVariablesInFormula = (
       case "op": {
         const op = node as Op;
         return op.limits ? `${op.operator}\\limits` : op.operator;
+      }
+
+      case "accent": {
+        const accent = node as Accent;
+        const base = processNode(accent.base);
+        return `${accent.label}{${base}}`;
       }
 
       default:

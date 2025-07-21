@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+import { observer } from "mobx-react-lite";
+
 import { Formulize, FormulizeConfig } from "../api/index.ts";
+import { computationStore } from "../api/computation.ts";
 import FormulaCodeEditor from "../components/api-code-editor.tsx";
 import Toolbar from "../components/debug-toolbar.tsx";
 import DebugModal from "../components/interpreter.tsx";
@@ -21,7 +24,7 @@ interface FormulaCanvasProps {
   onOpenStoreModal?: () => void;
 }
 
-const FormulaCanvas = ({
+const FormulaCanvas = observer(({
   formulizeConfig,
   formulizeFormula,
   autoRender = true,
@@ -90,6 +93,14 @@ const FormulaCanvas = ({
       setFormulizeInput(configToJsString(formulizeConfig));
     }
   }, [formulizeConfig, JSON.stringify(formulizeConfig)]);
+
+  // Close debug modal when step mode is no longer available
+  const isStepMode = computationStore.isStepMode();
+  useEffect(() => {
+    if (showDebugModal && !isStepMode) {
+      setShowDebugModal(false);
+    }
+  }, [showDebugModal, isStepMode]);
 
   // Execute user-provided JavaScript code to get configuration
   const executeUserCode = async (
@@ -237,6 +248,7 @@ const FormulaCanvas = ({
           onShowVariableTreePane={() => setShowVariableTreePane(true)}
           onShowDebugModal={() => setShowDebugModal(true)}
           onOpenStoreModal={handleOpenStoreModal}
+          showDebugButton={isStepMode}
         />
         <div
           ref={containerRef}
@@ -306,6 +318,6 @@ const FormulaCanvas = ({
       />
     </div>
   );
-};
+});
 
 export default FormulaCanvas;
