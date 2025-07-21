@@ -11,24 +11,31 @@ export const lossFunction = `const config = {
         var theta = variables["\\\\theta"].set;
         var mse = 0;
         for (var i = 0; i < m; i++) {
+          var index = i + 1;
           var yi = y[i];
           var yHati = yHat[i];
           var error = yi - yHati;
           mse += error * error;
         }
         mse = mse / m;
+        var lambda = variables["\\\\lambda"].value;
         var regularization = 0;
         for (var j = 0; j < theta.length; j++) {
-          regularization += theta[j] * theta[j];
+          var indexj = j + 1;
+          var thetaj = theta[j];
+          regularization += thetaj * thetaj;
         }
         regularization = lambda * regularization;
-        return mse + regularization;
+        var loss = mse + regularization;
+        return loss;
       },
       variableLinkage: {
+        "index": "i",
         "yi": "y",
         "yHati": "\\\\hat{y}",
-        "mse": "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2",
-        "regularization": "\\\\lambda \\\\sum_{j=1}^{K} ||\\\\theta_j||^2",
+        "lambda": "\\\\lambda",
+        "indexj": "j",
+        "thetaj": "\\\\theta",
         "loss": "J(\\\\theta)"
       },
     },
@@ -59,14 +66,29 @@ export const lossFunction = `const config = {
     "\\\\lambda": {
       type: "input",
       value: 0.1,
+      label: "\\\\lambda: regularization parameter",
       precision: 1
     },
     "\\\\theta": {
       type: "input",
       set: [0.5, -1.0],
+      label: "\\\\theta: parameters of the model",
       precision: 1
     },
+    K: {
+      type: "input",
+      label: "K: number of features",
+      value: 2,
+      precision: 0,
+    },
     i: {
+      type: "input",
+      label: "Index",
+      value: 1,
+      precision: 0,
+      showName: false,
+    },
+    j: {
       type: "input",
       label: "Index",
       value: 1,

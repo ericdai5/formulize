@@ -215,6 +215,8 @@ const TreeElement = ({ tree }: { tree: AugmentedFormulaNode }) => {
         return "Strikethrough";
       case "variable":
         return `Variable: ${(tree as Variable).variableLatex}`;
+      case "accent":
+        return "Accent";
       default:
         return "Unknown";
     }
