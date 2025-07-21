@@ -6,60 +6,48 @@ import { computationStore } from "../api/computation.ts";
 import { Formulize, FormulizeConfig } from "../api/index.ts";
 import FormulaCodeEditor from "../components/api-code-editor.tsx";
 import Toolbar from "../components/debug-toolbar.tsx";
+import EvaluationFunctionPane from "../components/evaluation-function";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
 import { kineticEnergy } from "../examples/kineticEnergy";
+import { examples as formulaExamples } from "../examples/index.ts";
 import { FormulaElementPane } from "../pages/api/formula-tree-pane.tsx";
 import { VariableTreesPane } from "../pages/api/variable-tree-pane.tsx";
-import { IEnvironment } from "../types/environment.ts";
 import Canvas from "./canvas.tsx";
 
 interface FormulaCanvasProps {
   formulizeConfig?: FormulizeConfig;
-  formulizeFormula?: IEnvironment;
   autoRender?: boolean;
   onConfigChange?: (config: FormulizeConfig) => void;
-  onOpenEvaluationModal?: () => void;
-  onOpenStoreModal?: () => void;
+  selectedTemplate?: keyof typeof formulaExamples;
 }
 
 const FormulaCanvas = observer(
   ({
     formulizeConfig,
-    formulizeFormula,
     autoRender = true,
     onConfigChange,
-    onOpenEvaluationModal,
-    onOpenStoreModal,
+    selectedTemplate,
   }: FormulaCanvasProps) => {
-    // Use formulizeConfig if provided, otherwise use the formulizeFormula, or fall back to null
-    const initialConfig = formulizeConfig?.formulas
-      ? formulizeConfig
-      : formulizeFormula
-        ? formulizeFormula
-        : null;
+    // Use formulizeConfig if provided, otherwise fall back to null
+    const initialConfig = formulizeConfig || null;
 
-    // Convert the config to a JavaScript format for display
-    // Use the kineticEnergy template as the default template
-    const configToJsString = (config: FormulizeConfig | null): string => {
-      return kineticEnergy;
-    };
-
-    const [formulizeInput, setFormulizeInput] = useState<string>(
-      configToJsString(initialConfig)
-    );
+    const [formulizeInput, setFormulizeInput] = useState<string>(kineticEnergy);
     const [isRendered, setIsRendered] = useState<boolean>(autoRender);
     const [error, setError] = useState<string | null>(null);
     const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
       initialConfig
     );
     const [showStoreModal, setShowStoreModal] = useState<boolean>(false);
+    const [showEvaluationModal, setShowEvaluationModal] =
+      useState<boolean>(false);
     const [showElementPane, setShowElementPane] = useState<boolean>(false);
     const [showVariableTreePane, setShowVariableTreePane] =
       useState<boolean>(false);
     const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
-    const [showVariableBorders, setShowVariableBorders] = useState<boolean>(false);
+    const [showVariableBorders, setShowVariableBorders] =
+      useState<boolean>(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Extract variable ranges from Formulize configuration
@@ -92,9 +80,18 @@ const FormulaCanvas = observer(
     // Update the formula display when the config changes
     useEffect(() => {
       if (formulizeConfig && formulizeConfig !== initialConfig) {
-        setFormulizeInput(configToJsString(formulizeConfig));
+        setFormulizeInput(kineticEnergy);
       }
-    }, [formulizeConfig, JSON.stringify(formulizeConfig)]);
+    }, [initialConfig, formulizeConfig]);
+
+    // Update formulize input when selectedTemplate changes
+    useEffect(() => {
+      if (selectedTemplate && formulaExamples[selectedTemplate]) {
+        const newFormula = formulaExamples[selectedTemplate];
+        setFormulizeInput(newFormula);
+        renderFormula(newFormula);
+      }
+    }, [selectedTemplate]);
 
     // Close debug modal when step mode is no longer available
     const isStepMode = computationStore.isStepMode();
@@ -233,11 +230,11 @@ const FormulaCanvas = observer(
     };
 
     const handleOpenStoreModal = () => {
-      if (onOpenStoreModal) {
-        onOpenStoreModal();
-      } else {
-        setShowStoreModal(true);
-      }
+      setShowStoreModal(true);
+    };
+
+    const handleOpenEvaluationModal = () => {
+      setShowEvaluationModal(true);
     };
 
     return (
@@ -245,19 +242,19 @@ const FormulaCanvas = observer(
         <div className="flex flex-col w-full h-full relative">
           <Toolbar
             onToggleRender={() => setIsRendered(!isRendered)}
-            onOpenEvaluationModal={onOpenEvaluationModal}
+            onOpenEvaluationModal={handleOpenEvaluationModal}
             onShowElementPane={() => setShowElementPane(true)}
             onShowVariableTreePane={() => setShowVariableTreePane(true)}
             onShowDebugModal={() => setShowDebugModal(true)}
             onOpenStoreModal={handleOpenStoreModal}
-            onToggleVariableBorders={() => setShowVariableBorders(!showVariableBorders)}
+            onToggleVariableBorders={() =>
+              setShowVariableBorders(!showVariableBorders)
+            }
             showDebugButton={isStepMode}
           />
           <div
             ref={containerRef}
-            className={`interactive-formula-container w-full overflow-auto transition-all duration-300 ease-in-out ${
-              isRendered ? "h-full" : "h-1/2"
-            }`}
+            className="interactive-formula-container w-full h-full overflow-auto"
           >
             <div className="min-w-0 w-full h-full overflow-auto bg-slate-50 text-center">
               <Canvas
@@ -271,7 +268,7 @@ const FormulaCanvas = observer(
             </div>
           </div>
           <div
-            className={`absolute inset-x-0 bottom-0 h-1/2 transition-transform duration-300 ease-in-out ${
+            className={`absolute inset-x-0 bottom-0 h-1/2 transition-transform duration-300 ease-in-out z-10 ${
               isRendered ? "translate-y-full" : "translate-y-0"
             }`}
           >
@@ -283,7 +280,6 @@ const FormulaCanvas = observer(
             />
           </div>
         </div>
-
         {/* Element Pane Modal */}
         <Modal
           isOpen={showElementPane}
@@ -293,7 +289,6 @@ const FormulaCanvas = observer(
         >
           <FormulaElementPane />
         </Modal>
-
         {/* Variable Tree Pane Modal */}
         <Modal
           isOpen={showVariableTreePane}
@@ -303,7 +298,15 @@ const FormulaCanvas = observer(
         >
           <VariableTreesPane config={currentConfig} />
         </Modal>
-
+        {/* Evaluation Modal */}
+        <Modal
+          isOpen={showEvaluationModal}
+          onClose={() => setShowEvaluationModal(false)}
+          title="Evaluation Function"
+          maxWidth="max-w-4xl"
+        >
+          <EvaluationFunctionPane className="h-full" />
+        </Modal>
         {/* Store Modal */}
         <Modal
           isOpen={showStoreModal}
@@ -313,7 +316,6 @@ const FormulaCanvas = observer(
         >
           <StorePane className="h-full" />
         </Modal>
-
         {/* Debug Modal */}
         <DebugModal
           isOpen={showDebugModal}
