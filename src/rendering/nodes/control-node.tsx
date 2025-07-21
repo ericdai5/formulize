@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 
-import ControlPanel from "../components/controls/controls";
+import ControlPanel from "../../components/controls/controls";
 
 // Custom Control Panel Node Component
 const ControlNode = observer(({ data }: { data: any }) => {

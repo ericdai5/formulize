@@ -1,4 +1,4 @@
-import Canvas from "../../formula/canvas";
+import Canvas from "../../rendering/canvas";
 import { Debug } from "./Debug";
 import { Editor } from "./Editor";
 import { ElementPane } from "./ElementPane";

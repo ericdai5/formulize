@@ -24,7 +24,7 @@ import { FormulaStore } from "../store/FormulaStoreManager";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
 import { CustomControls } from "./custom-controls";
-import { nodeTypes as defaultNodeTypes } from "./node";
+import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 import { NodeBounds, getLabelNodePos } from "./util/label-node";
 
 interface CanvasProps {

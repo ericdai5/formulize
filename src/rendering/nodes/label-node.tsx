@@ -2,7 +2,7 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { computationStore } from "../api/computation";
+import { computationStore } from "../../api/computation";
 
 export interface LabelNodeData {
   varId: string;

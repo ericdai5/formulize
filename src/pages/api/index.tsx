@@ -5,7 +5,7 @@ import { computationStore } from "../../api/computation";
 import EvaluationFunctionPane from "../../components/evaluation-function";
 import Modal from "../../components/modal";
 import StorePane from "../../components/variable-overview";
-import FormulaCanvas from "../../formula/formula-canvas";
+import FormulaCanvas from "../../rendering/formula-canvas";
 import VisualizationRenderer from "../../visualizations/VisualizationRenderer";
 
 export default function APIPage() {

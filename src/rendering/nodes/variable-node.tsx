@@ -2,8 +2,8 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { computationStore } from "../api/computation";
-import { useVariableDrag } from "./useVariableDrag";
+import { computationStore } from "../../api/computation";
+import { useVariableDrag } from "../../rendering/useVariableDrag";
 
 export interface VariableNodeData {
   varId: string;
