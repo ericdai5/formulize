@@ -12,6 +12,7 @@ import { summationDefault } from "./summationDefault";
 import { taylorSeries } from "./taylorSeries";
 import { testing } from "./testing";
 import { vectorAddition } from "./vectorAddition";
+import { lossFunction } from "./lossFunction";
 
 export const examples = {
   kineticEnergy,
@@ -28,6 +29,7 @@ export const examples = {
   summationDefault,
   taylorSeries,
   vectorAddition,
+  lossFunction,
 };
 
 export const exampleDisplayNames = {
@@ -45,6 +47,7 @@ export const exampleDisplayNames = {
   summationDefault: "Summation Default",
   taylorSeries: "Taylor Series",
   vectorAddition: "Vector Addition",
+  lossFunction: "Loss Function with Regularization",
 } as const;
 
 export default examples;
