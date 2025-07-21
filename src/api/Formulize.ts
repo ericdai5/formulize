@@ -12,7 +12,6 @@ import { IEnvironment } from "../types/environment";
 import { IVariable } from "../types/variable";
 import { getVariable } from "../util/computation-helpers";
 import { computationStore } from "./computation";
-import { setVariable } from "./propagation";
 
 export interface FormulizeConfig extends IEnvironment {}
 
