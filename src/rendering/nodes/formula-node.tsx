@@ -7,9 +7,9 @@ import { GripHorizontal, GripVertical } from "lucide-react";
 
 import { computationStore } from "../../api/computation";
 import { processLatexContent } from "../../api/variableProcessing";
-import { dragHandler } from "../../rendering/dragHandler";
-import { dropdownHandler } from "../../rendering/dropdownHandler";
-import { stepHandler } from "../../rendering/stepHandler";
+import { dragHandler } from "../interaction/drag-handler";
+import { dropdownHandler } from "../interaction/dropdown-handler";
+import { stepHandler } from "../interaction/step-handler";
 
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: any }) => {

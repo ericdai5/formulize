@@ -1,8 +1,8 @@
-import { computationStore } from "../api/computation";
+import { computationStore } from "../../api/computation";
 import {
   findVariableByElement,
   getInputVariableState,
-} from "../api/variableProcessing";
+} from "../../api/variableProcessing";
 
 export const dragHandler = (
   container: HTMLElement,

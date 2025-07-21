@@ -1,4 +1,4 @@
-import { applyCue, updateVariables } from "../../../rendering/stepHandler";
+import { applyCue, updateVariables } from "../../../rendering/interaction/step-handler";
 import { computationStore } from "../../computation";
 import { DEBUG_VARIABLE_NAMES, ERROR_MESSAGES } from "./constants";
 import {

@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
-import { applyCue, updateAllVariables } from "../../../rendering/stepHandler";
+import { applyCue, updateAllVariables } from "../../../rendering/interaction/step-handler";
 import { IArrayControl } from "../../../types/control";
 import { IEnvironment } from "../../../types/environment";
 import { extractViews } from "../../../util/acorn";
