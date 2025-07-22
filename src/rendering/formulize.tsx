@@ -18,23 +18,17 @@ import Canvas from "./canvas.tsx";
 
 interface FormulizeProps {
   formulizeConfig?: FormulizeConfig;
-  autoRender?: boolean;
   onConfigChange?: (config: FormulizeConfig) => void;
   selectedTemplate?: keyof typeof formulaExamples;
 }
 
 const FormulaCanvas = observer(
-  ({
-    formulizeConfig,
-    autoRender = true,
-    onConfigChange,
-    selectedTemplate,
-  }: FormulizeProps) => {
+  ({ formulizeConfig, onConfigChange, selectedTemplate }: FormulizeProps) => {
     // Use formulizeConfig if provided, otherwise fall back to null
     const initialConfig = formulizeConfig || null;
 
     const [formulizeInput, setFormulizeInput] = useState<string>(kineticEnergy);
-    const [isRendered, setIsRendered] = useState<boolean>(autoRender);
+    const [isRendered, setIsRendered] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
       initialConfig
@@ -287,12 +281,6 @@ const FormulaCanvas = observer(
       },
       [formulizeInput, executeUserCode]
     );
-
-    useEffect(() => {
-      if (autoRender) {
-        renderFormula();
-      }
-    }, [autoRender, renderFormula]);
 
     // Update the formula display when the config changes
     useEffect(() => {
