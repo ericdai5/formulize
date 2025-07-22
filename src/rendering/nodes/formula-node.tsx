@@ -5,11 +5,11 @@ import { observer } from "mobx-react-lite";
 
 import { GripHorizontal, GripVertical } from "lucide-react";
 
-import { computationStore } from "../api/computation";
-import { processLatexContent } from "../api/variableProcessing";
-import { dragHandler } from "./dragHandler";
-import { dropdownHandler } from "./dropdownHandler";
-import { stepHandler } from "./stepHandler";
+import { computationStore } from "../../api/computation";
+import { processLatexContent } from "../../api/variableProcessing";
+import { dragHandler } from "../interaction/drag-handler";
+import { dropdownHandler } from "../interaction/dropdown-handler";
+import { stepHandler } from "../interaction/step-handler";
 
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: any }) => {

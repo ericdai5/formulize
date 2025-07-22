@@ -2,6 +2,7 @@ import {
   Code,
   Footprints,
   ListTree,
+  SquareDashed,
   SquareFunction,
   Variable,
   Vault,
@@ -16,6 +17,7 @@ interface ToolbarProps {
   onShowVariableTreePane: () => void;
   onShowDebugModal: () => void;
   onOpenStoreModal: () => void;
+  onToggleVariableBorders: () => void;
   showDebugButton?: boolean;
 }
 
@@ -26,6 +28,7 @@ const Toolbar = ({
   onShowVariableTreePane,
   onShowDebugModal,
   onOpenStoreModal,
+  onToggleVariableBorders,
   showDebugButton = false,
 }: ToolbarProps) => {
   return (
@@ -59,6 +62,12 @@ const Toolbar = ({
         />
       )}
       <IconButton icon={Vault} alt="Store" onClick={onOpenStoreModal} />
+      <IconButton
+        icon={SquareDashed}
+        alt="Toggle Variable Borders"
+        onClick={onToggleVariableBorders}
+        title="Toggle Variable Borders"
+      />
     </div>
   );
 };

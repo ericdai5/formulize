@@ -1,18 +1,13 @@
 import { EditorView } from "@codemirror/view";
 
-import { applyCue, updateAllVariables } from "../../../formula/stepHandler";
+import { applyCue, updateAllVariables } from "../../../rendering/interaction/step-handler";
 import { IArrayControl } from "../../../types/control";
 import { IEnvironment } from "../../../types/environment";
 import { extractViews } from "../../../util/acorn";
 import { computationStore } from "../../computation";
 import { executionStore as ctx } from "../../execution";
 import { ERROR_MESSAGES } from "./constants";
-import {
-  JSInterpreter,
-  initializeInterpreter,
-  isAtBlock,
-  isAtView,
-} from "./interpreter";
+import { initializeInterpreter, isAtBlock, isAtView } from "./interpreter";
 import { Step } from "./step";
 import { VariableExtractor } from "./variableExtractor";
 
@@ -401,9 +396,6 @@ export class Controller {
         ctx.code
       );
       const updatedVarIds = updateAllVariables(variables, ctx.linkageMap);
-
-      console.log("Controller - updatedVarIds", updatedVarIds);
-
       if (updatedVarIds.size > 0) {
         requestAnimationFrame(() => {
           applyCue(updatedVarIds);

@@ -2,17 +2,18 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { computationStore } from "../api/computation";
-import { useVariableDrag } from "./useVariableDrag";
+import { computationStore } from "../../api/computation";
+import { useVariableDrag } from "../../rendering/useVariableDrag";
 
 export interface VariableNodeData {
   varId: string;
   width?: number;
   height?: number;
+  showBorders?: boolean;
 }
 
 const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
-  const { varId, width, height } = data;
+  const { varId, width, height, showBorders = false } = data;
   const variable = computationStore.variables.get(varId);
   const type = variable?.type === "input" ? "input" : "output";
   const hasDropdownOptions = !!(variable?.set || variable?.options);
@@ -26,7 +27,9 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   return (
     <div
       ref={nodeRef}
-      className="variable-flow-node text-xs text-white border-blue-500 border bg-blue-500/50 border-dashed rounded-lg px-3 py-2 text-center nodrag"
+      className={`variable-flow-node text-xs text-white border-dashed rounded-lg px-3 py-2 text-center nodrag ${
+        showBorders ? "border border-blue-500 bg-blue-500/50" : ""
+      }`}
       style={{
         backgroundColor: "transparent",
         pointerEvents: "auto",

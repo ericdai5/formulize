@@ -5,9 +5,6 @@ export type { FormulizeConfig, FormulizeInstance } from "./Formulize";
 // Export computation API
 export { computationStore } from "./computation";
 
-// Export utility functions
-export { setVariable } from "./propagation";
-
 // Export custom visualization registration functions
 export {
   register,

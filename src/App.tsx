@@ -27,11 +27,6 @@ function App() {
       // Clear formula store
       formulaStore.updateFormula(new AugmentedFormula([]));
 
-      // Clear any saved Formulize config
-      if (window.__lastFormulizeConfig) {
-        delete window.__lastFormulizeConfig;
-      }
-
       // Reset computation store variables
       computationStore.variables.clear();
       computationStore.setLastGeneratedCode(null);
@@ -41,7 +36,8 @@ function App() {
 
   return (
     <div className="flex flex-col w-full h-full">
-      <Header viewMode={viewMode} setViewMode={setViewMode} />
+      {/* TODO: This is the old nav, with a side bar with access to the formula forge editor, if we want to add it back, we need to make the forge work with the new formulize system because currently the forge is not working*/}
+      {/* <Header viewMode={viewMode} setViewMode={setViewMode} /> */}
       {viewMode === "formulizeAPI" ? (
         <APIPage />
       ) : viewMode === "editor" ? (
