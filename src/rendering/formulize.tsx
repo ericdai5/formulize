@@ -7,13 +7,13 @@ import { Formulize, FormulizeConfig } from "../api/index.ts";
 import FormulaCodeEditor from "../components/api-code-editor.tsx";
 import Toolbar from "../components/debug-toolbar.tsx";
 import EvaluationFunctionPane from "../components/evaluation-function";
+import { FormulaTreePane } from "../components/formula-tree-pane.tsx";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
+import { VariableTreesPane } from "../components/variable-tree-pane.tsx";
 import { examples as formulaExamples } from "../examples/index.ts";
 import { kineticEnergy } from "../examples/kineticEnergy";
-import { FormulaElementPane } from "../pages/api/formula-tree-pane.tsx";
-import { VariableTreesPane } from "../pages/api/variable-tree-pane.tsx";
 import Canvas from "./canvas.tsx";
 
 interface FormulizeProps {
@@ -55,7 +55,6 @@ const FormulaCanvas = observer(
     useEffect(() => {
       onConfigChangeRef.current = onConfigChange;
     }, [onConfigChange]);
-
 
     // Execute user-provided JavaScript code to get configuration
     // Uses a sandboxed iframe for secure code execution, preventing access to the main page context
@@ -374,7 +373,7 @@ const FormulaCanvas = observer(
           title="Formula Elements"
           maxWidth="max-w-md"
         >
-          <FormulaElementPane />
+          <FormulaTreePane />
         </Modal>
         {/* Variable Tree Pane Modal */}
         <Modal

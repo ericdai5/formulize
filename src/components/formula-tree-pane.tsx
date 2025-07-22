@@ -15,15 +15,15 @@ import {
   Group,
   Script,
   Variable,
-} from "../../FormulaTree";
-import { assertUnreachable, replaceNodes } from "../../formulaTransformations";
+} from "../FormulaTree";
+import { assertUnreachable, replaceNodes } from "../formulaTransformations";
+import { ColorPicker, ColorSwatch } from "../pages/editor/Menu";
 import {
   FormulaStore,
   formulaStoreManager,
-} from "../../store/FormulaStoreManager";
-import { ColorPicker, ColorSwatch } from "../editor/Menu";
+} from "../store/FormulaStoreManager";
 
-import CurlyBraceListOption from "../../Icons/CurlyBraceListOption.svg";
+import CurlyBraceListOption from "../Icons/CurlyBraceListOption.svg";
 
 const FormulaElementPaneContext = createContext<{
   collapsed: { [key: string]: boolean };
@@ -37,13 +37,13 @@ const FormulaElementPaneContext = createContext<{
   onSelectNode: () => {},
 });
 
-interface FormulaElementPaneProps {
+interface FormulaTreePaneProps {
   formulaStore?: FormulaStore;
   storeId?: string;
 }
 
-export const FormulaElementPane = observer(
-  ({ formulaStore, storeId }: FormulaElementPaneProps) => {
+export const FormulaTreePane = observer(
+  ({ formulaStore, storeId }: FormulaTreePaneProps) => {
     // Get the store either from props or from the manager using storeId or default to first store
     const store =
       formulaStore ||
@@ -131,7 +131,7 @@ export const FormulaElementPane = observer(
           >
             {store.augmentedFormula.children.map((tree) => (
               <div key={tree.id}>
-                <ElementTree tree={tree} store={store} />
+                <FormulaTree tree={tree} store={store} />
               </div>
             ))}
           </FormulaElementPaneContext.Provider>
@@ -141,7 +141,7 @@ export const FormulaElementPane = observer(
   }
 );
 
-const ElementTree = observer(
+const FormulaTree = observer(
   ({ tree, store }: { tree: AugmentedFormulaNode; store: FormulaStore }) => {
     const { collapsed, onCollapse, selectedNodes, onSelectNode } = useContext(
       FormulaElementPaneContext
@@ -174,7 +174,7 @@ const ElementTree = observer(
         <div className="ml-8">
           {!collapsed[tree.id] &&
             tree.children.map((child) => (
-              <ElementTree tree={child} key={child.id} store={store} />
+              <FormulaTree tree={child} key={child.id} store={store} />
             ))}
         </div>
       </div>
