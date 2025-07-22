@@ -12,7 +12,7 @@ export default function APIPage() {
   >(undefined);
   const [selectedTemplate, setSelectedTemplate] = useState<
     keyof typeof formulaExamples | undefined
-  >();
+  >("kineticEnergy");
 
   useEffect(() => {
     if (currentFormulaConfig?.computation?.engine) {
