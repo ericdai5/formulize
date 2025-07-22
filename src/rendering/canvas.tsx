@@ -23,7 +23,7 @@ import { computationStore } from "../api/computation";
 import { FormulaStore } from "../store/FormulaStoreManager";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
-import { CustomControls } from "./custom-controls";
+import { CanvasControls } from "./canvas-controls";
 import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 import { NodeBounds, getLabelNodePos } from "./util/label-node";
 
@@ -841,7 +841,7 @@ const CanvasFlow = observer(
             size={1}
             variant={BackgroundVariant.Dots}
           />
-          <CustomControls />
+          <CanvasControls />
         </ReactFlow>
       </div>
     );
