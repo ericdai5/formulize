@@ -16,7 +16,7 @@ import { FormulaElementPane } from "../pages/api/formula-tree-pane.tsx";
 import { VariableTreesPane } from "../pages/api/variable-tree-pane.tsx";
 import Canvas from "./canvas.tsx";
 
-interface FormulaCanvasProps {
+interface FormulizeProps {
   formulizeConfig?: FormulizeConfig;
   autoRender?: boolean;
   onConfigChange?: (config: FormulizeConfig) => void;
@@ -29,7 +29,7 @@ const FormulaCanvas = observer(
     autoRender = true,
     onConfigChange,
     selectedTemplate,
-  }: FormulaCanvasProps) => {
+  }: FormulizeProps) => {
     // Use formulizeConfig if provided, otherwise fall back to null
     const initialConfig = formulizeConfig || null;
 

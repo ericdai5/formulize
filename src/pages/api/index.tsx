@@ -4,14 +4,16 @@ import { FormulizeConfig } from "../../api/Formulize";
 import { computationStore } from "../../api/computation";
 import TemplateSelector from "../../components/template-selector";
 import { examples as formulaExamples } from "../../examples";
-import FormulaCanvas from "../../rendering/formula-canvas";
+import Formulize from "../../rendering/formulize";
 
 export default function APIPage() {
   const [currentFormulaConfig, setCurrentFormulaConfig] = useState<
     FormulizeConfig | undefined
   >(undefined);
-  const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof formulaExamples | undefined>();
-  
+  const [selectedTemplate, setSelectedTemplate] = useState<
+    keyof typeof formulaExamples | undefined
+  >();
+
   useEffect(() => {
     if (currentFormulaConfig?.computation?.engine) {
       computationStore.computationEngine =
@@ -21,7 +23,7 @@ export default function APIPage() {
 
   return (
     <div className="relative h-full">
-      <FormulaCanvas
+      <Formulize
         formulizeConfig={currentFormulaConfig}
         selectedTemplate={selectedTemplate}
         onConfigChange={(config) => {
