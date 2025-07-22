@@ -27,11 +27,6 @@ function App() {
       // Clear formula store
       formulaStore.updateFormula(new AugmentedFormula([]));
 
-      // Clear any saved Formulize config
-      if (window.__lastFormulizeConfig) {
-        delete window.__lastFormulizeConfig;
-      }
-
       // Reset computation store variables
       computationStore.variables.clear();
       computationStore.setLastGeneratedCode(null);

@@ -267,7 +267,7 @@ const CanvasFlow = observer(
             id: `visualization-${index}`,
             type: "visualization",
             position: { x: 800, y: vizY }, // Position to the right of formulas
-            data: { visualization },
+            data: { visualization, environment },
             draggable: true,
             dragHandle: ".visualization-drag-handle",
           });

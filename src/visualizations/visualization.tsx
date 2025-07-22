@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 
+import { FormulizeConfig } from "../api";
 import { IVisualization } from "../types/visualization";
 import Canvas from "./custom/canvas";
 import Plot2D from "./plot2d/Plot2D";
@@ -7,7 +8,8 @@ import Plot3D from "./plot3d/Plot3D";
 
 const VisualizationRenderer: React.FC<{
   visualization: IVisualization;
-}> = ({ visualization }) => {
+  environment?: FormulizeConfig;
+}> = ({ visualization, environment }) => {
   // 1. Force re-renders when visualization config changes by using a key state
   // 2. Extract complex expression to a variable for useEffect dependency
   // 3. Use useEffect to update render key when visualization config changes
@@ -56,7 +58,11 @@ const VisualizationRenderer: React.FC<{
 
         {/* Use render key to force complete re-creation of Plot3D component when config changes */}
         <div className="flex items-center justify-center h-full">
-          <Plot3D key={`plot3d-${renderKey}`} config={config} />
+          <Plot3D
+            key={`plot3d-${renderKey}`}
+            config={config}
+            environment={environment}
+          />
         </div>
       </div>
     );

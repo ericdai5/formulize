@@ -10,8 +10,8 @@ import EvaluationFunctionPane from "../components/evaluation-function";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
-import { kineticEnergy } from "../examples/kineticEnergy";
 import { examples as formulaExamples } from "../examples/index.ts";
+import { kineticEnergy } from "../examples/kineticEnergy";
 import { FormulaElementPane } from "../pages/api/formula-tree-pane.tsx";
 import { VariableTreesPane } from "../pages/api/variable-tree-pane.tsx";
 import Canvas from "./canvas.tsx";
@@ -209,12 +209,10 @@ const FormulaCanvas = observer(
 
         // Create the formula using Formulize API and handle success:
         // • Create formula instance with Formulize.create()
-        // • Store config globally for access by other components
-        // • Store current config in state
+        // • Store config in component state for access by child components
         // • Notify parent of config change via callback if provided
         try {
           await Formulize.create(configToUse);
-          window.__lastFormulizeConfig = configToUse;
           setCurrentConfig(configToUse);
           if (onConfigChange) {
             onConfigChange(configToUse);
