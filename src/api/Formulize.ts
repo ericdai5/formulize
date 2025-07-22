@@ -35,8 +35,8 @@ export interface FormulizeInstance {
 
 // Set up computation engine configuration
 function setupComputationEngine(environment: IEnvironment) {
-  computationStore.computationEngine = environment.computation.engine;
-  computationStore.computationConfig = environment.computation;
+  computationStore.setComputationEngine(environment.computation.engine);
+  computationStore.setComputationConfig(environment.computation);
 }
 
 // Validate environment configuration

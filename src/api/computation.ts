@@ -107,6 +107,16 @@ class ComputationStore {
   }
 
   @action
+  setComputationConfig(config: IComputation | null) {
+    this.computationConfig = config;
+  }
+
+  @action
+  setComputationEngine(engine: "llm" | "symbolic-algebra" | "manual") {
+    this.computationEngine = engine;
+  }
+
+  @action
   setInitializing(initializing: boolean) {
     this.isInitializing = initializing;
   }
