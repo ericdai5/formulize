@@ -121,12 +121,8 @@ class ComputationStore {
     this.isInitializing = initializing;
   }
 
-  /**
-   * TO DO: Will probably have to rename this, since it's not just clearing variables.
-   * This is important for switching between templates in the playground. But also general reset.
-   */
   @action
-  clearAllVariables() {
+  reset() {
     this.variables.clear();
     this.environment = null;
     this.symbolicFunctions = [];

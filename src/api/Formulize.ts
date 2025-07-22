@@ -76,7 +76,7 @@ async function create(
 
     // Reset all state to ensure we start fresh
     // Clear computation store variables and state
-    computationStore.clearAllVariables();
+    computationStore.reset();
     computationStore.setLastGeneratedCode(null);
     computationStore.setVariableTypesChanged(0);
 
