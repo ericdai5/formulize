@@ -6,8 +6,17 @@ import * as acorn from "acorn";
 import App from "./App.tsx";
 import "./index.css";
 
-// Make acorn globally available for JS-Interpreter
-(window as unknown as { acorn: typeof acorn }).acorn = acorn;
+// Make acorn globally available for JS-Interpreter with proper default options
+const acornWithDefaults = {
+  ...acorn,
+  defaultOptions: { ecmaVersion: 2020 },
+  parse: (code: string, options = {}) => {
+    return acorn.parse(code, { ecmaVersion: 2020, ...options });
+  },
+};
+
+(window as unknown as { acorn: typeof acornWithDefaults }).acorn =
+  acornWithDefaults;
 
 // Only enable react-scan in development
 if (import.meta.env.DEV) {

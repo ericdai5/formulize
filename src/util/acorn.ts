@@ -62,6 +62,7 @@ export const extractVariableNames = (code: string): string[] => {
     }
 
     const ast = window.acorn.parse(code, {
+      ecmaVersion: 2020,
       allowReturnOutsideFunction: true,
       strictSemicolons: false,
       allowTrailingCommas: true,
@@ -189,6 +190,7 @@ export const extractViews = (
 
     // Parse the code to get the AST
     const ast = window.acorn.parse(code, {
+      ecmaVersion: 2020,
       allowReturnOutsideFunction: true,
       strictSemicolons: false,
       allowTrailingCommas: true,

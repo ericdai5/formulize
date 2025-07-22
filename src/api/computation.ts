@@ -107,13 +107,28 @@ class ComputationStore {
   }
 
   @action
+  setComputationConfig(config: IComputation | null) {
+    this.computationConfig = config;
+  }
+
+  @action
+  setComputationEngine(engine: "llm" | "symbolic-algebra" | "manual") {
+    this.computationEngine = engine;
+  }
+
+  @action
   setInitializing(initializing: boolean) {
     this.isInitializing = initializing;
   }
 
   @action
-  clearAllVariables() {
+  reset() {
     this.variables.clear();
+    this.environment = null;
+    this.symbolicFunctions = [];
+    this.manualFunctions = [];
+    this.evaluationFunction = null;
+    this.displayedFormulas = [];
   }
 
   @action

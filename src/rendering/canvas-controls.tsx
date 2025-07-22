@@ -4,7 +4,7 @@ import { useReactFlow } from "@xyflow/react";
 import { Maximize, Minus, Plus } from "lucide-react";
 
 // Custom Controls Component - Memoized to prevent unnecessary re-renders
-export const CustomControls = memo(() => {
+export const CanvasControls = memo(() => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   const handleZoomIn = () => {
@@ -47,5 +47,3 @@ export const CustomControls = memo(() => {
     </div>
   );
 });
-
-CustomControls.displayName = "CustomControls";

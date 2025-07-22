@@ -23,12 +23,11 @@ import { computationStore } from "../api/computation";
 import { FormulaStore } from "../store/FormulaStoreManager";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
-import { CustomControls } from "./custom-controls";
+import { CanvasControls } from "./canvas-controls";
 import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 import { NodeBounds, getLabelNodePos } from "./util/label-node";
 
 interface CanvasProps {
-  variableRanges?: Record<string, [number, number]>;
   formulaIndex?: number;
   formulaStore?: FormulaStore;
   controls?: IControls[];
@@ -39,7 +38,6 @@ interface CanvasProps {
 
 const CanvasFlow = observer(
   ({
-    variableRanges = {},
     formulaIndex,
     formulaStore,
     controls,
@@ -247,7 +245,6 @@ const CanvasFlow = observer(
           data: {
             latex,
             environment,
-            variableRanges,
             index,
           },
           draggable: true,
@@ -276,7 +273,7 @@ const CanvasFlow = observer(
       }
 
       return nodes;
-    }, [getFormula, controls, environment, variableRanges]);
+    }, [getFormula, controls, environment]);
 
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {
@@ -729,6 +726,24 @@ const CanvasFlow = observer(
       };
     }, [createNodes, setNodes, setEdges, formulaStore, controls]);
 
+    // Update showBorders property of existing variable nodes when showVariableBorders changes
+    useEffect(() => {
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => {
+          if (node.type === "variable") {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                showBorders: showVariableBorders,
+              },
+            };
+          }
+          return node;
+        })
+      );
+    }, [showVariableBorders, setNodes]);
+
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
       if (nodesInitialized && !variableNodesAddedRef.current) {
@@ -841,7 +856,7 @@ const CanvasFlow = observer(
             size={1}
             variant={BackgroundVariant.Dots}
           />
-          <CustomControls />
+          <CanvasControls />
         </ReactFlow>
       </div>
     );

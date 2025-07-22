@@ -7,34 +7,28 @@ import { Formulize, FormulizeConfig } from "../api/index.ts";
 import FormulaCodeEditor from "../components/api-code-editor.tsx";
 import Toolbar from "../components/debug-toolbar.tsx";
 import EvaluationFunctionPane from "../components/evaluation-function";
+import { FormulaTreePane } from "../components/formula-tree-pane.tsx";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
+import { VariableTreesPane } from "../components/variable-tree-pane.tsx";
 import { examples as formulaExamples } from "../examples/index.ts";
 import { kineticEnergy } from "../examples/kineticEnergy";
-import { FormulaElementPane } from "../pages/api/formula-tree-pane.tsx";
-import { VariableTreesPane } from "../pages/api/variable-tree-pane.tsx";
 import Canvas from "./canvas.tsx";
 
-interface FormulaCanvasProps {
+interface FormulizeProps {
   formulizeConfig?: FormulizeConfig;
-  autoRender?: boolean;
   onConfigChange?: (config: FormulizeConfig) => void;
   selectedTemplate?: keyof typeof formulaExamples;
 }
 
 const FormulaCanvas = observer(
-  ({
-    formulizeConfig,
-    autoRender = true,
-    onConfigChange,
-    selectedTemplate,
-  }: FormulaCanvasProps) => {
+  ({ formulizeConfig, onConfigChange, selectedTemplate }: FormulizeProps) => {
     // Use formulizeConfig if provided, otherwise fall back to null
     const initialConfig = formulizeConfig || null;
 
     const [formulizeInput, setFormulizeInput] = useState<string>(kineticEnergy);
-    const [isRendered, setIsRendered] = useState<boolean>(autoRender);
+    const [isRendered, setIsRendered] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
       initialConfig
@@ -55,27 +49,6 @@ const FormulaCanvas = observer(
     useEffect(() => {
       onConfigChangeRef.current = onConfigChange;
     }, [onConfigChange]);
-
-    // Extract variable ranges from Formulize configuration
-    // This function converts Formulize variable ranges to the format expected by BlockInteractivity
-    // Variables with type 'input' and a range [min, max] become slidable with those limits
-    const extractVariableRanges = (
-      config: FormulizeConfig
-    ): Record<string, [number, number]> => {
-      const ranges: Record<string, [number, number]> = {};
-      if (config.variables) {
-        Object.entries(config.variables).forEach(
-          ([variableName, variableConfig]) => {
-            if (variableConfig.type === "input" && variableConfig.range) {
-              const [min, max] = variableConfig.range;
-              ranges[variableName] = [min, max];
-            }
-          }
-        );
-      }
-
-      return ranges;
-    };
 
     // Execute user-provided JavaScript code to get configuration
     // Uses a sandboxed iframe for secure code execution, preventing access to the main page context
@@ -309,12 +282,6 @@ const FormulaCanvas = observer(
       [formulizeInput, executeUserCode]
     );
 
-    useEffect(() => {
-      if (autoRender) {
-        renderFormula();
-      }
-    }, [autoRender, renderFormula]);
-
     // Update the formula display when the config changes
     useEffect(() => {
       if (formulizeConfig && formulizeConfig !== initialConfig) {
@@ -368,9 +335,6 @@ const FormulaCanvas = observer(
           >
             <div className="min-w-0 w-full h-full overflow-auto bg-slate-50 text-center">
               <Canvas
-                variableRanges={
-                  currentConfig ? extractVariableRanges(currentConfig) : {}
-                }
                 controls={currentConfig?.controls}
                 environment={currentConfig || undefined}
                 showVariableBorders={showVariableBorders}
@@ -397,7 +361,7 @@ const FormulaCanvas = observer(
           title="Formula Elements"
           maxWidth="max-w-md"
         >
-          <FormulaElementPane />
+          <FormulaTreePane />
         </Modal>
         {/* Variable Tree Pane Modal */}
         <Modal

@@ -35,8 +35,8 @@ export interface FormulizeInstance {
 
 // Set up computation engine configuration
 function setupComputationEngine(environment: IEnvironment) {
-  computationStore.computationEngine = environment.computation.engine;
-  computationStore.computationConfig = environment.computation;
+  computationStore.setComputationEngine(environment.computation.engine);
+  computationStore.setComputationConfig(environment.computation);
 }
 
 // Validate environment configuration
@@ -76,7 +76,7 @@ async function create(
 
     // Reset all state to ensure we start fresh
     // Clear computation store variables and state
-    computationStore.clearAllVariables();
+    computationStore.reset();
     computationStore.setLastGeneratedCode(null);
     computationStore.setVariableTypesChanged(0);
 
