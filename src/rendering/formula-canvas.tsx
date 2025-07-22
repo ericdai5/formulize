@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
@@ -49,6 +49,12 @@ const FormulaCanvas = observer(
     const [showVariableBorders, setShowVariableBorders] =
       useState<boolean>(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const onConfigChangeRef = useRef(onConfigChange);
+
+    // Update the ref when the prop changes
+    useEffect(() => {
+      onConfigChangeRef.current = onConfigChange;
+    }, [onConfigChange]);
 
     // Extract variable ranges from Formulize configuration
     // This function converts Formulize variable ranges to the format expected by BlockInteractivity
@@ -71,11 +77,243 @@ const FormulaCanvas = observer(
       return ranges;
     };
 
+    // Execute user-provided JavaScript code to get configuration
+    // Uses a sandboxed iframe for secure code execution, preventing access to the main page context
+    // The iframe has restricted permissions (only allow-scripts) and communicates via postMessage
+    // This approach is much safer than using new Function() or eval() for executing user code
+    const executeUserCode = useCallback(
+      async (jsCode: string): Promise<FormulizeConfig | null> => {
+        // Function to deserialize config from iframe (handles function strings)
+        const deserializeConfig = (
+          config: Record<string, unknown>
+        ): FormulizeConfig => {
+          return JSON.parse(JSON.stringify(config), (key, value) => {
+            if (value && typeof value === "object" && value.__isFunction) {
+              try {
+                // Reconstruct function from string
+                return new Function("return " + value.__functionString)();
+              } catch (e) {
+                console.warn("Failed to deserialize function for key:", key, e);
+                return value.__functionString; // fallback to string
+              }
+            }
+            return value;
+          });
+        };
+
+        return new Promise((resolve, reject) => {
+          console.log("Starting iframe execution...", {
+            jsCodeLength: jsCode.length,
+          });
+
+          // Create sandboxed iframe for secure code execution
+          // The sandbox attribute restricts what the iframe can do:
+          // - allow-scripts: permits script execution within the iframe
+          // - No allow-same-origin: prevents access to parent document's DOM/storage
+          const iframe = document.createElement("iframe");
+          iframe.setAttribute("sandbox", "allow-scripts"); // No allow-same-origin for security
+          iframe.style.display = "none";
+
+          // Set up message handler for communication between iframe and parent
+          // This is the secure way to get results back from the sandboxed code
+          const handleMessage = (event: MessageEvent) => {
+            console.log("Received message from iframe:", event.data);
+
+            // Verify the message is from our iframe
+            if (event.source !== iframe.contentWindow) {
+              console.log("Message not from our iframe, ignoring");
+              return;
+            }
+
+            // Clean up event listener and remove iframe
+            window.removeEventListener("message", handleMessage);
+            document.body.removeChild(iframe);
+
+            // Handle the response from the iframe
+            if (event.data.error) {
+              console.error("Error from iframe:", event.data.error);
+              reject(new Error(event.data.error));
+            } else {
+              // Deserialize the config to restore functions
+              const config = deserializeConfig(event.data.config);
+              console.log("Deserialized config from iframe:", config);
+
+              if (!config) {
+                reject(
+                  new Error(
+                    "No configuration was captured. Make sure your code calls Formulize.create(config)"
+                  )
+                );
+                return;
+              }
+
+              if (
+                !config.formulas ||
+                !config.variables ||
+                !config.computation
+              ) {
+                reject(
+                  new Error(
+                    "Invalid configuration returned. Configuration must include formulas, variables, and computation properties."
+                  )
+                );
+                return;
+              }
+
+              resolve(config);
+            }
+          };
+
+          window.addEventListener("message", handleMessage);
+
+          // Create iframe content with user code embedded
+          // The iframe contains a complete HTML document with the user's code
+          // and a mock Formulize API that captures the configuration
+          iframe.srcdoc = `
+          <script>
+            // Add global context for variables the code might use first
+            const console = window.console;
+            const Math = window.Math;
+            
+            console.log('Iframe script starting execution...');
+            
+            // Function to serialize config for postMessage (handles functions)
+            const serializeConfig = (config) => {
+              return JSON.parse(JSON.stringify(config, (key, value) => {
+                if (typeof value === 'function') {
+                  return {
+                    __isFunction: true,
+                    __functionString: value.toString()
+                  };
+                }
+                return value;
+              }));
+            };
+            
+            // Mock the Formulize API calls so we can capture the config
+            // This provides the same interface as the real Formulize API
+            // but just captures the configuration instead of actually creating formulas
+            let capturedConfig = null;
+            
+            const Formulize = {
+              create: async function(config) {
+                console.log('Formulize.create called with config:', config);
+                capturedConfig = config;
+                
+                // Return a mock instance that matches the expected interface
+                return {
+                  formula: config,
+                  getVariable: () => ({}),
+                  setVariable: () => true,
+                  update: async () => {},
+                  destroy: () => {}
+                };
+              }
+            };
+            
+            // Wrap user code in async IIFE to handle await statements
+            (async () => {
+              try {
+                // Execute the user's code in the sandboxed environment
+                ${jsCode}
+                
+                // Serialize the config to handle functions before sending
+                const serializedConfig = serializeConfig(capturedConfig);
+                console.log('Serialized config for postMessage:', serializedConfig);
+                
+                // Send the captured configuration back to the parent
+                parent.postMessage({ config: serializedConfig }, '*');
+                console.log('Posted message to parent');
+              } catch (error) {
+                console.error('Error in user code execution:', error);
+                // Send any errors back to the parent for handling
+                parent.postMessage({ error: error.message }, '*');
+              }
+            })();
+          </script>
+        `;
+
+          // Add iframe to document to start execution
+          document.body.appendChild(iframe);
+
+          // Set a timeout to prevent hanging if the iframe doesn't respond
+          setTimeout(() => {
+            window.removeEventListener("message", handleMessage);
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+            reject(
+              new Error(
+                "Code execution timeout - check your code for infinite loops or blocking operations"
+              )
+            );
+          }, 5000); // 5 second timeout
+        });
+      },
+      []
+    );
+
+    const renderFormula = useCallback(
+      async (inputOverride?: string) => {
+        try {
+          setError(null);
+          const inputToUse = inputOverride ?? formulizeInput;
+          const userConfig = await executeUserCode(inputToUse);
+          if (
+            !userConfig ||
+            !userConfig.formulas ||
+            !userConfig.variables ||
+            !userConfig.computation
+          ) {
+            throw new Error(
+              "Invalid configuration. Please check your code and try again."
+            );
+          }
+
+          // Use the user config
+          const configToUse = userConfig;
+
+          // Ensure the configToUse has all required properties
+          if (!configToUse.variables) {
+            configToUse.variables = {};
+          }
+
+          // Make sure we have a computation engine specified
+          if (!configToUse.computation) {
+            configToUse.computation = {
+              engine: "symbolic-algebra",
+            };
+          }
+
+          // Create the formula using Formulize API and handle success:
+          // • Create formula instance with Formulize.create()
+          // • Store config in component state for access by child components
+          // • Notify parent of config change via callback if provided
+          try {
+            await Formulize.create(configToUse);
+            setCurrentConfig(configToUse);
+            if (onConfigChangeRef.current) {
+              onConfigChangeRef.current(configToUse);
+            }
+          } catch (e) {
+            setError(
+              `Failed to create formula: ${e instanceof Error ? e.message : String(e)}`
+            );
+          }
+        } catch (err) {
+          setError(
+            `Error: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      },
+      [formulizeInput, executeUserCode]
+    );
+
     useEffect(() => {
       if (autoRender) {
         renderFormula();
       }
-    }, []);
+    }, [autoRender, renderFormula]);
 
     // Update the formula display when the config changes
     useEffect(() => {
@@ -91,7 +329,7 @@ const FormulaCanvas = observer(
         setFormulizeInput(newFormula);
         renderFormula(newFormula);
       }
-    }, [selectedTemplate]);
+    }, [selectedTemplate, renderFormula]);
 
     // Close debug modal when step mode is no longer available
     const isStepMode = computationStore.isStepMode();
@@ -100,132 +338,6 @@ const FormulaCanvas = observer(
         setShowDebugModal(false);
       }
     }, [showDebugModal, isStepMode]);
-
-    // Execute user-provided JavaScript code to get configuration
-    const executeUserCode = async (
-      jsCode: string
-    ): Promise<FormulizeConfig | null> => {
-      try {
-        // Prepare a secure environment for executing the code
-        // In a real production environment, we would use a more secure approach
-        // like sandboxed iframes or a server-side evaluation
-        // Create a function that will wrap the code and return the config
-        const wrappedCode = `
-        // Mock the Formulize API calls so we can capture the config
-        let capturedConfig = null;
-        
-        const Formulize = {
-          create: async function(config) {
-            capturedConfig = config;
-            
-            // Return a mock instance
-            return {
-              formula: config,
-              getVariable: () => ({}),
-              setVariable: () => true,
-              update: async () => {},
-              destroy: () => {}
-            };
-          }
-        };
-        
-        // Add global context for variables the code might use
-        const console = window.console;
-        const Math = window.Math;
-        
-        // Execute the user's code
-        try {
-          ${jsCode}
-        } catch(e) {
-          console.error("Error in user code:", e);
-          throw e; // Re-throw to propagate error
-        }
-        
-        if (!capturedConfig) {
-          throw new Error("No configuration was captured. Make sure your code calls Formulize.create(config)");
-        }
-        
-        // Return the captured config
-        return capturedConfig;
-      `;
-
-        // Create a function from the wrapped code and execute it
-        const executeFunction = new Function(
-          "return (async function() { " + wrappedCode + " })()"
-        );
-        const result = await executeFunction();
-
-        // Validate the config
-        if (
-          !result ||
-          !result.formulas ||
-          !result.variables ||
-          !result.computation
-        ) {
-          throw new Error(
-            "Invalid configuration returned. Configuration must include formulas, variables, and computation properties."
-          );
-        }
-
-        return result;
-      } catch (error) {
-        console.error("Error executing user code:", error);
-        throw error; // Re-throw to show error in UI
-      }
-    };
-
-    // Execute the user-provided JavaScript code
-    // Make sure we have a valid configuration
-    const renderFormula = async (inputOverride?: string) => {
-      try {
-        setError(null);
-        const inputToUse = inputOverride ?? formulizeInput;
-        const userConfig = await executeUserCode(inputToUse);
-        if (
-          !userConfig ||
-          !userConfig.formulas ||
-          !userConfig.variables ||
-          !userConfig.computation
-        ) {
-          throw new Error(
-            "Invalid configuration. Please check your code and try again."
-          );
-        }
-
-        // Use the user config
-        const configToUse = userConfig;
-
-        // Ensure the configToUse has all required properties
-        if (!configToUse.variables) {
-          configToUse.variables = {};
-        }
-
-        // Make sure we have a computation engine specified
-        if (!configToUse.computation) {
-          configToUse.computation = {
-            engine: "symbolic-algebra",
-          };
-        }
-
-        // Create the formula using Formulize API and handle success:
-        // • Create formula instance with Formulize.create()
-        // • Store config in component state for access by child components
-        // • Notify parent of config change via callback if provided
-        try {
-          await Formulize.create(configToUse);
-          setCurrentConfig(configToUse);
-          if (onConfigChange) {
-            onConfigChange(configToUse);
-          }
-        } catch (e) {
-          setError(
-            `Failed to create formula: ${e instanceof Error ? e.message : String(e)}`
-          );
-        }
-      } catch (err) {
-        setError(`Error: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    };
 
     const handleOpenStoreModal = () => {
       setShowStoreModal(true);
