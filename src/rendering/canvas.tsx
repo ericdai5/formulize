@@ -28,7 +28,6 @@ import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 import { NodeBounds, getLabelNodePos } from "./util/label-node";
 
 interface CanvasProps {
-  variableRanges?: Record<string, [number, number]>;
   formulaIndex?: number;
   formulaStore?: FormulaStore;
   controls?: IControls[];
@@ -39,7 +38,6 @@ interface CanvasProps {
 
 const CanvasFlow = observer(
   ({
-    variableRanges = {},
     formulaIndex,
     formulaStore,
     controls,
@@ -247,7 +245,6 @@ const CanvasFlow = observer(
           data: {
             latex,
             environment,
-            variableRanges,
             index,
           },
           draggable: true,
@@ -276,7 +273,7 @@ const CanvasFlow = observer(
       }
 
       return nodes;
-    }, [getFormula, controls, environment, variableRanges]);
+    }, [getFormula, controls, environment]);
 
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {

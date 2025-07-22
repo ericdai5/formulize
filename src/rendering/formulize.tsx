@@ -56,26 +56,6 @@ const FormulaCanvas = observer(
       onConfigChangeRef.current = onConfigChange;
     }, [onConfigChange]);
 
-    // Extract variable ranges from Formulize configuration
-    // This function converts Formulize variable ranges to the format expected by BlockInteractivity
-    // Variables with type 'input' and a range [min, max] become slidable with those limits
-    const extractVariableRanges = (
-      config: FormulizeConfig
-    ): Record<string, [number, number]> => {
-      const ranges: Record<string, [number, number]> = {};
-      if (config.variables) {
-        Object.entries(config.variables).forEach(
-          ([variableName, variableConfig]) => {
-            if (variableConfig.type === "input" && variableConfig.range) {
-              const [min, max] = variableConfig.range;
-              ranges[variableName] = [min, max];
-            }
-          }
-        );
-      }
-
-      return ranges;
-    };
 
     // Execute user-provided JavaScript code to get configuration
     // Uses a sandboxed iframe for secure code execution, preventing access to the main page context
@@ -368,9 +348,6 @@ const FormulaCanvas = observer(
           >
             <div className="min-w-0 w-full h-full overflow-auto bg-slate-50 text-center">
               <Canvas
-                variableRanges={
-                  currentConfig ? extractVariableRanges(currentConfig) : {}
-                }
                 controls={currentConfig?.controls}
                 environment={currentConfig || undefined}
                 showVariableBorders={showVariableBorders}

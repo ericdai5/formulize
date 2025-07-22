@@ -35,7 +35,7 @@ const FormulaNode = observer(({ data }: { data: any }) => {
   const renderFormula = useCallback(async () => {
     if (!nodeRef.current || !isInitialized) return;
     const container = nodeRef.current;
-    const { latex, environment, variableRanges } = data;
+    const { latex, environment } = data;
 
     try {
       // Find the formula content container
@@ -85,7 +85,7 @@ const FormulaNode = observer(({ data }: { data: any }) => {
         ".formula-expression"
       );
       if (expressionElement) {
-        dragHandler(expressionElement as HTMLElement, variableRanges);
+        dragHandler(expressionElement as HTMLElement);
         const isStepMode = environment?.computation?.mode === "step";
         if (isStepMode) {
           stepHandler(expressionElement as HTMLElement);

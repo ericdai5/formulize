@@ -240,16 +240,15 @@ export const collectVariableNodes = (formula: AugmentedFormula): Variable[] => {
  * Get variable state for input processing (used by drag handler)
  */
 export const getInputVariableState = (
-  varId: string,
-  variableRanges: Record<string, [number, number]> = {}
+  varId: string
 ): { stepSize: number; minValue: number; maxValue: number } | null => {
   const variable = getVariable(varId);
   if (!variable) {
     return null;
   }
 
-  // Get range from variable definition or provided ranges or use defaults
-  const range = variable.range || variableRanges[varId] || [-10, 10];
+  // Get range from variable definition or use defaults
+  const range = variable.range || [-10, 10];
   const [minValue, maxValue] = range;
 
   // Use the variable's step property if defined, otherwise calculate from range

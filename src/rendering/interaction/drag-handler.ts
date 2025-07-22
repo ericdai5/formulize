@@ -4,10 +4,7 @@ import {
   getInputVariableState,
 } from "../../api/variableProcessing";
 
-export const dragHandler = (
-  container: HTMLElement,
-  variableRanges: Record<string, [number, number]> = {}
-) => {
+export const dragHandler = (container: HTMLElement) => {
   if (!container) return;
 
   const slidableElements = container.querySelectorAll(
@@ -24,7 +21,7 @@ export const dragHandler = (
     }
 
     const { varId } = variableMatch;
-    const variableState = getInputVariableState(varId, variableRanges);
+    const variableState = getInputVariableState(varId);
     if (!variableState) {
       return;
     }
