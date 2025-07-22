@@ -1,4 +1,4 @@
-# Formulize - Formula Editor
+# Formulize
 
 An API for interactive mathematical formula built with React, TypeScript, and Vite that provides real-time formula visualization and computation capabilities.
 
