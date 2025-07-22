@@ -726,6 +726,24 @@ const CanvasFlow = observer(
       };
     }, [createNodes, setNodes, setEdges, formulaStore, controls]);
 
+    // Update showBorders property of existing variable nodes when showVariableBorders changes
+    useEffect(() => {
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => {
+          if (node.type === "variable") {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                showBorders: showVariableBorders,
+              },
+            };
+          }
+          return node;
+        })
+      );
+    }, [showVariableBorders, setNodes]);
+
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
       if (nodesInitialized && !variableNodesAddedRef.current) {
