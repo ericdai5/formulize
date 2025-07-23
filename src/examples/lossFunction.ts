@@ -30,8 +30,8 @@ export const lossFunction = `const config = {
       },
       variableLinkage: {
         "index": "i",
-        "yi": "y",
-        "yHati": "\\\\hat{y}",
+        "yi": "y^{(i)}",
+        "yHati": "\\\\hat{y}^{(i)}",
         "lambda": "\\\\lambda",
         "indexj": "j",
         "thetaj": "\\\\theta",
@@ -49,6 +49,20 @@ export const lossFunction = `const config = {
       type: "input",
       value: 3,
       precision: 0
+    },
+    "y^{(i)}": {
+      type: "input",
+      memberOf: "y",
+      precision: 1,
+      label: "y^{(i)}: actual value of the i-th training example",
+      index: "i"
+    },
+    "\\\\hat{y}^{(i)}": {
+      type: "input",
+      memberOf: "\\\\hat{y}",
+      precision: 1,
+      label: "\\\\hat{y}^{(i)}: predicted value of the i-th training example",
+      index: "i"
     },
     y: {
       type: "input",

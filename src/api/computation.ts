@@ -437,6 +437,7 @@ class ComputationStore {
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
         showName: variableDefinition?.showName,
+        index: variableDefinition?.index,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable

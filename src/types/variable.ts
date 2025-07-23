@@ -21,6 +21,7 @@ export interface IVariable {
   key?: string;
   memberOf?: string;
   showName?: boolean;
+  index?: string;
 }
 
 export interface IVariableInput {
