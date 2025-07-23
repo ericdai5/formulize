@@ -42,6 +42,7 @@ const FormulaCanvas = observer(
     const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
     const [showVariableBorders, setShowVariableBorders] =
       useState<boolean>(false);
+    const [configKey, setConfigKey] = useState<number>(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const onConfigChangeRef = useRef(onConfigChange);
 
@@ -243,51 +244,51 @@ const FormulaCanvas = observer(
             );
           }
 
-          // Use the user config
-          const configToUse = userConfig;
-
-          // Ensure the configToUse has all required properties
+          // Ensure config has all required properties
+          const configToUse = { ...userConfig };
           if (!configToUse.variables) {
             configToUse.variables = {};
           }
-
-          // Make sure we have a computation engine specified
           if (!configToUse.computation) {
             configToUse.computation = {
               engine: "symbolic-algebra",
             };
           }
 
-          // Create the formula using Formulize API and handle success:
-          // • Create formula instance with Formulize.create()
-          // • Store config in component state for access by child components
-          // • Notify parent of config change via callback if provided
           try {
+            // Clear the current config to force full re-render
+            // Then create the new formula instance
+            setCurrentConfig(null);
             await Formulize.create(configToUse);
-            setCurrentConfig(configToUse);
+
+            // Set the new config - this should trigger Canvas update
+            setCurrentConfig({ ...configToUse });
+            setConfigKey((prev) => prev + 1); // Force Canvas re-render
+
+            // Force update by creating a new object reference
             if (onConfigChangeRef.current) {
-              onConfigChangeRef.current(configToUse);
+              onConfigChangeRef.current({ ...configToUse });
             }
           } catch (e) {
+            console.error("Formula creation error:", e);
             setError(
               `Failed to create formula: ${e instanceof Error ? e.message : String(e)}`
             );
           }
         } catch (err) {
+          console.error("Render error:", err);
           setError(
             `Error: ${err instanceof Error ? err.message : String(err)}`
           );
         }
       },
-      [formulizeInput, executeUserCode]
+      [executeUserCode, formulizeInput]
     );
 
-    // Update the formula display when the config changes
+    // Initial render when component mounts
     useEffect(() => {
-      if (formulizeConfig && formulizeConfig !== initialConfig) {
-        setFormulizeInput(kineticEnergy);
-      }
-    }, [initialConfig, formulizeConfig]);
+      renderFormula();
+    }, [renderFormula]);
 
     // Update formulize input when selectedTemplate changes
     useEffect(() => {
@@ -296,7 +297,7 @@ const FormulaCanvas = observer(
         setFormulizeInput(newFormula);
         renderFormula(newFormula);
       }
-    }, [selectedTemplate, renderFormula]);
+    }, [selectedTemplate]);
 
     // Close debug modal when step mode is no longer available
     const isStepMode = computationStore.isStepMode();
@@ -335,6 +336,7 @@ const FormulaCanvas = observer(
           >
             <div className="min-w-0 w-full h-full overflow-auto bg-slate-50 text-center">
               <Canvas
+                key={configKey}
                 controls={currentConfig?.controls}
                 environment={currentConfig || undefined}
                 showVariableBorders={showVariableBorders}
