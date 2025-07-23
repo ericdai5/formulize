@@ -76,10 +76,6 @@ const FormulaCanvas = observer(
         };
 
         return new Promise((resolve, reject) => {
-          console.log("Starting iframe execution...", {
-            jsCodeLength: jsCode.length,
-          });
-
           // Create sandboxed iframe for secure code execution
           // The sandbox attribute restricts what the iframe can do:
           // - allow-scripts: permits script execution within the iframe
@@ -91,11 +87,8 @@ const FormulaCanvas = observer(
           // Set up message handler for communication between iframe and parent
           // This is the secure way to get results back from the sandboxed code
           const handleMessage = (event: MessageEvent) => {
-            console.log("Received message from iframe:", event.data);
-
             // Verify the message is from our iframe
             if (event.source !== iframe.contentWindow) {
-              console.log("Message not from our iframe, ignoring");
               return;
             }
 
@@ -110,7 +103,6 @@ const FormulaCanvas = observer(
             } else {
               // Deserialize the config to restore functions
               const config = deserializeConfig(event.data.config);
-              console.log("Deserialized config from iframe:", config);
 
               if (!config) {
                 reject(
@@ -149,8 +141,6 @@ const FormulaCanvas = observer(
             const console = window.console;
             const Math = window.Math;
             
-            console.log('Iframe script starting execution...');
-            
             // Function to serialize config for postMessage (handles functions)
             const serializeConfig = (config) => {
               return JSON.parse(JSON.stringify(config, (key, value) => {
@@ -171,7 +161,6 @@ const FormulaCanvas = observer(
             
             const Formulize = {
               create: async function(config) {
-                console.log('Formulize.create called with config:', config);
                 capturedConfig = config;
                 
                 // Return a mock instance that matches the expected interface
@@ -193,11 +182,9 @@ const FormulaCanvas = observer(
                 
                 // Serialize the config to handle functions before sending
                 const serializedConfig = serializeConfig(capturedConfig);
-                console.log('Serialized config for postMessage:', serializedConfig);
                 
                 // Send the captured configuration back to the parent
                 parent.postMessage({ config: serializedConfig }, '*');
-                console.log('Posted message to parent');
               } catch (error) {
                 console.error('Error in user code execution:', error);
                 // Send any errors back to the parent for handling

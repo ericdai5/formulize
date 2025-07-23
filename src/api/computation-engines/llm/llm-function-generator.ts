@@ -25,9 +25,6 @@ export async function generateEvaluationFunction({
     throw new Error("Cannot generate function without dependent variables");
   }
 
-  console.log("🔥 Generating function via OpenAI API for formula:", formula);
-  console.log("🔵 Variables:", { dependentVars, inputVars });
-
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OpenAI API key not configured");
@@ -69,7 +66,6 @@ export async function generateEvaluationFunction({
 
     validateGeneratedCode(generatedCode, dependentVars, inputVars, formula);
 
-    console.log("✅ Successfully generated function code");
     return generatedCode;
   } catch (error) {
     console.error("🔴 Error generating function:", error);

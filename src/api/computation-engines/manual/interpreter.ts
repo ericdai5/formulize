@@ -93,15 +93,11 @@ const findVariableInFrame = (
   try {
     const varValue = interpreter.getProperty(stackFrame.scope.object, varName);
     if (varValue !== undefined) {
-      // console.log(`${scopeName}: Found variable '${varName}':`, varValue);
       const nativeValue = convertToNativeValue(interpreter, varValue);
       return { found: true, value: nativeValue, scopeName };
     }
   } catch (err) {
-    console.log(
-      `${scopeName}: Error checking declared variable '${varName}':`,
-      err
-    );
+    // Error checking declared variable - continue to next scope
   }
 
   return { found: false, scopeName };
@@ -139,7 +135,6 @@ const collectVariablesFromStack = (
   }
   const variables: Record<string, unknown> = {};
   for (const varName of varNames) {
-    // console.log(`Checking for variable: ${varName}`);
     const result = findVariableInStack(interpreter, stack, varName);
     if (result.found && result.value !== undefined && !(varName in variables)) {
       variables[varName] = result.value;

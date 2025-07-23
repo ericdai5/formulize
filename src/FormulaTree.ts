@@ -124,18 +124,14 @@ export const deriveTreeWithVars = (
   originalSymbols?: string[]
 ): AugmentedFormula => {
   const baseFormula = deriveTree(latex);
-  console.log("🔍 baseFormula created:", baseFormula);
-
   if (!variableTrees || variableTrees.length === 0) {
     return baseFormula;
   }
-
   const result = groupVariablesByTrees(
     baseFormula,
     variableTrees,
     originalSymbols
   );
-  console.log("🔍 result after groupVariablesByTrees:", result);
   return result;
 };
 
@@ -406,7 +402,6 @@ const buildAugmentedFormula = (
     }
   }
 
-  console.log("Failed to build:", katexTree);
   throw new Error("Failed to build formula tree");
 };
 
@@ -1839,19 +1834,16 @@ export const groupVariablesByTrees = (
   if (variableTrees.length === 0) {
     return formula;
   }
-
   // Create pairs of variable trees and their original symbols
   const treeSymbolPairs = variableTrees.map((tree, index) => ({
     tree,
     originalSymbol: originalSymbols?.[index] || tree.toLatex("no-id"),
   }));
-
   // Sort variable trees by complexity (longer/more complex first)
   // This ensures we match longer variable names before shorter ones
   const sortedPairs = [...treeSymbolPairs].sort(
     (a, b) => getTreeComplexity(b.tree) - getTreeComplexity(a.tree)
   );
-
   // Find and group matching subtrees for each variable tree
   let newFormula = formula;
   for (const { tree: variableTree, originalSymbol } of sortedPairs) {
@@ -1861,8 +1853,6 @@ export const groupVariablesByTrees = (
       originalSymbol
     );
   }
-
-  console.log("TREE: Final grouped formula:", newFormula);
   return newFormula;
 };
 

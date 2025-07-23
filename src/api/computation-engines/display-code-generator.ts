@@ -16,9 +16,6 @@ export function generateSymbolicAlgebraDisplayCode(
 ): string {
   const dependentVars = context.getDependentVariableSymbols();
 
-  console.log("🔎 Generating display code for symbolic algebra engine");
-  console.log("🔎 Dependent variables:", dependentVars);
-
   // Generate evaluation function that matches what's really used by SymbolicAlgebraEngine
   let functionCode = `function evaluate(variables) {
   // Using symbolic algebra engine with math.js
@@ -118,9 +115,6 @@ export function generateManualDisplayCode(
   context: DisplayCodeGeneratorContext
 ): string {
   const dependentVars = context.getDependentVariableSymbols();
-
-  console.log("🔎 Generating display code for manual engine");
-  console.log("🔎 Dependent variables:", dependentVars);
 
   // Check if we have formulas with manual functions instead of mappings
   const hasManualFunctions = Array.from(context.variables.values()).some(

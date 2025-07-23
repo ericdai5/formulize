@@ -146,8 +146,6 @@ async function create(
       computationStore.updateAllDependentVars();
     }
 
-    console.log(`Created ${formulaStores.length} individual formula stores`);
-
     // Store the formulaId for setVariable method to use
     const instance = {
       environment: environment,

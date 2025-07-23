@@ -162,8 +162,7 @@ class ComputationStore {
   setValue(id: string, value: number) {
     const variable = this.variables.get(id);
     if (!variable) {
-      console.log(`setValue: Variable not found: ${id}`);
-      return;
+      return false;
     }
     variable.value = value;
     // Update index-based dependent variables
@@ -178,8 +177,7 @@ class ComputationStore {
   setValueInStepMode(id: string, value: number) {
     const variable = this.variables.get(id);
     if (!variable) {
-      console.log(`setValueInStepMode: Variable not found: ${id}`);
-      return;
+      return false;
     }
     variable.value = value;
   }
@@ -556,9 +554,6 @@ class ComputationStore {
     const dependentVars = this.getDependentVars();
 
     if (dependentVars.length === 0) {
-      console.log(
-        "🔎 No dependent variables, skipping LLM function generation"
-      );
       return;
     }
 
@@ -567,11 +562,8 @@ class ComputationStore {
       const primaryExpression = expressions[0] || "";
 
       if (!primaryExpression.trim()) {
-        console.log("🔎 No valid expression for LLM generation");
         return;
       }
-
-      console.log("🚀 Generating LLM function for expressions:", expressions);
 
       const dependentVars = this.getDependentVarSymbols();
       const inputVars = this.getInputVarSymbols();

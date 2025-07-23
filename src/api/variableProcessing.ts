@@ -394,25 +394,6 @@ export const processVariablesInFormula = (
 };
 
 /**
- * Traverse the formula tree and collect all Variable nodes
- */
-export const collectVariableNodes = (formula: AugmentedFormula): Variable[] => {
-  const variables: Variable[] = [];
-
-  const traverse = (node: AugmentedFormulaNode) => {
-    if (node.type === "variable") {
-      variables.push(node as Variable);
-    }
-
-    // Recursively traverse children
-    node.children.forEach(traverse);
-  };
-
-  formula.children.forEach(traverse);
-  return variables;
-};
-
-/**
  * Get variable state for input processing (used by drag handler)
  */
 export const getInputVariableState = (
@@ -422,14 +403,11 @@ export const getInputVariableState = (
   if (!variable) {
     return null;
   }
-
   // Get range from variable definition or use defaults
   const range = variable.range || [-10, 10];
   const [minValue, maxValue] = range;
-
   // Use the variable's step property if defined, otherwise calculate from range
   const stepSize = variable.step || (maxValue - minValue) / 100; // 100 steps across the range
-
   return {
     stepSize,
     minValue,
@@ -467,14 +445,11 @@ export const processLatexContent = (
 ): string => {
   try {
     // Get variable patterns from computation store
-    const variablePatterns = Array.from(computationStore.variables.keys());
-
+    const variable = Array.from(computationStore.variables.keys());
     // Parse variable patterns into trees for grouping
-    const variableTrees = parseVariableStrings(variablePatterns);
-
+    const variableTrees = parseVariableStrings(variable);
     // Create formula tree with variables grouped, passing original symbols
-    const formula = deriveTreeWithVars(latex, variableTrees, variablePatterns);
-
+    const formula = deriveTreeWithVars(latex, variableTrees, variable);
     return processVariablesInFormula(formula, defaultPrecision);
   } catch (error) {
     console.warn("Failed to process latex content:", error);
