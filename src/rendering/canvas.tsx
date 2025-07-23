@@ -224,16 +224,18 @@ const CanvasFlow = observer(
 
       let currentY = 50; // Starting Y position
 
-      // Add control panel node if controls exist
+      // Add individual control nodes if controls exist
       if (controls && controls.length > 0) {
-        nodes.push({
-          id: "control-panel",
-          type: "controlPanel",
-          position: { x: 250, y: currentY },
-          data: { controls },
-          draggable: true,
+        controls.forEach((control, index) => {
+          nodes.push({
+            id: `control-${index}`,
+            type: control.type,
+            position: { x: 250, y: currentY },
+            data: { control },
+            draggable: true,
+          });
+          currentY += 100; // Add space after each control
         });
-        currentY += 150; // Add space after control panel
       }
 
       // Add formula nodes vertically
