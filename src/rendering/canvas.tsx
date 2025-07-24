@@ -114,19 +114,23 @@ const CanvasFlow = observer(
 
         labelNodes.forEach((labelNode) => {
           // Extract formula index and cssId from label node ID
-          // Format: label-{formulaIndex}-{cssId}-{elementIndex}
+          // Format: label-{formulaIndex}-{cssId}
           const labelIdParts = labelNode.id.split("-");
 
-          if (labelIdParts.length >= 4) {
+          if (labelIdParts.length >= 3) {
             const formulaIndex = labelIdParts[1];
             const cssId = labelIdParts[2];
-            const elementIndex = labelIdParts[3];
 
-            // Find corresponding variable node
-            const variableNodeId = `variable-${formulaIndex}-${cssId}-${elementIndex}`;
-            const variableNode = variableNodes.find(
-              (node) => node.id === variableNodeId
-            );
+            // Find corresponding variable node - match by cssId, any elementIndex
+            const variableNode = variableNodes.find((node) => {
+              const varIdParts = node.id.split("-");
+              return (
+                varIdParts.length >= 4 &&
+                varIdParts[0] === "variable" &&
+                varIdParts[1] === formulaIndex &&
+                varIdParts[2] === cssId
+              );
+            });
 
             if (variableNode) {
               // Calculate absolute positions for comparison
@@ -300,6 +304,8 @@ const CanvasFlow = observer(
 
         // Track existing labels for collision detection (within this formula)
         const existingLabels: NodeBounds[] = [];
+        // Track which variables already have labels to prevent duplicates
+        const processedVariables = new Set<string>();
 
         // Find variable elements within this formula
         const variableElements = formulaElement.querySelectorAll(
@@ -312,14 +318,24 @@ const CanvasFlow = observer(
             const cssId = htmlVarElement.id;
             if (!cssId) return;
 
+            // Skip if we've already processed this variable
+            if (processedVariables.has(cssId)) return;
+            processedVariables.add(cssId);
+
             const variable = computationStore.variables.get(cssId);
             if (!variable?.label) return;
 
             // Get the corresponding variable node to get its actual position
-            const variableNodeId = `variable-${formulaIndex}-${cssId}-${elementIndex}`;
-            const variableNode = currentNodes.find(
-              (node) => node.id === variableNodeId
-            );
+            // Find the first variable node for this cssId since we may have multiple instances
+            const variableNode = currentNodes.find((node) => {
+              const varIdParts = node.id.split("-");
+              return (
+                varIdParts.length >= 4 &&
+                varIdParts[0] === "variable" &&
+                varIdParts[1] === formulaIndex.toString() &&
+                varIdParts[2] === cssId
+              );
+            });
 
             if (!variableNode) return;
 
@@ -353,13 +369,13 @@ const CanvasFlow = observer(
               y: labelPos.y,
               width: estimatedLabelWidth,
               height: estimatedLabelHeight,
-              id: `label-${formulaIndex}-${cssId}-${elementIndex}`,
+              id: `label-${formulaIndex}-${cssId}`,
               type: "label",
             });
 
             // Create the label node
             labelNodes.push({
-              id: `label-${formulaIndex}-${cssId}-${elementIndex}`,
+              id: `label-${formulaIndex}-${cssId}`,
               type: "label",
               position: {
                 x: labelPos.x,
@@ -375,7 +391,7 @@ const CanvasFlow = observer(
 
             // Track variable node updates
             variableNodeUpdates.push({
-              nodeId: variableNodeId,
+              nodeId: variableNode.id,
               labelPlacement: labelPos.placement,
             });
           }
@@ -628,7 +644,7 @@ const CanvasFlow = observer(
                 }
 
                 // Also track corresponding label nodes
-                const labelNodeId = `label-${formulaIndex}-${cssId}-${elementIndex}`;
+                const labelNodeId = `label-${formulaIndex}-${cssId}`;
                 if (labelNodes.has(labelNodeId)) {
                   foundNodeIds.add(labelNodeId);
                 }

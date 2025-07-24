@@ -39,7 +39,7 @@ const processIndexVariable = (
       const symbol = node as MathSymbol;
       if (symbol.value === indexVariable) {
         // This is the index variable - render its value instead of the symbol
-        let value = 0;
+        let value: number | undefined = undefined;
         let variablePrecision = defaultPrecision;
         // Get the value from the computation store
         for (const [
@@ -47,14 +47,19 @@ const processIndexVariable = (
           variable,
         ] of computationStore.variables.entries()) {
           if (varSymbol === symbol.value) {
-            value = variable.value ?? 0;
+            value = variable.value;
             variablePrecision = variable.precision ?? defaultPrecision;
             break;
           }
         }
-        // Apply CSS class for index variables
-        const result = `\\class{interactive-var-index}{${value.toFixed(variablePrecision)}}`;
-        return result;
+        // Apply CSS class for index variables - only if value exists
+        if (value !== null && value !== undefined && !isNaN(value)) {
+          const result = `\\class{interactive-var-index}{${value.toFixed(variablePrecision)}}`;
+          return result;
+        } else {
+          // Fallback to showing the symbol if no value
+          return symbol.value;
+        }
       }
       return symbol.value;
     }
@@ -207,23 +212,23 @@ export const processVariablesInFormula = (
           : originalSymbol;
 
       // Get the value, type, and precision from the computation store
-      let value = 0;
+      let value: number | undefined = undefined;
       let isInputVariable = false;
       let hasDropdownOptions = false;
       let variablePrecision = defaultPrecision;
-      let showName = true; // Default to showing name for backward compatibility
+      let display: "name" | "value" | "both" = "both"; // Default to showing both for backward compatibility
       let indexVariable = "";
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
-          value = variable.value ?? 0;
+          value = variable.value;
           isInputVariable = variable.type === "input";
           // Check if variable has dropdown options (set or options property)
           hasDropdownOptions = !!(variable.set || variable.options);
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
-          // Use the variable's showName property if defined, otherwise default to true
-          showName = variable.showName ?? true;
+          // Use the variable's display property if defined, otherwise default to "both"
+          display = variable.display ?? "both";
           // Get the index variable from the computation store
           indexVariable = variable.index || "";
           break;
@@ -252,10 +257,37 @@ export const processVariablesInFormula = (
       }
 
       // Wrap the processed body with CSS classes using the variable's specific precision
-      // Conditionally show the variable name based on showName property
-      const result = showName
-        ? `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}: ${value.toFixed(variablePrecision)}}}`
-        : `\\cssId{${id}}{\\class{${cssClass}}{${value.toFixed(variablePrecision)}}}`;
+      // Show name, value, or both based on display property
+      let result = "";
+      switch (display) {
+        case "name":
+          result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
+          break;
+        case "value":
+          // If no value is available, fallback to showing the name
+          if (value !== null && value !== undefined && !isNaN(value)) {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${value.toFixed(variablePrecision)}}}`;
+          } else {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
+          }
+          break;
+        case "both":
+          // If no value is available, fallback to showing just the name
+          if (value !== null && value !== undefined && !isNaN(value)) {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}: ${value.toFixed(variablePrecision)}}}`;
+          } else {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
+          }
+          break;
+        default:
+          // If no value is available, fallback to showing just the name
+          if (value !== null && value !== undefined && !isNaN(value)) {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}: ${value.toFixed(variablePrecision)}}}`;
+          } else {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
+          }
+          break;
+      }
       return result;
     }
 

@@ -269,8 +269,9 @@ class ComputationStore {
             parentVar.set.includes(parentVar.value)
           ) {
             variable.value = parentVar.value;
-          } else if (parentVar.set.length > 0) {
-            // If parent doesn't have a value, set to first element
+          } else if (parentVar.set.length > 0 && !variable.index) {
+            // Only set default to first element if this variable doesn't have an index
+            // Variables with index should get their values based on the index variable
             variable.value =
               typeof parentVar.set[0] === "number"
                 ? parentVar.set[0]
@@ -420,7 +421,7 @@ class ComputationStore {
   addVariable(id: string, variableDefinition?: Partial<IVariable>) {
     if (!this.variables.has(id)) {
       this.variables.set(id, {
-        value: variableDefinition?.value ?? 0,
+        value: variableDefinition?.value ?? undefined,
         type: variableDefinition?.type ?? "constant",
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
@@ -434,7 +435,7 @@ class ComputationStore {
         set: variableDefinition?.set,
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
-        showName: variableDefinition?.showName,
+        display: variableDefinition?.display,
         index: variableDefinition?.index,
       });
 
@@ -500,10 +501,9 @@ class ComputationStore {
     try {
       this.isUpdatingDependents = true;
       const values = Object.fromEntries(
-        Array.from(this.variables.entries()).map(([symbol, v]) => [
-          symbol,
-          v.value ?? 0,
-        ])
+        Array.from(this.variables.entries())
+          .filter(([, v]) => v.value !== undefined)
+          .map(([symbol, v]) => [symbol, v.value!])
       );
       const results = this.evaluationFunction(values);
       // Update all dependent variables with their computed values

@@ -34,7 +34,7 @@ export const lossFunction = `const config = {
         "yHati": "\\\\hat{y}^{(i)}",
         "lambda": "\\\\lambda",
         "indexj": "j",
-        "thetaj": "\\\\theta",
+        "thetaj": "\\\\theta_j",
         "loss": "J(\\\\theta)"
       },
     },
@@ -48,7 +48,8 @@ export const lossFunction = `const config = {
     m: {
       type: "input",
       value: 3,
-      precision: 0
+      precision: 0,
+      display: "value",
     },
     "y^{(i)}": {
       type: "input",
@@ -80,6 +81,14 @@ export const lossFunction = `const config = {
       type: "input",
       value: 0.1,
       label: "\\\\lambda: regularization parameter",
+      precision: 1,
+      display: "value",
+    },
+    "\\\\theta_j": {
+      type: "input",
+      memberOf: "\\\\theta",
+      label: "\\\\theta: parameters of the model",
+      index: "j",
       precision: 1
     },
     "\\\\theta": {
@@ -93,20 +102,19 @@ export const lossFunction = `const config = {
       label: "K: number of features",
       value: 2,
       precision: 0,
+      display: "value",
     },
     i: {
       type: "input",
       label: "Index",
-      value: 1,
       precision: 0,
-      showName: false,
+      display: "value",
     },
     j: {
       type: "input",
       label: "Index",
-      value: 1,
       precision: 0,
-      showName: false,
+      display: "value",
     }
   },
   controls: [
