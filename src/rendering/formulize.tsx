@@ -331,8 +331,8 @@ const FormulaCanvas = observer(
             </div>
           </div>
           <div
-            className={`absolute inset-x-0 bottom-0 h-1/2 transition-transform duration-300 ease-in-out z-10 ${
-              isRendered ? "translate-y-full" : "translate-y-0"
+            className={`absolute top-16 bottom-4 left-4 w-1/3 transition-transform duration-300 ease-in-out z-20 ${
+              isRendered ? "-translate-x-full" : "translate-x-0"
             }`}
           >
             <FormulaCodeEditor
