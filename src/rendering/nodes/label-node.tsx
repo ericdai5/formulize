@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Handle, Position } from "@xyflow/react";
 
 import { computationStore } from "../../api/computation";
+import LatexLabel from "../../components/latex";
 
 export interface LabelNodeData {
   varId: string;
@@ -13,9 +14,21 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const variable = computationStore.variables.get(varId);
   const label = variable?.label;
 
-  if (!label) {
-    return null;
+  // Get index variable information
+  const indexVariable = variable?.index;
+  let indexDisplay = "";
+
+  if (indexVariable) {
+    const indexVar = computationStore.variables.get(indexVariable);
+    if (indexVar && indexVar.value !== undefined && !isNaN(indexVar.value)) {
+      // Format precision based on the index variable's precision or default to 0 for integers
+      const precision = indexVar.precision ?? 0;
+      indexDisplay = `${indexVariable} = ${indexVar.value.toFixed(precision)}`;
+    }
   }
+
+  // Combine variable name and index display inline
+  const displayLatex = indexDisplay ? `${varId}, ${indexDisplay}` : varId;
 
   return (
     <div
@@ -27,9 +40,14 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         position: "relative",
         cursor: "grab",
       }}
-      title={`Variable: ${varId} (draggable)`}
+      title={`Variable: ${varId}${label ? ` (${label})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
     >
-      {label}
+      <div className="flex flex-col items-center gap-1">
+        <LatexLabel latex={displayLatex} />
+        {label && (
+          <div className="text-xs text-slate-500 text-center">{label}</div>
+        )}
+      </div>
       {/* Handle for edges to variable nodes positioned above - hidden */}
       <Handle
         type="source"
