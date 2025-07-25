@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../store/computation";
-import { Formulize, FormulizeConfig } from "../api/index.ts";
 import FormulaCodeEditor from "../components/api-code-editor.tsx";
 import Toolbar from "../components/debug-toolbar.tsx";
 import EvaluationFunctionPane from "../components/evaluation-function";
@@ -14,6 +12,8 @@ import StorePane from "../components/variable-overview.tsx";
 import { VariableTreesPane } from "../components/variable-tree-pane.tsx";
 import { examples as formulaExamples } from "../examples/index.ts";
 import { kineticEnergy } from "../examples/kineticEnergy";
+import { Formulize, FormulizeConfig } from "../index.ts";
+import { computationStore } from "../store/computation";
 import Canvas from "./canvas.tsx";
 
 interface FormulizeProps {

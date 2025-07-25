@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { AugmentedFormula } from "./FormulaTree";
-import { FormulizeConfig } from "./api";
 import Header from "./components/navigation.tsx";
+import { FormulizeConfig } from "./formulize";
 import APIPage from "./pages/api/index.tsx";
 import EditorPage from "./pages/editor/EditorPage";
 import { formulaStore } from "./store";
