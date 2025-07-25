@@ -2,10 +2,10 @@ import { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../api/computation";
 import { executionStore as ctx } from "../../api/execution";
+import { computationStore } from "../../store/computation";
 import { IArrayControl } from "../../types/control";
-import { getVariable } from "../../util/computation-helpers";
+import { getVariable } from "../../util/computation-helpers.ts";
 import LatexLabel from "../latex";
 
 interface ArrayProps {

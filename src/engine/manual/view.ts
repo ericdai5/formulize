@@ -1,5 +1,5 @@
 import { applyCue, updateVariables } from "../../rendering/interaction/step-handler";
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { DEBUG_VARIABLE_NAMES, ERROR_MESSAGES } from "./constants";
 import {
   JSInterpreter,

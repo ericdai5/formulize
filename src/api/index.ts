@@ -3,7 +3,7 @@ export { default as Formulize } from "./Formulize";
 export type { FormulizeConfig, FormulizeInstance } from "./Formulize";
 
 // Export computation API
-export { computationStore } from "./computation";
+export { computationStore } from "../store/computation";
 
 // Export custom visualization registration functions
 export {

@@ -11,7 +11,7 @@ import {
   parseVariableStrings,
   updateFormula,
 } from "../FormulaTree";
-import { computationStore } from "../api/computation";
+import { computationStore } from "./computation";
 import { canonicalizeFormula } from "../formulaTransformations";
 
 export class FormulaStore {

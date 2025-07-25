@@ -1,4 +1,4 @@
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import {
   findVariableByElement,
   getInputVariableState,

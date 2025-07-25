@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";
 
 const VariableTooltip = ({

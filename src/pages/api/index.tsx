@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { FormulizeConfig } from "../../api/Formulize";
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import TemplateSelector from "../../components/template-selector";
 import { examples as formulaExamples } from "../../examples";
 import Formulize from "../../rendering/formulize";

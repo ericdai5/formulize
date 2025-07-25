@@ -8,10 +8,10 @@ import {
   FormulaStore,
   formulaStoreManager,
 } from "../store/FormulaStoreManager";
+import { computationStore } from "../store/computation";
 import { IEnvironment } from "../types/environment";
 import { IVariable } from "../types/variable";
 import { getVariable } from "../util/computation-helpers";
-import { computationStore } from "./computation";
 
 export interface FormulizeConfig extends IEnvironment {}
 

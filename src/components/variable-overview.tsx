@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../api/computation";
+import { computationStore } from "../store/computation";
 
 interface StorePaneProps {
   className?: string;

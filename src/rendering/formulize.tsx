@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../api/computation.ts";
+import { computationStore } from "../store/computation";
 import { Formulize, FormulizeConfig } from "../api/index.ts";
 import FormulaCodeEditor from "../components/api-code-editor.tsx";
 import Toolbar from "../components/debug-toolbar.tsx";

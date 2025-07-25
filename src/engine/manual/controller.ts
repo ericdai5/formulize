@@ -4,7 +4,7 @@ import { applyCue, updateAllVariables } from "../../rendering/interaction/step-h
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
 import { extractViews } from "../../util/acorn";
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { executionStore as ctx } from "../../api/execution";
 import { ERROR_MESSAGES } from "./constants";
 import { initializeInterpreter, isAtBlock, isAtView } from "./interpreter";

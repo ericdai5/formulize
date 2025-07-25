@@ -21,8 +21,8 @@ import {
   deriveTreeWithVars,
   parseVariableStrings,
 } from "../FormulaTree";
+import { computationStore } from "../store/computation";
 import { getVariable } from "../util/computation-helpers";
-import { computationStore } from "./computation";
 
 /**
  * Process index variable within a formula node subtree

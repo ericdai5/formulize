@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { computationStore } from "../api/computation";
+import { computationStore } from "../store/computation";
 import { getInputVariableState } from "../api/variableProcessing";
 
 interface UseVariableDragProps {

@@ -2,7 +2,7 @@ import { runInAction } from "mobx";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import type { DataPoint } from "./Plot2D";
 import { formatVariableValue, getVariableLabel } from "./utils";
 
@@ -43,7 +43,7 @@ export function addInteractions(
 
   // Create interaction rect
   let isDragging = false;
-  
+
   svg
     .append("rect")
     .attr("width", plotWidth)
@@ -82,18 +82,20 @@ export function addInteractions(
       // Check if hovering near the current point
       const currentX = computationStore.variables.get(xVar)?.value ?? 0;
       const currentY = computationStore.variables.get(yVar)?.value ?? 0;
-      const isNearCurrentPoint = Math.abs(d.x - currentX) < (xScale.domain()[1] - xScale.domain()[0]) * 0.01; // Within 1% of x range
+      const isNearCurrentPoint =
+        Math.abs(d.x - currentX) <
+        (xScale.domain()[1] - xScale.domain()[0]) * 0.01; // Within 1% of x range
 
       // Update variable during drag
       if (isDragging) {
         // Hide the blue focus dot during dragging so red current point is visible
         focus.style("display", "none");
-        
+
         try {
           runInAction(() => {
             computationStore.setValue(xVar, d.x);
           });
-          
+
           // Update current point highlight immediately during drag
           updateCurrentPointHighlight(svg, d, xScale, yScale, xVar, yVar);
         } catch (error) {
@@ -103,7 +105,7 @@ export function addInteractions(
         // If hovering near current point, hide blue dot and scale up red dot
         focus.style("display", "none");
         scaleCurrentPoint(svg, true);
-        
+
         tooltip
           .style("left", `${event.pageX + 10}px`)
           .style("top", `${event.pageY - 30}px`)
@@ -114,7 +116,7 @@ export function addInteractions(
         // Show focus dot during hover (not dragging, not near current point)
         focus.attr("transform", `translate(${xScale(d.x)},${yScale(d.y)})`);
         scaleCurrentPoint(svg, false); // Reset current point scale
-        
+
         tooltip
           .style("left", `${event.pageX + 10}px`)
           .style("top", `${event.pageY - 30}px`)
@@ -130,10 +132,10 @@ export function addInteractions(
       isDragging = true;
       focus.style("display", null);
       tooltip.style("display", "none");
-      
+
       // Change cursor to indicate dragging
       d3.select(event.currentTarget).style("cursor", "grabbing");
-      
+
       const [mouseX] = d3.pointer(event);
       const x0 = xScale.invert(mouseX);
 
@@ -152,15 +154,20 @@ export function addInteractions(
       });
       isDragging = false;
       d3.select(event.currentTarget).style("cursor", "crosshair");
-      
+
       // Trigger final re-render after dragging ends
       if (onDragEnd) {
         onDragEnd();
       }
-      
+
       // Hide focus point when not dragging or hovering
       const [mouseX, mouseY] = d3.pointer(event);
-      if (mouseX < 0 || mouseX > plotWidth || mouseY < 0 || mouseY > plotHeight) {
+      if (
+        mouseX < 0 ||
+        mouseX > plotWidth ||
+        mouseY < 0 ||
+        mouseY > plotHeight
+      ) {
         focus.style("display", "none");
       }
     })
@@ -174,20 +181,22 @@ export function addInteractions(
         const i = bisect(dataPoints, x0, 1);
         const d0 = dataPoints[i - 1];
         const d1 = dataPoints[i];
-        
+
         if (d0 && d1) {
           const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
-          
+
           // Check if clicking near current point
           const currentX = computationStore.variables.get(xVar)?.value ?? 0;
-          const isNearCurrentPoint = Math.abs(d.x - currentX) < (xScale.domain()[1] - xScale.domain()[0]) * 0.01;
-          
+          const isNearCurrentPoint =
+            Math.abs(d.x - currentX) <
+            (xScale.domain()[1] - xScale.domain()[0]) * 0.01;
+
           // Update the x-axis variable when user clicks
           try {
             runInAction(() => {
               computationStore.setValue(xVar, d.x);
             });
-            
+
             // If clicking near current point, don't show blue focus dot
             if (isNearCurrentPoint) {
               focus.style("display", "none");
@@ -214,7 +223,8 @@ function updateCurrentPointHighlight(
   if (!xVar || !yVar) return;
 
   // Update existing current point circle
-  svg.select("circle.current-point")
+  svg
+    .select("circle.current-point")
     .attr("cx", xScale(currentPoint.x))
     .attr("cy", yScale(currentPoint.y));
 
@@ -222,7 +232,7 @@ function updateCurrentPointHighlight(
   const labelText = `${getVariableLabel(xVar)}: ${formatVariableValue(Number(currentPoint.x), xVar)}, ${getVariableLabel(yVar)}: ${formatVariableValue(Number(currentPoint.y), yVar)}`;
   const labelX = xScale(currentPoint.x) + 10;
   const labelY = yScale(currentPoint.y) - 10;
-  
+
   const labelElement = svg.select("text.current-point-label");
   labelElement
     .attr("x", labelX)
@@ -230,7 +240,7 @@ function updateCurrentPointHighlight(
     .attr("font-family", "Arial, sans-serif")
     .attr("font-weight", "500")
     .text(labelText);
-  
+
   // Update background rectangle position and size with centered positioning
   const labelNode = labelElement.node() as SVGTextElement;
   if (labelNode) {
@@ -238,12 +248,13 @@ function updateCurrentPointHighlight(
     const rectHeight = bbox.height + 8;
     const rectY = labelY - bbox.height - 4;
     const centeredTextY = rectY + rectHeight / 2 + bbox.height / 3; // Adjust for text baseline
-    
+
     // Update text y position to be centered
     labelElement.attr("y", centeredTextY);
-    
+
     // Update background rectangle
-    svg.select("rect.current-point-label-bg")
+    svg
+      .select("rect.current-point-label-bg")
       .attr("x", labelX - 8)
       .attr("y", rectY)
       .attr("width", bbox.width + 16)
@@ -307,7 +318,7 @@ export function addCurrentPointHighlight(
   const labelText = `${getVariableLabel(xVar)}: ${formatVariableValue(Number(currentPoint.x), xVar)}, ${getVariableLabel(yVar)}: ${formatVariableValue(Number(currentPoint.y), yVar)}`;
   const labelX = xScale(currentPoint.x) + 10;
   const labelY = yScale(currentPoint.y) - 10;
-  
+
   // Create temporary text element to measure dimensions
   const tempText = svg
     .append("text")
@@ -316,17 +327,17 @@ export function addCurrentPointHighlight(
     .attr("font-weight", "500")
     .text(labelText)
     .style("visibility", "hidden");
-  
+
   const tempTextNode = tempText.node() as SVGTextElement;
   const bbox = tempTextNode?.getBBox();
   tempText.remove();
-  
+
   if (bbox) {
     // Calculate centered positioning
     const rectHeight = bbox.height + 8;
     const rectY = labelY - bbox.height - 4;
     const centeredTextY = rectY + rectHeight / 2 + bbox.height / 3; // Adjust for text baseline
-    
+
     // Add background rectangle with more padding and rounded corners
     svg
       .append("rect")
