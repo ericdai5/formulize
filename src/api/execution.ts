@@ -6,7 +6,7 @@ import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
 import { IEnvironment } from "../types/environment";
 import { IStep } from "../types/step";
-import { JSInterpreter } from "../computation-engines/manual/interpreter";
+import { JSInterpreter } from "../engine/manual/interpreter";
 
 /**
  * MobX store for execution state that provides immediate updates

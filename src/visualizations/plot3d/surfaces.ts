@@ -1,5 +1,5 @@
 import { computationStore } from "../../api/computation";
-import { solveSingularFormula } from "../../computation-engines/singular-formula-solver";
+import { solveSingularFormula } from "../../engine/singular-formula-solver";
 import { IPoint3D, ISurface } from "../../types/plot3d";
 import { ColorScale, resolveColor } from "./color";
 

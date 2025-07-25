@@ -11,10 +11,10 @@ import {
   refresh,
   stepForward,
   stepToIndex,
-} from "../computation-engines/manual/execute";
-import { extractManual } from "../computation-engines/manual/extract";
-import { isAtBlock } from "../computation-engines/manual/interpreter";
-import { Step } from "../computation-engines/manual/step";
+} from "../engine/manual/execute";
+import { extractManual } from "../engine/manual/extract";
+import { isAtBlock } from "../engine/manual/interpreter";
+import { Step } from "../engine/manual/step";
 import { executionStore as ctx } from "../api/execution";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
