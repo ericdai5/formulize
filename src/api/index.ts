@@ -1,6 +1,6 @@
 // Export main Formulize API
-export { default as Formulize } from "./Formulize";
-export type { FormulizeConfig, FormulizeInstance } from "./Formulize";
+export { default as Formulize } from "../formulize";
+export type { FormulizeConfig, FormulizeInstance } from "../formulize";
 
 // Export computation API
 export { computationStore } from "../store/computation";

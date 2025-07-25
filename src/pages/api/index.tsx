@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { FormulizeConfig } from "../../api/Formulize";
+import { FormulizeConfig } from "../../formulize";
 import { computationStore } from "../../store/computation";
 import TemplateSelector from "../../components/template-selector";
 import { examples as formulaExamples } from "../../examples";

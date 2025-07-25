@@ -1,6 +1,6 @@
 import { action, observable, toJS } from "mobx";
 
-import { IComputation } from ".";
+import { IComputation } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IVariable } from "../types/variable";
 import {
