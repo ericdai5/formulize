@@ -6,12 +6,12 @@ import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import beautify from "js-beautify";
 
-import { executionStore as ctx } from "../api/execution";
 import { refresh, stepForward, stepToIndex } from "../engine/manual/execute";
 import { extractManual } from "../engine/manual/extract";
 import { isAtBlock } from "../engine/manual/interpreter";
 import { Step } from "../engine/manual/step";
 import { computationStore } from "../store/computation";
+import { executionStore as ctx } from "../store/execution";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
 import {

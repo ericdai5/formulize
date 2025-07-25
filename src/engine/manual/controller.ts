@@ -5,7 +5,7 @@ import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
 import { extractViews } from "../../util/acorn";
 import { computationStore } from "../../store/computation";
-import { executionStore as ctx } from "../../api/execution";
+import { executionStore as ctx } from "../../store/execution";
 import { ERROR_MESSAGES } from "./constants";
 import { initializeInterpreter, isAtBlock, isAtView } from "./interpreter";
 import { Step } from "./step";

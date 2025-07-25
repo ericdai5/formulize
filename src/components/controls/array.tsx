@@ -2,8 +2,8 @@ import { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { executionStore as ctx } from "../../api/execution";
 import { computationStore } from "../../store/computation";
+import { executionStore as ctx } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { getVariable } from "../../util/computation-helpers.ts";
 import LatexLabel from "../latex";
