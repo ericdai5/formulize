@@ -1,11 +1,11 @@
 import { EditorView } from "@codemirror/view";
 
-import { applyCue, updateAllVariables } from "../../../rendering/interaction/step-handler";
-import { IArrayControl } from "../../../types/control";
-import { IEnvironment } from "../../../types/environment";
-import { extractViews } from "../../../util/acorn";
-import { computationStore } from "../../computation";
-import { executionStore as ctx } from "../../execution";
+import { applyCue, updateAllVariables } from "../../rendering/interaction/step-handler";
+import { IArrayControl } from "../../types/control";
+import { IEnvironment } from "../../types/environment";
+import { extractViews } from "../../util/acorn";
+import { computationStore } from "../../api/computation";
+import { executionStore as ctx } from "../../api/execution";
 import { ERROR_MESSAGES } from "./constants";
 import { initializeInterpreter, isAtBlock, isAtView } from "./interpreter";
 import { Step } from "./step";

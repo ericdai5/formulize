@@ -6,8 +6,8 @@
  */
 import * as math from "mathjs";
 
-import { IComputation } from "../../../types/computation";
-import { IEnvironment } from "../../../types/environment";
+import { IComputation } from "../../types/computation";
+import { IEnvironment } from "../../types/environment";
 
 /**
  * Translates a variable name to be compatible with Math.js by replacing

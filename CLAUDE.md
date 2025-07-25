@@ -36,7 +36,7 @@ This is a **Formula Editor** built with React + TypeScript + Vite that provides 
    - `computationStore` - Variable computation and evaluation
    - `formulaStoreManager` - Manages individual formula stores
 
-3. **Computation Engines** (`src/api/computation-engines/`):
+3. **Computation Engines** (`src/computation-engines/`):
 
    - `manual` - Manual step-through with JS interpreter
    - `symbolic-algebra` - Mathematical computation engine

@@ -18,7 +18,7 @@ import { computationStore } from "../../api/computation";
 import {
   computeSurfaceIntersection,
   solveSingularFormula,
-} from "../../api/computation-engines/singular-formula-solver";
+} from "../../computation-engines/singular-formula-solver";
 import { IPoint3D, ISurface } from "../../types/plot3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
 import { getFormulaByName } from "../../util/formula-by-name";

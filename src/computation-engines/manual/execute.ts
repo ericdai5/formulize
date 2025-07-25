@@ -1,4 +1,4 @@
-import { IEnvironment } from "../../../types/environment";
+import { IEnvironment } from "../../types/environment";
 import { Controller } from "./controller";
 
 export function refresh(code: string, environment: IEnvironment | null): void {

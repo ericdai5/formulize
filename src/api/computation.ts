@@ -8,10 +8,10 @@ import {
   generateLLMDisplayCode,
   generateManualDisplayCode,
   generateSymbolicAlgebraDisplayCode,
-} from "./computation-engines/display-code-generator";
-import { generateEvaluationFunction as generateLLMFunction } from "./computation-engines/llm/llm-function-generator";
-import { computeWithManualEngine } from "./computation-engines/manual/manual";
-import { computeWithSymbolicEngine } from "./computation-engines/symbolic-algebra/symbolic-algebra";
+} from "../computation-engines/display-code-generator";
+import { generateEvaluationFunction as generateLLMFunction } from "../computation-engines/llm/llm-function-generator";
+import { computeWithManualEngine } from "../computation-engines/manual/manual";
+import { computeWithSymbolicEngine } from "../computation-engines/symbolic-algebra/symbolic-algebra";
 
 export type EvaluationFunction = (
   variables: Record<string, number>

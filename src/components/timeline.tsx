@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 
-import { DebugState } from "../api/computation-engines/manual/execute";
+import { IStep } from "../types/step";
 
 interface TimelineProps {
-  history: DebugState[];
+  history: IStep[];
   historyIndex: number;
   code: string;
   getLineFromCharPosition: (code: string, charPosition: number) => number;

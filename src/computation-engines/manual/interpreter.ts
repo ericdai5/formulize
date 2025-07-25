@@ -1,8 +1,8 @@
 /**
  * JS-Interpreter utility functions for manual computation debugging
  */
-import { IStep } from "../../../types/step";
-import { IVariable } from "../../../types/variable";
+import { IStep } from "../../types/step";
+import { IVariable } from "../../types/variable";
 
 // Window interface extension for JS-Interpreter
 declare global {

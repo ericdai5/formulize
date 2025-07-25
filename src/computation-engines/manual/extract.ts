@@ -1,6 +1,6 @@
 import beautify from "js-beautify";
 
-import { IEnvironment } from "../../../types/environment";
+import { IEnvironment } from "../../types/environment";
 
 interface ExtractResult {
   code: string | null;

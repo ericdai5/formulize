@@ -20,7 +20,7 @@ import {
   stepToNextBlock,
   stepToPrevBlock,
   stepToView,
-} from "../api/computation-engines/manual/execute";
+} from "../computation-engines/manual/execute";
 import { executionStore as ctx } from "../api/execution";
 import Button from "./button";
 import Select from "./select";
