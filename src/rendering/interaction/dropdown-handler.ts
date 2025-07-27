@@ -1,6 +1,6 @@
 import { computationStore } from "../../store/computation";
-import { findVariableByElement } from "../../api/variableProcessing";
 import { getVariable } from "../../util/computation-helpers";
+import { findVariableByElement } from "../../variableProcessing";
 
 export const dropdownHandler = (container: HTMLElement) => {
   if (!container) return;

@@ -1,4 +1,5 @@
-import { IComputation, IVariable } from "../api";
+import { IComputation } from "../types/computation";
+import { IVariable } from "../types/variable";
 
 export interface DisplayCodeGeneratorContext {
   computationConfig: IComputation | null;

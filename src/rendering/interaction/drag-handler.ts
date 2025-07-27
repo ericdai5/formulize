@@ -2,7 +2,7 @@ import { computationStore } from "../../store/computation";
 import {
   findVariableByElement,
   getInputVariableState,
-} from "../../api/variableProcessing";
+} from "../../variableProcessing";
 
 export const dragHandler = (container: HTMLElement) => {
   if (!container) return;

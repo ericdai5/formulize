@@ -20,9 +20,9 @@ import {
   Variable,
   deriveTreeWithVars,
   parseVariableStrings,
-} from "../FormulaTree";
-import { computationStore } from "../store/computation";
-import { getVariable } from "../util/computation-helpers";
+} from "./FormulaTree";
+import { computationStore } from "./store/computation";
+import { getVariable } from "./util/computation-helpers";
 
 /**
  * Process index variable within a formula node subtree
@@ -196,7 +196,7 @@ const processIndexVariable = (
  * Process an augmented formula tree to find Variable nodes and wrap their tokens
  * with CSS classes for interactive display
  */
-export const processVariablesInFormula = (
+export const processVariables = (
   formula: AugmentedFormula,
   defaultPrecision: number = 2
 ): string => {
@@ -482,7 +482,7 @@ export const processLatexContent = (
     const variableTrees = parseVariableStrings(variable);
     // Create formula tree with variables grouped, passing original symbols
     const formula = deriveTreeWithVars(latex, variableTrees, variable);
-    return processVariablesInFormula(formula, defaultPrecision);
+    return processVariables(formula, defaultPrecision);
   } catch (error) {
     console.warn("Failed to process latex content:", error);
     return latex; // Return original latex if processing fails
