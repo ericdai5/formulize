@@ -174,12 +174,13 @@ class ComputationStore {
   }
 
   @action
-  setValueInStepMode(id: string, value: number) {
+  setValueInStepMode(id: string, value: number): boolean {
     const variable = this.variables.get(id);
     if (!variable) {
       return false;
     }
     variable.value = value;
+    return true;
   }
 
   @action

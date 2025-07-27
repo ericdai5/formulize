@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 
-import Array from "../../components/controls/array";
+import ArrayControl from "../../components/controls/array";
 import { IArrayControl } from "../../types/control";
 
 // Custom Array Node Component
@@ -18,7 +18,7 @@ const ArrayNode = observer(({ data }: { data: { control: IArrayControl } }) => {
   return (
     <div className="array-node border bg-white border-slate-200 rounded-3xl p-4">
       <div className="nodrag">
-        <Array control={control} />
+        <ArrayControl control={control} />
       </div>
     </div>
   );
