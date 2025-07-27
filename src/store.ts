@@ -6,7 +6,8 @@ import {
   observable,
 } from "mobx";
 
-import { FormulaLatexRanges } from "./FormulaText";
+import { FormulaLatexRanges } from "./formula-text";
+import { canonicalizeFormula } from "./formula-transform";
 import {
   Aligned,
   AugmentedFormula,
@@ -16,8 +17,7 @@ import {
   convertLatexToMathML,
   deriveTree,
   updateFormula,
-} from "./FormulaTree";
-import { canonicalizeFormula } from "./formulaTransformations";
+} from "./formula-tree";
 
 class FormulaStore {
   @observable

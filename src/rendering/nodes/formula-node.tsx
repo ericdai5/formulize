@@ -6,7 +6,7 @@ import { observer } from "mobx-react-lite";
 import { GripHorizontal, GripVertical } from "lucide-react";
 
 import { computationStore } from "../../store/computation";
-import { processLatexContent } from "../../variableProcessing";
+import { processLatexContent } from "../../variable";
 import { dragHandler } from "../interaction/drag-handler";
 import { dropdownHandler } from "../interaction/dropdown-handler";
 import { stepHandler } from "../interaction/step-handler";

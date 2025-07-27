@@ -20,7 +20,7 @@ import {
   Variable,
   deriveTreeWithVars,
   parseVariableStrings,
-} from "./FormulaTree";
+} from "./formula-tree";
 import { computationStore } from "./store/computation";
 import { getVariable } from "./util/computation-helpers";
 

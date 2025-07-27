@@ -8,8 +8,8 @@ import {
   FormulaLatexRanges,
   StyledRange,
   UnstyledRange,
-} from "./FormulaText";
-import { canonicalizeFormula } from "./formulaTransformations";
+} from "./formula-text";
+import { canonicalizeFormula } from "./formula-transform";
 
 // import * as prettier from "prettier/standalone";
 // import * as babelPlugin from "prettier/parser-babel";

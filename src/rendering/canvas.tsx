@@ -20,7 +20,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { computationStore } from "../store/computation";
-import { FormulaStore } from "../store/FormulaStoreManager";
+import { FormulaStore } from "../store/formulas";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
 import { CanvasControls } from "./canvas-controls";

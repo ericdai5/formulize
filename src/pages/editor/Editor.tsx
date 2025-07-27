@@ -30,12 +30,12 @@ import {
   FormulaLatexRangeNode,
   StyledRange,
   UnstyledRange,
-} from "../../FormulaText";
+} from "../../formula-text";
 import {
   type AugmentedFormula,
   checkFormulaCode,
   deriveTree,
-} from "../../FormulaTree";
+} from "../../formula-tree";
 import { formulaStore, selectionStore } from "../../store";
 import * as styles from "../../styles";
 

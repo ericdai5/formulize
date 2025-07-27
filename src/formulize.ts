@@ -4,11 +4,8 @@
  * This provides a declarative API for creating interactive formula visualizations
  * as described in the Formulize API Documentation.
  */
-import {
-  FormulaStore,
-  formulaStoreManager,
-} from "./store/FormulaStoreManager";
 import { computationStore } from "./store/computation";
+import { FormulaStore, formulaStoreManager } from "./store/formulas";
 import { IEnvironment } from "./types/environment";
 import { IVariable } from "./types/variable";
 import { getVariable } from "./util/computation-helpers";

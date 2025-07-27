@@ -7,6 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
+import { assertUnreachable, replaceNodes } from "../../formula-transform";
 import {
   AugmentedFormulaNode,
   Box,
@@ -14,8 +15,7 @@ import {
   Color,
   Group,
   Script,
-} from "../../FormulaTree";
-import { assertUnreachable, replaceNodes } from "../../formulaTransformations";
+} from "../../formula-tree";
 import { formulaStore, selectionStore } from "../../store";
 import { ColorPicker, ColorSwatch } from "./Menu";
 
@@ -168,6 +168,12 @@ const TreeElement = ({ tree }: { tree: AugmentedFormulaNode }) => {
       return <LabeledNode tree={tree} label="Strikethrough" deletable />;
     case "variable":
       return <LabeledNode tree={tree} label="Variable" />;
+    case "accent":
+      return <LabeledNode tree={tree} label="Accent" />;
+    case "matrix":
+      return <LabeledNode tree={tree} label="Matrix" />;
+    case "delimited":
+      return <LabeledNode tree={tree} label="Delimited" />;
     default:
       assertUnreachable(tree);
   }

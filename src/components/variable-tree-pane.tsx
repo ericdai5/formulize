@@ -10,8 +10,8 @@ import {
   Variable,
   getVariableTokens,
   parseVariableString,
-} from "../FormulaTree";
-import { FormulizeConfig } from "../api";
+} from "../formula-tree";
+import { FormulizeConfig } from "../formulize";
 
 interface VariableTreePaneProps {
   variableName: string;
