@@ -1,6 +1,6 @@
 import React from "react";
 
-import { DebugState } from "../api/computation-engines/manual/execute";
+import { IStep } from "../types/step";
 
 const DEBUG_VARIABLES = [
   "Interpreter Value",
@@ -55,7 +55,7 @@ const VariableType: React.FC<VariableSectionProps> = ({
 };
 
 interface CurrentVariablesSectionProps {
-  currentState: DebugState | undefined;
+  currentState: IStep | undefined;
 }
 
 const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import { reaction, runInAction } from "mobx";
 
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { IContext, ICustom } from "../../types/custom";
 import {
   getVariableValue,

@@ -19,7 +19,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { computationStore } from "../api/computation";
+import { computationStore } from "../store/computation";
 import { FormulaStore } from "../store/FormulaStoreManager";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
@@ -114,19 +114,23 @@ const CanvasFlow = observer(
 
         labelNodes.forEach((labelNode) => {
           // Extract formula index and cssId from label node ID
-          // Format: label-{formulaIndex}-{cssId}-{elementIndex}
+          // Format: label-{formulaIndex}-{cssId}
           const labelIdParts = labelNode.id.split("-");
 
-          if (labelIdParts.length >= 4) {
+          if (labelIdParts.length >= 3) {
             const formulaIndex = labelIdParts[1];
             const cssId = labelIdParts[2];
-            const elementIndex = labelIdParts[3];
 
-            // Find corresponding variable node
-            const variableNodeId = `variable-${formulaIndex}-${cssId}-${elementIndex}`;
-            const variableNode = variableNodes.find(
-              (node) => node.id === variableNodeId
-            );
+            // Find corresponding variable node - match by cssId, any elementIndex
+            const variableNode = variableNodes.find((node) => {
+              const varIdParts = node.id.split("-");
+              return (
+                varIdParts.length >= 4 &&
+                varIdParts[0] === "variable" &&
+                varIdParts[1] === formulaIndex &&
+                varIdParts[2] === cssId
+              );
+            });
 
             if (variableNode) {
               // Calculate absolute positions for comparison
@@ -224,16 +228,18 @@ const CanvasFlow = observer(
 
       let currentY = 50; // Starting Y position
 
-      // Add control panel node if controls exist
+      // Add individual control nodes if controls exist
       if (controls && controls.length > 0) {
-        nodes.push({
-          id: "control-panel",
-          type: "controlPanel",
-          position: { x: 250, y: currentY },
-          data: { controls },
-          draggable: true,
+        controls.forEach((control, index) => {
+          nodes.push({
+            id: `control-${index}`,
+            type: control.type,
+            position: { x: 250, y: currentY },
+            data: { control },
+            draggable: true,
+          });
+          currentY += 100; // Add space after each control
         });
-        currentY += 150; // Add space after control panel
       }
 
       // Add formula nodes vertically
@@ -298,86 +304,95 @@ const CanvasFlow = observer(
 
         // Track existing labels for collision detection (within this formula)
         const existingLabels: NodeBounds[] = [];
+        // Track which variables already have labels to prevent duplicates
+        const processedVariables = new Set<string>();
 
         // Find variable elements within this formula
         const variableElements = formulaElement.querySelectorAll(
           '[class*="interactive-var-"]'
         );
 
-        variableElements.forEach(
-          (varElement: Element, elementIndex: number) => {
-            const htmlVarElement = varElement as HTMLElement;
-            const cssId = htmlVarElement.id;
-            if (!cssId) return;
+        variableElements.forEach((varElement: Element) => {
+          const htmlVarElement = varElement as HTMLElement;
+          const cssId = htmlVarElement.id;
+          if (!cssId) return;
 
-            const variable = computationStore.variables.get(cssId);
-            if (!variable?.label) return;
+          // Skip if we've already processed this variable
+          if (processedVariables.has(cssId)) return;
+          processedVariables.add(cssId);
 
-            // Get the corresponding variable node to get its actual position
-            const variableNodeId = `variable-${formulaIndex}-${cssId}-${elementIndex}`;
-            const variableNode = currentNodes.find(
-              (node) => node.id === variableNodeId
+          const variable = computationStore.variables.get(cssId);
+          if (!variable?.label) return;
+
+          // Get the corresponding variable node to get its actual position
+          // Find the first variable node for this cssId since we may have multiple instances
+          const variableNode = currentNodes.find((node) => {
+            const varIdParts = node.id.split("-");
+            return (
+              varIdParts.length >= 4 &&
+              varIdParts[0] === "variable" &&
+              varIdParts[1] === formulaIndex.toString() &&
+              varIdParts[2] === cssId
             );
+          });
 
-            if (!variableNode) return;
+          if (!variableNode) return;
 
-            // Calculate label position based on the actual variable node position
-            const labelPos = getLabelNodePos(
-              variableNode.position,
-              {
-                width: (variableNode.data.width as number) || 0,
-                height: (variableNode.data.height as number) || 0,
-              },
-              formulaNode,
-              {
-                width: formulaNode.measured?.width || formulaNode.width || 400,
-                height:
-                  formulaNode.measured?.height || formulaNode.height || 200,
-              },
-              existingLabels,
-              variable.label,
-              viewport
-            );
+          // Calculate label position based on the actual variable node position
+          const labelPos = getLabelNodePos(
+            variableNode.position,
+            {
+              width: (variableNode.data.width as number) || 0,
+              height: (variableNode.data.height as number) || 0,
+            },
+            formulaNode,
+            {
+              width: formulaNode.measured?.width || formulaNode.width || 400,
+              height: formulaNode.measured?.height || formulaNode.height || 200,
+            },
+            existingLabels,
+            variable.label,
+            viewport
+          );
 
-            // Add this label to existing labels for future collision detection
-            const estimatedLabelWidth = Math.max(
-              variable.label.length * (8 / viewport.zoom),
-              40 / viewport.zoom
-            );
-            const estimatedLabelHeight = 24 / viewport.zoom;
+          // Add this label to existing labels for future collision detection
+          const estimatedLabelWidth = Math.max(
+            variable.label.length * (8 / viewport.zoom),
+            40 / viewport.zoom
+          );
+          const estimatedLabelHeight = 24 / viewport.zoom;
 
-            existingLabels.push({
+          existingLabels.push({
+            x: labelPos.x,
+            y: labelPos.y,
+            width: estimatedLabelWidth,
+            height: estimatedLabelHeight,
+            id: `label-${formulaIndex}-${cssId}`,
+            type: "label",
+          });
+
+          // Create the label node
+          labelNodes.push({
+            id: `label-${formulaIndex}-${cssId}`,
+            type: "label",
+            position: {
               x: labelPos.x,
               y: labelPos.y,
-              width: estimatedLabelWidth,
-              height: estimatedLabelHeight,
-              id: `label-${formulaIndex}-${cssId}-${elementIndex}`,
-              type: "label",
-            });
+            },
+            data: {
+              varId: cssId,
+              placement: labelPos.placement,
+            },
+            draggable: true,
+            selectable: true,
+          });
 
-            // Create the label node
-            labelNodes.push({
-              id: `label-${formulaIndex}-${cssId}-${elementIndex}`,
-              type: "label",
-              position: {
-                x: labelPos.x,
-                y: labelPos.y,
-              },
-              data: {
-                varId: cssId,
-                placement: labelPos.placement,
-              },
-              draggable: true,
-              selectable: true,
-            });
-
-            // Track variable node updates
-            variableNodeUpdates.push({
-              nodeId: variableNodeId,
-              labelPlacement: labelPos.placement,
-            });
-          }
-        );
+          // Track variable node updates
+          variableNodeUpdates.push({
+            nodeId: variableNode.id,
+            labelPlacement: labelPos.placement,
+          });
+        });
       });
 
       // Add label nodes and update variable nodes with correct placement info
@@ -626,7 +641,7 @@ const CanvasFlow = observer(
                 }
 
                 // Also track corresponding label nodes
-                const labelNodeId = `label-${formulaIndex}-${cssId}-${elementIndex}`;
+                const labelNodeId = `label-${formulaIndex}-${cssId}`;
                 if (labelNodes.has(labelNodeId)) {
                   foundNodeIds.add(labelNodeId);
                 }

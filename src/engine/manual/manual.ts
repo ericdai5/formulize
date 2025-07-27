@@ -4,7 +4,7 @@
  * This module provides manual computation capability allowing authors to define
  * custom JavaScript functions for computing dependent variables.
  */
-import { IEnvironment } from "../../../types/environment";
+import { IEnvironment } from "../../types/environment";
 
 /**
  * Computes the formula with the given variable values using custom JavaScript functions

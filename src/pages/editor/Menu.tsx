@@ -255,7 +255,6 @@ const StrikethroughMenu = () => {
                     (siblingIds) => siblingIds[0] === node.id
                   )
                 ) {
-                  console.log("Applying strikethrough to", node);
                   return new Strikethrough(node.id, node);
                 }
                 return node;
@@ -299,7 +298,6 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                       )
                     ))
                 ) {
-                  console.log("Modifying existing color node", node);
                   return new Color(node.id, color, node.body);
                 } else if (
                   selectionStore.siblingSelections.some(
@@ -308,7 +306,6 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                   (node.ancestors.length === 0 ||
                     node.ancestors[0].type !== "color")
                 ) {
-                  console.log("Applying new color node to", node);
                   return new Color(node.id, color, [node]);
                 }
                 return node;
@@ -348,7 +345,6 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                       (siblingIds) => siblingIds[0] === node.body.id
                     ))
                 ) {
-                  console.log("Modifying existing box node", node);
                   return new Box(node.id, color, "white", node.body);
                 } else if (
                   selectionStore.siblingSelections.some(
@@ -357,7 +353,6 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                   (node.ancestors.length === 0 ||
                     node.ancestors[0].type !== "box")
                 ) {
-                  console.log("Applying new box node to", node);
                   return new Box(node.id, color, "white", node);
                 }
                 return node;
@@ -390,14 +385,14 @@ const AnnotateMenu = ({
               (siblingIds) => siblingIds[0] === node.id
             )
           ) {
-            console.log("Modifying existing brace node", node);
+            // console.log("Modifying existing brace node", node);
           } else if (
             selectionStore.siblingSelections.some(
               (siblingIds) => siblingIds[0] === node.id
             ) &&
             (node.ancestors.length === 0 || node.ancestors[0].type !== "brace")
           ) {
-            console.log("Applying new brace node to", node);
+            // console.log("Applying new brace node to", node);
             const caption = new Text(
               "",
               Array.from("caption").map((c) => new MathSymbol("", c))

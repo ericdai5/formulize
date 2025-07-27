@@ -2,9 +2,9 @@ import React, { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { ISliderControl } from "../../types/control";
-import { getVariable } from "../../util/computation-helpers";
+import { getVariable } from "../../util/computation-helpers.ts";
 
 interface SliderProps {
   control: ISliderControl;

@@ -1,61 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../api/computation";
-import { executionStore as ctx } from "../../api/execution";
+import { computationStore } from "../../store/computation";
+import { executionStore as ctx } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
-import { getVariable } from "../../util/computation-helpers";
+import { getVariable } from "../../util/computation-helpers.ts";
+import LatexLabel from "../latex";
 
 interface ArrayProps {
   control: IArrayControl;
 }
-
-const LatexLabel = ({ latex }: { latex: string }) => {
-  const labelRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    let isMounted = true; // Track if component is still mounted
-
-    const renderLatex = async () => {
-      if (!labelRef.current || !window.MathJax || !isMounted) return;
-
-      try {
-        await window.MathJax.startup.promise;
-
-        // Check again after async operation
-        if (!labelRef.current || !isMounted) return;
-
-        labelRef.current.innerHTML = `\\(${latex}\\)`;
-        await window.MathJax.typesetPromise([labelRef.current]);
-      } catch (error) {
-        console.error("Error rendering LaTeX label:", error);
-
-        // Fallback to plain text with null check
-        if (labelRef.current && isMounted) {
-          labelRef.current.textContent = latex;
-        }
-      }
-    };
-
-    renderLatex();
-
-    // Cleanup function
-    return () => {
-      isMounted = false;
-    };
-  }, [latex]);
-
-  return (
-    <span
-      ref={labelRef}
-      className="flex items-center justify-center"
-      style={{ fontSize: "0.6rem" }}
-    >
-      {latex}
-    </span>
-  );
-};
 
 const Array = observer(({ control }: ArrayProps) => {
   // Get the variable ID from the control's variable property

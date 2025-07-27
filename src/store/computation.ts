@@ -1,6 +1,6 @@
 import { action, observable, toJS } from "mobx";
 
-import { IComputation } from ".";
+import { IComputation } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IVariable } from "../types/variable";
 import {
@@ -8,10 +8,10 @@ import {
   generateLLMDisplayCode,
   generateManualDisplayCode,
   generateSymbolicAlgebraDisplayCode,
-} from "./computation-engines/display-code-generator";
-import { generateEvaluationFunction as generateLLMFunction } from "./computation-engines/llm/llm-function-generator";
-import { computeWithManualEngine } from "./computation-engines/manual/manual";
-import { computeWithSymbolicEngine } from "./computation-engines/symbolic-algebra/symbolic-algebra";
+} from "../engine/display-code-generator";
+import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
+import { computeWithManualEngine } from "../engine/manual/manual";
+import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
 
 export type EvaluationFunction = (
   variables: Record<string, number>
@@ -162,8 +162,7 @@ class ComputationStore {
   setValue(id: string, value: number) {
     const variable = this.variables.get(id);
     if (!variable) {
-      console.log(`setValue: Variable not found: ${id}`);
-      return;
+      return false;
     }
     variable.value = value;
     // Update index-based dependent variables
@@ -175,13 +174,13 @@ class ComputationStore {
   }
 
   @action
-  setValueInStepMode(id: string, value: number) {
+  setValueInStepMode(id: string, value: number): boolean {
     const variable = this.variables.get(id);
     if (!variable) {
-      console.log(`setValueInStepMode: Variable not found: ${id}`);
-      return;
+      return false;
     }
     variable.value = value;
+    return true;
   }
 
   @action
@@ -271,8 +270,9 @@ class ComputationStore {
             parentVar.set.includes(parentVar.value)
           ) {
             variable.value = parentVar.value;
-          } else if (parentVar.set.length > 0) {
-            // If parent doesn't have a value, set to first element
+          } else if (parentVar.set.length > 0 && !variable.index) {
+            // Only set default to first element if this variable doesn't have an index
+            // Variables with index should get their values based on the index variable
             variable.value =
               typeof parentVar.set[0] === "number"
                 ? parentVar.set[0]
@@ -422,7 +422,7 @@ class ComputationStore {
   addVariable(id: string, variableDefinition?: Partial<IVariable>) {
     if (!this.variables.has(id)) {
       this.variables.set(id, {
-        value: variableDefinition?.value ?? 0,
+        value: variableDefinition?.value ?? undefined,
         type: variableDefinition?.type ?? "constant",
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
@@ -436,7 +436,8 @@ class ComputationStore {
         set: variableDefinition?.set,
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
-        showName: variableDefinition?.showName,
+        display: variableDefinition?.display,
+        index: variableDefinition?.index,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable
@@ -501,10 +502,9 @@ class ComputationStore {
     try {
       this.isUpdatingDependents = true;
       const values = Object.fromEntries(
-        Array.from(this.variables.entries()).map(([symbol, v]) => [
-          symbol,
-          v.value ?? 0,
-        ])
+        Array.from(this.variables.entries())
+          .filter(([, v]) => v.value !== undefined)
+          .map(([symbol, v]) => [symbol, v.value!])
       );
       const results = this.evaluationFunction(values);
       // Update all dependent variables with their computed values
@@ -555,9 +555,6 @@ class ComputationStore {
     const dependentVars = this.getDependentVars();
 
     if (dependentVars.length === 0) {
-      console.log(
-        "🔎 No dependent variables, skipping LLM function generation"
-      );
       return;
     }
 
@@ -566,11 +563,8 @@ class ComputationStore {
       const primaryExpression = expressions[0] || "";
 
       if (!primaryExpression.trim()) {
-        console.log("🔎 No valid expression for LLM generation");
         return;
       }
-
-      console.log("🚀 Generating LLM function for expressions:", expressions);
 
       const dependentVars = this.getDependentVarSymbols();
       const inputVars = this.getInputVarSymbols();

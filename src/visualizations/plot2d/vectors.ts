@@ -2,7 +2,7 @@ import { runInAction } from "mobx";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { IVector } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
 import { VECTOR_DEFAULTS } from "./defaults";
@@ -66,7 +66,14 @@ export function renderVector(
 
   // Handle point shape differently
   if (shape === "point") {
-    renderPointMarkers(svg, vectorData, xScale, yScale, color, vector.markerSize || 4);
+    renderPointMarkers(
+      svg,
+      vectorData,
+      xScale,
+      yScale,
+      color,
+      vector.markerSize || 4
+    );
     return; // Exit early for points
   }
 

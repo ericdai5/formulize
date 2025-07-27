@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import { AlignmentGuides } from "../../AlignmentGuides";
 import { MathSymbol } from "../../FormulaTree";
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { editingStore, formulaStore, selectionStore } from "../../store";
 import { getVariable } from "../../util/computation-helpers";
 import { RenderedFormula } from "./RenderedFormula";

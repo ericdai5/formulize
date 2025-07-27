@@ -1,4 +1,5 @@
-import { IComputation, IVariable } from "..";
+import { IComputation } from "../types/computation";
+import { IVariable } from "../types/variable";
 
 export interface DisplayCodeGeneratorContext {
   computationConfig: IComputation | null;
@@ -15,9 +16,6 @@ export function generateSymbolicAlgebraDisplayCode(
   context: DisplayCodeGeneratorContext
 ): string {
   const dependentVars = context.getDependentVariableSymbols();
-
-  console.log("🔎 Generating display code for symbolic algebra engine");
-  console.log("🔎 Dependent variables:", dependentVars);
 
   // Generate evaluation function that matches what's really used by SymbolicAlgebraEngine
   let functionCode = `function evaluate(variables) {
@@ -118,9 +116,6 @@ export function generateManualDisplayCode(
   context: DisplayCodeGeneratorContext
 ): string {
   const dependentVars = context.getDependentVariableSymbols();
-
-  console.log("🔎 Generating display code for manual engine");
-  console.log("🔎 Dependent variables:", dependentVars);
 
   // Check if we have formulas with manual functions instead of mappings
   const hasManualFunctions = Array.from(context.variables.values()).some(

@@ -7,11 +7,11 @@
 import {
   FormulaStore,
   formulaStoreManager,
-} from "../store/FormulaStoreManager";
-import { IEnvironment } from "../types/environment";
-import { IVariable } from "../types/variable";
-import { getVariable } from "../util/computation-helpers";
-import { computationStore } from "./computation";
+} from "./store/FormulaStoreManager";
+import { computationStore } from "./store/computation";
+import { IEnvironment } from "./types/environment";
+import { IVariable } from "./types/variable";
+import { getVariable } from "./util/computation-helpers";
 
 export interface FormulizeConfig extends IEnvironment {}
 
@@ -145,8 +145,6 @@ async function create(
     if (!computationStore.isStepMode()) {
       computationStore.updateAllDependentVars();
     }
-
-    console.log(`Created ${formulaStores.length} individual formula stores`);
 
     // Store the formulaId for setVariable method to use
     const instance = {

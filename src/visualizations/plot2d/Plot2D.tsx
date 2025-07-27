@@ -5,13 +5,13 @@ import { observer } from "mobx-react-lite";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
 import { addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";
+import { renderLines } from "./lines";
 import { calculatePlotDimensions, getVariableLabel } from "./utils";
 import { renderVectors } from "./vectors";
-import { renderLines } from "./lines";
 
 interface Plot2DProps {
   config: IPlot2D;
@@ -47,8 +47,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   // Get min/max values from ranges
   const [xMin, xMax] = xRange;
   const [yMin, yMax] = yRange;
-
-
 
   // Function to draw the plot
   const drawPlot = useCallback(() => {
@@ -144,7 +142,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       () => {
         // Skip tracking during dragging to prevent re-renders
         if (computationStore.isDragging) return null;
-        
+
         // Track all variable values for live updates
         const allVariables: Record<string, number> = {};
         for (const [id, variable] of computationStore.variables.entries()) {

@@ -6,8 +6,8 @@
  */
 import * as math from "mathjs";
 
-import { IComputation } from "../../../types/computation";
-import { IEnvironment } from "../../../types/environment";
+import { IComputation } from "../../types/computation";
+import { IEnvironment } from "../../types/environment";
 
 /**
  * Translates a variable name to be compatible with Math.js by replacing
@@ -72,14 +72,16 @@ function toNumberArray(result: unknown): number[] | null {
   // Handle Math.js DenseMatrix
   if (result && typeof result === "object" && "_data" in result) {
     const data = (result as { _data: unknown })._data;
-    return Array.isArray(data) && data.every(x => typeof x === "number") ? data : null;
+    return Array.isArray(data) && data.every((x) => typeof x === "number")
+      ? data
+      : null;
   }
-  
+
   // Handle regular arrays
-  if (Array.isArray(result) && result.every(x => typeof x === "number")) {
+  if (Array.isArray(result) && result.every((x) => typeof x === "number")) {
     return result;
   }
-  
+
   return null;
 }
 
@@ -104,28 +106,33 @@ function tryEvaluateMatrixExpression(
   // Match matrix pattern: [var1, var2, ...] = expression
   const matrixMatch = expr.match(/^\s*\[(.*?)\]\s*=\s*(.+)$/);
   if (!matrixMatch) return false;
-  
+
   const [, leftSide, rightSide] = matrixMatch;
-  const leftVarNames = leftSide.split(",").map(v => v.trim()).filter(Boolean);
-  
+  const leftVarNames = leftSide
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
   if (leftVarNames.length === 0) return false;
-  
+
   try {
     const rightResult = math.evaluate(rightSide, scope);
     const resultArray = toNumberArray(rightResult);
-    
+
     if (!resultArray || resultArray.length !== leftVarNames.length) {
-      console.log(`⚠️ Matrix dimension mismatch: expected ${leftVarNames.length}, got ${resultArray?.length || 0}`);
       return false;
     }
-    
+
     // Assign each component to its corresponding variable
     let anyAssigned = false;
     for (let i = 0; i < leftVarNames.length; i++) {
       const varName = leftVarNames[i];
       const value = resultArray[i];
-      
-      if (translatedDependentVars.includes(varName) && unresolved.has(varName)) {
+
+      if (
+        translatedDependentVars.includes(varName) &&
+        unresolved.has(varName)
+      ) {
         const originalVarName = reverseTranslationMap[varName] || varName;
         result[originalVarName] = value;
         scope[varName] = value;
@@ -133,10 +140,10 @@ function tryEvaluateMatrixExpression(
         anyAssigned = true;
       }
     }
-    
+
     return anyAssigned;
   } catch (error) {
-    console.log(`⚠️ Could not evaluate matrix expression ${expr}:`, error);
+    console.error(`⚠️ Could not evaluate matrix expression ${expr}:`, error);
     return false;
   }
 }
@@ -207,7 +214,16 @@ export function deriveSymbolicFunction(
 
       for (const expr of processedExpressions) {
         // Check for matrix expressions first
-        if (tryEvaluateMatrixExpression(expr, scope, translatedDependentVars, unresolved, result, reverseTranslationMap)) {
+        if (
+          tryEvaluateMatrixExpression(
+            expr,
+            scope,
+            translatedDependentVars,
+            unresolved,
+            result,
+            reverseTranslationMap
+          )
+        ) {
           continue; // Successfully handled as matrix expression
         }
 
@@ -224,7 +240,7 @@ export function deriveSymbolicFunction(
               unresolved.delete(depVar);
               break; // Move to next expression since we found a match
             } catch (error) {
-              console.log(
+              console.error(
                 `⚠️ Could not evaluate ${depVar} = ${match1[1]}:`,
                 error
               );
@@ -245,7 +261,7 @@ export function deriveSymbolicFunction(
               unresolved.delete(depVar);
               break; // Move to next expression since we found a match
             } catch (error) {
-              console.log(
+              console.error(
                 `⚠️ Could not evaluate ${match2[1]} = ${depVar}:`,
                 error
               );

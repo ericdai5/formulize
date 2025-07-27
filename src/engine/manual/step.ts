@@ -1,5 +1,5 @@
-import { IStep } from "../../../types/step";
-import { highlightCode } from "../../../util/codemirror";
+import { IStep } from "../../types/step";
+import { highlightCode } from "../../util/codemirror";
 import { JSInterpreter, StackFrame } from "./interpreter";
 import { VariableExtractor } from "./variableExtractor";
 import { View } from "./view";

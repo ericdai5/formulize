@@ -30,11 +30,11 @@ export const lossFunction = `const config = {
       },
       variableLinkage: {
         "index": "i",
-        "yi": "y",
-        "yHati": "\\\\hat{y}",
+        "yi": "y^{(i)}",
+        "yHati": "\\\\hat{y}^{(i)}",
         "lambda": "\\\\lambda",
         "indexj": "j",
-        "thetaj": "\\\\theta",
+        "thetaj": "\\\\theta_j",
         "loss": "J(\\\\theta)"
       },
     },
@@ -42,57 +42,73 @@ export const lossFunction = `const config = {
   variables: {
     "J(\\\\theta)": {
       type: "dependent",
-      precision: 2,
       label: "Loss Function"
     },
     m: {
       type: "input",
       value: 3,
-      precision: 0
+      display: "value",
+      precision: 0,
+    },
+    "y^{(i)}": {
+      type: "input",
+      memberOf: "y",
+      label: "Actual value of the i-th example",
+      display: "value",
+      index: "i"
+    },
+    "\\\\hat{y}^{(i)}": {
+      type: "input",
+      memberOf: "\\\\hat{y}",
+      label: "Predicted value of the i-th example",
+      display: "value",
+      index: "i"
     },
     y: {
       type: "input",
       set: [2.5, 3.0, 7.0],
-      precision: 1,
-      label: "y: actual value of the i-th training example"
+      label: "Actual value of the i-th example"
     },
     "\\\\hat{y}": {
       type: "input",
       set: [2.0, 4.0, 5.0],
-      precision: 1,
-      label: "\\\\hat{y}: predicted value of the i-th training example"
+      label: "Predicted value of the i-th example"
     },
     "\\\\lambda": {
       type: "input",
       value: 0.1,
-      label: "\\\\lambda: regularization parameter",
-      precision: 1
+      label: "Regularization parameter",
+      display: "value",
+    },
+    "\\\\theta_j": {
+      type: "input",
+      memberOf: "\\\\theta",
+      label: "Parameter j of the model",
+      index: "j",
     },
     "\\\\theta": {
       type: "input",
       set: [0.5, -1.0],
-      label: "\\\\theta: parameters of the model",
-      precision: 1
+      label: "Parameters of the model",
     },
     K: {
       type: "input",
-      label: "K: number of features",
+      label: "Number of features",
       value: 2,
+      display: "value",
       precision: 0,
     },
     i: {
       type: "input",
       label: "Index",
-      value: 1,
+      display: "value",
       precision: 0,
-      showName: false,
     },
     j: {
       type: "input",
       label: "Index",
-      value: 1,
+      display: "value",
       precision: 0,
-      showName: false,
     }
   },
   controls: [
