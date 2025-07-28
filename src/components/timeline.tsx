@@ -24,13 +24,18 @@ const Timeline: React.FC<TimelineProps> = ({
   // Auto-scroll to the bottom when new items are added
   useEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop =
-        scrollContainerRef.current.scrollHeight;
+      // Find the parent scroll container (CollapsibleSection content)
+      const parentScrollContainer = scrollContainerRef.current.closest(
+        '[class*="overflow-y-auto"]'
+      );
+      if (parentScrollContainer) {
+        parentScrollContainer.scrollTop = parentScrollContainer.scrollHeight;
+      }
     }
   }, [history.length]);
 
   return (
-    <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+    <div className="flex-1" ref={scrollContainerRef}>
       {history.map((state, index) => {
         return (
           <div
