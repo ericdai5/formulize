@@ -161,7 +161,7 @@ function processFormulaString(
   translationMap: Record<string, string>
 ): string {
   // Replace {variableName} with translated variableName
-  return formulaStr.replace(/\{([^}]+)\}/g, (match, variableName) => {
+  return formulaStr.replace(/\{([^}]+)\}/g, (_match, variableName) => {
     return translationMap[variableName] || translateVariableName(variableName);
   });
 }
@@ -291,7 +291,7 @@ export function deriveSymbolicFunction(
  */
 export function computeWithSymbolicEngine(
   environment: IEnvironment,
-  computation: IComputation,
+  _computation: IComputation,
   variables: Record<string, number>
 ): Record<string, number> {
   try {

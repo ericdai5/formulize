@@ -2,11 +2,11 @@ import { MouseEvent, useCallback, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { AlignmentGuides } from "../../AlignmentGuides";
-import { MathSymbol } from "../../FormulaTree";
-import { computationStore } from "../../store/computation";
+import { MathSymbol } from "../../parse/formula-tree";
 import { editingStore, formulaStore, selectionStore } from "../../store";
+import { computationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";
+import { AlignmentGuides } from "./AlignmentGuides";
 import { RenderedFormula } from "./RenderedFormula";
 import VariableTooltip from "./VariableTooltip";
 

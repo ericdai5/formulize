@@ -62,17 +62,18 @@ export class View {
   }
 
   private static isValidViewFrame(frame: StackFrame): boolean {
+    const firstArg = frame?.node?.arguments?.[0] as any;
     return (
       frame?.node?.callee?.name === "view" &&
-      frame.node.arguments?.[0]?.type === "ArrayExpression" &&
-      frame.node.arguments[0].elements
+      firstArg?.type === "ArrayExpression" &&
+      firstArg?.elements
     );
   }
 
   private static extractViewParameters(
     frame: StackFrame
   ): Array<[string, string, string?]> {
-    const firstArg = frame.node?.arguments?.[0];
+    const firstArg = frame.node?.arguments?.[0] as any;
     if (!firstArg?.elements) return [];
     const pairs: Array<[string, string, string?]> = [];
     for (const element of firstArg.elements) {

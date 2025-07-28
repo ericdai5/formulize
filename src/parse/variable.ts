@@ -1,3 +1,5 @@
+import { computationStore } from "../store/computation";
+import { getVariable } from "../util/computation-helpers";
 import {
   Accent,
   Aligned,
@@ -20,9 +22,7 @@ import {
   Variable,
   deriveTreeWithVars,
   parseVariableStrings,
-} from "./FormulaTree";
-import { computationStore } from "./store/computation";
-import { getVariable } from "./util/computation-helpers";
+} from "./formula-tree";
 
 /**
  * Process index variable within a formula node subtree

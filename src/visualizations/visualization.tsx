@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { FormulizeConfig } from "../api";
+import { FormulizeConfig } from "..";
 import { IVisualization } from "../types/visualization";
 import Canvas from "./custom/canvas";
 import Plot2D from "./plot2d/Plot2D";

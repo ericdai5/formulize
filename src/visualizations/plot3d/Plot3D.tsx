@@ -12,8 +12,8 @@ import { observer } from "mobx-react-lite";
 // Import Plotly as any to avoid type issues since @types/plotly.js-dist might not be available
 import * as Plotly from "plotly.js-dist";
 
-import { IPlot3D } from "../../api";
-import { FormulizeConfig } from "../../api";
+import { IPlot3D } from "../..";
+import { FormulizeConfig } from "../..";
 import {
   computeSurfaceIntersection,
   solveSingularFormula,
@@ -136,7 +136,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
 
   // Calculate line data for a specific line configuration
   const calculateLineData = useCallback(
-    (lineConfig: any, index: number): LineData | null => {
+    (lineConfig: any, _index: number): LineData | null => {
       const {
         name,
         surfaceIntersection,

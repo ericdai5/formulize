@@ -1,8 +1,8 @@
-import { computationStore } from "../../store/computation";
 import {
   findVariableByElement,
   getInputVariableState,
-} from "../../variableProcessing";
+} from "../../parse/variable";
+import { computationStore } from "../../store/computation";
 
 export const dragHandler = (container: HTMLElement) => {
   if (!container) return;

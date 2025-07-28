@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import Icon from "@mui/material/Icon";
 
+import { consolidateGroups, replaceNodes } from "../../parse/formula-transform";
 import {
   Aligned,
   AugmentedFormula,
@@ -15,8 +16,7 @@ import {
   Script,
   Strikethrough,
   Text,
-} from "../../FormulaTree";
-import { consolidateGroups, replaceNodes } from "../../formulaTransformations";
+} from "../../parse/formula-tree";
 import {
   editingStore,
   formulaStore,
@@ -24,9 +24,9 @@ import {
   undoStore,
 } from "../../store";
 
-import AnnotateIcon from "../../Icons/AnnotateIcon.svg";
-import BoxIcon from "../../Icons/BoxIcon.svg";
-import CurlyBraceListOption from "../../Icons/CurlyBraceListOption.svg";
+import AnnotateIcon from "/AnnotateIcon.svg";
+import BoxIcon from "/BoxIcon.svg";
+import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
 
 // import LogoIcon from "./Icons/LogoIcon.svg";
 
@@ -322,7 +322,7 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
 const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   return (
     <SubMenu
-      menuButton={<img src={BoxIcon} />}
+      menuButton={<img src={BoxIcon} alt="Box icon" />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -413,7 +413,7 @@ const AnnotateMenu = ({
   };
   return (
     <SubMenu
-      menuButton={<img src={AnnotateIcon} />}
+      menuButton={<img src={AnnotateIcon} alt="Annotate icon" />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -423,13 +423,13 @@ const AnnotateMenu = ({
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(true)}
         >
-          <img src={CurlyBraceListOption} height={"17rem"} />
+          <img src={CurlyBraceListOptionIcon} height={"17rem"} alt="Curly brace list option" />
         </div>
         <div
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform -rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(false)}
         >
-          <img src={CurlyBraceListOption} height={"17rem"} />
+          <img src={CurlyBraceListOptionIcon} height={"17rem"} alt="Curly brace list option" />
         </div>
       </div>
     </SubMenu>

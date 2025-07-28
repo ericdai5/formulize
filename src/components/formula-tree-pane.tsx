@@ -7,6 +7,9 @@ import { ChevronRight } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
+import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
+
+import { assertUnreachable, replaceNodes } from "../parse/formula-transform";
 import {
   AugmentedFormulaNode,
   Box,
@@ -15,15 +18,10 @@ import {
   Group,
   Script,
   Variable,
-} from "../FormulaTree";
-import { assertUnreachable, replaceNodes } from "../formulaTransformations";
+} from "../parse/formula-tree";
 import { ColorPicker, ColorSwatch } from "../pages/editor/Menu";
-import {
-  FormulaStore,
-  formulaStoreManager,
-} from "../store/FormulaStoreManager";
+import { FormulaStore, formulaStoreManager } from "../store/formulas";
 
-import CurlyBraceListOption from "../Icons/CurlyBraceListOption.svg";
 
 const FormulaElementPaneContext = createContext<{
   collapsed: { [key: string]: boolean };
@@ -143,7 +141,7 @@ export const FormulaTreePane = observer(
 
 const FormulaTree = observer(
   ({ tree, store }: { tree: AugmentedFormulaNode; store: FormulaStore }) => {
-    const { collapsed, onCollapse, selectedNodes, onSelectNode } = useContext(
+    const { collapsed, onCollapse, selectedNodes } = useContext(
       FormulaElementPaneContext
     );
 
@@ -332,7 +330,7 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
           );
         }}
       >
-        <img className="w-4 h-4" src={CurlyBraceListOption} />
+        <img className="w-4 h-4" src={CurlyBraceListOptionIcon} alt="Curly brace list option" />
       </div>
       <div
         className="flex flex-row justify-between items-center w-full"

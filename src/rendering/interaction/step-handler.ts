@@ -1,6 +1,6 @@
+import { findVariableByElement } from "../../parse/variable";
 import { computationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";
-import { findVariableByElement } from "../../variableProcessing";
 
 export const stepHandler = (container: HTMLElement) => {
   if (!container) return;

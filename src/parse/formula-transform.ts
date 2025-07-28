@@ -1,4 +1,4 @@
-import { AugmentedFormula, AugmentedFormulaNode, Group } from "./FormulaTree";
+import { AugmentedFormula, AugmentedFormulaNode, Group } from "./formula-tree";
 
 export const assertUnreachable = (x: never): never => {
   throw new Error("Non-exhaustive match for " + x);

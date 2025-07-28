@@ -3,15 +3,15 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { Group } from "./FormulaTree";
-import { replaceNodes } from "./formulaTransformations";
+import { replaceNodes } from "../../parse/formula-transform";
+import { Group } from "../../parse/formula-tree";
 import {
   DimensionBox,
   debugStore,
   editingStore,
   formulaStore,
   selectionStore,
-} from "./store";
+} from "../../store";
 
 export const AlignmentGuides = observer(() => {
   const alignTargets = formulaStore.alignIds?.map((rowIds) =>

@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 
 import * as acorn from "acorn";
 
-import App from "./App.tsx";
+import App from "./app.tsx";
 import "./index.css";
 
 // Make acorn globally available for JS-Interpreter with proper default options

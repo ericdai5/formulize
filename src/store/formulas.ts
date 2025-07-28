@@ -1,6 +1,7 @@
 import { action, computed, observable } from "mobx";
 
-import { FormulaLatexRanges } from "../FormulaText";
+import { FormulaLatexRanges } from "../parse/formula-text";
+import { canonicalizeFormula } from "../parse/formula-transform";
 import {
   Aligned,
   AugmentedFormula,
@@ -10,9 +11,8 @@ import {
   deriveTreeWithVars,
   parseVariableStrings,
   updateFormula,
-} from "../FormulaTree";
+} from "../parse/formula-tree";
 import { computationStore } from "./computation";
-import { canonicalizeFormula } from "../formulaTransformations";
 
 export class FormulaStore {
   @observable
