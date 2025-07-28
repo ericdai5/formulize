@@ -19,7 +19,6 @@ import {
 import { formulaStore, selectionStore } from "../../store";
 import { ColorPicker, ColorSwatch } from "./Menu";
 
-import CurlyBraceListOption from "../../Icons/CurlyBraceListOption.svg";
 
 const ElementPaneContext = createContext<{
   collapsed: { [key: string]: boolean };
@@ -243,7 +242,7 @@ const BraceNode = ({ tree }: { tree: Brace }) => {
           );
         }}
       >
-        <img className="w-4 h-4" src={CurlyBraceListOption} />
+        <img className="w-4 h-4" src="/CurlyBraceListOption.svg" />
       </div>
       <div
         className="flex flex-row justify-between items-center w-full"

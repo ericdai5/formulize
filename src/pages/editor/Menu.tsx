@@ -24,9 +24,6 @@ import {
   undoStore,
 } from "../../store";
 
-import AnnotateIcon from "../../Icons/AnnotateIcon.svg";
-import BoxIcon from "../../Icons/BoxIcon.svg";
-import CurlyBraceListOption from "../../Icons/CurlyBraceListOption.svg";
 
 // import LogoIcon from "./Icons/LogoIcon.svg";
 
@@ -322,7 +319,7 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
 const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   return (
     <SubMenu
-      menuButton={<img src={BoxIcon} />}
+      menuButton={<img src="/BoxIcon.svg" />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -413,7 +410,7 @@ const AnnotateMenu = ({
   };
   return (
     <SubMenu
-      menuButton={<img src={AnnotateIcon} />}
+      menuButton={<img src="/AnnotateIcon.svg" />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -423,13 +420,13 @@ const AnnotateMenu = ({
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(true)}
         >
-          <img src={CurlyBraceListOption} height={"17rem"} />
+          <img src="/CurlyBraceListOption.svg" height={"17rem"} />
         </div>
         <div
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform -rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(false)}
         >
-          <img src={CurlyBraceListOption} height={"17rem"} />
+          <img src="/CurlyBraceListOption.svg" height={"17rem"} />
         </div>
       </div>
     </SubMenu>

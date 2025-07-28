@@ -37,7 +37,6 @@ import {
   deriveTree,
 } from "../../parse/formula-tree";
 import { formulaStore, selectionStore } from "../../store";
-import * as styles from "../../styles";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };
 
@@ -432,13 +431,13 @@ const FullStyleEditor = observer(() => {
             codeUpdateListener,
             EditorView.theme({
               ".cm-activeLine": {
-                "background-color": `${styles.COLORS.baseDark}44`,
+                "background-color": `#e5e5e544`,
               },
               ".cm-selectionBackground": {
-                "background-color": `${styles.COLORS.selection} !important`,
+                "background-color": `#e5f0ff !important`,
               },
               "::selection": {
-                "background-color": `${styles.COLORS.selection} !important`,
+                "background-color": `#e5f0ff !important`,
               },
               ".cm-focused": {
                 border: `none`,
