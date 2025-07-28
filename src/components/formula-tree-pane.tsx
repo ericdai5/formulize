@@ -7,6 +7,8 @@ import { ChevronRight } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
+import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
+
 import { assertUnreachable, replaceNodes } from "../parse/formula-transform";
 import {
   AugmentedFormulaNode,
@@ -328,7 +330,7 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
           );
         }}
       >
-        <img className="w-4 h-4" src="/CurlyBraceListOption.svg" />
+        <img className="w-4 h-4" src={CurlyBraceListOptionIcon} alt="Curly brace list option" />
       </div>
       <div
         className="flex flex-row justify-between items-center w-full"
