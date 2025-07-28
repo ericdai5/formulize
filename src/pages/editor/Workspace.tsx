@@ -2,7 +2,7 @@ import { MouseEvent, useCallback, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { MathSymbol } from "../../formula-tree";
+import { MathSymbol } from "../../parse/formula-tree";
 import { editingStore, formulaStore, selectionStore } from "../../store";
 import { computationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";

@@ -7,7 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
-import { assertUnreachable, replaceNodes } from "../../formula-transform";
+import { assertUnreachable, replaceNodes } from "../../parse/formula-transform";
 import {
   AugmentedFormulaNode,
   Box,
@@ -15,7 +15,7 @@ import {
   Color,
   Group,
   Script,
-} from "../../formula-tree";
+} from "../../parse/formula-tree";
 import { formulaStore, selectionStore } from "../../store";
 import { ColorPicker, ColorSwatch } from "./Menu";
 

@@ -1,5 +1,6 @@
 import katex from "katex";
 
+import { canonicalizeFormula } from "../parse/formula-transform";
 // import * as babelPlugin from "prettier/parser-babel";
 // import * as estreePlugin from "prettier/plugins/estree";
 // import * as prettier from "prettier/standalone";
@@ -9,7 +10,6 @@ import {
   StyledRange,
   UnstyledRange,
 } from "./formula-text";
-import { canonicalizeFormula } from "./formula-transform";
 
 // import * as prettier from "prettier/standalone";
 // import * as babelPlugin from "prettier/parser-babel";

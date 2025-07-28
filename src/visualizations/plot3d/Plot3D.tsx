@@ -12,8 +12,8 @@ import { observer } from "mobx-react-lite";
 // Import Plotly as any to avoid type issues since @types/plotly.js-dist might not be available
 import * as Plotly from "plotly.js-dist";
 
-import { IPlot3D } from "../../api";
-import { FormulizeConfig } from "../../api";
+import { IPlot3D } from "../..";
+import { FormulizeConfig } from "../..";
 import {
   computeSurfaceIntersection,
   solveSingularFormula,

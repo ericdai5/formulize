@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import Icon from "@mui/material/Icon";
 
-import { consolidateGroups, replaceNodes } from "../../formula-transform";
+import { consolidateGroups, replaceNodes } from "../../parse/formula-transform";
 import {
   Aligned,
   AugmentedFormula,
@@ -16,7 +16,7 @@ import {
   Script,
   Strikethrough,
   Text,
-} from "../../formula-tree";
+} from "../../parse/formula-tree";
 import {
   editingStore,
   formulaStore,
