@@ -136,7 +136,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
 
   // Calculate line data for a specific line configuration
   const calculateLineData = useCallback(
-    (lineConfig: any, index: number): LineData | null => {
+    (lineConfig: any, _index: number): LineData | null => {
       const {
         name,
         surfaceIntersection,

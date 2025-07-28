@@ -22,7 +22,7 @@ export function addViewFunctions(code: string): string {
   // - Optional additional text after @view
   // - End of line
   const viewCommentRegex = /^(\s*)\/\/\s*@view(.*)$/gim;
-  return code.replace(viewCommentRegex, (match, leadingWhitespace, params) => {
+  return code.replace(viewCommentRegex, (_match, leadingWhitespace, params) => {
     // Parse parameters from the comment
     const trimmedParams = params.trim();
 
