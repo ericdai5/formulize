@@ -13,10 +13,6 @@ export function stepBackward(): void {
   Controller.stepBackward();
 }
 
-export function stepToIndex(varId: string, index: number): void {
-  Controller.stepToIndex(varId, index);
-}
-
 export function stepToView(): void {
   Controller.stepToView();
 }
@@ -27,4 +23,8 @@ export function stepToNextBlock(): void {
 
 export function stepToPrevBlock(): void {
   Controller.stepToPrevBlock();
+}
+
+export function stepToIndex(index: number): void {
+  Controller.stepToIndex(index);
 }

@@ -144,34 +144,6 @@ const collectVariablesFromStack = (
 };
 
 /**
- * Check if the interpreter is currently about to execute a view() function call
- * @param interpreter - The JS-Interpreter instance
- * @returns boolean indicating if we're at a view() breakpoint
- */
-const isAtView = (interpreter: JSInterpreter): boolean => {
-  if (!interpreter) return false;
-  try {
-    const stack = interpreter.getStateStack();
-    if (!stack || stack.length === 0) return false;
-    // Check stack frames from most recent backwards, looking for view() call context
-    // Stop when we find frames that are clearly unrelated to a view() call
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const frame = stack[i] as StackFrame;
-      if (frame?.node) {
-        const node = frame.node;
-        if (node.callee?.name === "view") {
-          return true;
-        }
-      }
-    }
-    return false;
-  } catch (error) {
-    console.error("Error checking for view() breakpoint:", error);
-    return false;
-  }
-};
-
-/**
  * Check if the current history index represents a block statement after a target position
  * This function identifies when we're at the beginning of a block statement (like if, for, while, function body)
  * that follows a meaningful target statement - matches the logic from interpreter.tsx
@@ -195,7 +167,6 @@ const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
     // Check if previous state's last stack frame was NOT a BlockStatement
     const prevLastFrame = prev.stackTrace[prev.stackTrace.length - 1];
     const isPreviousNotBlock = !prevLastFrame?.includes("BlockStatement");
-
     // We're at a block when we enter a BlockStatement from a non-BlockStatement
     // This ensures we highlight the BlockStatement itself, not the statement after it
     return isCurrentBlock && isPreviousNotBlock;
@@ -284,7 +255,6 @@ export {
   findVariableInFrame,
   findVariableInStack,
   collectVariablesFromStack,
-  isAtView,
   isAtBlock,
 };
 

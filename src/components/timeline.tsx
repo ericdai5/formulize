@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 
+import { CornerDownLeft, MessageCircleMore } from "lucide-react";
+
 import { IStep } from "../types/step";
 
 interface TimelineProps {
@@ -8,6 +10,7 @@ interface TimelineProps {
   code: string;
   getLineFromCharPosition: (code: string, charPosition: number) => number;
   isAtBlock: (index: number) => boolean;
+  isAtView: (index: number) => boolean;
   onTimelineItemClick: (index: number) => void;
 }
 
@@ -17,9 +20,11 @@ const Timeline: React.FC<TimelineProps> = ({
   code,
   getLineFromCharPosition,
   isAtBlock,
+  isAtView,
   onTimelineItemClick,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to the bottom when new items are added
   useEffect(() => {
@@ -34,22 +39,35 @@ const Timeline: React.FC<TimelineProps> = ({
     }
   }, [history.length]);
 
+  // Auto-scroll to keep active item visible when historyIndex changes
+  useEffect(() => {
+    if (activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      });
+    }
+  }, [historyIndex]);
+
   return (
-    <div className="flex-1" ref={scrollContainerRef}>
-      {history.map((state, index) => {
-        return (
-          <div
-            key={index}
-            className={`py-3 px-4 border-b border-slate-200 cursor-pointer hover:bg-slate-50 ${
-              index === historyIndex ? "bg-blue-50" : ""
-            }`}
-            onClick={() => onTimelineItemClick(index)}
-          >
+    <div className="w-full overflow-x-auto overflow-y-auto" ref={scrollContainerRef}>
+      <div className="inline-block min-w-full">
+        {history.map((state, index) => {
+          return (
             <div
-              className={`text-sm flex items-center gap-2 ${
-                index === historyIndex ? "text-blue-800" : "text-slate-600"
+              key={index}
+              ref={index === historyIndex ? activeItemRef : null}
+              className={`py-1 px-4 cursor-pointer font-mono text-sm tracking-tighter hover:bg-slate-100 w-full ${
+                index === historyIndex ? "bg-blue-50" : ""
               }`}
+              onClick={() => onTimelineItemClick(index)}
             >
+              <div
+                className={`flex items-center gap-2 whitespace-nowrap ${
+                  index === historyIndex ? "text-blue-800" : "text-slate-600"
+                }`}
+              >
               <span className="font-semibold">{index}</span>
               <span>
                 P: {state.highlight.start}-{state.highlight.end}
@@ -62,8 +80,15 @@ const Timeline: React.FC<TimelineProps> = ({
                   ? state.stackTrace[state.stackTrace.length - 1]
                   : "-"}
               </span>
+              {isAtView(index) && (
+                <div className="bg-purple-100 p-1 rounded">
+                  <MessageCircleMore size={12} className="text-purple-900" />
+                </div>
+              )}
               {isAtBlock(index) && (
-                <div className="w-3 h-3 bg-green-500 rounded-sm" />
+                <div className="bg-blue-100 p-1 rounded">
+                  <CornerDownLeft size={12} className="text-blue-900" />
+                </div>
               )}
             </div>
           </div>
@@ -74,6 +99,7 @@ const Timeline: React.FC<TimelineProps> = ({
           Initialize debugging to see execution steps
         </div>
       )}
+      </div>
     </div>
   );
 };

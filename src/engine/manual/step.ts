@@ -2,7 +2,6 @@ import { IStep } from "../../types/step";
 import { highlightCode } from "../../util/codemirror";
 import { JSInterpreter, StackFrame } from "./interpreter";
 import { VariableExtractor } from "./variableExtractor";
-import { View } from "./view";
 
 export class Step {
   static getState(
@@ -17,7 +16,6 @@ export class Step {
       stack,
       code
     );
-    const viewVariables = View.processView(interpreter, stack);
     const stackTrace = this.buildStackTrace(stack);
     return {
       step: stepNumber,
@@ -25,7 +23,6 @@ export class Step {
       variables,
       stackTrace,
       timestamp: Date.now(),
-      viewVariables,
     };
   }
 

@@ -10,6 +10,7 @@ interface ExtractResult {
 
 /**
  * Replace `// @view` comments with `view()` function calls for breakpoint debugging
+ * Supports format: // @view variableName->"description"
  * @param code - The JavaScript code containing `// @view` comments
  * @returns Code with comments replaced by function calls
  */
@@ -27,43 +28,19 @@ export function addViewFunctions(code: string): string {
     const trimmedParams = params.trim();
 
     if (trimmedParams) {
-      // Split parameters by whitespace to get individual view expressions
-      const viewExpressions = trimmedParams
-        .split(/\s+/)
-        .filter((p: string) => p.length > 0);
-
-      if (viewExpressions.length > 0) {
-        const pairs: string[] = [];
-
-        // Process each view expression
-        viewExpressions.forEach((expression: string) => {
-          // Check if using arrow notation (localVar->envVar->indexVar or localVar->envVar)
-          if (expression.includes('->')) {
-            const parts = expression.split('->');
-            if (parts.length === 3) {
-              // Three parts: localVar->envVar->indexVar
-              const [localVar, envVar, indexVar] = parts;
-              pairs.push(`["${localVar}", "${envVar}", "${indexVar}"]`);
-            } else if (parts.length === 2) {
-              // Two parts: localVar->envVar
-              const [localVar, envVar] = parts;
-              pairs.push(`["${localVar}", "${envVar}"]`);
-            } else {
-              // Invalid arrow format, treat as single variable
-              pairs.push(`["${expression}", "${expression}"]`);
-            }
-          } else {
-            // No arrow notation, use as single variable
-            pairs.push(`["${expression}", "${expression}"]`);
-          }
-        });
-
-        return `${leadingWhitespace}view([${pairs.join(", ")}]);`;
+      // Parse the format: variableName->"description"
+      // Use regex to match variable name, arrow, and quoted description
+      const paramMatch = trimmedParams.match(/^(\w+)->"([^"]+)"$/);
+      
+      if (paramMatch) {
+        const [, variableName, description] = paramMatch;
+        // Create view call with variable name and description
+        return `${leadingWhitespace}view([["${variableName}", "${description}"]]);`;
       }
     }
 
-    // No parameters or invalid format, use default view() call
-    return `${leadingWhitespace}view();`;
+    // No parameters or invalid format, use default view() call with empty array
+    return `${leadingWhitespace}view([]);`;
   });
 }
 

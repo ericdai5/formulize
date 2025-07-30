@@ -56,38 +56,6 @@ const Array = observer(({ control }: ArrayProps) => {
 
   const arrayValues = getArrayValues();
 
-  const handleValueClick = useCallback(
-    (clickedValue: any, index: number) => {
-      if (variableId) {
-        // If there's a stepToIndex callback available (debug mode), use it
-        if (computationStore.stepToIndexCallback) {
-          const processedIndices =
-            computationStore.processedIndices.get(variableId) || new Set();
-
-          // If this index is already processed, refresh and restart
-          if (processedIndices.has(index)) {
-            if (computationStore.refreshCallback) {
-              computationStore.refreshCallback();
-              // Use setTimeout to ensure refresh completes before stepping to index
-              setTimeout(() => {
-                if (computationStore.stepToIndexCallback) {
-                  computationStore.stepToIndexCallback(variableId, index);
-                }
-              }, 0);
-            }
-          } else {
-            // Otherwise, just step to the index normally
-            computationStore.stepToIndexCallback(variableId, index);
-          }
-        } else {
-          // Otherwise, just set the value normally
-          computationStore.setValue(variableId, clickedValue);
-        }
-      }
-    },
-    [variableId]
-  );
-
   // Get active index directly for MobX reactivity
   const getActiveIndex = () => {
     if (!variableId) {
@@ -155,7 +123,7 @@ const Array = observer(({ control }: ArrayProps) => {
             return (
               <div
                 key={index}
-                onClick={() => handleValueClick(value, index)}
+                // onClick={() => handleValueClick(value, index)}
                 className={`
                   px-3 py-1 text-sm border rounded-xl
                   cursor-pointer transition-colors duration-150

@@ -1,8 +1,5 @@
 import { action, observable, toJS } from "mobx";
 
-import { IComputation } from "../types/computation";
-import { IEnvironment } from "../types/environment";
-import { IVariable } from "../types/variable";
 import {
   DisplayCodeGeneratorContext,
   generateLLMDisplayCode,
@@ -12,6 +9,9 @@ import {
 import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
+import { IComputation } from "../types/computation";
+import { IEnvironment } from "../types/environment";
+import { IVariable } from "../types/variable";
 
 export type EvaluationFunction = (
   variables: Record<string, number>
@@ -217,19 +217,7 @@ class ComputationStore {
   }
 
   @observable
-  accessor stepToIndexCallback:
-    | ((variableId: string, index: number) => void)
-    | null = null;
-
-  @observable
   accessor refreshCallback: (() => void) | null = null;
-
-  @action
-  setStepToIndexCallback(
-    callback: ((variableId: string, index: number) => void) | null
-  ) {
-    this.stepToIndexCallback = callback;
-  }
 
   @action
   setRefreshCallback(callback: (() => void) | null) {

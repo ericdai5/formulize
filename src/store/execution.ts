@@ -4,9 +4,9 @@ import { makeAutoObservable } from "mobx";
 
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
+import { JSInterpreter } from "../engine/manual/interpreter";
 import { IEnvironment } from "../types/environment";
 import { IStep } from "../types/step";
-import { JSInterpreter } from "../engine/manual/interpreter";
 
 /**
  * MobX store for execution state that provides immediate updates
@@ -37,6 +37,15 @@ class ExecutionStore {
 
   // Variable linkage tracking
   linkageMap: Record<string, string> = {};
+
+  // Track which step indices are view points (ordered array for efficient navigation)
+  viewPoints: number[] = [];
+
+  // Track which step indices are block points (ordered array for efficient navigation)
+  blockPoints: number[] = [];
+
+  // Current view descriptions for variables (set when at view points)
+  currentViewDescriptions: Record<string, string> = {};
 
   // Refs for UI components
   autoPlayIntervalRef: React.MutableRefObject<number | null> =
@@ -113,6 +122,56 @@ class ExecutionStore {
     this.linkageMap = linkageMap;
   }
 
+  setCurrentViewDescriptions(descriptions: Record<string, string>) {
+    this.currentViewDescriptions = descriptions;
+  }
+
+  setView(viewPoints: number[]) {
+    this.viewPoints = [...viewPoints].sort((a, b) => a - b);
+  }
+
+  isView(index: number): boolean {
+    return this.viewPoints.includes(index);
+  }
+
+  getNextView(currentIndex: number): number | null {
+    const next = this.viewPoints.find((point) => point > currentIndex);
+    return next !== undefined ? next : null;
+  }
+
+  getPrevView(currentIndex: number): number | null {
+    // Find the largest point that's smaller than currentIndex
+    for (let i = this.viewPoints.length - 1; i >= 0; i--) {
+      if (this.viewPoints[i] < currentIndex) {
+        return this.viewPoints[i];
+      }
+    }
+    return null;
+  }
+
+  setBlock(blockPoints: number[]) {
+    this.blockPoints = [...blockPoints].sort((a, b) => a - b);
+  }
+
+  isBlock(index: number): boolean {
+    return this.blockPoints.includes(index);
+  }
+
+  getNextBlock(currentIndex: number): number | null {
+    const next = this.blockPoints.find((point) => point > currentIndex);
+    return next !== undefined ? next : null;
+  }
+
+  getPrevBlock(currentIndex: number): number | null {
+    // Find the largest point that's smaller than currentIndex
+    for (let i = this.blockPoints.length - 1; i >= 0; i--) {
+      if (this.blockPoints[i] < currentIndex) {
+        return this.blockPoints[i];
+      }
+    }
+    return null;
+  }
+
   // Computed getters for convenience
   get currentState(): IStep | undefined {
     return this.history[this.historyIndex];
@@ -143,6 +202,9 @@ class ExecutionStore {
     this.autoPlaySpeed = 1000;
     this.views = [];
     this.linkageMap = {};
+    this.viewPoints = [];
+    this.blockPoints = [];
+    this.currentViewDescriptions = {};
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
       number | null

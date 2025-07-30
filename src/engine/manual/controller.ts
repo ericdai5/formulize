@@ -1,15 +1,18 @@
 import { EditorView } from "@codemirror/view";
 
-import { applyCue, updateAllVariables } from "../../rendering/interaction/step-handler";
-import { IArrayControl } from "../../types/control";
-import { IEnvironment } from "../../types/environment";
-import { extractViews } from "../../util/acorn";
+import {
+  applyCue,
+  updateAllVariables,
+} from "../../rendering/interaction/step-handler";
 import { computationStore } from "../../store/computation";
 import { executionStore as ctx } from "../../store/execution";
+import { IArrayControl } from "../../types/control";
+import { IEnvironment } from "../../types/environment";
+import { IStep } from "../../types/step";
+import { extractViews } from "../../util/acorn";
 import { ERROR_MESSAGES } from "./constants";
-import { initializeInterpreter, isAtBlock, isAtView } from "./interpreter";
+import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
 import { Step } from "./step";
-import { VariableExtractor } from "./variableExtractor";
 
 export const getArrayControl = (
   varId: string,
@@ -38,7 +41,6 @@ export class Controller {
     const variableLinkage =
       ctx.environment?.formulas?.[0]?.variableLinkage || {};
     ctx.setLinkageMap(variableLinkage);
-
     ctx.setInterpreter(interpreter);
 
     // Extract views from the code in the beginning of the execution to always have them available
@@ -46,19 +48,114 @@ export class Controller {
     const foundViews = extractViews(ctx.code);
     ctx.setViews(foundViews);
 
-    const initialState = Step.getState(interpreter, 0, ctx.code);
-    ctx.setHistory([initialState]);
-    ctx.setHistoryIndex(0);
-    Step.highlight(ctx.codeMirrorRef, initialState.highlight);
+    // Execute all steps and build complete history
+    this.executeAllSteps(interpreter);
   }
 
-  private static finishExecution(): void {
+  /**
+   * Helper function to restore variables from a historical state and apply visual cues.
+   */
+  private static updateVariables(state: IStep): void {
+    if (state.variables && ctx.linkageMap) {
+      const updatedVarIds = updateAllVariables(state.variables, ctx.linkageMap);
+      if (updatedVarIds.size > 0) {
+        requestAnimationFrame(() => {
+          applyCue(updatedVarIds);
+        });
+      }
+    }
+  }
+
+  /**
+   * Helper function to navigate to a step: set index, highlight, and update variables.
+   */
+  private static step(index: number): void {
+    ctx.setHistoryIndex(index);
+    const state = ctx.history[index];
+    Step.highlight(ctx.codeMirrorRef, state.highlight);
+    this.updateVariables(state);
+
+    // Set view descriptions if this step has them (i.e., it's a view point)
+    if (state.viewDescriptions) {
+      ctx.setCurrentViewDescriptions(state.viewDescriptions);
+    } else {
+      // Clear view descriptions if not at a view point
+      ctx.setCurrentViewDescriptions({});
+    }
+  }
+
+  /**
+   * Execute the entire program and build complete execution history.
+   * This simplifies navigation logic by pre-computing all states.
+   */
+  private static executeAllSteps(interpreter: JSInterpreter): void {
+    const history = [];
+    const viewPoints: number[] = []; // Track which step numbers are at view points
+    const blockPoints: number[] = []; // Track which step numbers are at block points
+    let stepNumber = 0;
+    let canContinue = true;
+
+    // Add initial state
+    const initialState = Step.getState(interpreter, stepNumber, ctx.code);
+    history.push(initialState);
+
+    // Execute all steps until completion
+    while (canContinue) {
+      try {
+        canContinue = interpreter.step();
+        stepNumber++;
+        const state = Step.getState(interpreter, stepNumber, ctx.code);
+
+        history.push(state);
+
+        // Mark block statements that come after view calls as view points
+        // This way we highlight meaningful block execution points after views are evaluated
+        if (isAtBlock(history, stepNumber) && stepNumber > 0) {
+          // Check if the previous state was a view call
+          const previousState = history[stepNumber - 1];
+          if (previousState?.highlight) {
+            const codeAtPrevious = ctx.code
+              .substring(
+                previousState.highlight.start,
+                previousState.highlight.end
+              )
+              .trim();
+
+            // Check if the previous statement was a view call
+            if (codeAtPrevious.startsWith("view([")) {
+              viewPoints.push(stepNumber);
+
+              // Extract view descriptions from the view call
+              const viewDescriptions =
+                this.extractViewDescriptions(codeAtPrevious);
+              if (Object.keys(viewDescriptions).length > 0) {
+                // Add view descriptions to the current step
+                state.viewDescriptions = viewDescriptions;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        ctx.setError(`${ERROR_MESSAGES.EXECUTION_ERROR}: ${err}`);
+        break;
+      }
+    }
+
+    // Now identify block points by examining the complete history
+    for (let i = 0; i < history.length; i++) {
+      if (isAtBlock(history, i)) {
+        blockPoints.push(i);
+      }
+    }
+
+    // Store the points information
+    ctx.setView(viewPoints);
+    ctx.setBlock(blockPoints);
+
+    // Set complete history and position at the beginning
+    ctx.setHistory(history);
+    ctx.setHistoryIndex(0);
     ctx.setIsComplete(true);
-    ctx.setIsRunning(false);
-    ctx.setIsSteppingToView(false);
-    ctx.setIsSteppingToIndex(false);
-    ctx.setIsSteppingToBlock(false);
-    this.clearAutoPlay();
   }
 
   static refresh(code: string, environment: IEnvironment | null): void {
@@ -80,162 +177,51 @@ export class Controller {
   // ============================================================================
 
   static stepForward(): void {
-    if (!ctx.interpreter || ctx.isComplete) return;
-    try {
-      if (ctx.historyIndex < ctx.history.length - 1) {
-        // Behind in history, move forward in existing history
-        const nextIndex = ctx.historyIndex + 1;
-        ctx.setHistoryIndex(nextIndex);
-        const next = ctx.history[nextIndex];
-        Step.highlight(ctx.codeMirrorRef, next.highlight);
-      } else {
-        // End of history, create new state
-        const canContinue = ctx.interpreter.step();
-        const next = Step.getState(
-          ctx.interpreter,
-          ctx.history.length,
-          ctx.code
-        );
-        ctx.addToHistory(next);
-        const nextIndex = ctx.historyIndex + 1;
-        ctx.setHistoryIndex(nextIndex);
-        Step.highlight(ctx.codeMirrorRef, next.highlight);
-        if (!canContinue) {
-          this.finishExecution();
-        }
-      }
-
-      if (ctx.isSteppingToView && isAtView(ctx.interpreter)) {
-        ctx.setIsSteppingToView(false);
-      }
-
-      if (ctx.isSteppingToBlock && isAtBlock(ctx.history, ctx.historyIndex)) {
-        ctx.setIsSteppingToBlock(false);
-      }
-    } catch (err) {
-      this.handleError(err);
-    }
+    if (ctx.historyIndex >= ctx.history.length - 1) return;
+    const nextIndex = ctx.historyIndex + 1;
+    this.step(nextIndex);
   }
 
-  /**
-   * Step backward in history by one step.
-   */
   static stepBackward(): void {
     if (ctx.historyIndex <= 0) return;
     const prevIndex = ctx.historyIndex - 1;
-    ctx.setHistoryIndex(prevIndex);
-    const prev = ctx.history[prevIndex];
-    Step.highlight(ctx.codeMirrorRef, prev.highlight);
+    this.step(prevIndex);
+  }
+
+  static stepToIndex(index: number): void {
+    if (index < 0 || index >= ctx.history.length) return;
+    this.step(index);
   }
 
   // ============================================================================
-  // Step to Specific Destination
+  // Step to View
   // ============================================================================
-
-  /**
-   * Method to ensure we're at the end of history before executing new steps.
-   * This is needed when the user is browsing through execution history and then
-   * wants to continue forward execution from the current point.
-   */
-  static stepToNewest(): void {
-    if (ctx.historyIndex >= ctx.history.length - 1) return;
-    const endIndex = ctx.history.length - 1;
-    ctx.setHistoryIndex(endIndex);
-  }
 
   static stepToView(): void {
-    if (!ctx.interpreter || ctx.isComplete) return;
-    this.stepToNewest();
-    ctx.setIsSteppingToView(true);
-    try {
-      this.stepPastCurrentView();
-      if (ctx.isComplete) {
-        ctx.setIsSteppingToView(false);
-        return;
-      }
-      this.stepToNextView();
-    } catch (err) {
-      this.handleError(err);
-      ctx.setIsSteppingToView(false);
+    if (ctx.historyIndex >= ctx.history.length - 1) return;
+    const nextView = ctx.getNextView(ctx.historyIndex);
+    if (nextView !== null) {
+      this.step(nextView);
     }
   }
 
-  static stepToIndex(varId: string, targetIndex: number): void {
-    if (!ctx.interpreter || ctx.isComplete) return;
-    ctx.setIsSteppingToIndex(true);
-    ctx.setTargetIndex({ varId, index: targetIndex });
-    const hasViewPoints = ctx.hasViews();
-    try {
-      const searching = true;
-      while (searching) {
-        if (this.atIndex(varId, targetIndex)) {
-          this.completeStepToIndex();
-          return;
-        }
-        if (hasViewPoints) {
-          this.stepToView();
-        } else {
-          this.stepToNextBlock();
-        }
-        if (ctx.isComplete) {
-          this.completeStepToIndex();
-          return;
-        }
-      }
-    } catch (err) {
-      this.handleError(err);
-      this.completeStepToIndex();
-    }
-  }
+  // ============================================================================
+  // Step to Block
+  // ============================================================================
 
   static stepToNextBlock(): void {
-    if (!ctx.interpreter || ctx.isComplete) return;
-    this.stepToNewest();
-    ctx.setIsSteppingToBlock(true);
-    try {
-      let foundNextBlock = false;
-      const interpreter = ctx.interpreter;
-      let currentIndex = ctx.historyIndex;
-      while (!foundNextBlock) {
-        const canContinue = interpreter.step();
-        const state = Step.getState(interpreter, ctx.history.length, ctx.code);
-        ctx.addToHistory(state);
-        currentIndex = currentIndex + 1;
-        ctx.setHistoryIndex(currentIndex);
-        Step.highlight(ctx.codeMirrorRef, state.highlight);
-        if (!canContinue) {
-          ctx.setIsComplete(true);
-          ctx.setIsSteppingToBlock(false);
-          return;
-        }
-        const atBlock = isAtBlock(ctx.history, currentIndex);
-        if (atBlock) {
-          foundNextBlock = true;
-          ctx.setIsSteppingToBlock(false);
-          this.processVariableUpdates();
-          return;
-        }
-      }
-    } catch (err) {
-      this.handleError(err);
-      ctx.setIsSteppingToBlock(false);
+    if (ctx.historyIndex >= ctx.history.length - 1) return;
+    const nextBlock = ctx.getNextBlock(ctx.historyIndex);
+    if (nextBlock !== null) {
+      this.step(nextBlock);
     }
   }
 
   static stepToPrevBlock(): void {
     if (ctx.historyIndex <= 0) return;
-    let foundPrevBlock = false;
-    let prevIndex = ctx.historyIndex - 1;
-    while (prevIndex >= 0 && !foundPrevBlock) {
-      const atBlock = isAtBlock(ctx.history, prevIndex);
-      if (atBlock) {
-        foundPrevBlock = true;
-        ctx.setHistoryIndex(prevIndex);
-        const prev = ctx.history[prevIndex];
-        Step.highlight(ctx.codeMirrorRef, prev.highlight);
-        return;
-      }
-      prevIndex = prevIndex - 1;
+    const prevBlock = ctx.getPrevBlock(ctx.historyIndex);
+    if (prevBlock !== null) {
+      this.step(prevBlock);
     }
   }
 
@@ -265,69 +251,12 @@ export class Controller {
     }
   }
 
-  private static handleError(err: unknown): void {
-    ctx.setError(`${ERROR_MESSAGES.EXECUTION_ERROR}: ${err}`);
-    ctx.setIsRunning(false);
-    ctx.setIsSteppingToView(false);
-    ctx.setIsSteppingToIndex(false);
-    ctx.setIsSteppingToBlock(false);
-    this.clearAutoPlay();
-  }
-
-  private static stepPastCurrentView(): void {
-    if (!ctx.interpreter || !isAtView(ctx.interpreter)) {
-      return;
-    }
-    let atSameView = true;
-    const interpreter = ctx.interpreter;
-    let nextIndex = ctx.historyIndex;
-    while (atSameView) {
-      const canContinue = interpreter.step();
-      const newState = Step.getState(interpreter, ctx.history.length, ctx.code);
-      ctx.addToHistory(newState);
-      nextIndex = nextIndex + 1;
-      ctx.setHistoryIndex(nextIndex);
-      Step.highlight(ctx.codeMirrorRef, newState.highlight);
-      if (!canContinue) {
-        ctx.setIsComplete(true);
-        return;
-      }
-      atSameView = isAtView(interpreter);
-    }
-  }
-
-  private static stepToNextView(): void {
-    if (!ctx.interpreter) return;
-    let foundNextView = false;
-    const interpreter = ctx.interpreter;
-    let currentIndex = ctx.historyIndex;
-    while (!foundNextView) {
-      const canContinue = interpreter.step();
-      const state = Step.getState(interpreter, ctx.history.length, ctx.code);
-      ctx.addToHistory(state);
-      currentIndex = currentIndex + 1; // Track the correct index
-      ctx.setHistoryIndex(currentIndex);
-      Step.highlight(ctx.codeMirrorRef, state.highlight);
-      if (!canContinue) {
-        ctx.setIsComplete(true);
-        ctx.setIsSteppingToView(false);
-        return;
-      }
-      if (isAtView(interpreter)) {
-        foundNextView = true;
-        ctx.setIsSteppingToView(false);
-        this.processVariableUpdates();
-        return;
-      }
-    }
-  }
-
-  private static atIndex(varId: string, targetIndex: number): boolean {
-    if (!ctx.interpreter || !ctx.targetIndex || !ctx.currentState) {
-      return false;
-    }
-
-    const variables = ctx.currentState.variables;
+  private static atIndexInState(
+    varId: string,
+    targetIndex: number,
+    state: IStep
+  ): boolean {
+    const variables = state.variables;
 
     // Get the array control configuration
     const array = getArrayControl(varId, ctx.environment);
@@ -376,33 +305,32 @@ export class Controller {
     return expectedValue === actualValue;
   }
 
-  private static completeStepToIndex(): void {
-    ctx.setIsSteppingToIndex(false);
-  }
-
   /**
-   * Process variable updates and apply visual cues
-   * This should be called when the interpreter stops at meaningful breakpoints
+   * Extract view descriptions from a view() call string
+   * Parses view([["varName", "description"]]) format
+   * @param viewCode - The view call code string
+   * @returns Record of variable names to descriptions
    */
-  private static processVariableUpdates(): void {
-    if (!ctx.interpreter) return;
-
+  private static extractViewDescriptions(
+    viewCode: string
+  ): Record<string, string> {
+    const descriptions: Record<string, string> = {};
     try {
-      const stack =
-        ctx.interpreter.getStateStack() as import("./interpreter").StackFrame[];
-      const variables = VariableExtractor.extractVariables(
-        ctx.interpreter,
-        stack,
-        ctx.code
-      );
-      const updatedVarIds = updateAllVariables(variables, ctx.linkageMap);
-      if (updatedVarIds.size > 0) {
-        requestAnimationFrame(() => {
-          applyCue(updatedVarIds);
-        });
+      // Extract the array content from view([...])
+      const match = viewCode.match(/view\(\[(.*)\]\)/s);
+      if (!match) return descriptions;
+      const arrayContent = match[1];
+      // Parse individual variable-description pairs
+      // Look for patterns like ["varName", "description"]
+      const pairRegex = /\["([^"]+)",\s*"([^"]+)"\]/g;
+      let pairMatch;
+      while ((pairMatch = pairRegex.exec(arrayContent)) !== null) {
+        const [, varName, description] = pairMatch;
+        descriptions[varName] = description;
       }
-    } catch (err) {
-      console.warn("Error processing variable updates:", err);
+    } catch (error) {
+      console.error("Error extracting view descriptions:", error);
     }
+    return descriptions;
   }
 }
