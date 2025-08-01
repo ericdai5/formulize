@@ -20,6 +20,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { computationStore } from "../store/computation";
+import { executionStore } from "../store/execution";
 import { FormulaStore } from "../store/formulas";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
@@ -93,6 +94,24 @@ const CanvasFlow = observer(
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
     /**
+     * Check if a label node should be visible based on the same logic as LabelNode component
+     * @param varId - The variable ID to check
+     * @returns true if the label should be visible, false otherwise
+     */
+    const shouldLabelBeVisible = useCallback(
+      (varId: string): boolean => {
+        // If not in step mode, always show labels
+        if (!computationStore.isStepMode()) {
+          return true;
+        }
+
+        // In step mode, only show labels for active variables
+        return executionStore.activeVariables.has(varId);
+      },
+      [computationStore.isStepMode(), executionStore.activeVariables]
+    );
+
+    /**
      * Create edges between label nodes and their corresponding variable nodes
      * @param currentNodes - The current array of nodes
      * @returns Array of edges connecting labels to variables
@@ -100,6 +119,7 @@ const CanvasFlow = observer(
     const createLabelVariableEdges = useCallback(
       (currentNodes: Node[]): Edge[] => {
         const edges: Edge[] = [];
+        const createdEdgeIds = new Set<string>(); // Track created edge IDs to prevent duplicates
 
         // Group nodes by formula and cssId to find matching pairs
         const variableNodes = currentNodes.filter((node) =>
@@ -113,6 +133,14 @@ const CanvasFlow = observer(
         );
 
         labelNodes.forEach((labelNode) => {
+          // Extract varId from label node data to check visibility
+          const labelNodeData = labelNode.data as { varId?: string };
+          const varId = labelNodeData?.varId;
+
+          // Skip creating edges for labels that should not be visible
+          if (!varId || !shouldLabelBeVisible(varId)) {
+            return;
+          }
           // Extract formula index and cssId from label node ID
           // Format: label-{formulaIndex}-{cssId}
           const labelIdParts = labelNode.id.split("-");
@@ -121,8 +149,8 @@ const CanvasFlow = observer(
             const formulaIndex = labelIdParts[1];
             const cssId = labelIdParts[2];
 
-            // Find corresponding variable node - match by cssId, any elementIndex
-            const variableNode = variableNodes.find((node) => {
+            // Find ALL corresponding variable nodes for this cssId to handle multiple instances
+            const matchingVariableNodes = variableNodes.filter((node) => {
               const varIdParts = node.id.split("-");
               return (
                 varIdParts.length >= 4 &&
@@ -131,6 +159,10 @@ const CanvasFlow = observer(
                 varIdParts[2] === cssId
               );
             });
+
+            // Connect to the first variable node (most common case)
+            // TODO: In the future, we might want to connect to all instances or choose the best one
+            const variableNode = matchingVariableNodes[0];
 
             if (variableNode) {
               // Calculate absolute positions for comparison
@@ -164,8 +196,15 @@ const CanvasFlow = observer(
                 ? "variable-handle-top" // Top of variable
                 : "variable-handle-bottom"; // Bottom of variable
 
+              const edgeId = `edge-${labelNode.id}-${variableNode.id}`;
+
+              // Skip if we've already created this edge
+              if (createdEdgeIds.has(edgeId)) {
+                return;
+              }
+
               const edge = {
-                id: `edge-${labelNode.id}-${variableNode.id}`,
+                id: edgeId,
                 source: labelNode.id,
                 target: variableNode.id,
                 sourceHandle,
@@ -174,13 +213,14 @@ const CanvasFlow = observer(
                 style: {
                   stroke: "#94a3b8", // slate-400 color
                   strokeWidth: 1,
-                  strokeDasharray: "4 4", // Dashed line
+                  strokeDasharray: "2 1", // Smaller, denser dashed line
                 },
                 animated: false,
                 selectable: false,
                 deletable: false,
               };
 
+              createdEdgeIds.add(edgeId);
               edges.push(edge);
             }
           }
@@ -188,7 +228,7 @@ const CanvasFlow = observer(
 
         return edges;
       },
-      []
+      [shouldLabelBeVisible]
     );
 
     // Enhanced onNodesChange that triggers edge updates when nodes move
@@ -281,6 +321,63 @@ const CanvasFlow = observer(
       return nodes;
     }, [getFormula, controls, environment]);
 
+    // Function to add view nodes for variables with view descriptions
+    const addViewNodes = useCallback(() => {
+      const currentNodes = getNodes();
+      const viewNodes: Node[] = [];
+      let viewNodeIndex = 0; // Counter for positioning multiple view nodes
+
+      // Iterate through view descriptions to create view nodes
+      Object.entries(executionStore.currentViewDescriptions).forEach(
+        ([expression, description]) => {
+          if (!description) return;
+
+          // Find the first formula node (typically formula-0)
+          const formulaNode = currentNodes.find((node) =>
+            node.id.startsWith("formula-")
+          );
+
+          if (!formulaNode) return;
+
+          // Position view node directly below the formula node
+          const viewNodePosition = {
+            x: formulaNode.position.x,
+            y:
+              formulaNode.position.y +
+              (formulaNode.measured?.height || formulaNode.height || 200) +
+              50 +
+              viewNodeIndex * 60,
+          };
+
+          // Create the view node
+          viewNodes.push({
+            id: `view-${viewNodeIndex}`,
+            type: "view",
+            position: viewNodePosition,
+            data: {
+              expression,
+              description,
+            },
+            draggable: true,
+            selectable: true,
+          });
+
+          viewNodeIndex++;
+        }
+      );
+
+      // Add view nodes to the canvas
+      if (viewNodes.length > 0) {
+        setNodes((currentNodes) => {
+          // Remove existing view nodes first
+          const nonViewNodes = currentNodes.filter(
+            (node) => !node.id.startsWith("view-")
+          );
+          return [...nonViewNodes, ...viewNodes];
+        });
+      }
+    }, [getNodes, setNodes]);
+
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {
       const currentNodes = getNodes();
@@ -324,6 +421,14 @@ const CanvasFlow = observer(
           const variable = computationStore.variables.get(cssId);
           if (!variable?.label) return;
 
+          // Check if this label should be visible using the same logic as LabelNode component
+          const isVariableActive = executionStore.activeVariables.has(cssId);
+
+          // If in step mode and variable is not active, skip creating this label
+          if (computationStore.isStepMode() && !isVariableActive) {
+            return;
+          }
+
           // Get the corresponding variable node to get its actual position
           // Find the first variable node for this cssId since we may have multiple instances
           const variableNode = currentNodes.find((node) => {
@@ -338,21 +443,24 @@ const CanvasFlow = observer(
 
           if (!variableNode) return;
 
-          // Calculate label position based on the actual variable node position
+          // Use the variable node position directly (already in React Flow coordinates)
+          // This avoids coordinate conversion issues and should be accurate
+          const htmlElementPosition = variableNode.position;
+          const htmlElementDimensions = {
+            width: (variableNode.data.width as number) || 0,
+            height: (variableNode.data.height as number) || 0,
+          };
+
           const labelPos = getLabelNodePos(
-            variableNode.position,
-            {
-              width: (variableNode.data.width as number) || 0,
-              height: (variableNode.data.height as number) || 0,
-            },
+            htmlElementPosition,
+            htmlElementDimensions,
             formulaNode,
             {
               width: formulaNode.measured?.width || formulaNode.width || 400,
               height: formulaNode.measured?.height || formulaNode.height || 200,
             },
             existingLabels,
-            variable.label,
-            viewport
+            getViewport()
           );
 
           // Add this label to existing labels for future collision detection
@@ -371,7 +479,7 @@ const CanvasFlow = observer(
             type: "label",
           });
 
-          // Create the label node
+          // Create the label node - initially hidden until positioned correctly
           labelNodes.push({
             id: `label-${formulaIndex}-${cssId}`,
             type: "label",
@@ -385,6 +493,10 @@ const CanvasFlow = observer(
             },
             draggable: true,
             selectable: true,
+            style: {
+              opacity: 0, // Hide initially
+              pointerEvents: "none" as const, // Disable interactions while hidden
+            },
           });
 
           // Track variable node updates
@@ -418,6 +530,98 @@ const CanvasFlow = observer(
 
           return [...updatedNodes, ...labelNodes];
         });
+      }
+    }, [getNodes, getViewport, setNodes]);
+
+    // Function to adjust label positions after they're rendered and measured
+    const adjustLabelPositions = useCallback(() => {
+      const currentNodes = getNodes();
+
+      const updatedNodes = currentNodes.map((node) => {
+        if (!node.id.startsWith("label-") || !node.measured) {
+          return node;
+        }
+
+        // Extract varId and formula index from label node ID
+        const labelIdParts = node.id.split("-");
+        if (labelIdParts.length < 3) return node;
+
+        const formulaIndex = labelIdParts[1];
+        const cssId = labelIdParts[2];
+
+        // Find the corresponding variable node
+        const variableNode = currentNodes.find((vNode) => {
+          const varIdParts = vNode.id.split("-");
+          return (
+            varIdParts.length >= 4 &&
+            varIdParts[0] === "variable" &&
+            varIdParts[1] === formulaIndex &&
+            varIdParts[2] === cssId
+          );
+        });
+
+        if (!variableNode) return node;
+
+        // Only proceed if the variable node is also measured to ensure coordinate consistency
+        if (!variableNode.measured) return node;
+
+        // Find the formula node
+        const formulaNode = currentNodes.find(
+          (fNode) => fNode.id === `formula-${formulaIndex}`
+        );
+        if (!formulaNode) return node;
+
+        // Calculate the perfect centered position using actual measured width
+        const actualLabelWidth = node.measured.width || node.width || 40;
+
+        // Use React Flow's measured positions directly to avoid coordinate system mixing
+        // Both variable and label nodes are in the same React Flow coordinate space
+        let variableCenterX: number;
+
+        if (variableNode.measured && variableNode.measured.width) {
+          // Variable node is measured - use its exact center in React Flow coordinates
+          const variableAbsoluteX =
+            (formulaNode.position.x || 0) + (variableNode.position.x || 0);
+          variableCenterX = variableAbsoluteX + variableNode.measured.width / 2;
+        } else {
+          // Fallback to data dimensions if not yet measured
+          const variablePosition = variableNode.position;
+          const variableDimensions = {
+            width: (variableNode.data.width as number) || 0,
+            height: (variableNode.data.height as number) || 0,
+          };
+
+          const formulaNodePos = formulaNode.position;
+          const absoluteVariableX = formulaNodePos.x + variablePosition.x;
+          variableCenterX = absoluteVariableX + variableDimensions.width / 2;
+        }
+
+        const perfectLabelX = variableCenterX - actualLabelWidth / 2;
+
+        // Keep the same Y position and placement, just fix the X alignment
+        // Also make the label visible now that it's positioned correctly
+        return {
+          ...node,
+          position: {
+            ...node.position,
+            x: perfectLabelX,
+          },
+          style: {
+            ...node.style,
+            opacity: 1, // Make visible
+            pointerEvents: "auto" as const, // Re-enable interactions
+          },
+        };
+      });
+
+      // Only update if there are actual changes
+      const hasChanges = updatedNodes.some((node, index) => {
+        const original = currentNodes[index];
+        return original.position.x !== node.position.x;
+      });
+
+      if (hasChanges) {
+        setNodes(updatedNodes);
       }
     }, [getNodes, getViewport, setNodes]);
 
@@ -500,11 +704,9 @@ const CanvasFlow = observer(
           // Add variable nodes to existing nodes first
           if (variableNodes.length > 0) {
             setNodes((currentNodes) => {
-              // Remove existing variable and label nodes and add new variable nodes
+              // Remove existing variable nodes and add new variable nodes
               const nonVariableNodes = currentNodes.filter(
-                (node) =>
-                  !node.id.startsWith("variable-") &&
-                  !node.id.startsWith("label-")
+                (node) => !node.id.startsWith("variable-")
               );
               return [...nonVariableNodes, ...variableNodes];
             });
@@ -512,11 +714,11 @@ const CanvasFlow = observer(
             // Mark that variable nodes have been added
             variableNodesAddedRef.current = true;
 
-            // PHASE 2: Add label nodes after variable nodes are positioned
-            // Use a small delay to ensure variable nodes are fully positioned
+            // Add label nodes and view nodes after variable nodes are ready
             setTimeout(() => {
               addLabelNodes();
-            }, 50);
+              addViewNodes();
+            }, 100);
           }
         };
 
@@ -540,7 +742,6 @@ const CanvasFlow = observer(
       setNodes,
       getPosAndDim,
       showVariableBorders,
-      addLabelNodes,
     ]);
 
     /**
@@ -557,12 +758,9 @@ const CanvasFlow = observer(
 
           // Create a map of existing variable node IDs for quick lookup
           const variableNodes = new Map<string, Node>();
-          const labelNodes = new Map<string, Node>();
           currentNodes.forEach((node) => {
             if (node.id.startsWith("variable-")) {
               variableNodes.set(node.id, node);
-            } else if (node.id.startsWith("label-")) {
-              labelNodes.set(node.id, node);
             }
           });
 
@@ -639,34 +837,21 @@ const CanvasFlow = observer(
                     selectable: true,
                   });
                 }
-
-                // Also track corresponding label nodes
-                const labelNodeId = `label-${formulaIndex}-${cssId}`;
-                if (labelNodes.has(labelNodeId)) {
-                  foundNodeIds.add(labelNodeId);
-                }
               }
             );
           });
 
           // Update the nodes state with variable changes only
           setNodes((currentNodes) => {
-            // Keep non-variable and non-label nodes
+            // Keep non-variable nodes
             const nonVariableNodes = currentNodes.filter(
-              (node) =>
-                !node.id.startsWith("variable-") &&
-                !node.id.startsWith("label-")
+              (node) => !node.id.startsWith("variable-")
             );
 
-            // Keep variable and label nodes that are still found in the DOM
+            // Keep variable nodes that are still found in the DOM
             const keptVariableNodes = currentNodes.filter(
               (node) =>
                 node.id.startsWith("variable-") && foundNodeIds.has(node.id)
-            );
-
-            const keptLabelNodes = currentNodes.filter(
-              (node) =>
-                node.id.startsWith("label-") && foundNodeIds.has(node.id)
             );
 
             // Apply updates to kept variable nodes
@@ -679,7 +864,6 @@ const CanvasFlow = observer(
             const finalNodeList = [
               ...nonVariableNodes,
               ...finalVariableNodes,
-              ...keptLabelNodes,
               ...newNodes,
             ];
 
@@ -829,14 +1013,124 @@ const CanvasFlow = observer(
     }, [nodesInitialized, updateVariableNodes]);
 
     // Update edges whenever nodes change to keep label-variable connections in sync
+    // Only create edges after labels are positioned and visible
     useEffect(() => {
       if (nodes.length > 0) {
-        const newEdges = createLabelVariableEdges(nodes);
-        setEdges(newEdges);
+        // Check if all label nodes are visible (positioned correctly)
+        const labelNodes = nodes.filter((node) => node.id.startsWith("label-"));
+        const visibleLabelNodes = labelNodes.filter(
+          (node) => !node.style || node.style.opacity !== 0
+        );
+
+        // Only create edges if all labels are visible or there are no labels
+        if (
+          labelNodes.length === 0 ||
+          visibleLabelNodes.length === labelNodes.length
+        ) {
+          const newEdges = createLabelVariableEdges(nodes);
+          setEdges(newEdges);
+        } else {
+          // Keep edges empty while labels are being positioned
+          setEdges([]);
+        }
       } else {
         setEdges([]);
       }
     }, [nodes, createLabelVariableEdges, setEdges]);
+
+    // Update labels when step mode or active variables change
+    useEffect(() => {
+      let timeoutId: number | null = null;
+
+      const disposer = reaction(
+        () => ({
+          isStepMode: computationStore.isStepMode(),
+          activeVariables: Array.from(executionStore.activeVariables),
+          viewDescriptions: Object.keys(executionStore.currentViewDescriptions),
+        }),
+        () => {
+          if (nodesInitialized && variableNodesAddedRef.current) {
+            // Clear any pending timeout to prevent multiple rapid updates
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+
+            // Debounce the label update to prevent rapid recreation
+            timeoutId = window.setTimeout(() => {
+              // Remove existing label nodes, view nodes, and edges, then re-add with updated visibility
+              setNodes((currentNodes) => {
+                const nonLabelViewNodes = currentNodes.filter(
+                  (node) =>
+                    !node.id.startsWith("label-") &&
+                    !node.id.startsWith("view-")
+                );
+                return nonLabelViewNodes;
+              });
+
+              // Clear edges to prevent stale edge references
+              setEdges([]);
+
+              // Re-add labels and view nodes with updated visibility after state has settled
+              setTimeout(() => {
+                addLabelNodes();
+                addViewNodes();
+              }, 100);
+            }, 100); // Debounce for 100ms
+          }
+        }
+      );
+
+      return () => {
+        disposer();
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      };
+    }, [nodesInitialized, addLabelNodes, addViewNodes, setNodes, setEdges]);
+
+    // Adjust label positions after they're rendered and measured
+    useEffect(() => {
+      if (!nodesInitialized) return;
+
+      // Check if we have label nodes that are measured
+      const labelNodes = nodes.filter((node) => node.id.startsWith("label-"));
+      const measuredLabelNodes = labelNodes.filter((node) => node.measured);
+
+      // Also check that all corresponding variable nodes are measured for coordinate consistency
+      const allVariableNodesMeasured = labelNodes.every((labelNode) => {
+        const labelIdParts = labelNode.id.split("-");
+        if (labelIdParts.length < 3) return false;
+
+        const formulaIndex = labelIdParts[1];
+        const cssId = labelIdParts[2];
+
+        const variableNode = nodes.find((vNode) => {
+          const varIdParts = vNode.id.split("-");
+          return (
+            varIdParts.length >= 4 &&
+            varIdParts[0] === "variable" &&
+            varIdParts[1] === formulaIndex &&
+            varIdParts[2] === cssId
+          );
+        });
+
+        return variableNode?.measured !== undefined;
+      });
+
+      // Only adjust if we have labels, they're all measured, AND their variable nodes are measured
+      if (
+        labelNodes.length > 0 &&
+        measuredLabelNodes.length === labelNodes.length &&
+        allVariableNodesMeasured
+      ) {
+        // Small delay to ensure all rendering is complete
+        const timeoutId = setTimeout(() => {
+          adjustLabelPositions();
+        }, 50);
+
+        return () => clearTimeout(timeoutId);
+      }
+    }, [nodes, nodesInitialized, adjustLabelPositions]);
 
     return (
       <div ref={canvasContainerRef} className="w-full h-full min-h-[500px]">

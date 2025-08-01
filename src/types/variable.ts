@@ -21,6 +21,7 @@ export interface IVariable {
   key?: string;
   memberOf?: string;
   display?: "name" | "value" | "both";
+  labelDisplay?: "name" | "value";
   index?: string;
 }
 

@@ -90,9 +90,25 @@ export const applyCue = (updatedVarIds: Set<string>) => {
     if (!variables) return;
     const { varId } = variables;
     const target = element as HTMLElement;
+    // Always remove the step-cue class first to clear previous styling
     target.classList.remove("step-cue");
+    // Only add step-cue to variables that were actually updated in this step
     if (updatedVarIds.has(varId)) {
       target.classList.add("step-cue");
     }
+  });
+};
+
+/**
+ * Clear all visual cues from interactive elements
+ * This ensures clean state when stepping between different lines
+ */
+export const clearAllCues = () => {
+  const interactiveElements = document.querySelectorAll(
+    ".interactive-var-dropdown, .interactive-var-slider, .interactive-var-dependent"
+  );
+  interactiveElements.forEach((element) => {
+    const target = element as HTMLElement;
+    target.classList.remove("step-cue");
   });
 };

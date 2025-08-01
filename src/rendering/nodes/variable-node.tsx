@@ -2,8 +2,8 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { computationStore } from "../../store/computation";
 import { useVariableDrag } from "../../rendering/useVariableDrag";
+import { computationStore } from "../../store/computation";
 
 export interface VariableNodeData {
   varId: string;
@@ -27,7 +27,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   return (
     <div
       ref={nodeRef}
-      className={`variable-flow-node text-xs text-white border-dashed rounded-lg px-3 py-2 text-center nodrag ${
+      className={`interactive-var-base text-xs text-white border-dashed text-center nodrag ${
         showBorders ? "border border-blue-500 bg-blue-500/50" : ""
       }`}
       style={{

@@ -47,6 +47,9 @@ class ExecutionStore {
   // Current view descriptions for variables (set when at view points)
   currentViewDescriptions: Record<string, string> = {};
 
+  // Currently active (changed) variables in the current step
+  activeVariables: Set<string> = new Set();
+
   // Refs for UI components
   autoPlayIntervalRef: React.MutableRefObject<number | null> =
     React.createRef() as React.MutableRefObject<number | null>;
@@ -124,6 +127,10 @@ class ExecutionStore {
 
   setCurrentViewDescriptions(descriptions: Record<string, string>) {
     this.currentViewDescriptions = descriptions;
+  }
+
+  setActiveVariables(variables: Set<string>) {
+    this.activeVariables = variables;
   }
 
   setView(viewPoints: number[]) {
@@ -205,6 +212,7 @@ class ExecutionStore {
     this.viewPoints = [];
     this.blockPoints = [];
     this.currentViewDescriptions = {};
+    this.activeVariables = new Set();
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
       number | null

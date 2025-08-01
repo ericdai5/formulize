@@ -1,8 +1,5 @@
 import { Node } from "@xyflow/react";
 
-const CHAR_WIDTH_BASE = 8;
-const LINE_HEIGHT_BASE = 24;
-
 // Enhanced label positioning system
 export interface LabelPlacement {
   x: number;
@@ -29,16 +26,11 @@ export const getLabelNodePos = (
   formulaNode: Node,
   formulaNodeDim: { width: number; height: number },
   existingLabels: NodeBounds[],
-  labelText: string,
   viewport: { zoom: number }
 ): LabelPlacement => {
-  // Estimate label dimensions (approximate based on text length and font size)
-  const charWidth = CHAR_WIDTH_BASE / viewport.zoom;
-  const estimatedLabelWidth = Math.max(
-    labelText.length * charWidth,
-    40 / viewport.zoom
-  );
-  const estimatedLabelHeight = LINE_HEIGHT_BASE / viewport.zoom;
+  // Since labels are hidden initially and repositioned using measured dimensions,
+  // we just need simple placeholder values
+  const placeholderHeight = 24;
 
   // Define spacing constants (adjusted for zoom)
   const spacing = {
@@ -46,16 +38,14 @@ export const getLabelNodePos = (
     labelSpacing: 8 / viewport.zoom, // Space between multiple labels
   };
 
-  // Calculate the absolute position of the variable (formula position + relative position)
+  // varNodePos is already relative to the formula node (from HTML element positioning)
   const formulaNodePos = formulaNode.position;
-  const absoluteVariablePosition = {
-    x: formulaNodePos.x + varNodePos.x,
-    y: formulaNodePos.y + varNodePos.y,
-  };
 
-  // Calculate horizontal center of the variable for label alignment
-  const variableCenterX = absoluteVariablePosition.x + varNodeDim.width / 2;
-  const labelX = variableCenterX - estimatedLabelWidth / 2;
+  // For initial hidden render, just position at variable center
+  // Actual positioning will be calculated using measured dimensions
+  const absoluteVariableX = formulaNodePos.x + varNodePos.x;
+  const variableCenterX = absoluteVariableX + varNodeDim.width / 2;
+  const labelX = variableCenterX; // Simple center position for placeholder
 
   // Possible placement strategies: above or below the formula node
   const placements: Array<{
@@ -75,7 +65,7 @@ export const getLabelNodePos = (
       type: "above",
       position: {
         x: labelX,
-        y: formulaNodePos.y - estimatedLabelHeight - spacing.vertical,
+        y: formulaNodePos.y - placeholderHeight - spacing.vertical,
       },
       priority: 2, // Then above
     },
@@ -85,11 +75,13 @@ export const getLabelNodePos = (
    * Check if a label position would collide with existing labels
    */
   const hasCollisionWithLabels = (pos: { x: number; y: number }): boolean => {
+    // Simple placeholder bounds for collision detection during hidden initial render
+    const placeholderWidth = 60; // Reasonable placeholder since collision detection doesn't matter when hidden
     const labelBounds = {
       x: pos.x,
       y: pos.y,
-      width: estimatedLabelWidth,
-      height: estimatedLabelHeight,
+      width: placeholderWidth,
+      height: placeholderHeight,
     };
 
     return existingLabels.some((label) => {
@@ -135,9 +127,9 @@ export const getLabelNodePos = (
 
       // Adjust position for next attempt
       if (placement.type === "below") {
-        adjustedY += estimatedLabelHeight + spacing.labelSpacing;
+        adjustedY += placeholderHeight + spacing.labelSpacing;
       } else {
-        adjustedY -= estimatedLabelHeight + spacing.labelSpacing;
+        adjustedY -= placeholderHeight + spacing.labelSpacing;
       }
       attempts++;
     }

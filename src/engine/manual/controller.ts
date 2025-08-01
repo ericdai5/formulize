@@ -1,7 +1,14 @@
 import { EditorView } from "@codemirror/view";
 
 import {
+  AugmentedFormulaNode,
+  Variable,
+  deriveTreeWithVars,
+  parseVariableStrings,
+} from "../../parse/formula-tree";
+import {
   applyCue,
+  clearAllCues,
   updateAllVariables,
 } from "../../rendering/interaction/step-handler";
 import { computationStore } from "../../store/computation";
@@ -21,6 +28,42 @@ export const getArrayControl = (
   const controls = environment?.controls || [];
   const config = controls.find((control) => control.variable === varId);
   return config?.type === "array" ? (config as IArrayControl) : null;
+};
+
+/**
+ * Extract variable names from an expression string by parsing it with formula tree
+ * This properly handles complex variables like P(x) instead of splitting them into tokens
+ */
+const extractVariablesFromExpression = (
+  expressionString: string
+): Set<string> => {
+  const variableNames = new Set<string>();
+  try {
+    // Get all known variables to help with parsing
+    const allVariables = Array.from(computationStore.variables.keys());
+    const variableTrees = parseVariableStrings(allVariables);
+    // Parse the expression using the same method as formula processing
+    const expressionTree = deriveTreeWithVars(
+      expressionString,
+      variableTrees,
+      allVariables
+    );
+    // Recursively extract Variable nodes from the tree
+    const extractVariableNodes = (node: AugmentedFormulaNode) => {
+      if (node.type === "variable") {
+        const variableNode = node as Variable;
+        variableNames.add(variableNode.originalSymbol);
+      }
+      // Recursively check children
+      const children = node.children || [];
+      children.forEach((child) => extractVariableNodes(child));
+    };
+    // Extract variables from all children of the expression tree
+    expressionTree.children.forEach((child) => extractVariableNodes(child));
+  } catch (error) {
+    console.warn(`Failed to parse expression "${expressionString}":`, error);
+  }
+  return variableNames;
 };
 
 export class Controller {
@@ -43,6 +86,9 @@ export class Controller {
     ctx.setLinkageMap(variableLinkage);
     ctx.setInterpreter(interpreter);
 
+    // Clear active variables at the start of execution
+    ctx.setActiveVariables(new Set());
+
     // Extract views from the code in the beginning of the execution to always have them available
     // This is because if refresh is called, then views are no longer available
     const foundViews = extractViews(ctx.code);
@@ -56,13 +102,26 @@ export class Controller {
    * Helper function to restore variables from a historical state and apply visual cues.
    */
   private static updateVariables(state: IStep): void {
+    // Always clear all visual cues first to ensure clean state
+    requestAnimationFrame(() => {
+      clearAllCues();
+    });
+
     if (state.variables && ctx.linkageMap) {
       const updatedVarIds = updateAllVariables(state.variables, ctx.linkageMap);
+
+      // Always store the active variables in the execution store (even if empty set)
+      // This ensures labels only show for variables that changed in THIS step
+      ctx.setActiveVariables(updatedVarIds);
+
       if (updatedVarIds.size > 0) {
         requestAnimationFrame(() => {
           applyCue(updatedVarIds);
         });
       }
+    } else {
+      // If no variables or linkage map, clear active variables
+      ctx.setActiveVariables(new Set());
     }
   }
 
@@ -74,10 +133,34 @@ export class Controller {
     const state = ctx.history[index];
     Step.highlight(ctx.codeMirrorRef, state.highlight);
     this.updateVariables(state);
-
     // Set view descriptions if this step has them (i.e., it's a view point)
     if (state.viewDescriptions) {
+      // Extract variables from view expressions and add them to activeVariables
+      // This will trigger the step-cue highlighting system for expression variables
+      const expressionVariables = new Set<string>();
+      Object.entries(state.viewDescriptions).forEach(([expressionString]) => {
+        const variables = extractVariablesFromExpression(expressionString);
+        variables.forEach((variable) => {
+          expressionVariables.add(variable);
+        });
+      });
+
+      // Set the view descriptions directly (expression -> description mapping)
       ctx.setCurrentViewDescriptions(state.viewDescriptions);
+
+      // Merge expression variables with existing active variables
+      const currentActiveVariables = new Set(ctx.activeVariables);
+      expressionVariables.forEach((variable) => {
+        currentActiveVariables.add(variable);
+      });
+      // Update activeVariables to include expression variables
+      ctx.setActiveVariables(currentActiveVariables);
+      // Apply visual cues to expression variables
+      if (expressionVariables.size > 0) {
+        requestAnimationFrame(() => {
+          applyCue(expressionVariables);
+        });
+      }
     } else {
       // Clear view descriptions if not at a view point
       ctx.setCurrentViewDescriptions({});

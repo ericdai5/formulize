@@ -28,14 +28,24 @@ export function addViewFunctions(code: string): string {
     const trimmedParams = params.trim();
 
     if (trimmedParams) {
-      // Parse the format: variableName->"description"
-      // Use regex to match variable name, arrow, and quoted description
-      const paramMatch = trimmedParams.match(/^(\w+)->"([^"]+)"$/);
-      
+      // Parse the format: expression->"description"
+      // Support both quoted and unquoted expressions
+      // Try quoted expression first: "expression"->"description"
+      let paramMatch = trimmedParams.match(/^"([^"]+)"->"([^"]+)"$/);
       if (paramMatch) {
-        const [, variableName, description] = paramMatch;
-        // Create view call with variable name and description
-        return `${leadingWhitespace}view([["${variableName}", "${description}"]]);`;
+        const [, expression, description] = paramMatch;
+        // Expression is already properly quoted in the comment, use it directly
+        const escapedDescription = description.replace(/"/g, '\\"');
+        return `${leadingWhitespace}view([["${expression}", "${escapedDescription}"]]);`;
+      }
+      // Try unquoted expression: expression->"description"
+      paramMatch = trimmedParams.match(/^([^"]+?)->"([^"]+)"$/);
+      if (paramMatch) {
+        const [, expression, description] = paramMatch;
+        // Escape quotes in unquoted expression
+        const escapedExpression = expression.trim().replace(/"/g, '\\"');
+        const escapedDescription = description.replace(/"/g, '\\"');
+        return `${leadingWhitespace}view([["${escapedExpression}", "${escapedDescription}"]]);`;
       }
     }
 

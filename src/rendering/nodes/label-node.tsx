@@ -15,6 +15,14 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const variable = computationStore.variables.get(varId);
   const label = variable?.label;
 
+  // Only show labels for variables that have been changed during manual execution
+  const isVariableActive = executionStore.activeVariables.has(varId);
+
+  // If in step mode and variable is not active, hide the label
+  if (computationStore.isStepMode() && !isVariableActive) {
+    return null;
+  }
+
   // Get index variable information
   const indexVariable = variable?.index;
   let indexDisplay = "";
@@ -28,32 +36,23 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     }
   }
 
-  // Combine variable name and index display inline
-  const displayLatex = indexDisplay ? `${varId}, ${indexDisplay}` : varId;
+  // Determine what to display based on labelDisplay setting
+  let mainDisplayText = varId; // default to name
+  if (variable?.labelDisplay === "value") {
+    if (variable?.value !== undefined && variable?.value !== null) {
+      const precision =
+        variable.precision ?? (Number.isInteger(variable.value) ? 0 : 2);
+      mainDisplayText = variable.value.toFixed(precision);
+    } else {
+      // If labelDisplay is "value" but no value is set, hide the label node
+      return null;
+    }
+  }
 
-  // Get view description if available
-  const viewDescription = executionStore.currentViewDescriptions[varId];
-
-  // Determine if handle is above or below (you may need to adjust this logic based on actual handle usage)
-  // For now, assuming default is handle above, but this could be determined from props or edge connections
-  const isHandleAbove = true; // This should be determined by actual handle usage
-
-  const mainContent = (
-    <div className="bg-white border border-slate-200 rounded-xl px-4 py-2">
-      <div className="flex flex-col items-center gap-1">
-        <LatexLabel latex={displayLatex} />
-        {label && (
-          <div className="text-xs text-slate-500 text-center">{label}</div>
-        )}
-      </div>
-    </div>
-  );
-
-  const viewDescriptionContent = viewDescription && (
-    <div className="text-xs text-blue-600 font-regular text-center bg-white border border-blue-200 rounded-lg px-2 py-1">
-      {viewDescription}
-    </div>
-  );
+  // Combine main display text and index display inline
+  const displayLatex = indexDisplay
+    ? `${mainDisplayText}, ${indexDisplay}`
+    : mainDisplayText;
 
   return (
     <div
@@ -67,18 +66,15 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       }}
       title={`Variable: ${varId}${label ? ` (${label})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
     >
-      <div className="flex flex-col items-center gap-1">
-        {isHandleAbove ? (
-          <>
-            {mainContent}
-            {viewDescriptionContent}
-          </>
-        ) : (
-          <>
-            {viewDescriptionContent}
-            {mainContent}
-          </>
-        )}
+      <div className="bg-white rounded-lg px-1.5 py-1.5 border border-slate-200">
+        <div className="flex flex-col items-center gap-1 text-blue-500">
+          <div style={{ fontSize: "0.3rem" }}>
+            <LatexLabel latex={displayLatex} />
+          </div>
+          {label && variable?.labelDisplay !== "value" && (
+            <div className="text-xs text-slate-500 text-center">{label}</div>
+          )}
+        </div>
       </div>
       {/* Handle for edges to variable nodes positioned above - hidden */}
       <Handle

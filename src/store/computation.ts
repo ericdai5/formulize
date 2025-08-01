@@ -258,9 +258,9 @@ class ComputationStore {
             parentVar.set.includes(parentVar.value)
           ) {
             variable.value = parentVar.value;
-          } else if (parentVar.set.length > 0 && !variable.index) {
+          } else if (parentVar.set.length > 0 && !variable.index && !this.isStepMode()) {
             // Only set default to first element if this variable doesn't have an index
-            // Variables with index should get their values based on the index variable
+            // AND we're not in step mode (variables should only get values during manual execution)
             variable.value =
               typeof parentVar.set[0] === "number"
                 ? parentVar.set[0]
@@ -425,6 +425,7 @@ class ComputationStore {
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
         display: variableDefinition?.display,
+        labelDisplay: variableDefinition?.labelDisplay,
         index: variableDefinition?.index,
       });
 
