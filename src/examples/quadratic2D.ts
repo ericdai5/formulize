@@ -1,4 +1,4 @@
-export const quadraticEquation3D = `const config = {
+export const quadratic2D = `const config = {
   formulas: [
     {
       name: "Quadratic Equation",
@@ -15,21 +15,21 @@ export const quadraticEquation3D = `const config = {
     x: {
       type: "input",
       value: 0,
-      range: [-5, 5],
+      range: [-10, 10],
       step: 0.1,
       label: "x"
     },
     a: {
       type: "input",
       value: 1,
-      range: [-2, 2],
+      range: [-5, 5],
       step: 0.1,
       label: "Coefficient a"
     },
     b: {
       type: "input",
       value: 0,
-      range: [-5, 5],
+      range: [-10, 10],
       step: 0.1,
       label: "Coefficient b"
     },
@@ -44,26 +44,22 @@ export const quadraticEquation3D = `const config = {
   computation: {
     engine: "symbolic-algebra"
   },
-
+  
   visualizations: [
     {
-      type: "plot3d",
-      id: "quadratic3DSurface",
-      title: "3D Quadratic Surface: y = ax² + bx + c",
+      type: "plot2d",
+      id: "quadraticPlot",
+      title: "Quadratic Function",
       xVar: "x",
       xRange: [-5, 5],
-      yVar: "c",
-      yRange: [-5, 5],
-      zVar: "y",
-      zRange: [-20, 40],
-      plotType: "surface",
+      yVar: "y",
+      yRange: [-10, 10],
       width: 600,
       height: 600,
-      surfaces: [
+      lines: [
         {
-          formulaName: "Quadratic Equation",
-          color: "Viridis",
-          opacity: 0.7,
+          color: "#ef4444",
+          name: "Quadratic",
           showInLegend: true
         }
       ]

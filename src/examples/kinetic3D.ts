@@ -1,4 +1,4 @@
-export const kineticEnergy3D = `const config = {
+export const kinetic3D = `const config = {
   formulas: [
     {
       name: "Kinetic Energy Formula",

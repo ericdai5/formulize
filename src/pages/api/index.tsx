@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { FormulizeConfig } from "../../formulize";
-import { computationStore } from "../../store/computation";
 import TemplateSelector from "../../components/template-selector";
 import { examples as formulaExamples } from "../../examples";
+import { FormulizeConfig } from "../../formulize";
 import Formulize from "../../rendering/formulize";
+import { computationStore } from "../../store/computation";
 
 export default function APIPage() {
   const [currentFormulaConfig, setCurrentFormulaConfig] = useState<
@@ -12,7 +12,7 @@ export default function APIPage() {
   >(undefined);
   const [selectedTemplate, setSelectedTemplate] = useState<
     keyof typeof formulaExamples | undefined
-  >("kineticEnergy");
+  >("kinetic2D");
 
   useEffect(() => {
     if (currentFormulaConfig?.computation?.engine) {

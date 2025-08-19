@@ -11,7 +11,7 @@ import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
 import { VariableTreesPane } from "../components/variable-tree-pane.tsx";
 import { examples as formulaExamples } from "../examples/index.ts";
-import { kineticEnergy } from "../examples/kineticEnergy";
+import { kinetic2D } from "../examples/kinetic2D";
 import { Formulize, FormulizeConfig } from "../index.ts";
 import { computationStore } from "../store/computation";
 import Canvas from "./canvas.tsx";
@@ -27,7 +27,7 @@ const FormulaCanvas = observer(
     // Use formulizeConfig if provided, otherwise fall back to null
     const initialConfig = formulizeConfig || null;
 
-    const [formulizeInput, setFormulizeInput] = useState<string>(kineticEnergy);
+    const [formulizeInput, setFormulizeInput] = useState<string>(kinetic2D);
     const [isRendered, setIsRendered] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
