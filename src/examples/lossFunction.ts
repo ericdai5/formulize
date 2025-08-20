@@ -111,33 +111,6 @@ export const lossFunction = `const config = {
       precision: 0,
     }
   },
-  controls: [
-    {
-      type: "array",
-      variable: "y",
-      orientation: "horizontal",
-      index: "i"
-    },
-    {
-      type: "array",
-      variable: "\\\\hat{y}",
-      orientation: "horizontal",
-      index: "i"
-    },
-    {
-      type: "slider",
-      variable: "\\\\lambda",
-      min: 0,
-      max: 0.2,
-      step: 0.01
-    },
-    {
-      type: "array",
-      variable: "\\\\theta",
-      orientation: "horizontal",
-      index: "j"
-    }
-  ],
   computation: {
     engine: "manual",
     mode: "step"
