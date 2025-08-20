@@ -7,7 +7,6 @@ import { parameterizedPlane } from "./parameterizedPlane";
 import { parametric3D } from "./parametric3D";
 import { quadratic2D } from "./quadratic2D";
 import { quadratic3D } from "./quadratic3D";
-import { rationalNumbers } from "./rationalNumbers";
 import { summationBasic } from "./summationBasic";
 import { summationDefault } from "./summationDefault";
 import { vectorAddition } from "./vectorAddition";
@@ -19,7 +18,6 @@ export const examples = {
   quadratic3D,
   gravitationalPotential,
   parametric3D,
-  rationalNumbers,
   parameterizedPlane,
   bayesWithCustomVisualization,
   summationBasic,
@@ -35,7 +33,6 @@ export const exampleDisplayNames = {
   quadratic2D: "Quadratic Equation 2D",
   quadratic3D: "Quadratic Equation 3D",
   parametric3D: "Parametric 3D",
-  rationalNumbers: "Rational Numbers",
   parameterizedPlane: "Parameterized Plane",
   bayesWithCustomVisualization: "Bayes Custom Visualization",
   summationBasic: "Summation Basic",
