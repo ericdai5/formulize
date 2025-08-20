@@ -99,7 +99,7 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
                 )} */}
 
               {/* View Variables - shown in green boxes when view() is called */}
-              {currentState &&
+              {/* {currentState &&
                 currentState.viewVariables &&
                 Object.keys(currentState.viewVariables).length > 0 && (
                   <VariableType
@@ -126,7 +126,7 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
                       )
                     )}
                   </VariableType>
-                )}
+                )} */}
 
               {/* Display regular variables */}
               {Object.entries(currentState.variables)
