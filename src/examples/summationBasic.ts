@@ -63,20 +63,6 @@ export const summationBasic = `const config = {
       labelDisplay: "value",
     }
   },
-  controls: [
-    {
-      type: "array",
-      variable: "x",
-      orientation: "horizontal",
-      index: "i"
-    },
-    {
-      type: "array",
-      variable: "P(x)",
-      orientation: "horizontal",
-      index: "i"
-    }
-  ],
   computation: {
     engine: "manual",
     mode: "step"

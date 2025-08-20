@@ -8,7 +8,6 @@ import { parametric3D } from "./parametric3D";
 import { quadratic2D } from "./quadratic2D";
 import { quadratic3D } from "./quadratic3D";
 import { summationBasic } from "./summationBasic";
-import { summationDefault } from "./summationDefault";
 import { vectorAddition } from "./vectorAddition";
 
 export const examples = {
@@ -21,7 +20,6 @@ export const examples = {
   parameterizedPlane,
   bayesWithCustomVisualization,
   summationBasic,
-  summationDefault,
   vectorAddition,
   lossFunction,
 };
@@ -36,7 +34,6 @@ export const exampleDisplayNames = {
   parameterizedPlane: "Parameterized Plane",
   bayesWithCustomVisualization: "Bayes Custom Visualization",
   summationBasic: "Summation Basic",
-  summationDefault: "Summation Default",
   vectorAddition: "Vector Addition",
   lossFunction: "Loss Function with Regularization",
 } as const;
