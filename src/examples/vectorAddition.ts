@@ -27,7 +27,7 @@ export const vectorAddition = `const config = {
       range: [-10, 10],
       step: 0.5,
       precision: 1,
-      showName: false
+      display: "value"
     },
     ay: {
       type: "input", 
@@ -35,7 +35,7 @@ export const vectorAddition = `const config = {
       range: [-10, 10],
       step: 0.5,
       precision: 1,
-      showName: false
+      display: "value"
     },
     bx: {
       type: "input",
@@ -43,7 +43,7 @@ export const vectorAddition = `const config = {
       range: [-10, 10], 
       step: 0.5,
       precision: 1,
-      showName: false
+      display: "value"
     },
     by: {
       type: "input",
@@ -51,17 +51,17 @@ export const vectorAddition = `const config = {
       range: [-10, 10],
       step: 0.5,
       precision: 1,
-      showName: false
+      display: "value"
     },
     cx: {
       type: "dependent",
       precision: 1,
-      showName: false
+      display: "value"
     },
     cy: {
       type: "dependent",
       precision: 1,
-      showName: false
+      display: "value"
     },
   },
   computation: {

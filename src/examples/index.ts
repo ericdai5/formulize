@@ -1,50 +1,44 @@
 import { bayesWithCustomVisualization } from "./bayesVisualization";
 import { gravitationalPotential } from "./gravitationalPotential";
-import { kineticEnergy } from "./kineticEnergy";
-import { kineticEnergy3D } from "./kineticEnergy3D";
+import { kinetic2D } from "./kinetic2D";
+import { kinetic3D } from "./kinetic3D";
+import { lossFunction } from "./lossFunction";
 import { parameterizedPlane } from "./parameterizedPlane";
 import { parametric3D } from "./parametric3D";
-import { quadraticEquation } from "./quadraticEquation";
-import { quadraticEquation3D } from "./quadraticEquation3D";
-import { rationalNumbers } from "./rationalNumbers";
+import { quadratic2D } from "./quadratic2D";
+import { quadratic3D } from "./quadratic3D";
 import { summationBasic } from "./summationBasic";
 import { summationDefault } from "./summationDefault";
-import { taylorSeries } from "./taylorSeries";
-import { testing } from "./testing";
 import { vectorAddition } from "./vectorAddition";
 
 export const examples = {
-  kineticEnergy,
+  kinetic2D,
+  kinetic3D,
+  quadratic2D,
+  quadratic3D,
   gravitationalPotential,
-  kineticEnergy3D,
-  quadraticEquation,
-  quadraticEquation3D,
   parametric3D,
-  rationalNumbers,
   parameterizedPlane,
-  testing,
   bayesWithCustomVisualization,
   summationBasic,
   summationDefault,
-  taylorSeries,
   vectorAddition,
+  lossFunction,
 };
 
 export const exampleDisplayNames = {
-  kineticEnergy: "Kinetic Energy",
+  kinetic2D: "Kinetic Energy 2D",
+  kinetic3D: "Kinetic Energy 3D",
   gravitationalPotential: "Gravitational Potential",
-  kineticEnergy3D: "Kinetic Energy 3D",
-  quadraticEquation: "Quadratic Equation",
-  quadraticEquation3D: "Quadratic Equation 3D",
+  quadratic2D: "Quadratic Equation 2D",
+  quadratic3D: "Quadratic Equation 3D",
   parametric3D: "Parametric 3D",
-  rationalNumbers: "Rational Numbers",
   parameterizedPlane: "Parameterized Plane",
-  testing: "Testing",
   bayesWithCustomVisualization: "Bayes Custom Visualization",
   summationBasic: "Summation Basic",
   summationDefault: "Summation Default",
-  taylorSeries: "Taylor Series",
   vectorAddition: "Vector Addition",
+  lossFunction: "Loss Function with Regularization",
 } as const;
 
 export default examples;

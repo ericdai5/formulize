@@ -17,6 +17,10 @@
     @apply h-8 min-w-8 flex justify-center items-center cursor-pointer hover:bg-slate-100 rounded-md;
   }
 
+  .interactive-var-base {
+    @apply rounded-md text-black mx-[1px] my-0 px-1 py-1;
+  }
+
   .cm-editor {
     @apply h-full text-2xl;
   }
@@ -26,7 +30,7 @@
   }
 
   .interactive-var-slidable {
-    @apply text-blue-700 bg-blue-50 mx-[1px] my-0 p-1.5 select-none cursor-ns-resize transition-all duration-200 rounded-lg hover:bg-blue-100 hover:text-blue-800;
+    @apply interactive-var-base text-blue-700 bg-blue-50 select-none cursor-ns-resize transition-all duration-200 hover:bg-blue-100 hover:text-blue-800;
   }
 
   .interactive-var-slidable:active {
@@ -34,7 +38,7 @@
   }
 
   .interactive-var-dropdown {
-    @apply text-green-700 bg-green-50 mx-[1px] my-0 p-1.5 select-none cursor-pointer transition-all duration-200 rounded-lg hover:bg-green-100 hover:text-green-800 relative;
+    @apply interactive-var-base text-green-700 bg-green-50 select-none cursor-pointer transition-all duration-200 hover:bg-green-100 hover:text-green-800 relative;
   }
 
   .interactive-var-dropdown:active {
@@ -50,17 +54,19 @@
   }
 
   .interactive-var-dependent {
-    @apply text-zinc-800 bg-zinc-100 mx-[1px] my-0 p-1.5 rounded-lg;
+    @apply interactive-var-base bg-zinc-100;
   }
 
   /* Step mode styles */
   .step-mode {
-    @apply bg-slate-100 text-slate-800;
+    @apply p-0 bg-transparent text-black;
   }
 
   .step-cue {
-    @apply bg-green-100 text-green-800 border border-green-300 shadow-sm;
+    @apply text-blue-500;
     animation: pulseUpdate 0.4s ease-in-out;
+    animation-fill-mode: both;
+    transform: scale(1);
   }
 
   @keyframes pulseUpdate {
@@ -82,6 +88,8 @@
   .variable-assignment {
     @apply bg-purple-100 text-purple-800 border border-purple-300 shadow-sm;
     animation: pulseUpdate 0.4s ease-in-out;
+    animation-fill-mode: both;
+    transform: scale(1);
   }
 
   /* Make interpreter CodeMirror non-clickable and green focus */

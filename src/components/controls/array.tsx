@@ -1,44 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../api/computation";
-import { executionStore as ctx } from "../../api/execution";
+import { computationStore } from "../../store/computation";
+import { executionStore as ctx } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
-import { getVariable } from "../../util/computation-helpers";
+import { getVariable } from "../../util/computation-helpers.ts";
+import LatexLabel from "../latex";
 
 interface ArrayProps {
   control: IArrayControl;
 }
-
-const LatexLabel = ({ latex }: { latex: string }) => {
-  const labelRef = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const renderLatex = async () => {
-      if (!labelRef.current || !window.MathJax) return;
-      try {
-        await window.MathJax.startup.promise;
-        labelRef.current.innerHTML = `\\(${latex}\\)`;
-        await window.MathJax.typesetPromise([labelRef.current]);
-      } catch (error) {
-        console.error("Error rendering LaTeX label:", error);
-        // Fallback to plain text
-        labelRef.current.textContent = latex;
-      }
-    };
-    renderLatex();
-  }, [latex]);
-
-  return (
-    <span
-      ref={labelRef}
-      className="flex items-center justify-center"
-      style={{ fontSize: "0.6rem" }}
-    >
-      {latex}
-    </span>
-  );
-};
 
 const Array = observer(({ control }: ArrayProps) => {
   // Get the variable ID from the control's variable property
@@ -83,38 +55,6 @@ const Array = observer(({ control }: ArrayProps) => {
   }, [variable]);
 
   const arrayValues = getArrayValues();
-
-  const handleValueClick = useCallback(
-    (clickedValue: any, index: number) => {
-      if (variableId) {
-        // If there's a stepToIndex callback available (debug mode), use it
-        if (computationStore.stepToIndexCallback) {
-          const processedIndices =
-            computationStore.processedIndices.get(variableId) || new Set();
-
-          // If this index is already processed, refresh and restart
-          if (processedIndices.has(index)) {
-            if (computationStore.refreshCallback) {
-              computationStore.refreshCallback();
-              // Use setTimeout to ensure refresh completes before stepping to index
-              setTimeout(() => {
-                if (computationStore.stepToIndexCallback) {
-                  computationStore.stepToIndexCallback(variableId, index);
-                }
-              }, 0);
-            }
-          } else {
-            // Otherwise, just step to the index normally
-            computationStore.stepToIndexCallback(variableId, index);
-          }
-        } else {
-          // Otherwise, just set the value normally
-          computationStore.setValue(variableId, clickedValue);
-        }
-      }
-    },
-    [variableId]
-  );
 
   // Get active index directly for MobX reactivity
   const getActiveIndex = () => {
@@ -166,7 +106,7 @@ const Array = observer(({ control }: ArrayProps) => {
       )}
 
       <div
-        className={`${
+        className={`nodrag ${
           isVertical
             ? "flex flex-col gap-1 overflow-y-auto px-2 border-t border-slate-200 scrollbar-hide"
             : "flex flex-row gap-1 overflow-x-auto py-2 border-l border-slate-200 scrollbar-hide"
@@ -183,7 +123,7 @@ const Array = observer(({ control }: ArrayProps) => {
             return (
               <div
                 key={index}
-                onClick={() => handleValueClick(value, index)}
+                // onClick={() => handleValueClick(value, index)}
                 className={`
                   px-3 py-1 text-sm border rounded-xl
                   cursor-pointer transition-colors duration-150

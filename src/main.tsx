@@ -1,8 +1,35 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import App from "./App.tsx";
+import * as acorn from "acorn";
+
+import App from "./app.tsx";
 import "./index.css";
+
+// Make acorn globally available for JS-Interpreter with proper default options
+const acornWithDefaults = {
+  ...acorn,
+  defaultOptions: { ecmaVersion: 2020 },
+  parse: (code: string, options = {}) => {
+    return acorn.parse(code, { ecmaVersion: 2020, ...options });
+  },
+};
+
+(window as unknown as { acorn: typeof acornWithDefaults }).acorn =
+  acornWithDefaults;
+
+// Only enable react-scan in development
+if (import.meta.env.DEV) {
+  import("react-scan")
+    .then(({ scan }) => {
+      scan({
+        enabled: true,
+      });
+    })
+    .catch((error) => {
+      console.warn("Failed to load react-scan:", error);
+    });
+}
 
 const loadMathJax = () => {
   return new Promise((resolve) => {
@@ -25,10 +52,10 @@ const loadMathJax = () => {
       // @ts-expect-error This is valid, MathJax types are incomplete
       startup: {
         pageReady: () => {
-          // @ts-expect-error
+          // @ts-expect-error MathJax startup types are incomplete
           return MathJax.startup.defaultPageReady().then(() => {
             console.log("MathJax is ready");
-            // @ts-expect-error
+            // @ts-expect-error Promise resolve callback lacks proper typing
             resolve();
           });
         },

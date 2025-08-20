@@ -28,7 +28,7 @@ This is a **Formula Editor** built with React + TypeScript + Vite that provides 
 
 **Key Architecture Components:**
 
-1. **Formulize API** (`src/api/Formulize.ts`) - Main declarative API for creating interactive formula visualizations
+1. **Formulize API** (`src/formulize.ts`) - Main declarative API for creating interactive formula visualizations
 2. **Formula Store System** - Multi-formula management using MobX stores:
 
    - `formulaStore` - Global formula state management
@@ -36,7 +36,7 @@ This is a **Formula Editor** built with React + TypeScript + Vite that provides 
    - `computationStore` - Variable computation and evaluation
    - `formulaStoreManager` - Manages individual formula stores
 
-3. **Computation Engines** (`src/api/computation-engines/`):
+3. **Computation Engines** (`src/engine/`):
 
    - `manual` - Manual step-through with JS interpreter
    - `symbolic-algebra` - Mathematical computation engine

@@ -1,6 +1,6 @@
 import React from "react";
 
-import { DebugState } from "../api/computation-engines/manual/execute";
+import { IStep } from "../types/step";
 
 const DEBUG_VARIABLES = [
   "Interpreter Value",
@@ -55,7 +55,7 @@ const VariableType: React.FC<VariableSectionProps> = ({
 };
 
 interface CurrentVariablesSectionProps {
-  currentState: DebugState | undefined;
+  currentState: IStep | undefined;
 }
 
 const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
@@ -99,7 +99,7 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
                 )} */}
 
               {/* View Variables - shown in green boxes when view() is called */}
-              {currentState &&
+              {/* {currentState &&
                 currentState.viewVariables &&
                 Object.keys(currentState.viewVariables).length > 0 && (
                   <VariableType
@@ -126,7 +126,7 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
                       )
                     )}
                   </VariableType>
-                )}
+                )} */}
 
               {/* Display regular variables */}
               {Object.entries(currentState.variables)

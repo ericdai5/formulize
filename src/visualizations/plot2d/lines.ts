@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 
-import { computationStore } from "../../api/computation";
+import { computationStore } from "../../store/computation";
 import { type ILine } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
 import { addCurrentPointHighlight, addInteractions } from "./interaction";

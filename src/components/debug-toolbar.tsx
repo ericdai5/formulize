@@ -2,6 +2,7 @@ import {
   Code,
   Footprints,
   ListTree,
+  SquareDashed,
   SquareFunction,
   Variable,
   Vault,
@@ -9,30 +10,30 @@ import {
 
 import IconButton from "./icon-button";
 
-interface FormulaToolbarProps {
+interface ToolbarProps {
   onToggleRender: () => void;
   onOpenEvaluationModal?: () => void;
   onShowElementPane: () => void;
   onShowVariableTreePane: () => void;
   onShowDebugModal: () => void;
   onOpenStoreModal: () => void;
+  onToggleVariableBorders: () => void;
+  showDebugButton?: boolean;
 }
 
-const FormulaToolbar = ({
+const Toolbar = ({
   onToggleRender,
   onOpenEvaluationModal,
   onShowElementPane,
   onShowVariableTreePane,
   onShowDebugModal,
   onOpenStoreModal,
-}: FormulaToolbarProps) => {
+  onToggleVariableBorders,
+  showDebugButton = false,
+}: ToolbarProps) => {
   return (
     <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
-      <IconButton
-        icon={Code}
-        alt="Edit"
-        onClick={onToggleRender}
-      />
+      <IconButton icon={Code} alt="Edit" onClick={onToggleRender} />
       {onOpenEvaluationModal && (
         <IconButton
           icon={SquareFunction}
@@ -52,15 +53,23 @@ const FormulaToolbar = ({
         onClick={onShowVariableTreePane}
         title="Show Variable Trees"
       />
-      <IconButton
-        icon={Footprints}
-        alt="Debug Manual Functions"
-        onClick={onShowDebugModal}
-        title="Debug Manual Functions"
-      />
+      {showDebugButton && (
+        <IconButton
+          icon={Footprints}
+          alt="Debug Manual Functions"
+          onClick={onShowDebugModal}
+          title="Debug Manual Functions"
+        />
+      )}
       <IconButton icon={Vault} alt="Store" onClick={onOpenStoreModal} />
+      <IconButton
+        icon={SquareDashed}
+        alt="Toggle Variable Borders"
+        onClick={onToggleVariableBorders}
+        title="Toggle Variable Borders"
+      />
     </div>
   );
 };
 
-export default FormulaToolbar;
+export default Toolbar;

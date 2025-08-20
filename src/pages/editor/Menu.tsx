@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import Icon from "@mui/material/Icon";
 
+import { consolidateGroups, replaceNodes } from "../../parse/formula-transform";
 import {
   Aligned,
   AugmentedFormula,
@@ -15,8 +16,7 @@ import {
   Script,
   Strikethrough,
   Text,
-} from "../../FormulaTree";
-import { consolidateGroups, replaceNodes } from "../../formulaTransformations";
+} from "../../parse/formula-tree";
 import {
   editingStore,
   formulaStore,
@@ -24,9 +24,9 @@ import {
   undoStore,
 } from "../../store";
 
-import AnnotateIcon from "../../Icons/AnnotateIcon.svg";
-import BoxIcon from "../../Icons/BoxIcon.svg";
-import CurlyBraceListOption from "../../Icons/CurlyBraceListOption.svg";
+import AnnotateIcon from "/AnnotateIcon.svg";
+import BoxIcon from "/BoxIcon.svg";
+import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
 
 // import LogoIcon from "./Icons/LogoIcon.svg";
 
@@ -255,7 +255,6 @@ const StrikethroughMenu = () => {
                     (siblingIds) => siblingIds[0] === node.id
                   )
                 ) {
-                  console.log("Applying strikethrough to", node);
                   return new Strikethrough(node.id, node);
                 }
                 return node;
@@ -299,7 +298,6 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                       )
                     ))
                 ) {
-                  console.log("Modifying existing color node", node);
                   return new Color(node.id, color, node.body);
                 } else if (
                   selectionStore.siblingSelections.some(
@@ -308,7 +306,6 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                   (node.ancestors.length === 0 ||
                     node.ancestors[0].type !== "color")
                 ) {
-                  console.log("Applying new color node to", node);
                   return new Color(node.id, color, [node]);
                 }
                 return node;
@@ -325,7 +322,7 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
 const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   return (
     <SubMenu
-      menuButton={<img src={BoxIcon} />}
+      menuButton={<img src={BoxIcon} alt="Box icon" />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -348,7 +345,6 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                       (siblingIds) => siblingIds[0] === node.body.id
                     ))
                 ) {
-                  console.log("Modifying existing box node", node);
                   return new Box(node.id, color, "white", node.body);
                 } else if (
                   selectionStore.siblingSelections.some(
@@ -357,7 +353,6 @@ const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
                   (node.ancestors.length === 0 ||
                     node.ancestors[0].type !== "box")
                 ) {
-                  console.log("Applying new box node to", node);
                   return new Box(node.id, color, "white", node);
                 }
                 return node;
@@ -390,14 +385,14 @@ const AnnotateMenu = ({
               (siblingIds) => siblingIds[0] === node.id
             )
           ) {
-            console.log("Modifying existing brace node", node);
+            // console.log("Modifying existing brace node", node);
           } else if (
             selectionStore.siblingSelections.some(
               (siblingIds) => siblingIds[0] === node.id
             ) &&
             (node.ancestors.length === 0 || node.ancestors[0].type !== "brace")
           ) {
-            console.log("Applying new brace node to", node);
+            // console.log("Applying new brace node to", node);
             const caption = new Text(
               "",
               Array.from("caption").map((c) => new MathSymbol("", c))
@@ -418,7 +413,7 @@ const AnnotateMenu = ({
   };
   return (
     <SubMenu
-      menuButton={<img src={AnnotateIcon} />}
+      menuButton={<img src={AnnotateIcon} alt="Annotate icon" />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -428,13 +423,13 @@ const AnnotateMenu = ({
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(true)}
         >
-          <img src={CurlyBraceListOption} height={"17rem"} />
+          <img src={CurlyBraceListOptionIcon} height={"17rem"} alt="Curly brace list option" />
         </div>
         <div
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform -rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(false)}
         >
-          <img src={CurlyBraceListOption} height={"17rem"} />
+          <img src={CurlyBraceListOptionIcon} height={"17rem"} alt="Curly brace list option" />
         </div>
       </div>
     </SubMenu>

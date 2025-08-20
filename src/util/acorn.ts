@@ -62,6 +62,7 @@ export const extractVariableNames = (code: string): string[] => {
     }
 
     const ast = window.acorn.parse(code, {
+      ecmaVersion: 2020,
       allowReturnOutsideFunction: true,
       strictSemicolons: false,
       allowTrailingCommas: true,
@@ -171,12 +172,9 @@ export const extractViews = (
   column?: number;
 }> => {
   try {
-    console.log("Extracting view() function calls from code:", code);
-
     // Use acorn parser from the JS-Interpreter to parse the code
     if (!window.acorn || !window.acorn.parse) {
       console.warn("Acorn parser not available");
-      console.log("window.acorn:", window.acorn);
       return [];
     }
 
@@ -189,6 +187,7 @@ export const extractViews = (
 
     // Parse the code to get the AST
     const ast = window.acorn.parse(code, {
+      ecmaVersion: 2020,
       allowReturnOutsideFunction: true,
       strictSemicolons: false,
       allowTrailingCommas: true,
@@ -205,7 +204,6 @@ export const extractViews = (
         node.callee?.type === "Identifier" &&
         node.callee?.name === "view"
       ) {
-        console.log(`Found view() call at position ${node.start}-${node.end}`);
         breakpoints.push({
           start: node.start || 0,
           end: node.end || 0,
@@ -230,7 +228,6 @@ export const extractViews = (
 
     walkAst(ast);
 
-    console.log(`Total view() calls found: ${breakpoints.length}`, breakpoints);
     return breakpoints;
   } catch (error) {
     console.error("Error parsing code to extract view() calls:", error);

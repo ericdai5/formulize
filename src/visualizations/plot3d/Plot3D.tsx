@@ -12,12 +12,13 @@ import { observer } from "mobx-react-lite";
 // Import Plotly as any to avoid type issues since @types/plotly.js-dist might not be available
 import * as Plotly from "plotly.js-dist";
 
-import { IPlot3D } from "../../api";
-import { computationStore } from "../../api/computation";
+import { IPlot3D } from "../..";
+import { FormulizeConfig } from "../..";
 import {
   computeSurfaceIntersection,
   solveSingularFormula,
-} from "../../api/computation-engines/singular-formula-solver";
+} from "../../engine/singular-formula-solver";
+import { computationStore } from "../../store/computation";
 import { IPoint3D, ISurface } from "../../types/plot3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
 import { getFormulaByName } from "../../util/formula-by-name";
@@ -26,6 +27,7 @@ import { getSurfaces } from "./surfaces";
 
 interface Plot3DProps {
   config: IPlot3D;
+  environment?: FormulizeConfig;
 }
 
 interface LineData {
@@ -36,7 +38,7 @@ interface LineData {
   showInLegend: boolean;
 }
 
-const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
+const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
   const plotRef = useRef<HTMLDivElement>(null);
   const [currentPoint, setCurrentPoint] = useState<IPoint3D | null>(null);
   const [surfacesData, setSurfacesData] = useState<ISurface[]>([]);
@@ -90,6 +92,14 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     return variable?.label || variableName; // Fallback to variable name if no label
   }, []);
 
+  // Create a bound getFormulaByName function that uses the environment
+  const getFormulaByNameWithConfig = useCallback(
+    (formulaName: string) => {
+      return getFormulaByName(formulaName, environment);
+    },
+    [environment]
+  );
+
   // Main calculation function for all surfaces
   const calculateSurfacesDataWrapper = useCallback(() => {
     const params = {
@@ -103,7 +113,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       zMin,
       zMax,
       samples,
-      getFormulaByName,
+      getFormulaByName: getFormulaByNameWithConfig,
       getDefaultColorScale,
     };
 
@@ -120,13 +130,13 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
     zMin,
     zMax,
     samples,
-    getFormulaByName,
+    getFormulaByNameWithConfig,
     getDefaultColorScale,
   ]);
 
   // Calculate line data for a specific line configuration
   const calculateLineData = useCallback(
-    (lineConfig: any, index: number): LineData | null => {
+    (lineConfig: any, _index: number): LineData | null => {
       const {
         name,
         surfaceIntersection,
@@ -158,8 +168,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         const { surface1, surface2 } = surfaceIntersection;
 
         // Get the formula expressions for both surfaces
-        const surface1Formula = getFormulaByName(surface1);
-        const surface2Formula = getFormulaByName(surface2);
+        const surface1Formula = getFormulaByNameWithConfig(surface1);
+        const surface2Formula = getFormulaByNameWithConfig(surface2);
 
         if (!surface1Formula || !surface2Formula) {
           console.warn(
@@ -206,7 +216,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
             // Calculate x coordinate
             if (xFormula) {
-              const xExpression = getFormulaByName(xFormula);
+              const xExpression = getFormulaByNameWithConfig(xFormula);
               if (xExpression) {
                 x = solveSingularFormula(xExpression, variablesMap, xVar);
               }
@@ -216,7 +226,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
             // Calculate y coordinate
             if (yFormula) {
-              const yExpression = getFormulaByName(yFormula);
+              const yExpression = getFormulaByNameWithConfig(yFormula);
               if (yExpression) {
                 y = solveSingularFormula(yExpression, variablesMap, yVar);
               }
@@ -226,7 +236,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
             // Calculate z coordinate
             if (zFormula) {
-              const zExpression = getFormulaByName(zFormula);
+              const zExpression = getFormulaByNameWithConfig(zFormula);
               if (zExpression) {
                 z = solveSingularFormula(zExpression, variablesMap, zVar);
               }
@@ -271,7 +281,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
         showInLegend,
       };
     },
-    [getFormulaByName, xMin, xMax, xVar, yVar, zVar]
+    [getFormulaByNameWithConfig, xMin, xMax, xVar, yVar, zVar]
   );
 
   // Main calculation function for all lines

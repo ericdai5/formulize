@@ -20,7 +20,9 @@ export interface IVariable {
   set?: (string | number)[];
   key?: string;
   memberOf?: string;
-  showName?: boolean;
+  display?: "name" | "value" | "both";
+  labelDisplay?: "name" | "value";
+  index?: string;
 }
 
 export interface IVariableInput {

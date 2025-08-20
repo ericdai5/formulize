@@ -9,5 +9,5 @@ export interface IStep {
   variables: Record<string, unknown>;
   stackTrace: string[];
   timestamp: number;
-  viewVariables: Record<string, unknown>;
+  viewDescriptions?: Record<string, string>; // Map of variable names to their view descriptions
 }

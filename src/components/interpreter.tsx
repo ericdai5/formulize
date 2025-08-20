@@ -6,16 +6,10 @@ import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import beautify from "js-beautify";
 
-import { computationStore } from "../api/computation";
-import {
-  refresh,
-  stepForward,
-  stepToIndex,
-} from "../api/computation-engines/manual/execute";
-import { extractManual } from "../api/computation-engines/manual/extract";
-import { isAtBlock } from "../api/computation-engines/manual/interpreter";
-import { Step } from "../api/computation-engines/manual/step";
-import { executionStore as ctx } from "../api/execution";
+import { refresh, stepForward, stepToIndex } from "../engine/manual/execute";
+import { extractManual } from "../engine/manual/extract";
+import { isAtBlock } from "../engine/manual/interpreter";
+import { executionStore as ctx } from "../store/execution";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
 import {
@@ -36,8 +30,6 @@ interface DebugModalProps {
   onClose: () => void;
   environment: IEnvironment | null;
 }
-
-// DebugState is now imported from execute.ts
 
 const DebugModal: React.FC<DebugModalProps> = observer(
   ({ isOpen, onClose, environment }) => {
@@ -127,27 +119,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       refresh(ctx.code, ctx.environment);
     }, [clearUserViewLine]);
 
-    const handleStepForward = () => {
-      stepForward();
-    };
-
-    const handleStepToIndex = useCallback(
-      (variableId: string, targetIdx: number) => {
-        stepToIndex(variableId, targetIdx);
-      },
-      []
-    );
-
-    // Register stepToIndex callback when component mounts
-    useEffect(() => {
-      computationStore.setStepToIndexCallback(handleStepToIndex);
-      computationStore.setRefreshCallback(handleRefresh);
-      return () => {
-        computationStore.setStepToIndexCallback(null);
-        computationStore.setRefreshCallback(null);
-      };
-    }, [handleStepToIndex, handleRefresh]);
-
     // Toggle auto-play
     const toggleAutoPlay = () => {
       if (ctx.autoPlayIntervalRef.current) {
@@ -157,10 +128,78 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       } else {
         ctx.setIsRunning(true);
         ctx.autoPlayIntervalRef.current = setInterval(() => {
-          handleStepForward();
+          // Check if we're at the end of history before stepping
+          if (ctx.historyIndex >= ctx.history.length - 1) {
+            // Stop autoplay if we've reached the end
+            clearInterval(ctx.autoPlayIntervalRef.current!);
+            ctx.autoPlayIntervalRef.current = null;
+            ctx.setIsRunning(false);
+            return;
+          }
+          stepForward();
         }, ctx.autoPlaySpeed);
       }
     };
+
+    /*
+     * Helper function to convert character position from interpreter code to user code
+     * This builds a line mapping between interpreter and user code accounting for:
+     * - Multi-line view([...]) calls in interpreter becoming single // @view comments in user code
+     */
+    const convertCharPos = useCallback((interpreterCharPos: number): number => {
+      const interpreterLines = ctx.code.split('\n');
+      const userLines = userCode.split('\n');
+      
+      // Find which line in interpreter code the character position corresponds to
+      let currentPos = 0;
+      let interpreterLine = 0;
+      
+      for (let i = 0; i < interpreterLines.length; i++) {
+        const lineLength = interpreterLines[i].length + 1; // +1 for newline
+        if (currentPos + lineLength > interpreterCharPos) {
+          interpreterLine = i;
+          break;
+        }
+        currentPos += lineLength;
+      }
+      
+      // Build line mapping from interpreter to user code
+      let userLine = 0;
+      let extraLinesFromViews = 0;
+      
+      for (let i = 0; i < interpreterLine && i < interpreterLines.length; i++) {
+        const line = interpreterLines[i].trim();
+        
+        if (line.includes('view([')) {
+          // This is the start of a multi-line view call
+          // Find where it ends
+          let j = i;
+          while (j < interpreterLines.length && !interpreterLines[j].includes(']);')) {
+            j++;
+          }
+          // The view call spans from line i to line j
+          // In user code, this becomes a single comment line
+          // So we need to subtract (j - i) extra lines
+          extraLinesFromViews += (j - i);
+          i = j; // Skip to the end of the view call
+        }
+      }
+      
+      // Map interpreter line to user line
+      userLine = interpreterLine - extraLinesFromViews;
+      
+      // Ensure we're within bounds
+      if (userLine >= userLines.length) userLine = userLines.length - 1;
+      if (userLine < 0) userLine = 0;
+      
+      // Convert user line back to character position
+      let userCharPos = 0;
+      for (let i = 0; i < userLine; i++) {
+        userCharPos += userLines[i].length + 1; // +1 for newline
+      }
+      
+      return userCharPos;
+    }, [userCode]);
 
     // Helper function to convert character position to line number
     const getLineFromCharPosition = useCallback(
@@ -187,37 +226,25 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       }
     }, []);
 
-    // Handle clicking on timeline items to travel to that point in history
-    const handleTimelineItemClick = useCallback(
+    // Helper function to handle user view highlighting for block statements
+    const handleUserViewHighlighting = useCallback(
       (index: number) => {
-        if (index >= 0 && index < ctx.history.length) {
-          ctx.setHistoryIndex(index);
-          const state = ctx.history[index];
-          if (state?.highlight) {
-            const currentLine = getLineFromCharPosition(
-              ctx.code,
-              state.highlight.start
-            );
-            setCurrentLine(currentLine);
-            // Also update the code highlighting
-            Step.highlight(ctx.codeMirrorRef, state.highlight);
-
-            // Check if we should highlight the user view
-            if (isAtBlock(ctx.history, index) && index > 0) {
-              const previousState = ctx.history[index - 1];
-              if (previousState?.highlight) {
-                const previousLine = getLineFromCharPosition(
-                  userCode,
-                  previousState.highlight.start
-                );
-                highlightUserViewLine(previousLine);
-              }
-            }
+        if (isAtBlock(ctx.history, index) && index > 0) {
+          const previousState = ctx.history[index - 1];
+          if (previousState?.highlight) {
+            const userCharPos = convertCharPos(previousState.highlight.start);
+            const previousLine = getLineFromCharPosition(userCode, userCharPos);
+            highlightUserViewLine(previousLine);
           }
         }
       },
-      [setCurrentLine, getLineFromCharPosition, userCode, highlightUserViewLine]
+      [convertCharPos, getLineFromCharPosition, userCode, highlightUserViewLine]
     );
+
+    // Handle clicking on timeline items to travel to that point in history
+    const handleTimelineItemClick = useCallback((index: number) => {
+      stepToIndex(index);
+    }, []);
 
     const currentState = ctx.history[ctx.historyIndex];
 
@@ -229,18 +256,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           currentState.highlight.start
         );
         setCurrentLine(currentLine);
-
-        // Check if we should highlight the user view
-        if (isAtBlock(ctx.history, ctx.historyIndex) && ctx.historyIndex > 0) {
-          const previousState = ctx.history[ctx.historyIndex - 1];
-          if (previousState?.highlight) {
-            const previousLine = getLineFromCharPosition(
-              userCode,
-              previousState.highlight.start
-            );
-            highlightUserViewLine(previousLine);
-          }
-        }
+        handleUserViewHighlighting(ctx.historyIndex);
       } else {
         clearCurrentLine();
         clearUserViewLine();
@@ -251,8 +267,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       clearCurrentLine,
       clearUserViewLine,
       getLineFromCharPosition,
-      userCode,
-      highlightUserViewLine,
+      handleUserViewHighlighting,
     ]);
 
     // Cleanup on unmount
@@ -277,7 +292,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           <InterpreterControls
             onClose={onClose}
             onRefresh={handleRefresh}
-            onStepToIndex={handleStepToIndex}
+            onStepToIndex={() => {}}
             onToggleAutoPlay={toggleAutoPlay}
           />
           {/* Error Display */}
@@ -356,6 +371,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
                   code={ctx.code}
                   getLineFromCharPosition={getLineFromCharPosition}
                   isAtBlock={(index: number) => isAtBlock(ctx.history, index)}
+                  isAtView={(index: number) => ctx.isView(index)}
                   onTimelineItemClick={handleTimelineItemClick}
                 />
               </CollapsibleSection>

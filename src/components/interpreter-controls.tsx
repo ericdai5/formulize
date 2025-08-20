@@ -20,8 +20,8 @@ import {
   stepToNextBlock,
   stepToPrevBlock,
   stepToView,
-} from "../api/computation-engines/manual/execute";
-import { executionStore as ctx } from "../api/execution";
+} from "../engine/manual/execute";
+import { executionStore as ctx } from "../store/execution";
 import Button from "./button";
 import Select from "./select";
 
@@ -42,12 +42,12 @@ const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
     const isStepping =
       ctx.isSteppingToView || ctx.isSteppingToIndex || ctx.isSteppingToBlock;
     const hasNoHistory = ctx.historyIndex <= 0;
-    const cannotStep = !ctx.interpreter || ctx.isComplete;
+    const atEndOfHistory = ctx.historyIndex >= ctx.history.length - 1;
 
     // Modularized disabled states for each button
     const refreshDisabled = ctx.isRunning || isStepping;
     const stepBackwardDisabled = hasNoHistory || ctx.isRunning || isStepping;
-    const stepForwardDisabled = cannotStep || ctx.isRunning || isStepping;
+    const stepForwardDisabled = atEndOfHistory || ctx.isRunning || isStepping;
     const stepToPrevBlockDisabled = hasNoHistory || ctx.isRunning || isStepping;
 
     const playStepToViewDisabled =

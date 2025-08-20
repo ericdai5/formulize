@@ -1,4 +1,4 @@
-import { computationStore } from "../api/computation";
+import { computationStore } from "../store/computation";
 
 /**
  * Get a variable value from the computation store
