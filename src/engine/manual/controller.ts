@@ -334,39 +334,39 @@ export class Controller {
     }
   }
 
-  private static atIndexInState(
-    varId: string,
-    targetIndex: number,
-    state: IStep
-  ): boolean {
-    const variables = state.variables;
+  // private static atIndexInState(
+  //   varId: string,
+  //   targetIndex: number,
+  //   state: IStep
+  // ): boolean {
+  //   const variables = state.variables;
 
-    // Get the array control configuration
-    const array = getArrayControl(varId, ctx.environment);
-    if (!array?.index) {
-      return false;
-    }
+  //   // Get the array control configuration
+  //   const array = getArrayControl(varId, ctx.environment);
+  //   if (!array?.index) {
+  //     return false;
+  //   }
 
-    // Check if the index variable has reached the target value
-    const indexValue = variables[array.index];
-    if (typeof indexValue !== "number" || indexValue !== targetIndex) {
-      return false;
-    }
+  //   // Check if the index variable has reached the target value
+  //   const indexValue = variables[array.index];
+  //   if (typeof indexValue !== "number" || indexValue !== targetIndex) {
+  //     return false;
+  //   }
 
-    // Check if linked variable has expected value
-    const linkedVar = ctx.getLinkedVar(varId);
-    if (linkedVar && variables[linkedVar] !== undefined) {
-      const variable = computationStore.variables.get(varId);
-      const actualValue = variables[linkedVar];
-      if (
-        variable &&
-        !this.isExpectedValue(variable, targetIndex, actualValue)
-      ) {
-        return false;
-      }
-    }
-    return true;
-  }
+  //   // Check if linked variable has expected value
+  //   const linkedVar = ctx.getLinkedVar(varId);
+  //   if (linkedVar && variables[linkedVar] !== undefined) {
+  //     const variable = computationStore.variables.get(varId);
+  //     const actualValue = variables[linkedVar];
+  //     if (
+  //       variable &&
+  //       !this.isExpectedValue(variable, targetIndex, actualValue)
+  //     ) {
+  //       return false;
+  //     }
+  //   }
+  //   return true;
+  // }
 
   /**
    * Validates that the current value matches what's expected at a specific array index
@@ -376,17 +376,17 @@ export class Controller {
    * @param actualValue - The actual value to check
    * @returns True if the expected value matches the actual value, false otherwise
    */
-  private static isExpectedValue(
-    variable: { set?: unknown[] },
-    indexValue: number,
-    actualValue: unknown
-  ): boolean {
-    if (!variable?.set || !Array.isArray(variable.set)) {
-      return false;
-    }
-    const expectedValue = variable.set[indexValue];
-    return expectedValue === actualValue;
-  }
+  // private static isExpectedValue(
+  //   variable: { set?: unknown[] },
+  //   indexValue: number,
+  //   actualValue: unknown
+  // ): boolean {
+  //   if (!variable?.set || !Array.isArray(variable.set)) {
+  //     return false;
+  //   }
+  //   const expectedValue = variable.set[indexValue];
+  //   return expectedValue === actualValue;
+  // }
 
   /**
    * Extract view descriptions from a view() call string
