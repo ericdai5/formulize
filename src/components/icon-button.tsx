@@ -9,6 +9,7 @@ interface IconButtonProps {
   title?: string;
   className?: string;
   size?: "sm" | "md" | "lg";
+  strokeWidth?: number;
 }
 
 const IconButton: React.FC<IconButtonProps> = ({
@@ -18,6 +19,7 @@ const IconButton: React.FC<IconButtonProps> = ({
   title,
   className = "",
   size = "md",
+  strokeWidth = 2,
 }) => {
   const sizeClasses = {
     sm: "h-6 w-6",
@@ -40,7 +42,7 @@ const IconButton: React.FC<IconButtonProps> = ({
     >
       <Icon
         className={`${iconSizeClasses[size]} text-slate-700 hover:text-slate-950 transition-colors duration-100`}
-        strokeWidth={1.5}
+        strokeWidth={strokeWidth}
       />
     </button>
   );

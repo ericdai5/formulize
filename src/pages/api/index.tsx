@@ -59,14 +59,14 @@ export default function APIPage() {
           isRendered ? "w-1/3" : "w-0"
         } overflow-hidden flex flex-col`}
       >
-        <div className="min-w-[400px]">
-          <div className="p-4 flex gap-3 border-b border-slate-200">
+        <div className="min-w-[400px] h-full flex flex-col">
+          <div className="p-4 flex gap-3 border-b border-slate-200 flex-shrink-0">
             <TemplateSelector
               onTemplateSelect={setSelectedTemplate}
               activeTemplate={selectedTemplate}
             />
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <Editor
               code={code}
               onChange={setCode}
@@ -93,6 +93,7 @@ export default function APIPage() {
         <div className="absolute top-4 left-4 z-30">
           <IconButton
             size="lg"
+            strokeWidth={1.5}
             icon={isRendered ? PanelRightOpen : PanelRightClose}
             alt="Toggle Editor"
             onClick={() => setIsRendered(!isRendered)}
