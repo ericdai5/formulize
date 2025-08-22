@@ -1,11 +1,18 @@
 import { useEffect, useRef } from "react";
 
+import { observer } from "mobx-react-lite";
+
+import { computationStore } from "../store/computation";
+
 interface LatexLabelProps {
   latex: string;
 }
 
-const LatexLabel = ({ latex }: LatexLabelProps) => {
+const LatexLabel = observer(({ latex }: LatexLabelProps) => {
   const labelRef = useRef<HTMLSpanElement>(null);
+
+  const fontSize = computationStore.environment?.fontSize;
+
   useEffect(() => {
     let isMounted = true; // Track if component is still mounted
     const renderLatex = async () => {
@@ -14,7 +21,8 @@ const LatexLabel = ({ latex }: LatexLabelProps) => {
         await window.MathJax.startup.promise;
         // Check again after async operation
         if (!labelRef.current || !isMounted) return;
-        labelRef.current.innerHTML = `\\(${latex}\\)`;
+        // Apply fontSize directly to the HTML like formula-node.tsx does
+        labelRef.current.innerHTML = `<div style="font-size: ${fontSize}em">\\(${latex}\\)</div>`;
         await window.MathJax.typesetPromise([labelRef.current]);
       } catch (error) {
         console.error("Error rendering LaTeX label:", error);
@@ -29,17 +37,13 @@ const LatexLabel = ({ latex }: LatexLabelProps) => {
     return () => {
       isMounted = false;
     };
-  }, [latex]);
+  }, [latex, fontSize]); // Add fontSize to dependencies
 
   return (
-    <span
-      ref={labelRef}
-      className="flex items-center justify-center"
-      style={{ fontSize: "0.6rem" }}
-    >
+    <span ref={labelRef} className="flex items-center justify-center">
       {latex}
     </span>
   );
-};
+});
 
 export default LatexLabel;

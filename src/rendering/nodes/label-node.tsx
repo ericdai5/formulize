@@ -66,11 +66,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       }}
       title={`Variable: ${varId}${label ? ` (${label})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
     >
-      <div className="bg-white rounded-lg px-1.5 py-1.5 border border-slate-200">
+      <div className="bg-white rounded-xl p-3 border border-slate-200">
         <div className="flex flex-col items-center gap-1 text-blue-500">
-          <div style={{ fontSize: "0.3rem" }}>
-            <LatexLabel latex={displayLatex} />
-          </div>
+          <LatexLabel latex={displayLatex} />
           {label && variable?.labelDisplay !== "value" && (
             <div className="text-xs text-slate-500 text-center">{label}</div>
           )}

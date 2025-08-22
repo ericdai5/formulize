@@ -155,7 +155,20 @@ class ComputationStore {
 
   @action
   setEnvironment(environment: IEnvironment) {
-    this.environment = environment;
+    // Validate and normalize fontSize, setting default if not provided
+    const validatedFontSize = environment.fontSize !== undefined
+      ? (typeof environment.fontSize === "number" && 
+         environment.fontSize >= 0.5 && 
+         environment.fontSize <= 1
+           ? environment.fontSize
+           : 0.8)
+      : 0.8; // Default fontSize when not defined
+    
+    // Always set environment with validated fontSize
+    this.environment = {
+      ...environment,
+      fontSize: validatedFontSize
+    };
   }
 
   @action
