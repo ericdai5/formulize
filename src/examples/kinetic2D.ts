@@ -38,23 +38,14 @@ export const kinetic2D = `const config = {
   computation: {
     engine: "manual"
   },
-  
   visualizations: [
     {
       type: "plot2d",
-      id: "energyPlot",
-      title: "Kinetic Energy vs. Velocity",
       xVar: "v",
-      xRange: [0, 20],
       yVar: "K",
-      yRange: [0, 200],
-      width: 600,
-      height: 600,
       lines: [
         {
-          color: "#3b82f6",
-          name: "Kinetic Energy",
-          showInLegend: true
+          name: "Kinetic Energy Formula",
         }
       ]
     }
