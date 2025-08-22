@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { Code } from "lucide-react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import Editor from "../../components/api-code-editor";
 import IconButton from "../../components/icon-button";
@@ -59,27 +59,21 @@ export default function APIPage() {
           isRendered ? "w-1/3" : "w-0"
         } overflow-hidden flex flex-col`}
       >
-        {isRendered && (
+        <div className="min-w-[400px]">
           <div className="p-4 flex gap-3 border-b border-slate-200">
             <TemplateSelector
               onTemplateSelect={setSelectedTemplate}
               activeTemplate={selectedTemplate}
             />
-            <IconButton
-              icon={Code}
-              alt="Toggle Editor"
-              onClick={() => setIsRendered(!isRendered)}
-              title="Toggle Code Editor"
+          </div>
+          <div className="flex-1 min-h-0">
+            <Editor
+              code={code}
+              onChange={setCode}
+              onRender={() => {}}
+              error={error}
             />
           </div>
-        )}
-        <div className="flex-1 min-h-0">
-          <Editor
-            code={code}
-            onChange={setCode}
-            onRender={() => {}}
-            error={error}
-          />
         </div>
       </div>
 
@@ -96,16 +90,15 @@ export default function APIPage() {
             }
           }}
         />
-        {!isRendered && (
-          <div className="absolute top-4 left-4 z-30">
-            <IconButton
-              icon={Code}
-              alt="Toggle Editor"
-              onClick={() => setIsRendered(!isRendered)}
-              title="Toggle Code Editor"
-            />
-          </div>
-        )}
+        <div className="absolute top-4 left-4 z-30">
+          <IconButton
+            size="lg"
+            icon={isRendered ? PanelRightOpen : PanelRightClose}
+            alt="Toggle Editor"
+            onClick={() => setIsRendered(!isRendered)}
+            title="Toggle Code Editor"
+          />
+        </div>
       </div>
     </div>
   );
