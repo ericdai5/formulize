@@ -65,6 +65,4 @@ export const quadratic2D = `const config = {
       ]
     }
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;

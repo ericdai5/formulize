@@ -116,7 +116,4 @@ export const lossFunction = `const config = {
     mode: "step"
   },
   fontSize: 0.7
-};
-
-const formula = await Formulize.create(config);
-`;
+};`;

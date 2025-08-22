@@ -59,6 +59,4 @@ export const gravitationalPotential = `const config = {
       ]
     }
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;

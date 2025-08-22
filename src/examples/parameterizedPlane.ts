@@ -109,6 +109,4 @@ export const parameterizedPlane = `const config = {
       ]
     },
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;

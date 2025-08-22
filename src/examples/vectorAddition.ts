@@ -109,6 +109,4 @@ export const vectorAddition = `const config = {
       ]
     }
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;

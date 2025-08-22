@@ -1,52 +1,53 @@
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
 
-interface FormulaCodeEditorProps {
-  formulizeInput: string;
-  onInputChange: (value: string) => void;
+interface Editor {
+  code: string;
+  onChange: (value: string) => void;
   onRender: (value?: string) => void;
   error: string | null;
 }
 
-const FormulaCodeEditor = ({
-  formulizeInput,
-  onInputChange,
-  onRender,
-  error,
-}: FormulaCodeEditorProps) => {
+const Editor = ({ code, onChange, onRender, error }: Editor) => {
   const handleCodeMirrorChange = (value: string) => {
-    onInputChange(value);
+    onChange(value);
   };
 
   return (
-    <div className="w-full h-full border border-slate-200 rounded-xl overflow-auto scrollbar-hide">
-      <CodeMirror
-        value={formulizeInput}
-        onChange={handleCodeMirrorChange}
-        onBlur={() => onRender()}
-        extensions={[javascript()]}
-        theme="light"
-        style={{
-          fontSize: "14px",
-          fontFamily:
-            'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
-        }}
-        basicSetup={{
-          lineNumbers: true,
-          foldGutter: true,
-          dropCursor: false,
-          allowMultipleSelections: false,
-          indentOnInput: true,
-          bracketMatching: true,
-          closeBrackets: true,
-          autocompletion: true,
-          highlightSelectionMatches: false,
-          searchKeymap: true,
-        }}
-      />
-      {error && <div className="p-3 bg-red-100 text-red-700"> {error}</div>}
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto scrollbar-hide">
+        <CodeMirror
+          value={code}
+          onChange={handleCodeMirrorChange}
+          onBlur={() => onRender()}
+          extensions={[javascript()]}
+          theme="light"
+          style={{
+            fontSize: "14px",
+            fontFamily:
+              'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+          }}
+          basicSetup={{
+            lineNumbers: true,
+            foldGutter: true,
+            dropCursor: false,
+            allowMultipleSelections: false,
+            indentOnInput: true,
+            bracketMatching: true,
+            closeBrackets: true,
+            autocompletion: true,
+            highlightSelectionMatches: false,
+            searchKeymap: true,
+          }}
+        />
+      </div>
+      {error && (
+        <div className="flex-shrink-0 p-3 bg-red-100 text-red-700 border-t border-red-200 text-sm">
+          {error}
+        </div>
+      )}
     </div>
   );
 };
 
-export default FormulaCodeEditor;
+export default Editor;

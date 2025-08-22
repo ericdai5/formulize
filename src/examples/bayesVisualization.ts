@@ -84,6 +84,4 @@ export const bayesWithCustomVisualization = `const config = {
       }
     ],
     fontSize: 0.6
-  };
-  
-  const formula = await Formulize.create(config);`;
+  };`;

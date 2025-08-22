@@ -100,6 +100,4 @@ export const parametric3D = `const config = {
       ]
     }
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;
