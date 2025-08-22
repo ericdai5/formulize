@@ -1001,6 +1001,7 @@ const CanvasFlow = observer(
               id,
               value: variable.value,
               precision: variable.precision || 2,
+              hover: variable.hover,
             })
           ),
         () => {

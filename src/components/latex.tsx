@@ -39,11 +39,7 @@ const LatexLabel = observer(({ latex }: LatexLabelProps) => {
     };
   }, [latex, fontSize]); // Add fontSize to dependencies
 
-  return (
-    <span ref={labelRef} className="flex items-center justify-center">
-      {latex}
-    </span>
-  );
+  return <span ref={labelRef}>{latex}</span>;
 });
 
 export default LatexLabel;

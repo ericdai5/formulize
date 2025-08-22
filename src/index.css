@@ -17,10 +17,6 @@
     @apply h-8 min-w-8 flex justify-center items-center cursor-pointer hover:bg-slate-100 rounded-md;
   }
 
-  .interactive-var-base {
-    @apply rounded-md text-black mx-[1px] my-0 px-1 py-1;
-  }
-
   .cm-editor {
     @apply h-full text-2xl;
   }
@@ -29,16 +25,52 @@
     @apply py-2.5 px-1.5 pl-1.5;
   }
 
+  /* ------------------- Interactive variable styles ------------------- */
+
+  .interactive-var-base {
+    @apply text-black mx-[1px] my-0;
+  }
+  .interactive-var-dependent {
+    @apply interactive-var-base text-slate-600 px-1 py-1 bg-slate-50 rounded-md select-none transition-all duration-200;
+  }
+
   .interactive-var-slidable {
-    @apply interactive-var-base text-blue-700 bg-blue-50 select-none cursor-ns-resize transition-all duration-200 hover:bg-blue-100 hover:text-blue-800;
+    @apply interactive-var-base text-blue-600 px-1 py-1 bg-blue-50 rounded-md select-none transition-all duration-200;
   }
 
   .interactive-var-slidable:active {
     @apply scale-105;
   }
 
+  .interactive-var-dependent.interactive-var-hovered {
+    @apply text-slate-900 px-1 py-1 bg-slate-100 rounded-md;
+  }
+
+  .interactive-var-slidable.interactive-var-hovered {
+    @apply text-blue-800 px-1 py-1 bg-blue-100 rounded-md;
+  }
+
+  /* Specific styling for interactive variables in label nodes */
+  .label-flow-node .interactive-var-slidable {
+    line-height: 1;
+  }
+
+  .label-flow-node .interactive-var-dependent {
+    line-height: 1;
+  }
+
+  .label-flow-node .interactive-var-slidable.interactive-var-hovered {
+    line-height: 1;
+    display: inline-block;
+  }
+
+  .label-flow-node .interactive-var-dependent.interactive-var-hovered {
+    line-height: 1;
+    display: inline-block;
+  }
+
   .interactive-var-dropdown {
-    @apply interactive-var-base text-green-700 bg-green-50 select-none cursor-pointer transition-all duration-200 hover:bg-green-100 hover:text-green-800 relative;
+    @apply interactive-var-base text-green-700 select-none transition-all;
   }
 
   .interactive-var-dropdown:active {
@@ -51,10 +83,6 @@
 
   .dropdown-option {
     @apply px-3 py-2 text-sm cursor-pointer hover:bg-slate-100 transition-colors duration-150;
-  }
-
-  .interactive-var-dependent {
-    @apply interactive-var-base bg-zinc-100;
   }
 
   /* Step mode styles */

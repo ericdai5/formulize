@@ -107,6 +107,7 @@ const FormulaNode = observer(({ data }: { data: any }) => {
             id,
             type: v.type,
             value: v.value,
+            hover: v.hover,
           })
         ),
         variableTypesChanged: computationStore.variableTypesChanged,

@@ -19,7 +19,7 @@ export type EvaluationFunction = (
 
 class ComputationStore {
   @observable
-  accessor variables = new Map<string, IVariable>();
+  accessor variables = new Map<string, IVariable & { hover: boolean }>();
 
   @observable
   accessor lastGeneratedCode: string | null = null;
@@ -227,6 +227,14 @@ class ComputationStore {
   @action
   clearProcessedIndicesForVariable(id: string) {
     this.processedIndices.delete(id);
+  }
+
+  @action
+  setVariableHover(id: string, hover: boolean) {
+    const variable = this.variables.get(id);
+    if (variable) {
+      variable.hover = hover;
+    }
   }
 
   @observable
@@ -437,9 +445,10 @@ class ComputationStore {
         set: variableDefinition?.set,
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
-        display: variableDefinition?.display,
-        labelDisplay: variableDefinition?.labelDisplay,
+        display: variableDefinition?.display ?? "name",
+        labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
+        hover: false,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable

@@ -256,6 +256,12 @@ export const processVariables = (
           : "interactive-var-slidable";
       }
 
+      // Add hover class if variable is being hovered
+      const variable = computationStore.variables.get(originalSymbol);
+      if (variable?.hover) {
+        cssClass += " interactive-var-hovered";
+      }
+
       // Wrap the processed body with CSS classes using the variable's specific precision
       // Show name, value, or both based on display property
       let result = "";
