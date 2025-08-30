@@ -10,7 +10,9 @@ interface ExtractResult {
 
 /**
  * Replace `// @view` comments with `view()` function calls for breakpoint debugging
- * Supports format: // @view variableName->"description"
+ * Supports formats: 
+ * - // @view variableName->"description"
+ * - // @view variableName->"description"->"variableName"
  * @param code - The JavaScript code containing `// @view` comments
  * @returns Code with comments replaced by function calls
  */
@@ -28,17 +30,32 @@ export function addViewFunctions(code: string): string {
     const trimmedParams = params.trim();
 
     if (trimmedParams) {
-      // Parse the format: expression->"description"
+      // Parse the format: expression->"description"->"variableName"
       // Support both quoted and unquoted expressions
-      // Try quoted expression first: "expression"->"description"
-      let paramMatch = trimmedParams.match(/^"([^"]+)"->"([^"]+)"$/);
+      // Try 3-argument format with quoted expression first: "expression"->"description"->"variableName"
+      let paramMatch = trimmedParams.match(/^"([^"]+)"->"([^"]+)"->"([^"]+)"$/);
+      if (paramMatch) {
+        const [, expression, description, variableName] = paramMatch;
+        const escapedDescription = description.replace(/"/g, '\\"');
+        return `${leadingWhitespace}view([["${expression}", "${escapedDescription}", "${variableName}"]]);`;
+      }
+      // Try 3-argument format with unquoted expression: expression->"description"->"variableName"
+      paramMatch = trimmedParams.match(/^([^"]+?)->"([^"]+)"->"([^"]+)"$/);
+      if (paramMatch) {
+        const [, expression, description, variableName] = paramMatch;
+        const escapedExpression = expression.trim().replace(/"/g, '\\"');
+        const escapedDescription = description.replace(/"/g, '\\"');
+        return `${leadingWhitespace}view([["${escapedExpression}", "${escapedDescription}", "${variableName}"]]);`;
+      }
+      // Try quoted expression 2-argument format: "expression"->"description"
+      paramMatch = trimmedParams.match(/^"([^"]+)"->"([^"]+)"$/);
       if (paramMatch) {
         const [, expression, description] = paramMatch;
         // Expression is already properly quoted in the comment, use it directly
         const escapedDescription = description.replace(/"/g, '\\"');
         return `${leadingWhitespace}view([["${expression}", "${escapedDescription}"]]);`;
       }
-      // Try unquoted expression: expression->"description"
+      // Try unquoted expression 2-argument format: expression->"description"
       paramMatch = trimmedParams.match(/^([^"]+?)->"([^"]+)"$/);
       if (paramMatch) {
         const [, expression, description] = paramMatch;
