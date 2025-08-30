@@ -8,6 +8,7 @@ import TemplateSelector from "../../components/template-selector";
 import { examples as formulaExamples } from "../../examples";
 import { FormulizeConfig } from "../../formulize";
 import Formulize from "../../rendering/formulize";
+import { executionStore } from "../../store/execution";
 import { executeUserCode } from "../../util/code-executor";
 
 export default function APIPage() {
@@ -40,6 +41,8 @@ export default function APIPage() {
   // Update formulize input when selectedTemplate changes
   useEffect(() => {
     if (selectedTemplate && formulaExamples[selectedTemplate]) {
+      // Reset execution store when switching templates
+      executionStore.reset();
       const newFormula = formulaExamples[selectedTemplate];
       setCode(newFormula);
       executeCode(newFormula);
