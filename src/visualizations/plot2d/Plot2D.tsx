@@ -9,6 +9,7 @@ import { computationStore } from "../../store/computation";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
 import { addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";
+import { updateHoverLines } from "./hover-lines";
 import { renderLines } from "./lines";
 import { calculatePlotDimensions, getVariableLabel } from "./utils";
 import { renderVectors } from "./vectors";
@@ -82,6 +83,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       margin,
       xLabel: hasLines && xVar ? getVariableLabel(xVar) : "X",
       yLabel: hasLines && yVar ? getVariableLabel(yVar) : "Y",
+      xVar: hasLines ? xVar : undefined,
+      yVar: hasLines ? yVar : undefined,
+      xVarHovered: hasLines && xVar ? computationStore.variables.get(xVar)?.hover || false : false,
+      yVarHovered: hasLines && yVar ? computationStore.variables.get(yVar)?.hover || false : false,
     });
 
     // Add grid using helper function
@@ -122,6 +127,19 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         drawPlot
       );
     }
+
+    // Add hover lines for x/y variables
+    if (hasLines && (xVar || yVar)) {
+      updateHoverLines({
+        svg,
+        xScale,
+        yScale,
+        plotWidth,
+        plotHeight,
+        xVar,
+        yVar,
+      });
+    }
   }, [
     vectors,
     lines,
@@ -143,10 +161,11 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Skip tracking during dragging to prevent re-renders
         if (computationStore.isDragging) return null;
 
-        // Track all variable values for live updates
-        const allVariables: Record<string, number> = {};
+        // Track all variable values and hover states for live updates
+        const allVariables: Record<string, number | boolean> = {};
         for (const [id, variable] of computationStore.variables.entries()) {
           allVariables[id] = variable.value ?? 0;
+          allVariables[`${id}_hover`] = variable.hover;
         }
         return allVariables;
       },

@@ -28,14 +28,14 @@
   /* ------------------- Interactive variable styles ------------------- */
 
   .interactive-var-base {
-    @apply text-black mx-[1px] my-0;
+    @apply text-black;
   }
   .interactive-var-dependent {
-    @apply interactive-var-base text-slate-600 px-1 py-1 bg-slate-50 rounded-md select-none transition-all duration-200;
+    @apply interactive-var-base text-slate-600 rounded-md select-none transition-all duration-200;
   }
 
   .interactive-var-slidable {
-    @apply interactive-var-base text-blue-600 px-1 py-1 bg-blue-50 rounded-md select-none transition-all duration-200;
+    @apply interactive-var-base text-blue-500 rounded-md select-none transition-all duration-200;
   }
 
   .interactive-var-slidable:active {
@@ -43,11 +43,11 @@
   }
 
   .interactive-var-dependent.interactive-var-hovered {
-    @apply text-slate-900 px-1 py-1 bg-slate-100 rounded-md;
+    @apply text-slate-900 rounded-md scale-110;
   }
 
   .interactive-var-slidable.interactive-var-hovered {
-    @apply text-blue-800 px-1 py-1 bg-blue-100 rounded-md;
+    @apply text-blue-700 rounded-md scale-110;
   }
 
   /* Specific styling for interactive variables in label nodes */
@@ -62,11 +62,13 @@
   .label-flow-node .interactive-var-slidable.interactive-var-hovered {
     line-height: 1;
     display: inline-block;
+    @apply scale-110;
   }
 
   .label-flow-node .interactive-var-dependent.interactive-var-hovered {
     line-height: 1;
     display: inline-block;
+    @apply scale-110;
   }
 
   .interactive-var-dropdown {

@@ -104,7 +104,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="bg-white rounded-xl p-3 border border-slate-200">
+      <div
+        className={`bg-white rounded-xl p-3 border border-slate-200 ${variable?.hover ? "outline outline-1 outline-slate-300 outline-offset-1" : ""}`}
+      >
         <div className="flex flex-col items-center gap-1">
           <div className={finalInteractiveClass}>
             <LatexLabel latex={displayLatex} />
