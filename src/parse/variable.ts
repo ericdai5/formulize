@@ -256,11 +256,7 @@ export const processVariables = (
           : "interactive-var-slidable";
       }
 
-      // Add hover class if variable is being hovered
-      const variable = computationStore.variables.get(originalSymbol);
-      if (variable?.hover) {
-        cssClass += " interactive-var-hovered";
-      }
+      // Hover class is managed via MobX reactions to avoid full LaTeX re-renders
 
       // Wrap the processed body with CSS classes using the variable's specific precision
       // Show name, value, or both based on display property

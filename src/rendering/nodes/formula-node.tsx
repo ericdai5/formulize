@@ -107,7 +107,6 @@ const FormulaNode = observer(({ data }: { data: any }) => {
             id,
             type: v.type,
             value: v.value,
-            hover: v.hover,
           })
         ),
         variableTypesChanged: computationStore.variableTypesChanged,
@@ -120,6 +119,35 @@ const FormulaNode = observer(({ data }: { data: any }) => {
     );
     return () => disposer();
   }, [isInitialized, renderFormula]);
+
+  // Simple hover reaction to update DOM elements
+  useEffect(() => {
+    const hoverDisposers: (() => void)[] = [];
+
+    computationStore.variables.forEach((variable, varId) => {
+      const disposer = reaction(
+        () => variable.hover,
+        (isHovered) => {
+          // Update LaTeX elements
+          const latexElements = document.querySelectorAll(
+            `#${CSS.escape(varId)}`
+          );
+          latexElements.forEach((element) => {
+            if (isHovered) {
+              element.classList.add("interactive-var-hovered");
+            } else {
+              element.classList.remove("interactive-var-hovered");
+            }
+          });
+        }
+      );
+      hoverDisposers.push(disposer);
+    });
+
+    return () => {
+      hoverDisposers.forEach((dispose) => dispose());
+    };
+  }, [isInitialized]);
 
   return (
     <div
