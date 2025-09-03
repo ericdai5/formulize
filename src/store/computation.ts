@@ -450,7 +450,7 @@ class ComputationStore {
         set: variableDefinition?.set,
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
-        display: variableDefinition?.display ?? "name",
+        latexDisplay: variableDefinition?.latexDisplay ?? "name",
         labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
         hover: false,

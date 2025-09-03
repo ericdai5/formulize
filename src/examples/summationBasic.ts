@@ -30,7 +30,7 @@ export const summationBasic = `const config = {
       type: "dependent",
       precision: 2,
       name: "Expected Value",
-      display: "name",
+      latexDisplay: "name",
       labelDisplay: "value",
     },
     x: {
@@ -38,7 +38,7 @@ export const summationBasic = `const config = {
       memberOf: "X",
       precision: 0,
       name: "x: member of X",
-      display: "name",
+      latexDisplay: "name",
       labelDisplay: "value",
     },
     X: {
@@ -52,14 +52,14 @@ export const summationBasic = `const config = {
       set: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
       precision: 2,
       name: "Probability of x",
-      display: "name",
+      latexDisplay: "name",
       labelDisplay: "value",
     },
     c: {
       type: "dependent",
       precision: 2,
       name: "Current Expected Value",
-      display: "name",
+      latexDisplay: "name",
       labelDisplay: "value",
     }
   },

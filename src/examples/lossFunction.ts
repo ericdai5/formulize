@@ -47,21 +47,21 @@ export const lossFunction = `const config = {
     m: {
       type: "input",
       value: 3,
-      display: "value",
+      latexDisplay: "value",
       precision: 0,
     },
     "y^{(i)}": {
       type: "input",
       memberOf: "y",
       name: "Actual value of the i-th example",
-      display: "value",
+      latexDisplay: "value",
       index: "i"
     },
     "\\\\hat{y}^{(i)}": {
       type: "input",
       memberOf: "\\\\hat{y}",
       name: "Predicted value of the i-th example",
-      display: "value",
+      latexDisplay: "value",
       index: "i"
     },
     y: {
@@ -78,7 +78,7 @@ export const lossFunction = `const config = {
       type: "input",
       value: 0.1,
       name: "Regularization parameter",
-      display: "value",
+      latexDisplay: "value",
     },
     "\\\\theta_j": {
       type: "input",
@@ -95,19 +95,19 @@ export const lossFunction = `const config = {
       type: "input",
       name: "Number of features",
       value: 2,
-      display: "value",
+      latexDisplay: "value",
       precision: 0,
     },
     i: {
       type: "input",
       name: "Index",
-      display: "value",
+      latexDisplay: "value",
       precision: 0,
     },
     j: {
       type: "input",
       name: "Index",
-      display: "value",
+      latexDisplay: "value",
       precision: 0,
     }
   },
