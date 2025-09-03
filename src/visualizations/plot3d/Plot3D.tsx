@@ -89,7 +89,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
   const getVariableLabel = useCallback((variableName: string): string => {
     const varId = variableName;
     const variable = getVariable(varId);
-    return variable?.label || variableName; // Fallback to variable name if no label
+    return variable?.name || variableName; // Fallback to variable name if no name
   }, []);
 
   // Create a bound getFormulaByName function that uses the environment

@@ -11,7 +11,7 @@ export interface IVariable {
   dataType?: "scalar" | "vector" | "matrix";
   dimensions?: number[];
   units?: string;
-  label?: string;
+  name?: string;
   precision?: number;
   description?: string;
   range?: [number, number];

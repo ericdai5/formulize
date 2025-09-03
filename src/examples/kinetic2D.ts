@@ -15,7 +15,7 @@ export const kinetic2D = `const config = {
     K: {
       type: "dependent",
       units: "J",
-      label: "Kinetic Energy",
+      name: "Kinetic Energy",
       precision: 2
     },
     m: {
@@ -24,7 +24,7 @@ export const kinetic2D = `const config = {
       range: [0.1, 10],
       step: 1,
       units: "kg",
-      label: "Mass"
+      name: "Mass"
     },
     v: {
       type: "input",
@@ -32,7 +32,7 @@ export const kinetic2D = `const config = {
       range: [0.1, 100],
       step: 1,
       units: "m/s",
-      label: "Velocity"
+      name: "Velocity"
     }
   },
   computation: {

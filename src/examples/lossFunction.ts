@@ -42,7 +42,7 @@ export const lossFunction = `const config = {
   variables: {
     "J(\\\\theta)": {
       type: "dependent",
-      label: "Loss Function"
+      name: "Loss Function"
     },
     m: {
       type: "input",
@@ -53,60 +53,60 @@ export const lossFunction = `const config = {
     "y^{(i)}": {
       type: "input",
       memberOf: "y",
-      label: "Actual value of the i-th example",
+      name: "Actual value of the i-th example",
       display: "value",
       index: "i"
     },
     "\\\\hat{y}^{(i)}": {
       type: "input",
       memberOf: "\\\\hat{y}",
-      label: "Predicted value of the i-th example",
+      name: "Predicted value of the i-th example",
       display: "value",
       index: "i"
     },
     y: {
       type: "input",
       set: [2.5, 3.0, 7.0],
-      label: "Actual value of the i-th example"
+      name: "Actual value of the i-th example"
     },
     "\\\\hat{y}": {
       type: "input",
       set: [2.0, 4.0, 5.0],
-      label: "Predicted value of the i-th example"
+      name: "Predicted value of the i-th example"
     },
     "\\\\lambda": {
       type: "input",
       value: 0.1,
-      label: "Regularization parameter",
+      name: "Regularization parameter",
       display: "value",
     },
     "\\\\theta_j": {
       type: "input",
       memberOf: "\\\\theta",
-      label: "Parameter j of the model",
+      name: "Parameter j of the model",
       index: "j",
     },
     "\\\\theta": {
       type: "input",
       set: [0.5, -1.0],
-      label: "Parameters of the model",
+      name: "Parameters of the model",
     },
     K: {
       type: "input",
-      label: "Number of features",
+      name: "Number of features",
       value: 2,
       display: "value",
       precision: 0,
     },
     i: {
       type: "input",
-      label: "Index",
+      name: "Index",
       display: "value",
       precision: 0,
     },
     j: {
       type: "input",
-      label: "Index",
+      name: "Index",
       display: "value",
       precision: 0,
     }

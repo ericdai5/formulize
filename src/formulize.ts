@@ -165,7 +165,7 @@ async function create(
           dataType: variable.dataType,
           dimensions: variable.dimensions,
           units: variable.units,
-          label: variable.label,
+          name: variable.name,
           precision: variable.precision,
           description: variable.description,
           range: variable.range,

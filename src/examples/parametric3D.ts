@@ -29,17 +29,17 @@ export const parametric3D = `const config = {
   variables: {
     x: {
       type: "dependent",
-      label: "x-coordinate",
+      name: "x-coordinate",
       precision: 1
     },
     y: {
       type: "dependent",
-      label: "y-coordinate",
+      name: "y-coordinate",
       precision: 1
     },
     z: {
       type: "dependent",
-      label: "z-coordinate",
+      name: "z-coordinate",
       precision: 1
     },
     t: {
@@ -47,7 +47,7 @@ export const parametric3D = `const config = {
       value: 0,
       range: [-2, 2],
       step: 0.1,
-      label: "Parameter t"
+      name: "Parameter t"
     }
   },
   computation: {

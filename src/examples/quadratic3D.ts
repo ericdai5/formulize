@@ -9,7 +9,7 @@ export const quadratic3D = `const config = {
   variables: {
     y: {
       type: "dependent",
-      label: "y-value",
+      name: "y-value",
       precision: 2
     },
     x: {
@@ -17,28 +17,28 @@ export const quadratic3D = `const config = {
       value: 0,
       range: [-5, 5],
       step: 0.1,
-      label: "x"
+      name: "x"
     },
     a: {
       type: "input",
       value: 1,
       range: [-2, 2],
       step: 0.1,
-      label: "Coefficient a"
+      name: "Coefficient a"
     },
     b: {
       type: "input",
       value: 0,
       range: [-5, 5],
       step: 0.1,
-      label: "Coefficient b"
+      name: "Coefficient b"
     },
     c: {
       type: "input",
       value: 0,
       range: [-10, 10],
       step: 0.1,
-      label: "Coefficient c"
+      name: "Coefficient c"
     }
   },
   computation: {

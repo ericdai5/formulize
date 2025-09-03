@@ -13,7 +13,7 @@ export interface LabelNodeData {
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId } = data;
   const variable = computationStore.variables.get(varId);
-  const label = variable?.label;
+  const name = variable?.name;
 
   // Only show labels for variables that have been changed during manual execution
   const isVariableActive = executionStore.activeVariables.has(varId);
@@ -100,7 +100,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         position: "relative",
         cursor: "grab",
       }}
-      title={`Variable: ${varId}${label ? ` (${label})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
+      title={`Variable: ${varId}${name ? ` (${name})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -109,8 +109,8 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
           <div className={finalInteractiveClass}>
             <LatexLabel latex={displayLatex} />
           </div>
-          {label && (
-            <div className="text-xs text-slate-500 text-center">{label}</div>
+          {name && (
+            <div className="text-xs text-slate-500 text-center">{name}</div>
           )}
         </div>
       </div>

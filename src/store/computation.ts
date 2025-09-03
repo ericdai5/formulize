@@ -156,18 +156,19 @@ class ComputationStore {
   @action
   setEnvironment(environment: IEnvironment) {
     // Validate and normalize fontSize, setting default if not provided
-    const validatedFontSize = environment.fontSize !== undefined
-      ? (typeof environment.fontSize === "number" && 
-         environment.fontSize >= 0.5 && 
-         environment.fontSize <= 1
-           ? environment.fontSize
-           : 0.8)
-      : 0.8; // Default fontSize when not defined
-    
+    const validatedFontSize =
+      environment.fontSize !== undefined
+        ? typeof environment.fontSize === "number" &&
+          environment.fontSize >= 0.5 &&
+          environment.fontSize <= 1
+          ? environment.fontSize
+          : 0.8
+        : 0.8; // Default fontSize when not defined
+
     // Always set environment with validated fontSize
     this.environment = {
       ...environment,
-      fontSize: validatedFontSize
+      fontSize: validatedFontSize,
     };
   }
 
@@ -279,7 +280,11 @@ class ComputationStore {
             parentVar.set.includes(parentVar.value)
           ) {
             variable.value = parentVar.value;
-          } else if (parentVar.set.length > 0 && !variable.index && !this.isStepMode()) {
+          } else if (
+            parentVar.set.length > 0 &&
+            !variable.index &&
+            !this.isStepMode()
+          ) {
             // Only set default to first element if this variable doesn't have an index
             // AND we're not in step mode (variables should only get values during manual execution)
             variable.value =
@@ -436,7 +441,7 @@ class ComputationStore {
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
         units: variableDefinition?.units,
-        label: variableDefinition?.label,
+        name: variableDefinition?.name,
         precision: variableDefinition?.precision,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
