@@ -59,16 +59,11 @@ const FormulaNode = observer(({ data }: { data: any }) => {
         processedLatex = latex; // Fallback to original latex
       }
 
-      // Get font size from environment with fallback
-      const fontSize = environment?.fontSize ?? 0.9;
-      const validatedFontSize =
-        typeof fontSize === "number" && fontSize >= 0.5 && fontSize <= 1
-          ? fontSize
-          : 0.9;
+      const fontSize = environment?.fontSize;
 
       const formulaHTML = `
         <div class="formula-expression" data-expression-index="0">
-          <div class="border border-slate-200 bg-white rounded-2xl px-6 w-fit" style="font-size: ${validatedFontSize}em">\\[${processedLatex}\\]</div>
+          <div class="border border-slate-200 bg-white rounded-2xl px-6 w-fit" style="font-size: ${fontSize}em">\\[${processedLatex}\\]</div>
         </div>
       `;
 
@@ -124,6 +119,35 @@ const FormulaNode = observer(({ data }: { data: any }) => {
     );
     return () => disposer();
   }, [isInitialized, renderFormula]);
+
+  // Simple hover reaction to update DOM elements
+  useEffect(() => {
+    const hoverDisposers: (() => void)[] = [];
+
+    computationStore.variables.forEach((variable, varId) => {
+      const disposer = reaction(
+        () => variable.hover,
+        (isHovered) => {
+          // Update LaTeX elements
+          const latexElements = document.querySelectorAll(
+            `#${CSS.escape(varId)}`
+          );
+          latexElements.forEach((element) => {
+            if (isHovered) {
+              element.classList.add("interactive-var-hovered");
+            } else {
+              element.classList.remove("interactive-var-hovered");
+            }
+          });
+        }
+      );
+      hoverDisposers.push(disposer);
+    });
+
+    return () => {
+      hoverDisposers.forEach((dispose) => dispose());
+    };
+  }, [isInitialized]);
 
   return (
     <div

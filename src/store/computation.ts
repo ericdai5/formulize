@@ -19,7 +19,7 @@ export type EvaluationFunction = (
 
 class ComputationStore {
   @observable
-  accessor variables = new Map<string, IVariable>();
+  accessor variables = new Map<string, IVariable & { hover: boolean }>();
 
   @observable
   accessor lastGeneratedCode: string | null = null;
@@ -155,7 +155,21 @@ class ComputationStore {
 
   @action
   setEnvironment(environment: IEnvironment) {
-    this.environment = environment;
+    // Validate and normalize fontSize, setting default if not provided
+    const validatedFontSize =
+      environment.fontSize !== undefined
+        ? typeof environment.fontSize === "number" &&
+          environment.fontSize >= 0.5 &&
+          environment.fontSize <= 1
+          ? environment.fontSize
+          : 0.8
+        : 0.8; // Default fontSize when not defined
+
+    // Always set environment with validated fontSize
+    this.environment = {
+      ...environment,
+      fontSize: validatedFontSize,
+    };
   }
 
   @action
@@ -216,6 +230,14 @@ class ComputationStore {
     this.processedIndices.delete(id);
   }
 
+  @action
+  setVariableHover(id: string, hover: boolean) {
+    const variable = this.variables.get(id);
+    if (variable) {
+      variable.hover = hover;
+    }
+  }
+
   @observable
   accessor refreshCallback: (() => void) | null = null;
 
@@ -258,7 +280,11 @@ class ComputationStore {
             parentVar.set.includes(parentVar.value)
           ) {
             variable.value = parentVar.value;
-          } else if (parentVar.set.length > 0 && !variable.index && !this.isStepMode()) {
+          } else if (
+            parentVar.set.length > 0 &&
+            !variable.index &&
+            !this.isStepMode()
+          ) {
             // Only set default to first element if this variable doesn't have an index
             // AND we're not in step mode (variables should only get values during manual execution)
             variable.value =
@@ -415,7 +441,7 @@ class ComputationStore {
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
         units: variableDefinition?.units,
-        label: variableDefinition?.label,
+        name: variableDefinition?.name,
         precision: variableDefinition?.precision,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
@@ -424,9 +450,10 @@ class ComputationStore {
         set: variableDefinition?.set,
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
-        display: variableDefinition?.display,
-        labelDisplay: variableDefinition?.labelDisplay,
+        latexDisplay: variableDefinition?.latexDisplay ?? "name",
+        labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
+        hover: false,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable

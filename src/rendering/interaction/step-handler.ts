@@ -27,7 +27,7 @@ export const stepHandler = (container: HTMLElement) => {
     newElement.classList.add("step-mode");
     newElement.style.cursor = "default";
     // Add tooltip showing step mode
-    newElement.title = `${variable.label || varId} (Step Mode)`;
+    newElement.title = `${variable.name || varId} (Step Mode)`;
   });
 };
 

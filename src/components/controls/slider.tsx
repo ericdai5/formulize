@@ -64,11 +64,11 @@ const Slider = observer(({ control }: SliderProps) => {
     <div
       className={`slider-control ${isVertical ? "flex-col h-64 w-20" : "flex-col w-64"} flex items-center gap-2 p-4 bg-white border border-slate-200 rounded-2xl`}
     >
-      {variable?.label && (
+      {variable?.name && (
         <label
           className={`text-base text-center ${isVertical ? "mb-2" : "mr-2"}`}
         >
-          {variable.label}
+          {variable.name}
         </label>
       )}
 

@@ -419,7 +419,12 @@ const CanvasFlow = observer(
           processedVariables.add(cssId);
 
           const variable = computationStore.variables.get(cssId);
-          if (!variable?.label) return;
+
+          // Only create label node if there's either a label OR a value
+          const hasValue =
+            variable?.value !== undefined && variable?.value !== null;
+          const hasName = variable?.name;
+          if (!hasValue && !hasName) return;
 
           // Check if this label should be visible using the same logic as LabelNode component
           const isVariableActive = executionStore.activeVariables.has(cssId);
@@ -464,8 +469,9 @@ const CanvasFlow = observer(
           );
 
           // Add this label to existing labels for future collision detection
+          const labelText = variable?.name || cssId;
           const estimatedLabelWidth = Math.max(
-            variable.label.length * (8 / viewport.zoom),
+            labelText.length * (8 / viewport.zoom),
             40 / viewport.zoom
           );
           const estimatedLabelHeight = 24 / viewport.zoom;
@@ -1001,6 +1007,7 @@ const CanvasFlow = observer(
               id,
               value: variable.value,
               precision: variable.precision || 2,
+              hover: variable.hover,
             })
           ),
         () => {

@@ -10,7 +10,7 @@ export const gravitationalPotential = `const config = {
     U: {
       type: "dependent",
       units: "J",
-      label: "Potential Energy",
+      name: "Potential Energy",
       precision: 2
     },
     m: {
@@ -18,21 +18,21 @@ export const gravitationalPotential = `const config = {
       value: 1,
       range: [0.1, 100],
       units: "kg",
-      label: "Mass"
+      name: "Mass"
     },
     g: {
       type: "input",
       value: 9.8,
       range: [1, 20],
       units: "m/s²",
-      label: "Gravity"
+      name: "Gravity"
     },
     h: {
       type: "input",
       value: 10,
       range: [0, 1000],
       units: "m",
-      label: "Height"
+      name: "Height"
     }
   },
   computation: {
@@ -59,6 +59,4 @@ export const gravitationalPotential = `const config = {
       ]
     }
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;

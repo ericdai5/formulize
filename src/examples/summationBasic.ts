@@ -11,9 +11,9 @@ export const summationBasic = `const config = {
           var xi = xValues[i];
           var probability = pxValues[i];
           var currExpected = xi * probability;
-          // @view "x P(x)"->"The expected value for x should be:"
+          // @view "x P(x)"->"The expected value for x should be:"->"currExpected"
           expectedValue += currExpected;
-          // @view "E"->"Expected value E is updated"
+          // @view "E"->"Expected value E is updated"->"expectedValue"
         }
         return expectedValue;
       },
@@ -29,16 +29,16 @@ export const summationBasic = `const config = {
     E: {
       type: "dependent",
       precision: 2,
-      label: "Expected Value",
-      display: "name",
+      name: "Expected Value",
+      latexDisplay: "name",
       labelDisplay: "value",
     },
     x: {
       type: "input",
       memberOf: "X",
       precision: 0,
-      label: "x: member of X",
-      display: "name",
+      name: "x: member of X",
+      latexDisplay: "name",
       labelDisplay: "value",
     },
     X: {
@@ -51,15 +51,15 @@ export const summationBasic = `const config = {
       key: "x",
       set: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
       precision: 2,
-      label: "Probability of x",
-      display: "name",
+      name: "Probability of x",
+      latexDisplay: "name",
       labelDisplay: "value",
     },
     c: {
       type: "dependent",
       precision: 2,
-      label: "Current Expected Value",
-      display: "name",
+      name: "Current Expected Value",
+      latexDisplay: "name",
       labelDisplay: "value",
     }
   },
@@ -68,7 +68,4 @@ export const summationBasic = `const config = {
     mode: "step"
   },
   fontSize: 0.7
-};
-
-const formula = await Formulize.create(config);
-`;
+};`;

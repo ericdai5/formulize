@@ -47,7 +47,7 @@ export function formatVariableValue(
  */
 export function getVariableLabel(variableName: string): string {
   const variable = getVariable(variableName);
-  return variable?.label || variableName;
+  return variable?.name || variableName;
 }
 
 /**

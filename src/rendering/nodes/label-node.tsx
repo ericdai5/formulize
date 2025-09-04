@@ -13,7 +13,7 @@ export interface LabelNodeData {
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId } = data;
   const variable = computationStore.variables.get(varId);
-  const label = variable?.label;
+  const name = variable?.name;
 
   // Only show labels for variables that have been changed during manual execution
   const isVariableActive = executionStore.activeVariables.has(varId);
@@ -54,9 +54,45 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     ? `${mainDisplayText}, ${indexDisplay}`
     : mainDisplayText;
 
+  // Determine interactive variable styling based on variable type and context
+  const getInteractiveClass = () => {
+    if (computationStore.isStepMode()) {
+      return "step-cue"; // Step mode styling
+    }
+
+    if (variable?.type === "dependent") {
+      return "interactive-var-dependent";
+    }
+
+    if (variable?.type === "input") {
+      if (variable?.set && variable.set.length > 0) {
+        return "interactive-var-dropdown";
+      } else {
+        return "interactive-var-slidable";
+      }
+    }
+
+    return "interactive-var-base";
+  };
+
+  const interactiveClass = getInteractiveClass();
+
+  // Add hover class if variable is being hovered
+  const finalInteractiveClass = variable?.hover
+    ? `${interactiveClass} interactive-var-hovered`
+    : interactiveClass;
+
+  const handleMouseEnter = () => {
+    computationStore.setVariableHover(varId, true);
+  };
+
+  const handleMouseLeave = () => {
+    computationStore.setVariableHover(varId, false);
+  };
+
   return (
     <div
-      className="label-flow-node text-base text-slate-700 hover:scale-105 transition-all duration-100"
+      className="label-flow-node text-base text-slate-700"
       style={{
         pointerEvents: "auto",
         width: "auto",
@@ -64,15 +100,17 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         position: "relative",
         cursor: "grab",
       }}
-      title={`Variable: ${varId}${label ? ` (${label})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
+      title={`Variable: ${varId}${name ? ` (${name})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <div className="bg-white rounded-lg px-1.5 py-1.5 border border-slate-200">
-        <div className="flex flex-col items-center gap-1 text-blue-500">
-          <div style={{ fontSize: "0.3rem" }}>
+      <div className={`bg-white rounded-xl p-3 border border-slate-200}`}>
+        <div className="flex flex-col items-center gap-1">
+          <div className={finalInteractiveClass}>
             <LatexLabel latex={displayLatex} />
           </div>
-          {label && variable?.labelDisplay !== "value" && (
-            <div className="text-xs text-slate-500 text-center">{label}</div>
+          {name && (
+            <div className="text-xs text-slate-500 text-center">{name}</div>
           )}
         </div>
       </div>

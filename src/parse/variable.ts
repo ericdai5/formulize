@@ -228,7 +228,7 @@ export const processVariables = (
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           // Use the variable's display property if defined, otherwise default to "both"
-          display = variable.display ?? "both";
+          display = variable.latexDisplay ?? "both";
           // Get the index variable from the computation store
           indexVariable = variable.index || "";
           break;
@@ -255,6 +255,8 @@ export const processVariables = (
           ? "interactive-var-dropdown"
           : "interactive-var-slidable";
       }
+
+      // Hover class is managed via MobX reactions to avoid full LaTeX re-renders
 
       // Wrap the processed body with CSS classes using the variable's specific precision
       // Show name, value, or both based on display property

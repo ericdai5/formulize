@@ -11,7 +11,7 @@ export interface IVariable {
   dataType?: "scalar" | "vector" | "matrix";
   dimensions?: number[];
   units?: string;
-  label?: string;
+  name?: string;
   precision?: number;
   description?: string;
   range?: [number, number];
@@ -20,7 +20,7 @@ export interface IVariable {
   set?: (string | number)[];
   key?: string;
   memberOf?: string;
-  display?: "name" | "value" | "both";
+  latexDisplay?: "name" | "value" | "both";
   labelDisplay?: "name" | "value";
   index?: string;
 }

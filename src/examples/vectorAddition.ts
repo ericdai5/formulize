@@ -2,8 +2,8 @@ export const vectorAddition = `const config = {
   formulas: [
     {
       name: "Vector Addition",
-      function: "{k_1} \\\\begin{bmatrix} {ax} \\\\\\\\ {ay} \\\\end{bmatrix} + {k_2} \\\\begin{bmatrix} {bx} \\\\\\\\ {by} \\\\end{bmatrix} = \\\\begin{bmatrix} {cx} \\\\\\\\ {cy} \\\\end{bmatrix}",
-      expression: "[{cx}, {cy}] = {k_1} * [{ax}, {ay}] + {k_2} * [{bx}, {by}]"
+      function: "{k_1} \\\\begin{bmatrix} {a_x} \\\\\\\\ {a_y} \\\\end{bmatrix} + {k_2} \\\\begin{bmatrix} {b_x} \\\\\\\\ {b_y} \\\\end{bmatrix} = \\\\begin{bmatrix} {c_x} \\\\\\\\ {c_y} \\\\end{bmatrix}",
+      expression: "[{c_x}, {c_y}] = {k_1} * [{a_x}, {a_y}] + {k_2} * [{b_x}, {b_y}]"
     }
   ],
   variables: {
@@ -21,47 +21,53 @@ export const vectorAddition = `const config = {
       step: 0.1,
       precision: 1
     },
-    ax: {
+    a_x: {
       type: "input",
       value: 2,
       range: [-10, 10],
       step: 0.5,
       precision: 1,
-      display: "value"
+      latexDisplay: "value",
+      labelDisplay: "name"
     },
-    ay: {
+    a_y: {
       type: "input", 
       value: 2,
       range: [-10, 10],
       step: 0.5,
       precision: 1,
-      display: "value"
+      latexDisplay: "value",
+      labelDisplay: "name"
     },
-    bx: {
+    b_x: {
       type: "input",
       value: -1,
       range: [-10, 10], 
       step: 0.5,
       precision: 1,
-      display: "value"
+      latexDisplay: "value",
+      labelDisplay: "name"
     },
-    by: {
+    b_y: {
       type: "input",
       value: -1,
       range: [-10, 10],
       step: 0.5,
       precision: 1,
-      display: "value"
+      latexDisplay: "value",
+      labelDisplay: "name"
     },
-    cx: {
+    c_x: {
       type: "dependent",
       precision: 1,
-      display: "value"
+      latexDisplay: "value",
+      labelDisplay: "name"
     },
-    cy: {
+    c_y: {
       type: "dependent",
       precision: 1,
-      display: "value"
+      latexDisplay: "value",
+      labelDisplay: "name"
     },
   },
   computation: {
@@ -81,8 +87,8 @@ export const vectorAddition = `const config = {
       vectors: [
         {
           shape: "arrow",
-          x: [0, "ax"],
-          y: [0, "ay"],
+          x: [0, "a_x"],
+          y: [0, "a_y"],
           name: "Vector A",
           color: "blue",
           lineWidth: 2,
@@ -90,8 +96,8 @@ export const vectorAddition = `const config = {
         },
         {
           shape: "arrow",
-          x: [0, "bx"],
-          y: [0, "by"],
+          x: [0, "b_x"],
+          y: [0, "b_y"],
           name: "Vector B",
           color: "green",
           lineWidth: 2,
@@ -99,8 +105,8 @@ export const vectorAddition = `const config = {
         },
         {
           shape: "point",
-          x: ["cx"],
-          y: ["cy"],
+          x: ["c_x"],
+          y: ["c_y"],
           name: "Tip of Vector C",
           color: "red",
           markerSize: 5,
@@ -109,6 +115,4 @@ export const vectorAddition = `const config = {
       ]
     }
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;

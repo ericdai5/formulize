@@ -10,7 +10,7 @@ export const kinetic3D = `const config = {
     K: {
       type: "dependent",
       units: "J",
-      label: "Kinetic Energy",
+      name: "Kinetic Energy",
       precision: 2
     },
     m: {
@@ -18,14 +18,14 @@ export const kinetic3D = `const config = {
       value: 2,
       range: [0.5, 5],
       units: "kg",
-      label: "Mass"
+      name: "Mass"
     },
     v: {
       type: "input",
       value: 3,
       range: [0.5, 10],
       units: "m/s",
-      label: "Velocity"
+      name: "Velocity"
     }
   },
   computation: {
@@ -56,6 +56,4 @@ export const kinetic3D = `const config = {
       ]
     },
   ]
-};
-
-const formula = await Formulize.create(config);`;
+};`;

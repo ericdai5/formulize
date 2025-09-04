@@ -24,6 +24,14 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     hasDropdownOptions,
   });
 
+  const handleMouseEnter = () => {
+    computationStore.setVariableHover(varId, true);
+  };
+
+  const handleMouseLeave = () => {
+    computationStore.setVariableHover(varId, false);
+  };
+
   return (
     <div
       ref={nodeRef}
@@ -36,6 +44,8 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
         width: width ? `${width}px` : "auto",
         height: height ? `${height}px` : "auto",
       }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Handle for incoming edges from label nodes positioned above - hidden */}
       <Handle

@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import FormulaCodeEditor from "../components/api-code-editor.tsx";
 import Toolbar from "../components/debug-toolbar.tsx";
 import EvaluationFunctionPane from "../components/evaluation-function";
 import { FormulaTreePane } from "../components/formula-tree-pane.tsx";
@@ -10,29 +9,21 @@ import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
 import StorePane from "../components/variable-overview.tsx";
 import { VariableTreesPane } from "../components/variable-tree-pane.tsx";
-import { examples as formulaExamples } from "../examples/index.ts";
-import { kinetic2D } from "../examples/kinetic2D";
 import { Formulize, FormulizeConfig } from "../index.ts";
 import { computationStore } from "../store/computation";
 import Canvas from "./canvas.tsx";
 
 interface FormulizeProps {
   formulizeConfig?: FormulizeConfig;
-  onConfigChange?: (config: FormulizeConfig) => void;
-  selectedTemplate?: keyof typeof formulaExamples;
+  onRenderError?: (error: string | null) => void;
 }
 
 const FormulaCanvas = observer(
-  ({ formulizeConfig, onConfigChange, selectedTemplate }: FormulizeProps) => {
-    // Use formulizeConfig if provided, otherwise fall back to null
-    const initialConfig = formulizeConfig || null;
-
-    const [formulizeInput, setFormulizeInput] = useState<string>(kinetic2D);
-    const [isRendered, setIsRendered] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+  ({ formulizeConfig, onRenderError }: FormulizeProps) => {
     const [currentConfig, setCurrentConfig] = useState<FormulizeConfig | null>(
-      initialConfig
+      formulizeConfig || null
     );
+    const [error, setError] = useState<string | null>(null);
     const [showStoreModal, setShowStoreModal] = useState<boolean>(false);
     const [showEvaluationModal, setShowEvaluationModal] =
       useState<boolean>(false);
@@ -44,247 +35,50 @@ const FormulaCanvas = observer(
       useState<boolean>(false);
     const [configKey, setConfigKey] = useState<number>(0);
     const containerRef = useRef<HTMLDivElement>(null);
-    const onConfigChangeRef = useRef(onConfigChange);
 
-    // Update the ref when the prop changes
+    // Update config when formulizeConfig prop changes
     useEffect(() => {
-      onConfigChangeRef.current = onConfigChange;
-    }, [onConfigChange]);
-
-    // Execute user-provided JavaScript code to get configuration
-    // Uses a sandboxed iframe for secure code execution, preventing access to the main page context
-    // The iframe has restricted permissions (only allow-scripts) and communicates via postMessage
-    // This approach is much safer than using new Function() or eval() for executing user code
-    const executeUserCode = useCallback(
-      async (jsCode: string): Promise<FormulizeConfig | null> => {
-        // Function to deserialize config from iframe (handles function strings)
-        const deserializeConfig = (
-          config: Record<string, unknown>
-        ): FormulizeConfig => {
-          return JSON.parse(JSON.stringify(config), (key, value) => {
-            if (value && typeof value === "object" && value.__isFunction) {
-              try {
-                // Reconstruct function from string
-                return new Function("return " + value.__functionString)();
-              } catch (e) {
-                console.warn("Failed to deserialize function for key:", key, e);
-                return value.__functionString; // fallback to string
-              }
-            }
-            return value;
-          });
-        };
-
-        return new Promise((resolve, reject) => {
-          // Create sandboxed iframe for secure code execution
-          // The sandbox attribute restricts what the iframe can do:
-          // - allow-scripts: permits script execution within the iframe
-          // - No allow-same-origin: prevents access to parent document's DOM/storage
-          const iframe = document.createElement("iframe");
-          iframe.setAttribute("sandbox", "allow-scripts"); // No allow-same-origin for security
-          iframe.style.display = "none";
-
-          // Set up message handler for communication between iframe and parent
-          // This is the secure way to get results back from the sandboxed code
-          const handleMessage = (event: MessageEvent) => {
-            // Verify the message is from our iframe
-            if (event.source !== iframe.contentWindow) {
-              return;
-            }
-
-            // Clean up event listener and remove iframe
-            window.removeEventListener("message", handleMessage);
-            document.body.removeChild(iframe);
-
-            // Handle the response from the iframe
-            if (event.data.error) {
-              console.error("Error from iframe:", event.data.error);
-              reject(new Error(event.data.error));
-            } else {
-              // Deserialize the config to restore functions
-              const config = deserializeConfig(event.data.config);
-
-              if (!config) {
-                reject(
-                  new Error(
-                    "No configuration was captured. Make sure your code calls Formulize.create(config)"
-                  )
-                );
-                return;
-              }
-
-              if (
-                !config.formulas ||
-                !config.variables ||
-                !config.computation
-              ) {
-                reject(
-                  new Error(
-                    "Invalid configuration returned. Configuration must include formulas, variables, and computation properties."
-                  )
-                );
-                return;
-              }
-
-              resolve(config);
-            }
-          };
-
-          window.addEventListener("message", handleMessage);
-
-          // Create iframe content with user code embedded
-          // The iframe contains a complete HTML document with the user's code
-          // and a mock Formulize API that captures the configuration
-          iframe.srcdoc = `
-          <script>
-            // Add global context for variables the code might use first
-            const console = window.console;
-            const Math = window.Math;
-            
-            // Function to serialize config for postMessage (handles functions)
-            const serializeConfig = (config) => {
-              return JSON.parse(JSON.stringify(config, (key, value) => {
-                if (typeof value === 'function') {
-                  return {
-                    __isFunction: true,
-                    __functionString: value.toString()
-                  };
-                }
-                return value;
-              }));
-            };
-            
-            // Mock the Formulize API calls so we can capture the config
-            // This provides the same interface as the real Formulize API
-            // but just captures the configuration instead of actually creating formulas
-            let capturedConfig = null;
-            
-            const Formulize = {
-              create: async function(config) {
-                capturedConfig = config;
-                
-                // Return a mock instance that matches the expected interface
-                return {
-                  formula: config,
-                  getVariable: () => ({}),
-                  setVariable: () => true,
-                  update: async () => {},
-                  destroy: () => {}
-                };
-              }
-            };
-            
-            // Wrap user code in async IIFE to handle await statements
-            (async () => {
-              try {
-                // Execute the user's code in the sandboxed environment
-                ${jsCode}
-                
-                // Serialize the config to handle functions before sending
-                const serializedConfig = serializeConfig(capturedConfig);
-                
-                // Send the captured configuration back to the parent
-                parent.postMessage({ config: serializedConfig }, '*');
-              } catch (error) {
-                console.error('Error in user code execution:', error);
-                // Send any errors back to the parent for handling
-                parent.postMessage({ error: error.message }, '*');
-              }
-            })();
-          </script>
-        `;
-
-          // Add iframe to document to start execution
-          document.body.appendChild(iframe);
-
-          // Set a timeout to prevent hanging if the iframe doesn't respond
-          setTimeout(() => {
-            window.removeEventListener("message", handleMessage);
-            if (document.body.contains(iframe)) {
-              document.body.removeChild(iframe);
-            }
-            reject(
-              new Error(
-                "Code execution timeout - check your code for infinite loops or blocking operations"
-              )
-            );
-          }, 5000); // 5 second timeout
-        });
-      },
-      []
-    );
-
-    const renderFormula = useCallback(
-      async (inputOverride?: string) => {
-        try {
-          setError(null);
-          const inputToUse = inputOverride ?? formulizeInput;
-          const userConfig = await executeUserCode(inputToUse);
-          if (
-            !userConfig ||
-            !userConfig.formulas ||
-            !userConfig.variables ||
-            !userConfig.computation
-          ) {
-            throw new Error(
-              "Invalid configuration. Please check your code and try again."
-            );
-          }
-
-          // Ensure config has all required properties
-          const configToUse = { ...userConfig };
-          if (!configToUse.variables) {
-            configToUse.variables = {};
-          }
-          if (!configToUse.computation) {
-            configToUse.computation = {
-              engine: "symbolic-algebra",
-            };
-          }
-
-          try {
-            // Clear the current config to force full re-render
-            // Then create the new formula instance
-            setCurrentConfig(null);
-            await Formulize.create(configToUse);
-
-            // Set the new config - this should trigger Canvas update
-            setCurrentConfig({ ...configToUse });
-            setConfigKey((prev) => prev + 1); // Force Canvas re-render
-
-            // Force update by creating a new object reference
-            if (onConfigChangeRef.current) {
-              onConfigChangeRef.current({ ...configToUse });
-            }
-          } catch (e) {
-            console.error("Formula creation error:", e);
-            setError(
-              `Failed to create formula: ${e instanceof Error ? e.message : String(e)}`
-            );
-          }
-        } catch (err) {
-          console.error("Render error:", err);
-          setError(
-            `Error: ${err instanceof Error ? err.message : String(err)}`
-          );
-        }
-      },
-      [executeUserCode, formulizeInput]
-    );
-
-    // Initial render when component mounts
-    useEffect(() => {
-      renderFormula();
-    }, [renderFormula]);
-
-    // Update formulize input when selectedTemplate changes
-    useEffect(() => {
-      if (selectedTemplate && formulaExamples[selectedTemplate]) {
-        const newFormula = formulaExamples[selectedTemplate];
-        setFormulizeInput(newFormula);
-        renderFormula(newFormula);
+      if (formulizeConfig) {
+        setCurrentConfig(formulizeConfig);
+        setConfigKey(prev => prev + 1);
+      } else {
+        setCurrentConfig(null);
       }
-    }, [selectedTemplate]);
+    }, [formulizeConfig]);
+
+    // Create formula when config is available
+    useEffect(() => {
+      if (currentConfig) {
+        const createFormula = async () => {
+          try {
+            setError(null);
+            
+            // Update computation engine if specified
+            if (currentConfig.computation?.engine) {
+              computationStore.computationEngine = currentConfig.computation.engine;
+            }
+            
+            // Create the formula with the config
+            await Formulize.create(currentConfig);
+          } catch (error) {
+            console.error("Error creating formula:", error);
+            const errorMessage = `Failed to create formula: ${error instanceof Error ? error.message : String(error)}`;
+            setError(errorMessage);
+          }
+        };
+        
+        createFormula();
+      } else {
+        setError(null);
+      }
+    }, [currentConfig]);
+
+    // Notify parent of error changes
+    useEffect(() => {
+      if (onRenderError) {
+        onRenderError(error);
+      }
+    }, [error, onRenderError]);
 
     // Close debug modal when step mode is no longer available
     const isStepMode = computationStore.isStepMode();
@@ -306,7 +100,6 @@ const FormulaCanvas = observer(
       <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
         <div className="flex flex-col w-full h-full relative">
           <Toolbar
-            onToggleRender={() => setIsRendered(!isRendered)}
             onOpenEvaluationModal={handleOpenEvaluationModal}
             onShowElementPane={() => setShowElementPane(true)}
             onShowVariableTreePane={() => setShowVariableTreePane(true)}
@@ -329,18 +122,6 @@ const FormulaCanvas = observer(
                 showVariableBorders={showVariableBorders}
               />
             </div>
-          </div>
-          <div
-            className={`absolute top-16 bottom-4 left-0 w-1/3 transition-transform duration-300 ease-in-out z-20 ${
-              isRendered ? "-translate-x-full" : "translate-x-4"
-            }`}
-          >
-            <FormulaCodeEditor
-              formulizeInput={formulizeInput}
-              onInputChange={setFormulizeInput}
-              onRender={renderFormula}
-              error={error}
-            />
           </div>
         </div>
         {/* Element Pane Modal */}

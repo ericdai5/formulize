@@ -1,5 +1,4 @@
 import {
-  Code,
   Footprints,
   ListTree,
   SquareDashed,
@@ -11,7 +10,6 @@ import {
 import IconButton from "./icon-button";
 
 interface ToolbarProps {
-  onToggleRender: () => void;
   onOpenEvaluationModal?: () => void;
   onShowElementPane: () => void;
   onShowVariableTreePane: () => void;
@@ -22,7 +20,6 @@ interface ToolbarProps {
 }
 
 const Toolbar = ({
-  onToggleRender,
   onOpenEvaluationModal,
   onShowElementPane,
   onShowVariableTreePane,
@@ -33,7 +30,6 @@ const Toolbar = ({
 }: ToolbarProps) => {
   return (
     <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
-      <IconButton icon={Code} alt="Edit" onClick={onToggleRender} />
       {onOpenEvaluationModal && (
         <IconButton
           icon={SquareFunction}
