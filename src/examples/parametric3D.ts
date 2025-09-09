@@ -1,27 +1,27 @@
 export const parametric3D = `const config = {
   formulas: [
     {
-      name: "x and t",
+      formulaId: "x-and-t",
       function: "x = t",
       expression: "{x} = {t}"
     },
     {
-      name: "y and t",
+      formulaId: "y-and-t",
       function: "y = 1 - 2t",
       expression: "{y} = 1 - 2 * {t}"
     },
     {
-      name: "z and t",
+      formulaId: "z-and-t",
       function: "z = t",
       expression: "{z} = {t}"
     },
     {
-      name: "x + y + z = 1",
+      formulaId: "x-plus-y-plus-z-equals-1",
       function: "1 = x + y + z",
       expression: "{x} + {y} + {z} = 1"
     },
     {
-      name: "x and z",
+      formulaId: "x-and-z",
       function: "x - z = 0",
       expression: "{x} - {z} = 0"
     }
@@ -58,6 +58,7 @@ export const parametric3D = `const config = {
     {
       type: "plot3d",
       id: "parametricPlane3D",
+      formulaId: "x-plus-y-plus-z-equals-1",
       title: "3D Parametric Surfaces",
       xVar: "x",
       xRange: [-10, 10],
@@ -72,14 +73,14 @@ export const parametric3D = `const config = {
       showCurrentPointInLegend: true,
       surfaces: [
         {
-          formulaName: "x + y + z = 1",
+          formulaId: "x-plus-y-plus-z-equals-1",
           color: "purple",
           opacity: 0.3,
           showInLegend: true,
           showColorbar: false
         },
         {
-          formulaName: "x and z",
+          formulaId: "x-and-z",
           color: "green",
           opacity: 0.3,
           showInLegend: true,
@@ -90,8 +91,8 @@ export const parametric3D = `const config = {
         {
           name: "Intersection Line",
           surfaceIntersection: {
-            surface1: "x + y + z = 1",
-            surface2: "x and z"
+            surface1: "x-plus-y-plus-z-equals-1",
+            surface2: "x-and-z"
           },
           color: "yellow",
           width: 4,

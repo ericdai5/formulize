@@ -20,6 +20,7 @@ export interface ILine {
 export interface IPlot2D {
   type: "plot2d";
   id?: string;
+  formulaId?: string; // Links this visualization to a specific formula
   title?: string;
   xVar?: string;
   xRange?: [number, number];
