@@ -69,6 +69,7 @@ async function create(
       computation: config.computation,
       visualizations: config.visualizations,
       controls: config.controls,
+      fontSize: config.fontSize,
     };
 
     // Reset all state to ensure we start fresh

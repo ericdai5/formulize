@@ -227,8 +227,8 @@ export const processVariables = (
           hasDropdownOptions = !!(variable.set || variable.options);
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
-          // Use the variable's display property if defined, otherwise default to "both"
-          display = variable.latexDisplay ?? "both";
+          // Use the variable's display property if defined, otherwise default to "name"
+          display = variable.latexDisplay ?? "name";
           // Get the index variable from the computation store
           indexVariable = variable.index || "";
           break;

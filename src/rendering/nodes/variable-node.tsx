@@ -43,6 +43,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
         pointerEvents: "auto",
         width: width ? `${width}px` : "auto",
         height: height ? `${height}px` : "auto",
+        cursor: "ns-resize",
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

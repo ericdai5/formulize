@@ -20,8 +20,8 @@ export interface IVariable {
   set?: (string | number)[];
   key?: string;
   memberOf?: string;
-  latexDisplay?: "name" | "value" | "both";
-  labelDisplay?: "name" | "value";
+  latexDisplay?: "name" | "value";
+  labelDisplay?: "name" | "value" | "none";
   index?: string;
 }
 
