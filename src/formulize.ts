@@ -116,7 +116,7 @@ async function create(
 
     // Extract computation expressions from individual formulas
     const symbolicFunctions = environment.formulas
-      .filter((f) => f.expression && f.name)
+      .filter((f) => f.expression && f.formulaId)
       .map((f) => f.expression!);
 
     // Extract manual functions from individual formulas
@@ -217,9 +217,9 @@ async function create(
         formulaStoreManager.clearAllStores();
       },
       // Formula expression access
-      getFormulaExpression: (name: string) => {
+      getFormulaExpression: (formulaId: string) => {
         if (environment.formulas) {
-          const formula = environment.formulas.find((f) => f.name === name);
+          const formula = environment.formulas.find((f) => f.formulaId === formulaId);
           if (formula) {
             return formula.expression ?? null;
           }
@@ -267,10 +267,10 @@ const Formulize = {
 
   getFormulaExpression: (
     environment: IEnvironment,
-    name: string
+    formulaId: string
   ): string | null => {
     if (environment.formulas) {
-      const formula = environment.formulas.find((f) => f.name === name);
+      const formula = environment.formulas.find((f) => f.formulaId === formulaId);
       if (formula) {
         return formula.expression ?? null;
       }

@@ -1,7 +1,7 @@
 export const quadratic3D = `const config = {
   formulas: [
     {
-      name: "Quadratic Equation",
+      formulaId: "quadratic-equation-3d",
       function: "y = ax^2 + bx + c",
       expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
     }
@@ -49,6 +49,7 @@ export const quadratic3D = `const config = {
     {
       type: "plot3d",
       id: "quadratic3DSurface",
+      formulaId: "quadratic-equation-3d",
       title: "3D Quadratic Surface: y = ax² + bx + c",
       xVar: "x",
       xRange: [-5, 5],
@@ -61,7 +62,7 @@ export const quadratic3D = `const config = {
       height: 600,
       surfaces: [
         {
-          formulaName: "Quadratic Equation",
+          formulaId: "quadratic-equation-3d",
           color: "Viridis",
           opacity: 0.7,
           showInLegend: true

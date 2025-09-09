@@ -1,7 +1,7 @@
 export const kinetic2D = `const config = {
   formulas: [
     {
-      name: "Kinetic Energy Formula",
+      formulaId: "kinetic-energy",
       function: "K = \\\\frac{1}{2}mv^2",
       expression: "{K} = 0.5 * {m} * {v} * {v}",
       manual: function(variables) {
@@ -41,6 +41,7 @@ export const kinetic2D = `const config = {
   visualizations: [
     {
       type: "plot2d",
+      formulaId: "kinetic-energy",
       xVar: "v",
       yVar: "K",
       lines: [

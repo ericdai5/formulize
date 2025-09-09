@@ -1,7 +1,7 @@
 export const quadratic2D = `const config = {
   formulas: [
     {
-      name: "Quadratic Equation",
+      formulaId: "quadratic-equation",
       function: "y = ax^2 + bx + c",
       expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
     }
@@ -49,6 +49,7 @@ export const quadratic2D = `const config = {
     {
       type: "plot2d",
       id: "quadraticPlot",
+      formulaId: "quadratic-equation",
       title: "Quadratic Function",
       xVar: "x",
       xRange: [-5, 5],
