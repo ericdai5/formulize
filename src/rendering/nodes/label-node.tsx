@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Handle, Position } from "@xyflow/react";
 
 import LatexLabel from "../../components/latex";
+import { useVariableDrag } from "../../rendering/useVariableDrag";
 import { computationStore } from "../../store/computation";
 import { executionStore } from "../../store/execution";
 
@@ -14,6 +15,14 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId } = data;
   const variable = computationStore.variables.get(varId);
   const name = variable?.name;
+  const type = variable?.type === "input" ? "input" : "output";
+  const hasDropdownOptions = !!(variable?.set || variable?.options);
+
+  const valueDragRef = useVariableDrag({
+    varId,
+    type,
+    hasDropdownOptions,
+  });
 
   // Only show labels for variables that have been changed during manual execution
   const isVariableActive = executionStore.activeVariables.has(varId);
@@ -106,7 +115,11 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     >
       <div className={`bg-white rounded-xl p-3 border border-slate-200}`}>
         <div className="flex flex-col items-center gap-1">
-          <div className={finalInteractiveClass}>
+          <div
+            ref={valueDragRef}
+            className={`${finalInteractiveClass}`}
+            style={{ cursor: "ns-resize" }}
+          >
             <LatexLabel latex={displayLatex} />
           </div>
           {name && (
