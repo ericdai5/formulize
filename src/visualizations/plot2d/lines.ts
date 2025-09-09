@@ -14,8 +14,8 @@ export interface DataPoint {
  * Function to calculate data points for a specific line
  */
 function calculateLineDataPoints(
-  xVar: string,
-  yVar: string,
+  xAxisVar: string,
+  yAxisVar: string,
   xMin: number,
   xMax: number,
   yMin: number,
@@ -39,9 +39,9 @@ function calculateLineDataPoints(
   for (let i = 0; i <= 100; i++) {
     const x = xMin + i * step;
     try {
-      const vars = { ...allVariables, [xVar]: x };
+      const vars = { ...allVariables, [xAxisVar]: x };
       const result = evalFunction(vars);
-      const y = result[yVar];
+      const y = result[yAxisVar];
       if (typeof y === "number" && isFinite(y) && y >= yMin && y <= yMax) {
         points.push({ x, y });
       }
@@ -60,8 +60,8 @@ export function renderLines(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   tooltipRef: React.RefObject<HTMLDivElement>,
   lines: ILine[],
-  xVar: string,
-  yVar: string,
+  xAxisVar: string,
+  yAxisVar: string,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
   xRange: [number, number],
@@ -91,7 +91,7 @@ export function renderLines(
   ];
 
   lines.forEach((lineConfig, index) => {
-    const points = calculateLineDataPoints(xVar, yVar, xMin, xMax, yMin, yMax);
+    const points = calculateLineDataPoints(xAxisVar, yAxisVar, xMin, xMax, yMin, yMax);
 
     if (points.length > 0) {
       const color = lineConfig.color || colors[index % colors.length];
@@ -107,8 +107,8 @@ export function renderLines(
         .attr("d", lineGenerator);
 
       // Add current point highlight for each line
-      const currentX = getVariableValue(xVar);
-      const currentY = getVariableValue(yVar);
+      const currentX = getVariableValue(xAxisVar);
+      const currentY = getVariableValue(yAxisVar);
       const currentPointData = {
         x:
           typeof currentX === "number"
@@ -127,8 +127,8 @@ export function renderLines(
         yScale,
         [xMin, xMax],
         [yMin, yMax],
-        xVar,
-        yVar
+        xAxisVar,
+        yAxisVar
       );
 
       // Add interactions for the first line (to avoid conflicts)
@@ -141,8 +141,8 @@ export function renderLines(
           yScale,
           plotWidth,
           plotHeight,
-          xVar,
-          yVar,
+          xAxisVar,
+          yAxisVar,
           onDragEnd
         );
       }

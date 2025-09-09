@@ -34,7 +34,7 @@ export const stepHandler = (container: HTMLElement) => {
 /**
  * Function to update variables using view variable values from interpreter.tsx
  * @param viewVariables - The view variables already extracted by interpreter.tsx
- * @param pairs - The pairs from view() call: [localVarName, linkedVarId, indexVar?]
+ * @param pairs - The pairs from view() call: [localVarName, linkedVarId, indexAxisVar?]
  * @returns Set of variable IDs that were updated
  */
 export const updateVariables = (

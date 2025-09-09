@@ -161,8 +161,8 @@ export function canSolveForVariable(
  * @param surface1Formula First surface formula
  * @param surface2Formula Second surface formula
  * @param variables Object containing known variable values
- * @param xVar X-axis variable name
- * @param yVar Y-axis variable name
+ * @param xAxisVar X-axis variable name
+ * @param yAxisVar Y-axis variable name
  * @param zVar Z-axis variable name
  * @param parameterValue Value of the parameter for the intersection line
  * @returns Object with x, y, z coordinates of the intersection point, or null if intersection cannot be computed
@@ -171,8 +171,8 @@ export function computeSurfaceIntersection(
   surface1Formula: string,
   surface2Formula: string,
   variables: Record<string, number>,
-  xVar: string,
-  yVar: string,
+  xAxisVar: string,
+  yAxisVar: string,
   zVar: string,
   parameterValue: number
 ): { x: number; y: number; z: number } | null {
@@ -192,8 +192,8 @@ export function computeSurfaceIntersection(
       formula1,
       formula2,
       baseVars,
-      xVar,
-      yVar
+      xAxisVar,
+      yAxisVar
     );
 
     if (result) {
@@ -206,13 +206,13 @@ export function computeSurfaceIntersection(
 
     // If z-parameter didn't work, try x as parameter
     delete baseVars[zVar];
-    baseVars[xVar] = parameterValue;
+    baseVars[xAxisVar] = parameterValue;
 
     const resultX = solveTwoEquationSystem(
       formula1,
       formula2,
       baseVars,
-      yVar,
+      yAxisVar,
       zVar
     );
     if (resultX) {
@@ -224,14 +224,14 @@ export function computeSurfaceIntersection(
     }
 
     // If x-parameter didn't work, try y as parameter
-    delete baseVars[xVar];
-    baseVars[yVar] = parameterValue;
+    delete baseVars[xAxisVar];
+    baseVars[yAxisVar] = parameterValue;
 
     const resultY = solveTwoEquationSystem(
       formula1,
       formula2,
       baseVars,
-      xVar,
+      xAxisVar,
       zVar
     );
     if (resultY) {
