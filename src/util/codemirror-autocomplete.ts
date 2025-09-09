@@ -253,7 +253,7 @@ function getCompletionContext(context: CompletionContext): string {
 export function editorCompletions(
   context: CompletionContext
 ): CompletionResult | null {
-  const word = context.matchBefore(/\w*/);
+  const word = context.matchBefore(/"?[\w-]*/);
 
   if (!word || (word.from === word.to && !context.explicit)) {
     return null;
@@ -314,7 +314,7 @@ export function editorCompletions(
   return {
     from: word.from,
     options,
-    validFor: /^\w*$/,
+    validFor: /^"?[\w-]*$/,
   };
 }
 
@@ -324,7 +324,7 @@ export function editorCompletions(
 export function jsPatternCompletions(
   context: CompletionContext
 ): CompletionResult | null {
-  const word = context.matchBefore(/\w*/);
+  const word = context.matchBefore(/"?[\w-]*/);
 
   if (!word || (word.from === word.to && !context.explicit)) {
     return null;
@@ -360,6 +360,6 @@ export function jsPatternCompletions(
   return {
     from: word.from,
     options: commonPatterns,
-    validFor: /^I\w*$/,
+    validFor: /^"?I[\w-]*$/,
   };
 }

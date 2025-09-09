@@ -22,7 +22,7 @@ const Editor = ({ code, onChange, onRender, error }: Editor) => {
           value={code}
           onChange={handleCodeMirrorChange}
           onBlur={() => onRender()}
-          extensions={[javascript(), createAutocompletion()]}
+          extensions={[javascript(), ...createAutocompletion()]}
           theme="light"
           style={{
             fontSize: "14px",
