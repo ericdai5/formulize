@@ -99,7 +99,7 @@ async function create(
 
     // Now create individual formula stores for each formula
     // With variable trees available
-    const formulaLatex = environment.formulas.map((f) => f.function);
+    const formulaLatex = environment.formulas.map((f) => f.latex);
     const formulaStores: FormulaStore[] = [];
 
     formulaLatex.forEach((formulaLatex, index) => {
@@ -128,7 +128,7 @@ async function create(
 
     // Store the display formulas for rendering and the computation expressions for evaluation
     computationStore.setDisplayedFormulas(
-      formulaObjects.map((f) => f.function)
+      formulaObjects.map((f) => f.latex)
     );
 
     // Set up expressions and enable evaluation

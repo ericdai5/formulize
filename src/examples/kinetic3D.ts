@@ -2,7 +2,7 @@ export const kinetic3D = `const config = {
   formulas: [
     {
       formulaId: "kinetic-energy-3d",
-      function: "K = \\\\frac{1}{2}mv^2",
+      latex: "K = \\\\frac{1}{2}mv^2",
       expression: "{K} = 0.5 * {m} * {v} * {v}"
     }
   ],

@@ -2,27 +2,27 @@ export const parametric3D = `const config = {
   formulas: [
     {
       formulaId: "x-and-t",
-      function: "x = t",
+      latex: "x = t",
       expression: "{x} = {t}"
     },
     {
       formulaId: "y-and-t",
-      function: "y = 1 - 2t",
+      latex: "y = 1 - 2t",
       expression: "{y} = 1 - 2 * {t}"
     },
     {
       formulaId: "z-and-t",
-      function: "z = t",
+      latex: "z = t",
       expression: "{z} = {t}"
     },
     {
       formulaId: "x-plus-y-plus-z-equals-1",
-      function: "1 = x + y + z",
+      latex: "1 = x + y + z",
       expression: "{x} + {y} + {z} = 1"
     },
     {
       formulaId: "x-and-z",
-      function: "x - z = 0",
+      latex: "x - z = 0",
       expression: "{x} - {z} = 0"
     }
   ],
