@@ -29,9 +29,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Parse configuration options with defaults
   const {
-    xVar,
+    xAxisVar,
     xRange = PLOT2D_DEFAULTS.xRange,
-    yVar,
+    yAxisVar,
     yRange = PLOT2D_DEFAULTS.yRange,
     vectors,
     lines,
@@ -55,7 +55,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // Check if we have vectors or lines
     const hasVectors = vectors && vectors.length > 0;
-    const hasLines = lines && lines.length > 0 && xVar && yVar;
+    const hasLines = lines && lines.length > 0 && xAxisVar && yAxisVar;
 
     if (!hasVectors && !hasLines) return;
 
@@ -81,12 +81,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       plotWidth,
       plotHeight,
       margin,
-      xLabel: hasLines && xVar ? getVariableLabel(xVar) : "X",
-      yLabel: hasLines && yVar ? getVariableLabel(yVar) : "Y",
-      xVar: hasLines ? xVar : undefined,
-      yVar: hasLines ? yVar : undefined,
-      xVarHovered: hasLines && xVar ? computationStore.variables.get(xVar)?.hover || false : false,
-      yVarHovered: hasLines && yVar ? computationStore.variables.get(yVar)?.hover || false : false,
+      xLabel: hasLines && xAxisVar ? getVariableLabel(xAxisVar) : "X",
+      yLabel: hasLines && yAxisVar ? getVariableLabel(yAxisVar) : "Y",
+      xAxisVar: hasLines ? xAxisVar : undefined,
+      yAxisVar: hasLines ? yAxisVar : undefined,
+      xAxisVarHovered: hasLines && xAxisVar ? computationStore.variables.get(xAxisVar)?.hover || false : false,
+      yAxisVarHovered: hasLines && yAxisVar ? computationStore.variables.get(yAxisVar)?.hover || false : false,
     });
 
     // Add grid using helper function
@@ -116,8 +116,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         svg,
         tooltipRef,
         lines,
-        xVar!,
-        yVar!,
+        xAxisVar!,
+        yAxisVar!,
         xScale,
         yScale,
         [xMin, xMax],
@@ -129,15 +129,15 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     }
 
     // Add hover lines for x/y variables
-    if (hasLines && (xVar || yVar)) {
+    if (hasLines && (xAxisVar || yAxisVar)) {
       updateHoverLines({
         svg,
         xScale,
         yScale,
         plotWidth,
         plotHeight,
-        xVar,
-        yVar,
+        xAxisVar,
+        yAxisVar,
       });
     }
   }, [
@@ -150,8 +150,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     xMax,
     yMin,
     yMax,
-    xVar,
-    yVar,
+    xAxisVar,
+    yAxisVar,
   ]);
 
   // Set up reaction to re-render when any variable changes

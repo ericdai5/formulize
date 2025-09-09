@@ -15,7 +15,7 @@ export const quadratic3D = `const config = {
     x: {
       type: "input",
       value: 0,
-      range: [-5, 5],
+      range: [-5, 5],I
       step: 0.1,
       name: "x"
     },
@@ -51,9 +51,9 @@ export const quadratic3D = `const config = {
       id: "quadratic3DSurface",
       formulaId: "quadratic-equation-3d",
       title: "3D Quadratic Surface: y = ax² + bx + c",
-      xVar: "x",
+      xAxisVar: "x",
       xRange: [-5, 5],
-      yVar: "c",
+      yAxisVar: "c",
       yRange: [-5, 5],
       zVar: "y",
       zRange: [-20, 40],

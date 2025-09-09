@@ -22,9 +22,9 @@ export interface IPlot2D {
   id?: string;
   formulaId?: string; // Links this visualization to a specific formula
   title?: string;
-  xVar?: string;
+  xAxisVar?: string;
   xRange?: [number, number];
-  yVar?: string;
+  yAxisVar?: string;
   yRange?: [number, number];
   vectors?: IVector[];
   lines?: ILine[];

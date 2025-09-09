@@ -11,11 +11,11 @@ export function createLabelWithBackground(
   currentPoint: DataPoint,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
-  xVar: string,
-  yVar: string,
+  xAxisVar: string,
+  yAxisVar: string,
   className: string = "current-point-label"
 ): void {
-  const labelText = `${getVariableLabel(xVar)}: ${formatVariableValue(Number(currentPoint.x), xVar)}, ${getVariableLabel(yVar)}: ${formatVariableValue(Number(currentPoint.y), yVar)}`;
+  const labelText = `${getVariableLabel(xAxisVar)}: ${formatVariableValue(Number(currentPoint.x), xAxisVar)}, ${getVariableLabel(yAxisVar)}: ${formatVariableValue(Number(currentPoint.y), yAxisVar)}`;
   const labelX = xScale(currentPoint.x) + 10;
   const labelY = yScale(currentPoint.y) - 10;
 

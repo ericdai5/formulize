@@ -24,7 +24,7 @@ export const dropdownHandler = (container: HTMLElement) => {
 
     // Get the available options from set or options property
     let availableOptions: (string | number)[] = [];
-    let isKeyVariable = false;
+    let isKeyAxisVariable = false;
 
     if (variable.set) {
       availableOptions = variable.set;
@@ -32,10 +32,10 @@ export const dropdownHandler = (container: HTMLElement) => {
       availableOptions = variable.options;
     } else if (variable.key) {
       // For variables with a key, show options from the key variable's set
-      const keyVar = getVariable(variable.key);
-      if (keyVar && keyVar.set) {
-        availableOptions = keyVar.set;
-        isKeyVariable = true;
+      const keyAxisVar = getVariable(variable.key);
+      if (keyAxisVar && keyAxisVar.set) {
+        availableOptions = keyAxisVar.set;
+        isKeyAxisVariable = true;
       }
     }
 
@@ -60,7 +60,7 @@ export const dropdownHandler = (container: HTMLElement) => {
             typeof option === "number" ? option : parseFloat(String(option));
 
           if (!isNaN(numericValue)) {
-            if (isKeyVariable && variable.key) {
+            if (isKeyAxisVariable && variable.key) {
               // For variables with a key, update the key variable first
               // This will automatically update the dependent variable via updateIndexBasedVariables
               computationStore.setValue(variable.key, numericValue);
