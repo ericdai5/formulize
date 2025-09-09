@@ -420,6 +420,9 @@ const CanvasFlow = observer(
 
           const variable = computationStore.variables.get(cssId);
 
+          // Don't create label node if labelDisplay is "none"
+          if (variable?.labelDisplay === "none") return;
+
           // Only create label node if there's either a label OR a value
           const hasValue =
             variable?.value !== undefined && variable?.value !== null;
