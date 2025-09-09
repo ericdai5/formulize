@@ -2,22 +2,22 @@ export const parameterizedPlane = `const config = {
   formulas: [
     {
       formulaId: "x-parameterization",
-      function: "x = 1 - t - w",
+      latex: "x = 1 - t - w",
       expression: "{x} = 1 - {t} - {w}"
     },
     {
       formulaId: "y-parameterization",
-      function: "y = t",
+      latex: "y = t",
       expression: "{y} = {t}"
     },
     {
       formulaId: "z-parameterization",
-      function: "z = w",
+      latex: "z = w",
       expression: "{z} = {w}"
     },
     {
       formulaId: "plane-equation",
-      function: "x + y + z = 1",
+      latex: "x + y + z = 1",
       expression: "{x} + {y} + {z} = 1"
     }
   ],

@@ -2,7 +2,7 @@ export const kinetic2D = `const config = {
   formulas: [
     {
       formulaId: "kinetic-energy",
-      function: "K = \\\\frac{1}{2}mv^2",
+      latex: "K = \\\\frac{1}{2}mv^2",
       expression: "{K} = 0.5 * {m} * {v} * {v}",
       manual: function(variables) {
         var m = variables.m.value;

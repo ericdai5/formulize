@@ -2,7 +2,7 @@ export const summationBasic = `const config = {
   formulas: [
     {
       formulaId: "summation-basic",
-      function: "E = \\\\sum_{x \\\\in X} x P(x)",
+      latex: "E = \\\\sum_{x \\\\in X} x P(x)",
       manual: function(variables) {
         var xValues = variables.x.set;
         var pxValues = variables["P(x)"].set;
