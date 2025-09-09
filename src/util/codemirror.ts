@@ -1,5 +1,14 @@
 import React from "react";
 
+import { autocompletion } from "@codemirror/autocomplete";
+import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+
+import {
+  editorCompletions,
+  jsPatternCompletions,
+} from "./codemirror-autocomplete";
+import { autocompleteTheme } from "./codemirror-autocomplete-style";
+
 /**
  * CodeMirror utility functions for code highlighting and manipulation
  */
@@ -39,7 +48,7 @@ export const CodeMirrorStyle = {
  * @param end - End character position
  */
 export const highlightCode = (
-  codeMirrorRef: React.RefObject<any>,
+  codeMirrorRef: React.MutableRefObject<ReactCodeMirrorRef | null>,
   start: number,
   end: number
 ) => {
@@ -57,4 +66,19 @@ export const highlightCode = (
       });
     }
   }
+};
+
+/**
+ * Creates autocomplete extension for formula editor with custom completions
+ */
+export const createAutocompletion = () => {
+  return [
+    autocompletion({
+      override: [editorCompletions, jsPatternCompletions],
+      activateOnTyping: true,
+      maxRenderedOptions: 10,
+      closeOnBlur: true,
+    }),
+    autocompleteTheme,
+  ];
 };

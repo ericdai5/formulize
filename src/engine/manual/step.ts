@@ -1,3 +1,5 @@
+import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+
 import { IStep } from "../../types/step";
 import { highlightCode } from "../../util/codemirror";
 import { JSInterpreter, StackFrame } from "./interpreter";
@@ -27,7 +29,7 @@ export class Step {
   }
 
   static highlight(
-    codeMirrorRef: React.MutableRefObject<unknown>,
+    codeMirrorRef: React.MutableRefObject<ReactCodeMirrorRef | null>,
     highlight: { start: number; end: number }
   ): void {
     highlightCode(codeMirrorRef, highlight.start, highlight.end);

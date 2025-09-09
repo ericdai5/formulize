@@ -12,14 +12,14 @@ import { isAtBlock } from "../engine/manual/interpreter";
 import { executionStore as ctx } from "../store/execution";
 import { IEnvironment } from "../types/environment";
 import { extractViews } from "../util/acorn";
+import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
   addArrowMarker,
   addLineMarker,
   clearArrowMarkers,
   clearLineMarkers,
   debugExtensions,
-} from "../util/codeMirrorExtensions";
-import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
+} from "../util/codemirror-extension";
 import CollapsibleSection from "./collapsible-section";
 import InterpreterControls from "./interpreter-controls";
 import Timeline from "./timeline";
@@ -146,60 +146,70 @@ const DebugModal: React.FC<DebugModalProps> = observer(
      * This builds a line mapping between interpreter and user code accounting for:
      * - Multi-line view([...]) calls in interpreter becoming single // @view comments in user code
      */
-    const convertCharPos = useCallback((interpreterCharPos: number): number => {
-      const interpreterLines = ctx.code.split('\n');
-      const userLines = userCode.split('\n');
-      
-      // Find which line in interpreter code the character position corresponds to
-      let currentPos = 0;
-      let interpreterLine = 0;
-      
-      for (let i = 0; i < interpreterLines.length; i++) {
-        const lineLength = interpreterLines[i].length + 1; // +1 for newline
-        if (currentPos + lineLength > interpreterCharPos) {
-          interpreterLine = i;
-          break;
-        }
-        currentPos += lineLength;
-      }
-      
-      // Build line mapping from interpreter to user code
-      let userLine = 0;
-      let extraLinesFromViews = 0;
-      
-      for (let i = 0; i < interpreterLine && i < interpreterLines.length; i++) {
-        const line = interpreterLines[i].trim();
-        
-        if (line.includes('view([')) {
-          // This is the start of a multi-line view call
-          // Find where it ends
-          let j = i;
-          while (j < interpreterLines.length && !interpreterLines[j].includes(']);')) {
-            j++;
+    const convertCharPos = useCallback(
+      (interpreterCharPos: number): number => {
+        const interpreterLines = ctx.code.split("\n");
+        const userLines = userCode.split("\n");
+
+        // Find which line in interpreter code the character position corresponds to
+        let currentPos = 0;
+        let interpreterLine = 0;
+
+        for (let i = 0; i < interpreterLines.length; i++) {
+          const lineLength = interpreterLines[i].length + 1; // +1 for newline
+          if (currentPos + lineLength > interpreterCharPos) {
+            interpreterLine = i;
+            break;
           }
-          // The view call spans from line i to line j
-          // In user code, this becomes a single comment line
-          // So we need to subtract (j - i) extra lines
-          extraLinesFromViews += (j - i);
-          i = j; // Skip to the end of the view call
+          currentPos += lineLength;
         }
-      }
-      
-      // Map interpreter line to user line
-      userLine = interpreterLine - extraLinesFromViews;
-      
-      // Ensure we're within bounds
-      if (userLine >= userLines.length) userLine = userLines.length - 1;
-      if (userLine < 0) userLine = 0;
-      
-      // Convert user line back to character position
-      let userCharPos = 0;
-      for (let i = 0; i < userLine; i++) {
-        userCharPos += userLines[i].length + 1; // +1 for newline
-      }
-      
-      return userCharPos;
-    }, [userCode]);
+
+        // Build line mapping from interpreter to user code
+        let userLine = 0;
+        let extraLinesFromViews = 0;
+
+        for (
+          let i = 0;
+          i < interpreterLine && i < interpreterLines.length;
+          i++
+        ) {
+          const line = interpreterLines[i].trim();
+
+          if (line.includes("view([")) {
+            // This is the start of a multi-line view call
+            // Find where it ends
+            let j = i;
+            while (
+              j < interpreterLines.length &&
+              !interpreterLines[j].includes("]);")
+            ) {
+              j++;
+            }
+            // The view call spans from line i to line j
+            // In user code, this becomes a single comment line
+            // So we need to subtract (j - i) extra lines
+            extraLinesFromViews += j - i;
+            i = j; // Skip to the end of the view call
+          }
+        }
+
+        // Map interpreter line to user line
+        userLine = interpreterLine - extraLinesFromViews;
+
+        // Ensure we're within bounds
+        if (userLine >= userLines.length) userLine = userLines.length - 1;
+        if (userLine < 0) userLine = 0;
+
+        // Convert user line back to character position
+        let userCharPos = 0;
+        for (let i = 0; i < userLine; i++) {
+          userCharPos += userLines[i].length + 1; // +1 for newline
+        }
+
+        return userCharPos;
+      },
+      [userCode]
+    );
 
     // Helper function to convert character position to line number
     const getLineFromCharPosition = useCallback(

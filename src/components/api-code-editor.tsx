@@ -1,6 +1,8 @@
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
 
+import { createAutocompletion } from "../util/codemirror";
+
 interface Editor {
   code: string;
   onChange: (value: string) => void;
@@ -20,7 +22,7 @@ const Editor = ({ code, onChange, onRender, error }: Editor) => {
           value={code}
           onChange={handleCodeMirrorChange}
           onBlur={() => onRender()}
-          extensions={[javascript()]}
+          extensions={[javascript(), ...createAutocompletion()]}
           theme="light"
           style={{
             fontSize: "14px",
