@@ -1,7 +1,7 @@
 import React from "react";
 
 import { autocompletion } from "@codemirror/autocomplete";
-import { EditorView } from "@codemirror/view";
+import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
 import {
   editorCompletions,
@@ -48,7 +48,7 @@ export const CodeMirrorStyle = {
  * @param end - End character position
  */
 export const highlightCode = (
-  codeMirrorRef: React.RefObject<{ view: EditorView | null }>,
+  codeMirrorRef: React.MutableRefObject<ReactCodeMirrorRef | null>,
   start: number,
   end: number
 ) => {
