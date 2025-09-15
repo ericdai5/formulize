@@ -15,7 +15,7 @@ export const quadratic3D = `const config = {
     x: {
       type: "input",
       value: 0,
-      range: [-5, 5],I
+      range: [-5, 5],
       step: 0.1,
       name: "x"
     },

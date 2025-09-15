@@ -341,7 +341,7 @@ export function jsPatternCompletions(
       label: "IFormula",
       type: "interface",
       info: "Formula interface",
-      apply: '{\n  name: "",\n  latex: ""\n}',
+      apply: '{\n  formulaId: "",\n  latex: ""\n}',
     },
     {
       label: "IEnvironment",
