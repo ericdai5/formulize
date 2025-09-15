@@ -21,9 +21,9 @@ export interface IPlot2D {
   type: "plot2d";
   id?: string;
   title?: string;
-  xVar?: string;
+  xAxisVar?: string;
   xRange?: [number, number];
-  yVar?: string;
+  yAxisVar?: string;
   yRange?: [number, number];
   vectors?: IVector[];
   lines?: ILine[];

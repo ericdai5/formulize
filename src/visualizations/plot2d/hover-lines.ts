@@ -8,24 +8,24 @@ export interface HoverLinesConfig {
   yScale: d3.ScaleLinear<number, number>;
   plotWidth: number;
   plotHeight: number;
-  xVar?: string;
-  yVar?: string;
+  xAxisVar?: string;
+  yAxisVar?: string;
 }
 
 /**
  * Adds or updates hover lines for x/y variables
  */
 export function updateHoverLines(config: HoverLinesConfig): void {
-  const { svg, xScale, yScale, plotWidth, plotHeight, xVar, yVar } = config;
+  const { svg, xScale, yScale, plotWidth, plotHeight, xAxisVar, yAxisVar } = config;
 
   // Remove existing hover lines
   svg.selectAll(".hover-line").remove();
 
   // Add vertical line for x variable if hovered
-  if (xVar) {
-    const xVariable = computationStore.variables.get(xVar);
-    if (xVariable?.hover && xVariable.value !== undefined) {
-      const xPos = xScale(xVariable.value);
+  if (xAxisVar) {
+    const xAxisVariable = computationStore.variables.get(xAxisVar);
+    if (xAxisVariable?.hover && xAxisVariable.value !== undefined) {
+      const xPos = xScale(xAxisVariable.value);
 
       svg
         .append("line")
@@ -42,10 +42,10 @@ export function updateHoverLines(config: HoverLinesConfig): void {
   }
 
   // Add horizontal line for y variable if hovered
-  if (yVar) {
-    const yVariable = computationStore.variables.get(yVar);
-    if (yVariable?.hover && yVariable.value !== undefined) {
-      const yPos = yScale(yVariable.value);
+  if (yAxisVar) {
+    const yAxisVariable = computationStore.variables.get(yAxisVar);
+    if (yAxisVariable?.hover && yAxisVariable.value !== undefined) {
+      const yPos = yScale(yAxisVariable.value);
 
       svg
         .append("line")

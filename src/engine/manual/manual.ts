@@ -69,7 +69,7 @@ export function computeWithManualEngine(
           }
         } catch (error) {
           console.error(
-            `Error executing manual function for formula "${formula.name}":`,
+            `Error executing manual function for formula "${formula.formulaId}":`,
             error
           );
         }

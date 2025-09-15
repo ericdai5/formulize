@@ -52,8 +52,8 @@ export function handleMouseMove(
   yScale: d3.ScaleLinear<number, number>,
   plotWidth: number,
   plotHeight: number,
-  xVar: string,
-  yVar: string,
+  xAxisVar: string,
+  yAxisVar: string,
   isDragging: boolean
 ): void {
   const [mouseX] = d3.pointer(event);
@@ -70,8 +70,8 @@ export function handleMouseMove(
   const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
 
   // Check if hovering near the current point
-  const currentX = computationStore.variables.get(xVar)?.value ?? 0;
-  const currentY = computationStore.variables.get(yVar)?.value ?? 0;
+  const currentX = computationStore.variables.get(xAxisVar)?.value ?? 0;
+  const currentY = computationStore.variables.get(yAxisVar)?.value ?? 0;
   const isNearCurrentPoint =
     Math.abs(d.x - currentX) <
     (xScale.domain()[1] - xScale.domain()[0]) * 0.01; // Within 1% of x range
@@ -82,11 +82,11 @@ export function handleMouseMove(
     setHoverVisibility(hover, false);
     try {
       runInAction(() => {
-        computationStore.setValue(xVar, d.x);
+        computationStore.setValue(xAxisVar, d.x);
       });
 
       // Update current point highlight immediately during drag
-      updateCurrentPointHighlight(svg, d, xScale, yScale, xVar, yVar);
+      updateCurrentPointHighlight(svg, d, xScale, yScale, xAxisVar, yAxisVar);
     } catch (error) {
       console.error("Error updating variable during drag:", error);
     }
@@ -101,8 +101,8 @@ export function handleMouseMove(
       currentY,
       event.pageX,
       event.pageY,
-      xVar,
-      yVar
+      xAxisVar,
+      yAxisVar
     );
   } else {
     // Show hover dot during hover (not dragging, not near current point)
@@ -119,8 +119,8 @@ export function handleMouseMove(
       d.y,
       event.pageX,
       event.pageY,
-      xVar,
-      yVar
+      xAxisVar,
+      yAxisVar
     );
   }
 }
@@ -133,7 +133,7 @@ export function handleMouseDown(
   hover: d3.Selection<SVGGElement, unknown, null, undefined>,
   tooltip: d3.Selection<HTMLDivElement | null, unknown, null, undefined>,
   xScale: d3.ScaleLinear<number, number>,
-  xVar: string
+  xAxisVar: string
 ): void {
   runInAction(() => {
     computationStore.setDragging(true);
@@ -151,7 +151,7 @@ export function handleMouseDown(
   // Update the x-axis variable when user starts dragging
   try {
     runInAction(() => {
-      computationStore.setValue(xVar, x0);
+      computationStore.setValue(xAxisVar, x0);
     });
   } catch (error) {
     console.error("Error updating variable:", error);
@@ -199,7 +199,7 @@ export function handleClick(
   hover: d3.Selection<SVGGElement, unknown, null, undefined>,
   dataPoints: DataPoint[],
   xScale: d3.ScaleLinear<number, number>,
-  xVar: string,
+  xAxisVar: string,
   isDragging: boolean
 ): void {
   if (!isDragging) {
@@ -216,7 +216,7 @@ export function handleClick(
       const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
 
       // Check if clicking near current point
-      const currentX = computationStore.variables.get(xVar)?.value ?? 0;
+      const currentX = computationStore.variables.get(xAxisVar)?.value ?? 0;
       const isNearCurrentPoint =
         Math.abs(d.x - currentX) <
         (xScale.domain()[1] - xScale.domain()[0]) * 0.01;
@@ -224,7 +224,7 @@ export function handleClick(
       // Update the x-axis variable when user clicks
       try {
         runInAction(() => {
-          computationStore.setValue(xVar, d.x);
+          computationStore.setValue(xAxisVar, d.x);
         });
 
         // If clicking near current point, don't show blue hover dot
@@ -246,10 +246,10 @@ function updateCurrentPointHighlight(
   currentPoint: DataPoint,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
-  xVar?: string,
-  yVar?: string
+  xAxisVar?: string,
+  yAxisVar?: string
 ): void {
-  if (!xVar || !yVar) return;
+  if (!xAxisVar || !yAxisVar) return;
 
   // Update existing current point circle
   svg
@@ -258,6 +258,6 @@ function updateCurrentPointHighlight(
     .attr("cy", yScale(currentPoint.y));
 
   // Update existing current point label
-  updateCurrentPointLabel(svg, currentPoint, xScale, yScale, xVar, yVar);
+  updateCurrentPointLabel(svg, currentPoint, xScale, yScale, xAxisVar, yAxisVar);
 }
 

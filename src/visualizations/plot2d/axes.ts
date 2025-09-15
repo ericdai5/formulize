@@ -10,10 +10,10 @@ export interface AxisConfig {
   margin: { top: number; right: number; bottom: number; left: number };
   xLabel?: string;
   yLabel?: string;
-  xVar?: string;
-  yVar?: string;
-  xVarHovered?: boolean;
-  yVarHovered?: boolean;
+  xAxisVar?: string;
+  yAxisVar?: string;
+  xAxisVarHovered?: boolean;
+  yAxisVarHovered?: boolean;
   tickFontSize?: number;
 }
 
@@ -32,10 +32,10 @@ export function addAxes(
     margin,
     xLabel,
     yLabel,
-    xVar,
-    yVar,
-    xVarHovered = false,
-    yVarHovered = false,
+    xAxisVar,
+    yAxisVar,
+    xAxisVarHovered = false,
+    yAxisVarHovered = false,
     tickFontSize = 12,
   } = config;
 
@@ -71,7 +71,7 @@ export function addAxes(
       .attr("fill", "#f3f4f6")
       .attr("rx", 6)
       .attr("ry", 6)
-      .attr("opacity", xVarHovered ? 1 : 0);
+      .attr("opacity", xAxisVarHovered ? 1 : 0);
 
     // Add the text element
     const xLabelElement = xLabelGroup
@@ -97,16 +97,16 @@ export function addAxes(
         .attr("height", xLabelBBox.height + 2 * padding);
     }
 
-    // Add hover functionality if xVar is provided
-    if (xVar) {
+    // Add hover functionality if xAxisVar is provided
+    if (xAxisVar) {
       xLabelGroup
         .on("mouseenter", () => {
           xLabelBg.attr("opacity", 1);
-          computationStore.setVariableHover(xVar, true);
+          computationStore.setVariableHover(xAxisVar, true);
         })
         .on("mouseleave", () => {
           xLabelBg.attr("opacity", 0);
-          computationStore.setVariableHover(xVar, false);
+          computationStore.setVariableHover(xAxisVar, false);
         });
     }
   }
@@ -142,7 +142,7 @@ export function addAxes(
       .attr("fill", "#f3f4f6")
       .attr("rx", 6)
       .attr("ry", 6)
-      .attr("opacity", yVarHovered ? 1 : 0);
+      .attr("opacity", yAxisVarHovered ? 1 : 0);
 
     // Add the text element
     const yLabelElement = yLabelGroup
@@ -169,16 +169,16 @@ export function addAxes(
         .attr("height", yLabelBBox.width + 2 * padding);
     }
 
-    // Add hover functionality if yVar is provided
-    if (yVar) {
+    // Add hover functionality if yAxisVar is provided
+    if (yAxisVar) {
       yLabelGroup
         .on("mouseenter", () => {
           yLabelBg.attr("opacity", 1);
-          computationStore.setVariableHover(yVar, true);
+          computationStore.setVariableHover(yAxisVar, true);
         })
         .on("mouseleave", () => {
           yLabelBg.attr("opacity", 0);
-          computationStore.setVariableHover(yVar, false);
+          computationStore.setVariableHover(yAxisVar, false);
         });
     }
   }
