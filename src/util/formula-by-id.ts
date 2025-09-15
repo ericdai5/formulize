@@ -1,25 +1,25 @@
 import { IFormula } from "../types/formula";
 
 /**
- * Get formula expression by name from a provided configuration
- * @param formulaName - The name of the formula to retrieve
+ * Get formula expression by formulaId from a provided configuration
+ * @param formulaId - The formulaId of the formula to retrieve
  * @param config - Configuration object containing formulas
  * @returns The formula expression string or null if not found
  */
-export const getFormulaByName = (
-  formulaName: string,
+export const getFormulaById = (
+  formulaId: string,
   config?: { formulas?: IFormula[] }
 ): string | null => {
   try {
     if (!config || !config.formulas) {
-      console.warn("No configuration provided to getFormulaByName");
+      console.warn("No configuration provided to getFormulaById");
       return null;
     }
 
-    const formula = config.formulas.find((f) => f.name === formulaName);
+    const formula = config.formulas.find((f) => f.formulaId === formulaId);
     return formula?.expression || null;
   } catch (error) {
-    console.error("Error getting formula by name:", error);
+    console.error("Error getting formula by ID:", error);
     return null;
   }
 };

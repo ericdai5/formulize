@@ -34,16 +34,16 @@ export function processVectorData(vector: IVector): VectorData[] {
  * Extracts variable names from vector config
  */
 function getVariableNames(vector: IVector): {
-  xVars: string[];
-  yVars: string[];
+  xAxisVars: string[];
+  yAxisVars: string[];
 } {
-  const xVars = vector.x.filter(
+  const xAxisVars = vector.x.filter(
     (val): val is string => typeof val === "string"
   );
-  const yVars = vector.y.filter(
+  const yAxisVars = vector.y.filter(
     (val): val is string => typeof val === "string"
   );
-  return { xVars, yVars };
+  return { xAxisVars, yAxisVars };
 }
 
 /**
@@ -108,7 +108,7 @@ export function renderVector(
 
   // Add drag behavior for arrows
   if (isDraggable && vectorData.length >= 2) {
-    const { xVars, yVars } = getVariableNames(vector);
+    const { xAxisVars, yAxisVars } = getVariableNames(vector);
 
     // Add invisible drag handle at the arrow tip
     const tipData = vectorData[vectorData.length - 1];
@@ -194,20 +194,20 @@ export function renderVector(
         path.datum(updatedVectorData).attr("d", line);
 
         // Update variables with new tip position
-        if (xVars.length > 0 && yVars.length > 0) {
-          const endXVar = xVars[xVars.length - 1];
-          const endYVar = yVars[yVars.length - 1];
+        if (xAxisVars.length > 0 && yAxisVars.length > 0) {
+          const endxAxisVar = xAxisVars[xAxisVars.length - 1];
+          const endyAxisVar = yAxisVars[yAxisVars.length - 1];
 
           try {
             runInAction(() => {
-              computationStore.setValue(endXVar, currentTipX);
-              computationStore.setValue(endYVar, currentTipY);
+              computationStore.setValue(endxAxisVar, currentTipX);
+              computationStore.setValue(endyAxisVar, currentTipY);
             });
           } catch (error) {
             console.error("Error updating variables during drag:", error);
           }
         } else {
-          console.log("No variables to update:", { xVars, yVars });
+          console.log("No variables to update:", { xAxisVars, yAxisVars });
         }
       })
       .on("end", function () {

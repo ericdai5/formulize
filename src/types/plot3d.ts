@@ -2,9 +2,9 @@ export interface IPlot3D {
   type: "plot3d";
   id?: string;
   title?: string;
-  xVar: string;
+  xAxisVar: string;
   xRange?: [number, number];
-  yVar: string;
+  yAxisVar: string;
   yRange?: [number, number];
   zVar: string;
   zRange?: [number, number];
@@ -13,7 +13,7 @@ export interface IPlot3D {
   plotType?: "scatter" | "surface" | "line" | "mesh";
   showCurrentPointInLegend?: boolean;
   surfaces?: {
-    formulaName: string;
+    formulaId: string; // Changed from formulaId to formulaId
     color?: string | string[];
     opacity?: number;
     showInLegend?: boolean;
@@ -22,8 +22,8 @@ export interface IPlot3D {
   lines?: {
     name: string;
     surfaceIntersection?: {
-      surface1: string;
-      surface2: string;
+      surface1: string; // These should also be formulaIds
+      surface2: string; // These should also be formulaIds
     };
     color?: string;
     width?: number;
@@ -44,7 +44,7 @@ export interface ISurfaceCoord {
 }
 
 export interface ISurface {
-  formulaName: string;
+  formulaId: string; // Changed from formulaId to formulaId
   color?: string | string[];
   opacity?: number;
   showInLegend?: boolean;

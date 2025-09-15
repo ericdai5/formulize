@@ -1,28 +1,28 @@
 export const parametric3D = `const config = {
   formulas: [
     {
-      name: "x and t",
-      function: "x = t",
+      formulaId: "x-and-t",
+      latex: "x = t",
       expression: "{x} = {t}"
     },
     {
-      name: "y and t",
-      function: "y = 1 - 2t",
+      formulaId: "y-and-t",
+      latex: "y = 1 - 2t",
       expression: "{y} = 1 - 2 * {t}"
     },
     {
-      name: "z and t",
-      function: "z = t",
+      formulaId: "z-and-t",
+      latex: "z = t",
       expression: "{z} = {t}"
     },
     {
-      name: "x + y + z = 1",
-      function: "1 = x + y + z",
+      formulaId: "x-plus-y-plus-z-equals-1",
+      latex: "1 = x + y + z",
       expression: "{x} + {y} + {z} = 1"
     },
     {
-      name: "x and z",
-      function: "x - z = 0",
+      formulaId: "x-and-z",
+      latex: "x - z = 0",
       expression: "{x} - {z} = 0"
     }
   ],
@@ -59,9 +59,9 @@ export const parametric3D = `const config = {
       type: "plot3d",
       id: "parametricPlane3D",
       title: "3D Parametric Surfaces",
-      xVar: "x",
+      xAxisVar: "x",
       xRange: [-10, 10],
-      yVar: "y",
+      yAxisVar: "y",
       yRange: [-10, 10],
       zVar: "z",
       zRange: [-10, 10],
@@ -72,14 +72,14 @@ export const parametric3D = `const config = {
       showCurrentPointInLegend: true,
       surfaces: [
         {
-          formulaName: "x + y + z = 1",
+          formulaId: "x-plus-y-plus-z-equals-1",
           color: "purple",
           opacity: 0.3,
           showInLegend: true,
           showColorbar: false
         },
         {
-          formulaName: "x and z",
+          formulaId: "x-and-z",
           color: "green",
           opacity: 0.3,
           showInLegend: true,
@@ -90,8 +90,8 @@ export const parametric3D = `const config = {
         {
           name: "Intersection Line",
           surfaceIntersection: {
-            surface1: "x + y + z = 1",
-            surface2: "x and z"
+            surface1: "x-plus-y-plus-z-equals-1",
+            surface2: "x-and-z"
           },
           color: "yellow",
           width: 4,

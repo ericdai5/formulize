@@ -1,8 +1,8 @@
 export const summationBasic = `const config = {
   formulas: [
     {
-      name: "Summation Basic",
-      function: "E = \\\\sum_{x \\\\in X} x P(x)",
+      formulaId: "summation-basic",
+      latex: "E = \\\\sum_{x \\\\in X} x P(x)",
       manual: function(variables) {
         var xValues = variables.x.set;
         var pxValues = variables["P(x)"].set;

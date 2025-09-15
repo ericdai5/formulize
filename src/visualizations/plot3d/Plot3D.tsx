@@ -21,7 +21,7 @@ import {
 import { computationStore } from "../../store/computation";
 import { IPoint3D, ISurface } from "../../types/plot3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
-import { getFormulaByName } from "../../util/formula-by-name";
+import { getFormulaById } from "../../util/formula-by-id";
 import { getDefaultColorScale, resolveLineColor } from "./color";
 import { getSurfaces } from "./surfaces";
 
@@ -48,9 +48,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
   // Parse configuration options with defaults
   const {
     title = "",
-    xVar,
+    xAxisVar,
     xRange = [0, 10],
-    yVar,
+    yAxisVar,
     yRange = [0, 10],
     zVar,
     zRange = [0, 100],
@@ -92,10 +92,10 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
     return variable?.name || variableName; // Fallback to variable name if no name
   }, []);
 
-  // Create a bound getFormulaByName function that uses the environment
-  const getFormulaByNameWithConfig = useCallback(
-    (formulaName: string) => {
-      return getFormulaByName(formulaName, environment);
+  // Create a bound getFormulaById function that uses the environment
+  const getFormulaByIdWithConfig = useCallback(
+    (formulaId: string) => {
+      return getFormulaById(formulaId, environment);
     },
     [environment]
   );
@@ -103,8 +103,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
   // Main calculation function for all surfaces
   const calculateSurfacesDataWrapper = useCallback(() => {
     const params = {
-      xAxis: xVar,
-      yAxis: yVar,
+      xAxis: xAxisVar,
+      yAxis: yAxisVar,
       zAxis: zVar,
       xMin,
       xMax,
@@ -113,15 +113,15 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
       zMin,
       zMax,
       samples,
-      getFormulaByName: getFormulaByNameWithConfig,
+      getFormulaById: getFormulaByIdWithConfig,
       getDefaultColorScale,
     };
 
     return getSurfaces(surfaces, params);
   }, [
     surfaces,
-    xVar,
-    yVar,
+    xAxisVar,
+    yAxisVar,
     zVar,
     xMin,
     xMax,
@@ -130,7 +130,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
     zMin,
     zMax,
     samples,
-    getFormulaByNameWithConfig,
+    getFormulaByIdWithConfig,
     getDefaultColorScale,
   ]);
 
@@ -168,8 +168,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
         const { surface1, surface2 } = surfaceIntersection;
 
         // Get the formula expressions for both surfaces
-        const surface1Formula = getFormulaByNameWithConfig(surface1);
-        const surface2Formula = getFormulaByNameWithConfig(surface2);
+        const surface1Formula = getFormulaByIdWithConfig(surface1);
+        const surface2Formula = getFormulaByIdWithConfig(surface2);
 
         if (!surface1Formula || !surface2Formula) {
           console.warn(
@@ -186,8 +186,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
             surface1Formula,
             surface2Formula,
             baseVariables,
-            xVar,
-            yVar,
+            xAxisVar,
+            yAxisVar,
             zVar,
             paramValue
           );
@@ -216,9 +216,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
 
             // Calculate x coordinate
             if (xFormula) {
-              const xExpression = getFormulaByNameWithConfig(xFormula);
+              const xExpression = getFormulaByIdWithConfig(xFormula);
               if (xExpression) {
-                x = solveSingularFormula(xExpression, variablesMap, xVar);
+                x = solveSingularFormula(xExpression, variablesMap, xAxisVar);
               }
             } else {
               x = paramValue; // Default to parameter value
@@ -226,9 +226,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
 
             // Calculate y coordinate
             if (yFormula) {
-              const yExpression = getFormulaByNameWithConfig(yFormula);
+              const yExpression = getFormulaByIdWithConfig(yFormula);
               if (yExpression) {
-                y = solveSingularFormula(yExpression, variablesMap, yVar);
+                y = solveSingularFormula(yExpression, variablesMap, yAxisVar);
               }
             } else {
               y = paramValue; // Default to parameter value
@@ -236,7 +236,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
 
             // Calculate z coordinate
             if (zFormula) {
-              const zExpression = getFormulaByNameWithConfig(zFormula);
+              const zExpression = getFormulaByIdWithConfig(zFormula);
               if (zExpression) {
                 z = solveSingularFormula(zExpression, variablesMap, zVar);
               }
@@ -281,7 +281,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
         showInLegend,
       };
     },
-    [getFormulaByNameWithConfig, xMin, xMax, xVar, yVar, zVar]
+    [getFormulaByIdWithConfig, xMin, xMax, xAxisVar, yAxisVar, zVar]
   );
 
   // Main calculation function for all lines
@@ -314,8 +314,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
       setLinesData(linesResult);
 
       // Update current point
-      const currentX = getVariableValue(xVar);
-      const currentY = getVariableValue(yVar);
+      const currentX = getVariableValue(xAxisVar);
+      const currentY = getVariableValue(yAxisVar);
       const currentZ = getVariableValue(zVar);
       setCurrentPoint({ x: currentX, y: currentY, z: currentZ });
     } catch (error) {
@@ -324,7 +324,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
       setLinesData([]);
       setCurrentPoint(null);
     }
-  }, [calculateSurfacesDataWrapper, calculateLinesData, xVar, yVar, zVar]);
+  }, [calculateSurfacesDataWrapper, calculateLinesData, xAxisVar, yAxisVar, zVar]);
 
   useEffect(() => {
     setSurfacesData([]);
@@ -337,8 +337,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
   useEffect(() => {
     const disposer = reaction(
       () => {
-        const xValue = getVariableValue(xVar);
-        const yValue = getVariableValue(yVar);
+        const xValue = getVariableValue(xAxisVar);
+        const yValue = getVariableValue(yAxisVar);
         const zValue = getVariableValue(zVar);
 
         return { xValue, yValue, zValue };
@@ -368,7 +368,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
     );
 
     return disposer;
-  }, [xVar, yVar, zVar, calculateDataPoints]);
+  }, [xAxisVar, yAxisVar, zVar, calculateDataPoints]);
 
   // Optimized plotting effect
   useEffect(() => {
@@ -399,7 +399,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
         )
       );
       if (!hasValidData) {
-        console.warn(`No valid data for surface: ${surfaceData.formulaName}`);
+        console.warn(`No valid data for surface: ${surfaceData.formulaId}`);
         return;
       }
 
@@ -423,7 +423,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
           showscale: shouldShowColorbar,
           opacity: surfaceData.opacity,
           connectgaps: false,
-          name: surfaceData.formulaName,
+          name: surfaceData.formulaId,
           showlegend: surfaceData.showInLegend,
           contours: {
             x: { show: false },
@@ -437,7 +437,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
                 len: 0.8, // Make it shorter to leave room for legend
                 thickness: 5,
                 title: {
-                  text: surfaceData.formulaName, // Use surface name as colorbar title
+                  text: surfaceData.formulaId, // Use surface formulaId as colorbar title
                   side: "right",
                 },
               }
@@ -455,7 +455,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
             opacity: surfaceData.opacity,
             colorscale: surfaceData.color,
             intensity: validPoints.map((p: IPoint3D) => p.z),
-            name: surfaceData.formulaName,
+            name: surfaceData.formulaId,
             showlegend: surfaceData.showInLegend,
             showscale: shouldShowColorbar,
             colorbar: shouldShowColorbar
@@ -464,7 +464,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
                   len: 0.8,
                   thickness: 5,
                   title: {
-                    text: surfaceData.formulaName,
+                    text: surfaceData.formulaId,
                     side: "right",
                   },
                 }
@@ -493,13 +493,13 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
                     len: 0.8,
                     thickness: 5,
                     title: {
-                      text: surfaceData.formulaName,
+                      text: surfaceData.formulaId,
                       side: "right",
                     },
                   }
                 : undefined,
             },
-            name: surfaceData.formulaName,
+            name: surfaceData.formulaId,
             showlegend: surfaceData.showInLegend,
           });
         }
@@ -561,14 +561,14 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
       scene: {
         xaxis: {
           title: {
-            text: getVariableLabel(xVar),
+            text: getVariableLabel(xAxisVar),
           },
           range: [xMin, xMax],
           autorange: false,
         },
         yaxis: {
           title: {
-            text: getVariableLabel(yVar),
+            text: getVariableLabel(yAxisVar),
           },
           range: [yMin, yMax],
           autorange: false,
@@ -635,14 +635,14 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
               const point = data.points[0];
               try {
                 runInAction(() => {
-                  const xVarId = xVar;
-                  const yVarId = yVar;
+                  const xAxisVarId = xAxisVar;
+                  const yAxisVarId = yAxisVar;
 
-                  if (computationStore.variables.has(xVarId)) {
-                    computationStore.setValue(xVarId, point.x);
+                  if (computationStore.variables.has(xAxisVarId)) {
+                    computationStore.setValue(xAxisVarId, point.x);
                   }
-                  if (computationStore.variables.has(yVarId)) {
-                    computationStore.setValue(yVarId, point.y);
+                  if (computationStore.variables.has(yAxisVarId)) {
+                    computationStore.setValue(yAxisVarId, point.y);
                   }
                 });
               } catch (error) {

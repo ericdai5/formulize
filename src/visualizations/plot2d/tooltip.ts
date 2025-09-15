@@ -30,14 +30,14 @@ export function updateTooltip(
   y: number,
   pageX: number,
   pageY: number,
-  xVar: string,
-  yVar: string
+  xAxisVar: string,
+  yAxisVar: string
 ): void {
   tooltip
     .style("left", `${pageX + 10}px`)
     .style("top", `${pageY - 30}px`)
     .html(
-      `${getVariableLabel(xVar)}: ${formatVariableValue(Number(x), xVar)}<br>${getVariableLabel(yVar)}: ${formatVariableValue(Number(y), yVar)}`
+      `${getVariableLabel(xAxisVar)}: ${formatVariableValue(Number(x), xAxisVar)}<br>${getVariableLabel(yAxisVar)}: ${formatVariableValue(Number(y), yAxisVar)}`
     );
 }
 

@@ -23,11 +23,11 @@ export function addInteractions(
   yScale: d3.ScaleLinear<number, number>,
   plotWidth: number,
   plotHeight: number,
-  xVar?: string,
-  yVar?: string,
+  xAxisVar?: string,
+  yAxisVar?: string,
   onDragEnd?: () => void
 ): void {
-  if (!xVar || !yVar || dataPoints.length === 0) return;
+  if (!xAxisVar || !yAxisVar || dataPoints.length === 0) return;
 
   // Create hover group with crosshairs
   const hover = createHoverGroup(svg);
@@ -62,21 +62,21 @@ export function addInteractions(
         yScale,
         plotWidth,
         plotHeight,
-        xVar,
-        yVar,
+        xAxisVar,
+        yAxisVar,
         isDragging
       );
     })
     .on("mousedown", (event) => {
       isDragging = true;
-      handleMouseDown(event, hover, tooltip, xScale, xVar);
+      handleMouseDown(event, hover, tooltip, xScale, xAxisVar);
     })
     .on("mouseup", (event) => {
       isDragging = false;
       handleMouseUp(event, hover, plotWidth, plotHeight, onDragEnd);
     })
     .on("click", (event) => {
-      handleClick(event, hover, dataPoints, xScale, xVar, isDragging);
+      handleClick(event, hover, dataPoints, xScale, xAxisVar, isDragging);
     });
 }
 
