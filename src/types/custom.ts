@@ -7,7 +7,6 @@
 export interface ICustom {
   type: "custom";
   id?: string;
-  formulaId?: string; // Links this visualization to a specific formula
   variables: string[];
   component?: string;
   styles?: Record<string, string>;

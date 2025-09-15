@@ -74,7 +74,6 @@ export const bayesWithCustomVisualization = `const config = {
       {
         type: "custom",
         id: "bayes-visualization",
-        formulaId: "bayes-theorem",
         title: "Interactive Probability Visualization",
         width: 600,
         height: 400,

@@ -49,7 +49,6 @@ export const quadratic2D = `const config = {
     {
       type: "plot2d",
       id: "quadraticPlot",
-      formulaId: "quadratic-equation",
       title: "Quadratic Function",
       xAxisVar: "x",
       xRange: [-5, 5],

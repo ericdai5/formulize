@@ -251,9 +251,9 @@ class ComputationStore {
   resolveKeySetRelationships() {
     for (const variable of this.variables.values()) {
       if (variable.key && variable.set) {
-        const keyAxisVariable = this.variables.get(variable.key);
-        if (keyAxisVariable && keyAxisVariable.set && keyAxisVariable.value !== undefined) {
-          const keyIndex = keyAxisVariable.set.indexOf(keyAxisVariable.value);
+        const keyVariable = this.variables.get(variable.key);
+        if (keyVariable && keyVariable.set && keyVariable.value !== undefined) {
+          const keyIndex = keyVariable.set.indexOf(keyVariable.value);
           if (keyIndex !== -1 && keyIndex < variable.set.length) {
             const setValue = variable.set[keyIndex];
             variable.value =
@@ -308,14 +308,14 @@ class ComputationStore {
 
     // Case 1: The changed variable has a key (depends on another variable)
     if (changedVariable.key && changedVariable.set) {
-      const keyAxisVariable = this.variables.get(changedVariable.key);
-      if (keyAxisVariable && keyAxisVariable.set) {
+      const keyVariable = this.variables.get(changedVariable.key);
+      if (keyVariable && keyVariable.set) {
         // Find the index of the changed value in the changed variable's set
         const changedIndex = changedVariable.set.indexOf(changedValue);
-        if (changedIndex !== -1 && changedIndex < keyAxisVariable.set.length) {
+        if (changedIndex !== -1 && changedIndex < keyVariable.set.length) {
           // Update the key variable's value using the same index
-          const keyValue = keyAxisVariable.set[changedIndex];
-          keyAxisVariable.value =
+          const keyValue = keyVariable.set[changedIndex];
+          keyVariable.value =
             typeof keyValue === "number"
               ? keyValue
               : parseFloat(String(keyValue));
@@ -458,9 +458,9 @@ class ComputationStore {
 
       // If this variable has a key-set relationship, update its value based on the key variable
       if (variableDefinition?.key && variableDefinition?.set) {
-        const keyAxisVariable = this.variables.get(variableDefinition.key);
-        if (keyAxisVariable && keyAxisVariable.set && keyAxisVariable.value !== undefined) {
-          const keyIndex = keyAxisVariable.set.indexOf(keyAxisVariable.value);
+        const keyVariable = this.variables.get(variableDefinition.key);
+        if (keyVariable && keyVariable.set && keyVariable.value !== undefined) {
+          const keyIndex = keyVariable.set.indexOf(keyVariable.value);
           if (keyIndex !== -1 && keyIndex < variableDefinition.set.length) {
             const setValue = variableDefinition.set[keyIndex];
             this.variables.get(id)!.value =

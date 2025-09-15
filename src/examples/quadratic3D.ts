@@ -49,7 +49,6 @@ export const quadratic3D = `const config = {
     {
       type: "plot3d",
       id: "quadratic3DSurface",
-      formulaId: "quadratic-equation-3d",
       title: "3D Quadratic Surface: y = ax² + bx + c",
       xAxisVar: "x",
       xRange: [-5, 5],

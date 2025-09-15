@@ -58,7 +58,6 @@ export const parametric3D = `const config = {
     {
       type: "plot3d",
       id: "parametricPlane3D",
-      formulaId: "x-plus-y-plus-z-equals-1",
       title: "3D Parametric Surfaces",
       xAxisVar: "x",
       xRange: [-10, 10],

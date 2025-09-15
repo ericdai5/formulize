@@ -41,7 +41,6 @@ export const kinetic2D = `const config = {
   visualizations: [
     {
       type: "plot2d",
-      formulaId: "kinetic-energy",
       xAxisVar: "v",
       yAxisVar: "K",
       lines: [

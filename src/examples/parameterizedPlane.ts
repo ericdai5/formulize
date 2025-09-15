@@ -75,7 +75,6 @@ export const parameterizedPlane = `const config = {
     {
       type: "plot3d",
       id: "parameterizedPlane3D",
-      formulaId: "plane-equation",
       title: "Parameterized Plane: x + y + z = 1",
       xAxisVar: "x",
       xRange: [-15, 15],

@@ -23,18 +23,3 @@ export const getFormulaById = (
     return null;
   }
 };
-
-/**
- * @deprecated Use getFormulaById instead
- * Get formula expression by name from a provided configuration
- * @param formulaId - The name of the formula to retrieve
- * @param config - Configuration object containing formulas
- * @returns The formula expression string or null if not found
- */
-export const getFormulaByName = (
-  formulaId: string,
-  config?: { formulas?: IFormula[] }
-): string | null => {
-  console.warn("getFormulaByName is deprecated. Use getFormulaById instead.");
-  return getFormulaById(formulaId, config);
-};

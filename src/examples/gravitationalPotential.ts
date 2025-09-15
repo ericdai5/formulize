@@ -43,7 +43,6 @@ export const gravitationalPotential = `const config = {
     {
       type: "plot2d",
       id: "potentialEnergyPlot",
-      formulaId: "gravitational-potential",
       title: "Potential Energy vs. Height",
       xAxisVar: "h",
       xRange: [0, 100],
