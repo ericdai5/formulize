@@ -339,8 +339,11 @@ const buildAugmentedFormula = (
       return delimited;
     }
     case "op":
-      if (katexTree.symbol) {
-        return new Op(id, katexTree.name, katexTree.limits);
+      // Handle both symbol operators (like \sum) and function operators (like \sin, \cos, \tan)
+      // Symbol operators have symbol: true, function operators have symbol: false
+      // Both types have a 'name' property with the operator/function name
+      if ("name" in katexTree) {
+        return new Op(id, katexTree.name as string, katexTree.limits || false);
       }
       break;
     case "sqrt": {
@@ -2502,6 +2505,11 @@ const findMatchingSubsequences = (
     endIndex: number;
     nodes: AugmentedFormulaNode[];
   }[] = [];
+
+  // Handle edge case: empty pattern
+  if (patternChildren.length === 0) {
+    return matches; // Return empty matches for empty pattern
+  }
 
   // Try to find the pattern starting at each position
   for (let i = 0; i <= children.length - patternChildren.length; i++) {
