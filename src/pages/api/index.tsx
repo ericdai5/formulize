@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
@@ -16,6 +16,7 @@ export default function APIPage() {
     keyof typeof formulaExamples | undefined
   >("kinetic2D");
   const [code, setCode] = useState<string>("");
+  const codeByTemplateRef = useRef<Record<string, string>>({});
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<FormulizeConfig | null>(null);
@@ -43,16 +44,30 @@ export default function APIPage() {
     if (selectedTemplate && formulaExamples[selectedTemplate]) {
       // Reset execution store when switching templates
       executionStore.reset();
-      const newFormula = formulaExamples[selectedTemplate];
+
+      // Check if we have saved code for this template, otherwise use the default example
+      const savedCode = codeByTemplateRef.current[selectedTemplate];
+      const newFormula = savedCode || formulaExamples[selectedTemplate];
+
       setCode(newFormula);
-      executeCode(newFormula);
     }
-  }, [selectedTemplate, executeCode]);
+  }, [selectedTemplate]);
 
   // Execute code when code changes
   useEffect(() => {
     executeCode(code);
   }, [code, executeCode]);
+
+  // Save code changes for the current template
+  const handleCodeChange = useCallback((newCode: string) => {
+    setCode(newCode);
+    if (selectedTemplate) {
+      codeByTemplateRef.current = {
+        ...codeByTemplateRef.current,
+        [selectedTemplate]: newCode
+      };
+    }
+  }, [selectedTemplate]);
 
   return (
     <div className="relative h-full flex">
@@ -72,7 +87,7 @@ export default function APIPage() {
           <div className="flex-1 min-h-0 overflow-hidden">
             <Editor
               code={code}
-              onChange={setCode}
+              onChange={handleCodeChange}
               onRender={() => {}}
               error={error}
             />

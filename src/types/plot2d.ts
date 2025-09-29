@@ -8,6 +8,13 @@ export interface IVector {
   name?: string;
   draggable?: boolean;
   showlegend?: boolean;
+  // Optional on-canvas label configuration
+  label?: string;
+  labelPosition?: "start" | "mid" | "end";
+  labelOffsetX?: number;
+  labelOffsetY?: number;
+  labelColor?: string;
+  labelFontSize?: number;
 }
 
 export interface ILine {

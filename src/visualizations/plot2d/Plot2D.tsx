@@ -12,7 +12,7 @@ import { PLOT2D_DEFAULTS } from "./defaults";
 import { updateHoverLines } from "./hover-lines";
 import { renderLines } from "./lines";
 import { calculatePlotDimensions, getVariableLabel } from "./utils";
-import { renderVectors } from "./vectors";
+import { renderVectors, getAllVectorVariables } from "./vectors";
 
 interface Plot2DProps {
   config: IPlot2D;
@@ -74,6 +74,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     const xScale = d3.scaleLinear().domain([xMin, xMax]).range([0, plotWidth]);
     const yScale = d3.scaleLinear().domain([yMin, yMax]).range([plotHeight, 0]);
 
+    // Get vector variables for enhanced axis hovering
+    const vectorVars = hasVectors && vectors ? getAllVectorVariables(vectors) : { allXVariables: [], allYVariables: [] };
+
     // Add axes using helper function
     addAxes(svg, {
       xScale,
@@ -87,6 +90,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       yAxisVar: hasLines ? yAxisVar : undefined,
       xAxisVarHovered: hasLines && xAxisVar ? computationStore.variables.get(xAxisVar)?.hover || false : false,
       yAxisVarHovered: hasLines && yAxisVar ? computationStore.variables.get(yAxisVar)?.hover || false : false,
+      allXVariables: vectorVars.allXVariables,
+      allYVariables: vectorVars.allYVariables,
     });
 
     // Add grid using helper function

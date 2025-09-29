@@ -15,6 +15,9 @@ export interface AxisConfig {
   xAxisVarHovered?: boolean;
   yAxisVarHovered?: boolean;
   tickFontSize?: number;
+  // Vector variables for enhanced axis hovering
+  allXVariables?: string[];
+  allYVariables?: string[];
 }
 
 /**
@@ -37,6 +40,8 @@ export function addAxes(
     xAxisVarHovered = false,
     yAxisVarHovered = false,
     tickFontSize = 12,
+    allXVariables = [],
+    allYVariables = [],
   } = config;
 
   // Add X axis
@@ -97,16 +102,30 @@ export function addAxes(
         .attr("height", xLabelBBox.height + 2 * padding);
     }
 
-    // Add hover functionality if xAxisVar is provided
-    if (xAxisVar) {
+    // Add hover functionality for X axis (always register handlers when xAxisVar exists)
+    if (xAxisVar || allXVariables.length > 0) {
       xLabelGroup
         .on("mouseenter", () => {
           xLabelBg.attr("opacity", 1);
-          computationStore.setVariableHover(xAxisVar, true);
+          // Highlight the axis variable if it exists
+          if (xAxisVar) {
+            computationStore.setVariableHover(xAxisVar, true);
+          }
+          // Highlight all X components of vectors
+          allXVariables.forEach(varId => {
+            computationStore.setVariableHover(varId, true);
+          });
         })
         .on("mouseleave", () => {
           xLabelBg.attr("opacity", 0);
-          computationStore.setVariableHover(xAxisVar, false);
+          // Clear axis variable hover if it exists
+          if (xAxisVar) {
+            computationStore.setVariableHover(xAxisVar, false);
+          }
+          // Clear all X components of vectors
+          allXVariables.forEach(varId => {
+            computationStore.setVariableHover(varId, false);
+          });
         });
     }
   }
@@ -169,16 +188,30 @@ export function addAxes(
         .attr("height", yLabelBBox.width + 2 * padding);
     }
 
-    // Add hover functionality if yAxisVar is provided
-    if (yAxisVar) {
+    // Add hover functionality for Y axis (always register handlers when yAxisVar exists)
+    if (yAxisVar || allYVariables.length > 0) {
       yLabelGroup
         .on("mouseenter", () => {
           yLabelBg.attr("opacity", 1);
-          computationStore.setVariableHover(yAxisVar, true);
+          // Highlight the axis variable if it exists
+          if (yAxisVar) {
+            computationStore.setVariableHover(yAxisVar, true);
+          }
+          // Highlight all Y components of vectors
+          allYVariables.forEach(varId => {
+            computationStore.setVariableHover(varId, true);
+          });
         })
         .on("mouseleave", () => {
           yLabelBg.attr("opacity", 0);
-          computationStore.setVariableHover(yAxisVar, false);
+          // Clear axis variable hover if it exists
+          if (yAxisVar) {
+            computationStore.setVariableHover(yAxisVar, false);
+          }
+          // Clear all Y components of vectors
+          allYVariables.forEach(varId => {
+            computationStore.setVariableHover(varId, false);
+          });
         });
     }
   }
