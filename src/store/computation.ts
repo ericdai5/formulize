@@ -19,7 +19,11 @@ export type EvaluationFunction = (
 
 class ComputationStore {
   @observable
-  accessor variables = new Map<string, IVariable & { hover: boolean }>();
+  accessor variables = new Map<string, IVariable>();
+
+  // Observable hover state - only components observing specific keys will re-render
+  @observable
+  accessor hoverStates = new Map<string, boolean>();
 
   @observable
   accessor lastGeneratedCode: string | null = null;
@@ -232,10 +236,26 @@ class ComputationStore {
 
   @action
   setVariableHover(id: string, hover: boolean) {
-    const variable = this.variables.get(id);
-    if (variable) {
-      variable.hover = hover;
-    }
+    this.hoverStates.set(id, hover);
+    // Manually trigger DOM updates for hover state in formulas
+    // Formula nodes use MathJax to render variables
+    // MathJax creates DOM elements with IDs like "var1", "var2", etc.
+    // We need to manually trigger DOM updates for hover state in formulas
+    // If we make Formula Node React to Hover Changes, it would
+    // cause unnecessary re-renders of the entire formula (which is
+    // expensive with MathJax) just for hover effects.
+    const latexElements = document.querySelectorAll(`#${CSS.escape(id)}`);
+    latexElements.forEach((element) => {
+      if (hover) {
+        element.classList.add("interactive-var-hovered");
+      } else {
+        element.classList.remove("interactive-var-hovered");
+      }
+    });
+  }
+
+  getVariableHover(id: string): boolean {
+    return this.hoverStates.get(id) ?? false;
   }
 
   @observable
@@ -453,7 +473,6 @@ class ComputationStore {
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
         labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
-        hover: false,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable
