@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
@@ -16,7 +16,7 @@ export default function APIPage() {
     keyof typeof formulaExamples | undefined
   >("kinetic2D");
   const [code, setCode] = useState<string>("");
-  const [codeByTemplate, setCodeByTemplate] = useState<Record<string, string>>({});
+  const codeByTemplateRef = useRef<Record<string, string>>({});
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<FormulizeConfig | null>(null);
@@ -44,15 +44,14 @@ export default function APIPage() {
     if (selectedTemplate && formulaExamples[selectedTemplate]) {
       // Reset execution store when switching templates
       executionStore.reset();
-      
+
       // Check if we have saved code for this template, otherwise use the default example
-      const savedCode = codeByTemplate[selectedTemplate];
+      const savedCode = codeByTemplateRef.current[selectedTemplate];
       const newFormula = savedCode || formulaExamples[selectedTemplate];
-      
+
       setCode(newFormula);
-      executeCode(newFormula);
     }
-  }, [selectedTemplate, executeCode, codeByTemplate]);
+  }, [selectedTemplate]);
 
   // Execute code when code changes
   useEffect(() => {
@@ -63,10 +62,10 @@ export default function APIPage() {
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
     if (selectedTemplate) {
-      setCodeByTemplate(prev => ({
-        ...prev,
+      codeByTemplateRef.current = {
+        ...codeByTemplateRef.current,
         [selectedTemplate]: newCode
-      }));
+      };
     }
   }, [selectedTemplate]);
 
