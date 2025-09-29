@@ -92,7 +92,17 @@ export function renderVector(
     .x((d) => xScale(d.x))
     .y((d) => yScale(d.y));
 
-  // Add the path
+  // Add invisible wider hover area for easier interaction
+  const hoverPath = svg
+    .append("path")
+    .datum(vectorData)
+    .attr("fill", "none")
+    .attr("stroke", "transparent")
+    .attr("stroke-width", Math.max(20, (vector.lineWidth || VECTOR_DEFAULTS.lineWidth) * 4)) // Much wider hover area
+    .attr("d", line)
+    .style("cursor", "pointer");
+
+  // Add the visible path
   const path = svg
     .append("path")
     .datum(vectorData)
@@ -104,7 +114,98 @@ export function renderVector(
       "marker-end",
       shape === "arrow" ? getMarkerUrl(`arrowhead-${vectorIndex}`) : "none"
     )
-    .attr("d", line);
+    .attr("d", line)
+    .style("pointer-events", "none"); // Disable pointer events on visible path
+
+  // Add hover functionality to the invisible wider path
+  const { xAxisVars, yAxisVars } = getVariableNames(vector);
+  const allVectorVars = [...xAxisVars, ...yAxisVars];
+
+  hoverPath
+    .on("mouseenter", function() {
+      // Highlight the visible vector
+      path
+        .attr("stroke-width", (vector.lineWidth || VECTOR_DEFAULTS.lineWidth) + 2)
+        .attr("opacity", 0.8);
+      
+      // Set hover state for all variables in this vector
+      allVectorVars.forEach(varId => {
+        computationStore.setVariableHover(varId, true);
+      });
+    })
+    .on("mouseleave", function() {
+      // Reset the visible vector appearance
+      path
+        .attr("stroke-width", vector.lineWidth || VECTOR_DEFAULTS.lineWidth)
+        .attr("opacity", 1);
+      
+      // Clear hover state for all variables in this vector
+      allVectorVars.forEach(varId => {
+        computationStore.setVariableHover(varId, false);
+      });
+    });
+
+  // Label rendering
+  if (vector.label) {
+    const position = vector.labelPosition ?? VECTOR_DEFAULTS.labelPosition;
+    const labelColor = vector.labelColor ?? VECTOR_DEFAULTS.labelColor ?? color;
+    const fontSize = vector.labelFontSize ?? VECTOR_DEFAULTS.labelFontSize;
+    const startPoint = vectorData[0];
+    const endPoint = vectorData[vectorData.length - 1];
+    
+    let point: VectorData;
+    let offsetX = vector.labelOffsetX ?? VECTOR_DEFAULTS.labelOffsetX;
+    let offsetY = vector.labelOffsetY ?? VECTOR_DEFAULTS.labelOffsetY;
+    
+    if (position === "start") {
+      point = startPoint;
+    } else if (position === "mid") {
+      // Calculate true midpoint between start and end
+      point = {
+        x: (startPoint.x + endPoint.x) / 2,
+        y: (startPoint.y + endPoint.y) / 2
+      };
+      
+      // Calculate normal vector for perpendicular positioning
+      const dx = endPoint.x - startPoint.x;
+      const dy = endPoint.y - startPoint.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      
+      if (length > 0) {
+        // Normalize the vector
+        const unitX = dx / length;
+        const unitY = dy / length;
+        
+        // Calculate perpendicular vector (rotate 90 degrees counterclockwise)
+        const normalX = -unitY;
+        const normalY = unitX;
+        
+        // Use a fixed offset distance in data coordinates
+        // Convert screen offset to data offset by using the scale
+        const screenOffsetDistance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+        const dataOffsetDistance = screenOffsetDistance / Math.min(
+          Math.abs(xScale(1) - xScale(0)),
+          Math.abs(yScale(1) - yScale(0))
+        );
+        
+        offsetX = normalX * dataOffsetDistance;
+        offsetY = normalY * dataOffsetDistance;
+      }
+    } else {
+      point = endPoint;
+    }
+
+    svg
+      .append("text")
+      .attr("class", `vector-label-${vectorIndex}`)
+      .attr("x", xScale(point.x + offsetX))
+      .attr("y", yScale(point.y + offsetY))
+      .attr("fill", labelColor)
+      .attr("font-size", fontSize)
+      .attr("dominant-baseline", "middle")
+      .attr("text-anchor", "start")
+      .text(vector.label);
+  }
 
   // Add drag behavior for arrows
   if (isDraggable && vectorData.length >= 2) {
@@ -120,7 +221,19 @@ export function renderVector(
       .attr("r", 8)
       .attr("fill", "transparent")
       .attr("stroke", "none")
-      .style("cursor", "move");
+      .style("cursor", "move")
+      .on("mouseenter", function() {
+        // Set hover state for all variables in this vector
+        allVectorVars.forEach(varId => {
+          computationStore.setVariableHover(varId, true);
+        });
+      })
+      .on("mouseleave", function() {
+        // Clear hover state for all variables in this vector
+        allVectorVars.forEach(varId => {
+          computationStore.setVariableHover(varId, false);
+        });
+      });
 
     // Add drag behavior
     let currentTipX = tipData.x;
@@ -193,6 +306,57 @@ export function renderVector(
 
         path.datum(updatedVectorData).attr("d", line);
 
+        // If a label exists, update its position while dragging
+        if (vector.label) {
+          const pos = vector.labelPosition ?? VECTOR_DEFAULTS.labelPosition;
+          const labelSelection = svg.select<SVGTextElement>(`text.vector-label-${vectorIndex}`);
+          if (!labelSelection.empty()) {
+            if (pos === "end") {
+              const offsetX = vector.labelOffsetX ?? VECTOR_DEFAULTS.labelOffsetX;
+              const offsetY = vector.labelOffsetY ?? VECTOR_DEFAULTS.labelOffsetY;
+              labelSelection
+                .attr("x", xScale(currentTipX) + offsetX)
+                .attr("y", yScale(currentTipY) + offsetY);
+            } else if (pos === "mid") {
+              const startPoint = vectorData[0];
+              const midX = (startPoint.x + currentTipX) / 2;
+              const midY = (startPoint.y + currentTipY) / 2;
+              
+              // Calculate normal vector for perpendicular positioning
+              const dx = currentTipX - startPoint.x;
+              const dy = currentTipY - startPoint.y;
+              const length = Math.sqrt(dx * dx + dy * dy);
+              
+              let offsetX = vector.labelOffsetX ?? VECTOR_DEFAULTS.labelOffsetX;
+              let offsetY = vector.labelOffsetY ?? VECTOR_DEFAULTS.labelOffsetY;
+              
+              if (length > 0) {
+                // Normalize the vector
+                const unitX = dx / length;
+                const unitY = dy / length;
+                
+                // Calculate perpendicular vector (rotate 90 degrees counterclockwise)
+                const normalX = -unitY;
+                const normalY = unitX;
+                
+                // Use a fixed offset distance in data coordinates
+                const screenOffsetDistance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+                const dataOffsetDistance = screenOffsetDistance / Math.min(
+                  Math.abs(xScale(1) - xScale(0)),
+                  Math.abs(yScale(1) - yScale(0))
+                );
+                
+                offsetX = normalX * dataOffsetDistance;
+                offsetY = normalY * dataOffsetDistance;
+              }
+              
+              labelSelection
+                .attr("x", xScale(midX + offsetX))
+                .attr("y", yScale(midY + offsetY));
+            } // start position does not move when dragging the tip
+          }
+        }
+
         // Update variables with new tip position
         if (xAxisVars.length > 0 && yAxisVars.length > 0) {
           const endxAxisVar = xAxisVars[xAxisVars.length - 1];
@@ -221,6 +385,25 @@ export function renderVector(
 
     dragHandle.call(drag);
   }
+}
+
+/**
+ * Collects all X and Y variable names from all vectors
+ */
+export function getAllVectorVariables(vectors: IVector[]): {
+  allXVariables: string[];
+  allYVariables: string[];
+} {
+  const allXVariables: string[] = [];
+  const allYVariables: string[] = [];
+  
+  vectors.forEach(vector => {
+    const { xAxisVars, yAxisVars } = getVariableNames(vector);
+    allXVariables.push(...xAxisVars);
+    allYVariables.push(...yAxisVars);
+  });
+  
+  return { allXVariables, allYVariables };
 }
 
 /**

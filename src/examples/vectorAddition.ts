@@ -92,7 +92,9 @@ export const vectorAddition = `const config = {
           name: "Vector A",
           color: "blue",
           lineWidth: 2,
-          markerSize: 3
+          markerSize: 3,
+          label: "A",
+          labelPosition: "mid"
         },
         {
           shape: "arrow",
@@ -101,7 +103,9 @@ export const vectorAddition = `const config = {
           name: "Vector B",
           color: "green",
           lineWidth: 2,
-          markerSize: 3
+          markerSize: 3,
+          label: "B",
+          labelPosition: "mid"
         },
         {
           shape: "point",
