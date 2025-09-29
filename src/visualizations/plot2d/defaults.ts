@@ -16,4 +16,10 @@ export const VECTOR_DEFAULTS = {
   markerSize: 4,
   draggable: true,
   showlegend: true,
+  // Label defaults (only used when label is explicitly provided)
+  labelPosition: "mid" as const,
+  labelOffsetX: 12,
+  labelOffsetY: -12,
+  labelColor: undefined, // Will inherit vector color
+  labelFontSize: 12,
 } as const;
