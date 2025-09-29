@@ -11,8 +11,18 @@ import { dragHandler } from "../interaction/drag-handler";
 import { dropdownHandler } from "../interaction/dropdown-handler";
 import { stepHandler } from "../interaction/step-handler";
 
+interface FormulaNodeData {
+  latex: string;
+  environment?: {
+    fontSize?: number;
+    computation?: {
+      mode?: string;
+    };
+  };
+}
+
 // Custom Formula Node Component
-const FormulaNode = observer(({ data }: { data: any }) => {
+const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -119,35 +129,6 @@ const FormulaNode = observer(({ data }: { data: any }) => {
     );
     return () => disposer();
   }, [isInitialized, renderFormula]);
-
-  // Simple hover reaction to update DOM elements
-  useEffect(() => {
-    const hoverDisposers: (() => void)[] = [];
-
-    computationStore.variables.forEach((variable, varId) => {
-      const disposer = reaction(
-        () => variable.hover,
-        (isHovered) => {
-          // Update LaTeX elements
-          const latexElements = document.querySelectorAll(
-            `#${CSS.escape(varId)}`
-          );
-          latexElements.forEach((element) => {
-            if (isHovered) {
-              element.classList.add("interactive-var-hovered");
-            } else {
-              element.classList.remove("interactive-var-hovered");
-            }
-          });
-        }
-      );
-      hoverDisposers.push(disposer);
-    });
-
-    return () => {
-      hoverDisposers.forEach((dispose) => dispose());
-    };
-  }, [isInitialized]);
 
   return (
     <div
