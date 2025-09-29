@@ -11,6 +11,17 @@ export interface LabelNodeData {
   varId: string;
 }
 
+// Static styles to prevent re-renders
+// In React, when you pass an inline object (like style={{...}}), a new object
+// reference is created each time, causing React to think the props changed and
+// triggering a re-render.
+const HANDLE_STYLE = {
+  opacity: 0,
+  pointerEvents: "none" as const,
+  width: 1,
+  height: 1,
+};
+
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId } = data;
 
@@ -116,24 +127,14 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         type="source"
         position={Position.Top}
         id="label-handle-above"
-        style={{
-          opacity: 0,
-          pointerEvents: "none",
-          width: 1,
-          height: 1,
-        }}
+        style={HANDLE_STYLE}
       />
       {/* Handle for edges to variable nodes positioned below - hidden */}
       <Handle
         type="source"
         position={Position.Bottom}
         id="label-handle-below"
-        style={{
-          opacity: 0,
-          pointerEvents: "none",
-          width: 1,
-          height: 1,
-        }}
+        style={HANDLE_STYLE}
       />
     </div>
   );
