@@ -16,7 +16,8 @@ export interface HoverLinesConfig {
  * Adds or updates hover lines for x/y variables
  */
 export function updateHoverLines(config: HoverLinesConfig): void {
-  const { svg, xScale, yScale, plotWidth, plotHeight, xAxisVar, yAxisVar } = config;
+  const { svg, xScale, yScale, plotWidth, plotHeight, xAxisVar, yAxisVar } =
+    config;
 
   // Remove existing hover lines
   svg.selectAll(".hover-line").remove();
@@ -24,7 +25,10 @@ export function updateHoverLines(config: HoverLinesConfig): void {
   // Add vertical line for x variable if hovered
   if (xAxisVar) {
     const xAxisVariable = computationStore.variables.get(xAxisVar);
-    if (xAxisVariable?.hover && xAxisVariable.value !== undefined) {
+    if (
+      xAxisVariable?.value !== undefined &&
+      computationStore.hoverStates.get(xAxisVar)
+    ) {
       const xPos = xScale(xAxisVariable.value);
 
       svg
@@ -44,7 +48,10 @@ export function updateHoverLines(config: HoverLinesConfig): void {
   // Add horizontal line for y variable if hovered
   if (yAxisVar) {
     const yAxisVariable = computationStore.variables.get(yAxisVar);
-    if (yAxisVariable?.hover && yAxisVariable.value !== undefined) {
+    if (
+      yAxisVariable?.value !== undefined &&
+      computationStore.hoverStates.get(yAxisVar)
+    ) {
       const yPos = yScale(yAxisVariable.value);
 
       svg
