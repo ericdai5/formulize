@@ -102,8 +102,8 @@ export function addAxes(
         .attr("height", xLabelBBox.height + 2 * padding);
     }
 
-    // Add hover functionality for X axis (always add if we have X variables to highlight)
-    if (allXVariables.length > 0) {
+    // Add hover functionality for X axis (always register handlers when xAxisVar exists)
+    if (xAxisVar || allXVariables.length > 0) {
       xLabelGroup
         .on("mouseenter", () => {
           xLabelBg.attr("opacity", 1);
@@ -188,8 +188,8 @@ export function addAxes(
         .attr("height", yLabelBBox.width + 2 * padding);
     }
 
-    // Add hover functionality for Y axis (always add if we have Y variables to highlight)
-    if (allYVariables.length > 0) {
+    // Add hover functionality for Y axis (always register handlers when yAxisVar exists)
+    if (yAxisVar || allYVariables.length > 0) {
       yLabelGroup
         .on("mouseenter", () => {
           yLabelBg.attr("opacity", 1);
