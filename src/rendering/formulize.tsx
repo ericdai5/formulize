@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 
 import Toolbar from "../components/debug-toolbar.tsx";
-import EvaluationFunctionPane from "../components/evaluation-function";
+// import EvaluationFunctionPane from "../components/evaluation-function";
 import { FormulaTreePane } from "../components/formula-tree-pane.tsx";
 import DebugModal from "../components/interpreter.tsx";
 import Modal from "../components/modal.tsx";
@@ -25,8 +25,8 @@ const FormulaCanvas = observer(
     );
     const [error, setError] = useState<string | null>(null);
     const [showStoreModal, setShowStoreModal] = useState<boolean>(false);
-    const [showEvaluationModal, setShowEvaluationModal] =
-      useState<boolean>(false);
+    // const [showEvaluationModal, setShowEvaluationModal] =
+    //   useState<boolean>(false);
     const [showElementPane, setShowElementPane] = useState<boolean>(false);
     const [showVariableTreePane, setShowVariableTreePane] =
       useState<boolean>(false);
@@ -40,7 +40,7 @@ const FormulaCanvas = observer(
     useEffect(() => {
       if (formulizeConfig) {
         setCurrentConfig(formulizeConfig);
-        setConfigKey(prev => prev + 1);
+        setConfigKey((prev) => prev + 1);
       } else {
         setCurrentConfig(null);
       }
@@ -52,12 +52,13 @@ const FormulaCanvas = observer(
         const createFormula = async () => {
           try {
             setError(null);
-            
+
             // Update computation engine if specified
             if (currentConfig.computation?.engine) {
-              computationStore.computationEngine = currentConfig.computation.engine;
+              computationStore.computationEngine =
+                currentConfig.computation.engine;
             }
-            
+
             // Create the formula with the config
             await Formulize.create(currentConfig);
           } catch (error) {
@@ -66,7 +67,7 @@ const FormulaCanvas = observer(
             setError(errorMessage);
           }
         };
-        
+
         createFormula();
       } else {
         setError(null);
@@ -92,15 +93,15 @@ const FormulaCanvas = observer(
       setShowStoreModal(true);
     };
 
-    const handleOpenEvaluationModal = () => {
-      setShowEvaluationModal(true);
-    };
+    // const handleOpenEvaluationModal = () => {
+    //   setShowEvaluationModal(true);
+    // };
 
     return (
       <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
         <div className="flex flex-col w-full h-full relative">
           <Toolbar
-            onOpenEvaluationModal={handleOpenEvaluationModal}
+            // onOpenEvaluationModal={handleOpenEvaluationModal}
             onShowElementPane={() => setShowElementPane(true)}
             onShowVariableTreePane={() => setShowVariableTreePane(true)}
             onShowDebugModal={() => setShowDebugModal(true)}
@@ -143,14 +144,14 @@ const FormulaCanvas = observer(
           <VariableTreesPane config={currentConfig} />
         </Modal>
         {/* Evaluation Modal */}
-        <Modal
+        {/* <Modal
           isOpen={showEvaluationModal}
           onClose={() => setShowEvaluationModal(false)}
           title="Evaluation Function"
           maxWidth="max-w-4xl"
         >
           <EvaluationFunctionPane className="h-full" />
-        </Modal>
+        </Modal> */}
         {/* Store Modal */}
         <Modal
           isOpen={showStoreModal}

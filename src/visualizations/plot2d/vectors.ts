@@ -157,8 +157,26 @@ export function renderVector(
     let offsetX = vector.labelOffsetX ?? VECTOR_DEFAULTS.labelOffsetX;
     let offsetY = vector.labelOffsetY ?? VECTOR_DEFAULTS.labelOffsetY;
     
+    // Base direction from start to end for computing the normal
+    const baseDx = endPoint.x - startPoint.x;
+    const baseDy = endPoint.y - startPoint.y;
+    const baseLen = Math.sqrt(baseDx * baseDx + baseDy * baseDy);
+    
     if (position === "start") {
       point = startPoint;
+      if (baseLen > 0) {
+        const unitX = baseDx / baseLen;
+        const unitY = baseDy / baseLen;
+        const normalX = -unitY;
+        const normalY = unitX;
+        const screenOffsetDistance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+        const dataOffsetDistance = screenOffsetDistance / Math.min(
+          Math.abs(xScale(1) - xScale(0)),
+          Math.abs(yScale(1) - yScale(0))
+        );
+        offsetX = normalX * dataOffsetDistance;
+        offsetY = normalY * dataOffsetDistance;
+      }
     } else if (position === "mid") {
       // Calculate true midpoint between start and end
       point = {
@@ -166,33 +184,36 @@ export function renderVector(
         y: (startPoint.y + endPoint.y) / 2
       };
       
-      // Calculate normal vector for perpendicular positioning
-      const dx = endPoint.x - startPoint.x;
-      const dy = endPoint.y - startPoint.y;
-      const length = Math.sqrt(dx * dx + dy * dy);
-      
-      if (length > 0) {
-        // Normalize the vector
-        const unitX = dx / length;
-        const unitY = dy / length;
-        
-        // Calculate perpendicular vector (rotate 90 degrees counterclockwise)
+      // Calculate normal vector for perpendicular positioning (use base direction)
+      if (baseLen > 0) {
+        const unitX = baseDx / baseLen;
+        const unitY = baseDy / baseLen;
         const normalX = -unitY;
         const normalY = unitX;
-        
-        // Use a fixed offset distance in data coordinates
-        // Convert screen offset to data offset by using the scale
         const screenOffsetDistance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
         const dataOffsetDistance = screenOffsetDistance / Math.min(
           Math.abs(xScale(1) - xScale(0)),
           Math.abs(yScale(1) - yScale(0))
         );
-        
         offsetX = normalX * dataOffsetDistance;
         offsetY = normalY * dataOffsetDistance;
       }
     } else {
+      // end
       point = endPoint;
+      if (baseLen > 0) {
+        const unitX = baseDx / baseLen;
+        const unitY = baseDy / baseLen;
+        const normalX = -unitY;
+        const normalY = unitX;
+        const screenOffsetDistance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+        const dataOffsetDistance = screenOffsetDistance / Math.min(
+          Math.abs(xScale(1) - xScale(0)),
+          Math.abs(yScale(1) - yScale(0))
+        );
+        offsetX = normalX * dataOffsetDistance;
+        offsetY = normalY * dataOffsetDistance;
+      }
     }
 
     svg
@@ -312,11 +333,29 @@ export function renderVector(
           const labelSelection = svg.select<SVGTextElement>(`text.vector-label-${vectorIndex}`);
           if (!labelSelection.empty()) {
             if (pos === "end") {
-              const offsetX = vector.labelOffsetX ?? VECTOR_DEFAULTS.labelOffsetX;
-              const offsetY = vector.labelOffsetY ?? VECTOR_DEFAULTS.labelOffsetY;
+              // Perpendicular offset at the tip during drag
+              const startPoint = vectorData[0];
+              const dx = currentTipX - startPoint.x;
+              const dy = currentTipY - startPoint.y;
+              const length = Math.sqrt(dx * dx + dy * dy);
+              let offsetX = vector.labelOffsetX ?? VECTOR_DEFAULTS.labelOffsetX;
+              let offsetY = vector.labelOffsetY ?? VECTOR_DEFAULTS.labelOffsetY;
+              if (length > 0) {
+                const unitX = dx / length;
+                const unitY = dy / length;
+                const normalX = -unitY;
+                const normalY = unitX;
+                const screenOffsetDistance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+                const dataOffsetDistance = screenOffsetDistance / Math.min(
+                  Math.abs(xScale(1) - xScale(0)),
+                  Math.abs(yScale(1) - yScale(0))
+                );
+                offsetX = normalX * dataOffsetDistance;
+                offsetY = normalY * dataOffsetDistance;
+              }
               labelSelection
-                .attr("x", xScale(currentTipX) + offsetX)
-                .attr("y", yScale(currentTipY) + offsetY);
+                .attr("x", xScale(currentTipX + offsetX))
+                .attr("y", yScale(currentTipY + offsetY));
             } else if (pos === "mid") {
               const startPoint = vectorData[0];
               const midX = (startPoint.x + currentTipX) / 2;

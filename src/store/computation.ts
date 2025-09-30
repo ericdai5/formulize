@@ -19,7 +19,11 @@ export type EvaluationFunction = (
 
 class ComputationStore {
   @observable
-  accessor variables = new Map<string, IVariable & { hover: boolean }>();
+  accessor variables = new Map<string, IVariable>();
+
+  // Observable hover state - only components observing specific keys will re-render
+  @observable
+  accessor hoverStates = new Map<string, boolean>();
 
   @observable
   accessor lastGeneratedCode: string | null = null;
@@ -124,6 +128,7 @@ class ComputationStore {
   @action
   reset() {
     this.variables.clear();
+    this.hoverStates.clear();
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
@@ -232,10 +237,11 @@ class ComputationStore {
 
   @action
   setVariableHover(id: string, hover: boolean) {
-    const variable = this.variables.get(id);
-    if (variable) {
-      variable.hover = hover;
-    }
+    this.hoverStates.set(id, hover);
+  }
+
+  getVariableHover(id: string): boolean {
+    return this.hoverStates.get(id) ?? false;
   }
 
   @observable
@@ -453,7 +459,6 @@ class ComputationStore {
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
         labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
-        hover: false,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable

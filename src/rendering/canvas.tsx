@@ -816,16 +816,25 @@ const CanvasFlow = observer(
                 const variableNode = variableNodes.get(nodeId);
 
                 if (variableNode) {
-                  // Update existing node position and dimensions only
-                  updatedNodes.push({
-                    ...variableNode,
-                    position,
-                    data: {
-                      ...variableNode.data,
-                      width: dimensions.width,
-                      height: dimensions.height,
-                    },
-                  });
+                  // Check if position or dimensions actually changed
+                  const positionChanged =
+                    variableNode.position.x !== position.x ||
+                    variableNode.position.y !== position.y;
+                  const dimensionsChanged =
+                    variableNode.data.width !== dimensions.width ||
+                    variableNode.data.height !== dimensions.height;
+                  // Only add to updated nodes if something actually changed
+                  if (positionChanged || dimensionsChanged) {
+                    updatedNodes.push({
+                      ...variableNode,
+                      position,
+                      data: {
+                        ...variableNode.data,
+                        width: dimensions.width,
+                        height: dimensions.height,
+                      },
+                    });
+                  }
                 } else {
                   // Create new node
                   newNodes.push({
@@ -850,34 +859,45 @@ const CanvasFlow = observer(
             );
           });
 
-          // Update the nodes state with variable changes only
-          setNodes((currentNodes) => {
-            // Keep non-variable nodes
-            const nonVariableNodes = currentNodes.filter(
-              (node) => !node.id.startsWith("variable-")
-            );
-
-            // Keep variable nodes that are still found in the DOM
-            const keptVariableNodes = currentNodes.filter(
+          // Check if there are actually any changes before updating
+          const hasChanges =
+            updatedNodes.length > 0 ||
+            newNodes.length > 0 ||
+            currentNodes.some(
               (node) =>
-                node.id.startsWith("variable-") && foundNodeIds.has(node.id)
+                node.id.startsWith("variable-") && !foundNodeIds.has(node.id)
             );
 
-            // Apply updates to kept variable nodes
-            const finalVariableNodes = keptVariableNodes.map((node) => {
-              const update = updatedNodes.find((u) => u.id === node.id);
-              return update || node;
+          // Only update nodes if there are actual changes
+          if (hasChanges) {
+            setNodes((currentNodes) => {
+              // Keep non-variable nodes
+              const nonVariableNodes = currentNodes.filter(
+                (node) => !node.id.startsWith("variable-")
+              );
+
+              // Keep variable nodes that are still found in the DOM
+              const keptVariableNodes = currentNodes.filter(
+                (node) =>
+                  node.id.startsWith("variable-") && foundNodeIds.has(node.id)
+              );
+
+              // Apply updates to kept variable nodes
+              const finalVariableNodes = keptVariableNodes.map((node) => {
+                const update = updatedNodes.find((u) => u.id === node.id);
+                return update || node;
+              });
+
+              // Combine all nodes
+              const finalNodeList = [
+                ...nonVariableNodes,
+                ...finalVariableNodes,
+                ...newNodes,
+              ];
+
+              return finalNodeList;
             });
-
-            // Combine all nodes
-            const finalNodeList = [
-              ...nonVariableNodes,
-              ...finalVariableNodes,
-              ...newNodes,
-            ];
-
-            return finalNodeList;
-          });
+          }
 
           // Mark that variable nodes have been added if we have any
           if (foundNodeIds.size > 0) {
@@ -1010,7 +1030,6 @@ const CanvasFlow = observer(
               id,
               value: variable.value,
               precision: variable.precision || 2,
-              hover: variable.hover,
             })
           ),
         () => {

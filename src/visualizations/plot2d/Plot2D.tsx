@@ -12,7 +12,7 @@ import { PLOT2D_DEFAULTS } from "./defaults";
 import { updateHoverLines } from "./hover-lines";
 import { renderLines } from "./lines";
 import { calculatePlotDimensions, getVariableLabel } from "./utils";
-import { renderVectors, getAllVectorVariables } from "./vectors";
+import { getAllVectorVariables, renderVectors } from "./vectors";
 
 interface Plot2DProps {
   config: IPlot2D;
@@ -75,7 +75,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     const yScale = d3.scaleLinear().domain([yMin, yMax]).range([plotHeight, 0]);
 
     // Get vector variables for enhanced axis hovering
-    const vectorVars = hasVectors && vectors ? getAllVectorVariables(vectors) : { allXVariables: [], allYVariables: [] };
+    const vectorVars =
+      hasVectors && vectors
+        ? getAllVectorVariables(vectors)
+        : { allXVariables: [], allYVariables: [] };
 
     // Add axes using helper function
     addAxes(svg, {
@@ -88,8 +91,14 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       yLabel: hasLines && yAxisVar ? getVariableLabel(yAxisVar) : "Y",
       xAxisVar: hasLines ? xAxisVar : undefined,
       yAxisVar: hasLines ? yAxisVar : undefined,
-      xAxisVarHovered: hasLines && xAxisVar ? computationStore.variables.get(xAxisVar)?.hover || false : false,
-      yAxisVarHovered: hasLines && yAxisVar ? computationStore.variables.get(yAxisVar)?.hover || false : false,
+      xAxisVarHovered:
+        hasLines && xAxisVar
+          ? computationStore.hoverStates.get(xAxisVar) || false
+          : false,
+      yAxisVarHovered:
+        hasLines && yAxisVar
+          ? computationStore.hoverStates.get(yAxisVar) || false
+          : false,
       allXVariables: vectorVars.allXVariables,
       allYVariables: vectorVars.allYVariables,
     });
@@ -170,7 +179,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         const allVariables: Record<string, number | boolean> = {};
         for (const [id, variable] of computationStore.variables.entries()) {
           allVariables[id] = variable.value ?? 0;
-          allVariables[`${id}_hover`] = variable.hover;
+          allVariables[`${id}_hover`] =
+            computationStore.hoverStates.get(id) || false;
         }
         return allVariables;
       },
