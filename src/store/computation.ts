@@ -128,6 +128,7 @@ class ComputationStore {
   @action
   reset() {
     this.variables.clear();
+    this.hoverStates.clear();
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
@@ -237,21 +238,6 @@ class ComputationStore {
   @action
   setVariableHover(id: string, hover: boolean) {
     this.hoverStates.set(id, hover);
-    // Manually trigger DOM updates for hover state in formulas
-    // Formula nodes use MathJax to render variables
-    // MathJax creates DOM elements with IDs like "var1", "var2", etc.
-    // We need to manually trigger DOM updates for hover state in formulas
-    // If we make Formula Node React to Hover Changes, it would
-    // cause unnecessary re-renders of the entire formula (which is
-    // expensive with MathJax) just for hover effects.
-    const latexElements = document.querySelectorAll(`#${CSS.escape(id)}`);
-    latexElements.forEach((element) => {
-      if (hover) {
-        element.classList.add("interactive-var-hovered");
-      } else {
-        element.classList.remove("interactive-var-hovered");
-      }
-    });
   }
 
   getVariableHover(id: string): boolean {

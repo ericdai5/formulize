@@ -7,9 +7,6 @@ import { GripHorizontal, GripVertical } from "lucide-react";
 
 import { processLatexContent } from "../../parse/variable";
 import { computationStore } from "../../store/computation";
-import { dragHandler } from "../interaction/drag-handler";
-import { dropdownHandler } from "../interaction/dropdown-handler";
-import { stepHandler } from "../interaction/step-handler";
 
 interface FormulaNodeData {
   latex: string;
@@ -84,20 +81,6 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
         console.warn("Container ref became null during async operations");
         return;
       }
-
-      // Set up interaction handlers
-      const expressionElement = formulaContainer.querySelector(
-        ".formula-expression"
-      );
-      if (expressionElement) {
-        dragHandler(expressionElement as HTMLElement);
-        const isStepMode = environment?.computation?.mode === "step";
-        if (isStepMode) {
-          stepHandler(expressionElement as HTMLElement);
-        } else {
-          dropdownHandler(expressionElement as HTMLElement);
-        }
-      }
     } catch (error) {
       console.error("Error rendering formula:", error);
     }
@@ -129,6 +112,27 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     );
     return () => disposer();
   }, [isInitialized, renderFormula]);
+
+  // React to hover state changes and update DOM directly
+  useEffect(() => {
+    const disposer = reaction(
+      () => Array.from(computationStore.hoverStates.entries()),
+      (hoverStates) => {
+        if (!nodeRef.current) return;
+        hoverStates.forEach(([varId, isHovered]) => {
+          const elements = nodeRef.current!.querySelectorAll(`#${varId}`);
+          elements.forEach((element) => {
+            if (isHovered) {
+              element.classList.add("interactive-var-hovered");
+            } else {
+              element.classList.remove("interactive-var-hovered");
+            }
+          });
+        });
+      }
+    );
+    return () => disposer();
+  }, []);
 
   return (
     <div
