@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Handle, Position } from "@xyflow/react";
 
 import LatexLabel from "../../components/latex";
+import SVGLabel from "../../components/svg-label";
 import { useVariableDrag } from "../../rendering/useVariableDrag";
 import { computationStore } from "../../store/computation";
 import { executionStore } from "../../store/execution";
@@ -55,21 +56,34 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   }
 
   // Determine what to display based on labelDisplay setting
-  let mainDisplayText = varId;
+  let mainDisplayText = varId; // default to name
+  let displayComponent: React.ReactNode = null;
+
   if (labelDisplay === "value") {
     if (value !== undefined && value !== null) {
       const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
       mainDisplayText = value.toFixed(displayPrecision);
+      displayComponent = <LatexLabel latex={mainDisplayText} />;
     } else {
       // If labelDisplay is "value" but no value is set, hide the label node
       return null;
     }
+  } else if (labelDisplay === "svg") {
+    // Render SVG instead of LaTeX
+    displayComponent = (
+      <SVGLabel
+        svgPath={variable?.svgPath}
+        svgContent={variable?.svgContent}
+        svgSize={variable?.svgSize}
+      />
+    );
+  } else {
+    // Default to name display
+    const displayLatex = indexDisplay
+      ? `${mainDisplayText}, ${indexDisplay}`
+      : mainDisplayText;
+    displayComponent = <LatexLabel latex={displayLatex} />;
   }
-
-  // Combine main display text and index display inline
-  const displayLatex = indexDisplay
-    ? `${mainDisplayText}, ${indexDisplay}`
-    : mainDisplayText;
 
   // Determine interactive variable styling based on variable type and context
   const getInteractiveClass = () => {
@@ -115,7 +129,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
             className={`${interactiveClass} ${isHovered ? "interactive-var-hovered" : ""}`}
             style={{ cursor: "ns-resize" }}
           >
-            <LatexLabel latex={displayLatex} />
+            {displayComponent}
           </div>
           {name && (
             <div className="text-xs text-slate-500 text-center">{name}</div>

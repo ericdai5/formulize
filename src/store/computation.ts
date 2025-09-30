@@ -459,6 +459,10 @@ class ComputationStore {
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
         labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
+        // SVG support
+        svgPath: variableDefinition?.svgPath,
+        svgContent: variableDefinition?.svgContent,
+        svgSize: variableDefinition?.svgSize,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable

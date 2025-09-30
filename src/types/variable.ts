@@ -21,8 +21,11 @@ export interface IVariable {
   key?: string;
   memberOf?: string;
   latexDisplay?: "name" | "value";
-  labelDisplay?: "name" | "value" | "none";
+  labelDisplay?: "name" | "value" | "svg" |"none";
   index?: string;
+  svgPath?: string;
+  svgContent?: string;
+  svgSize?: { width: number; height: number };
 }
 
 export interface IVariableInput {
