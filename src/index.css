@@ -28,14 +28,14 @@
   /* ------------------- Interactive variable styles ------------------- */
 
   .interactive-var-base {
-    @apply text-black;
+    @apply text-black cursor-default;
   }
   .interactive-var-dependent {
-    @apply interactive-var-base text-slate-600 rounded-md select-none transition-all duration-200;
+    @apply text-slate-600 rounded-md select-none transition-all duration-200 cursor-default;
   }
 
   .interactive-var-slidable {
-    @apply interactive-var-base text-blue-500 rounded-md select-none transition-all duration-200;
+    @apply text-blue-500 rounded-md select-none transition-all duration-200 cursor-ns-resize;
   }
 
   .interactive-var-slidable:active {

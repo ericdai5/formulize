@@ -2,22 +2,26 @@ export const sinTheta = `const config = {
   formulas: [
     {
       formulaId: "sin-theta",
-      latex: "y = c \\\\cdot \\\\sin(\\\\theta)",
+      latex: "y = c \\\\sin(\\\\theta)",
       expression: "{y} = {c} * sin({\\\\theta})"
     }
   ],
   variables: {
     y: {
       type: "dependent",
-      name: "y-value",
       precision: 2,
+      latexDisplay: "name",
+      labelDisplay: "none"
     },
     c: {
       type: "input",
       value: 1,
       range: [-3, 3],
       step: 0.1,
-      precision: 1
+      precision: 1,
+      latexDisplay: "value",
+      labelDisplay: "none",
+      customCSS: "min-width:85px; text-align:right; margin-left:-2px"
     },
     "\\\\theta": {
       type: "constant",
@@ -25,8 +29,8 @@ export const sinTheta = `const config = {
       range: [-2 * Math.PI, 2 * Math.PI],
       step: 0.01,
       name: "x",
-      latexDisplay: "value",
-      labelDisplay: "name"
+      latexDisplay: "name",
+      labelDisplay: "none"
     }
   },
   computation: {
@@ -37,11 +41,16 @@ export const sinTheta = `const config = {
     {
       type: "plot2d",
       xAxisVar: "\\\\theta",
-      xRange: [-2 * Math.PI, 2 * Math.PI],
+      xRange: [0, 13],
+      xAxisPos: "center",
+      xGrid: "hide",
       yAxisVar: "y",
-      yRange: [-1.5, 1.5],
+      yRange: [-2, 2],
+      yLabelPos: "top",
+      yAxisInterval: 0.5,
       width: 600,
-      height: 600,
+      height: 300,
+      interaction: ["vertical-drag", "c"],
       lines: [
         {
           name: "sin(θ)",

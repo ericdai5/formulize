@@ -6,12 +6,13 @@ import { computationStore } from "../store/computation";
 
 interface LatexLabelProps {
   latex: string;
+  fontSize?: number;
 }
 
-const LatexLabel = observer(({ latex }: LatexLabelProps) => {
+const LatexLabel = observer(({ latex, fontSize: customFontSize }: LatexLabelProps) => {
   const labelRef = useRef<HTMLSpanElement>(null);
 
-  const fontSize = computationStore.environment?.fontSize;
+  const fontSize = customFontSize ?? computationStore.environment?.fontSize;
 
   useEffect(() => {
     let isMounted = true; // Track if component is still mounted

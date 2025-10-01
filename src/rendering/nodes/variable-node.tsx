@@ -32,6 +32,9 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     computationStore.setVariableHover(varId, false);
   };
 
+  // Only show draggable cursor for input variables without dropdown
+  const cursor = type === "input" && !hasDropdownOptions ? "ns-resize" : "default";
+
   return (
     <div
       ref={nodeRef}
@@ -43,7 +46,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
         pointerEvents: "auto",
         width: width ? `${width}px` : "auto",
         height: height ? `${height}px` : "auto",
-        cursor: "ns-resize",
+        cursor,
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
