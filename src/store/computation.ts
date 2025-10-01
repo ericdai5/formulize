@@ -51,7 +51,6 @@ class ComputationStore {
   @observable
   accessor variableTypesChanged = 0;
 
-  @observable
   accessor isDragging = false;
 
   @observable

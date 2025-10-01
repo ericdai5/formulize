@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 
+import { computationStore } from "../../store/computation";
 import type { DataPoint } from "./Plot2D";
 import { setupCustomDragInteraction } from "./drag";
 import { createHoverGroup } from "./hover";
@@ -83,10 +84,12 @@ export function addInteractions(
       })
       .on("mousedown", (event) => {
         isDragging = true;
+        computationStore.setDragging(true);
         handleMouseDown(event, hover, tooltip, xScale, xAxisVar);
       })
       .on("mouseup", (event) => {
         isDragging = false;
+        computationStore.setDragging(false);
         handleMouseUp(event, hover, plotWidth, plotHeight, onDragEnd);
       })
       .on("click", (event) => {

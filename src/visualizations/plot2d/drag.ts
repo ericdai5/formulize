@@ -64,6 +64,7 @@ export function setupCustomDragInteraction(
   const handleUp = (event: MouseEvent) => {
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
+      computationStore.setDragging(false);
       event.preventDefault();
       event.stopPropagation();
       document.removeEventListener("mousemove", handleMove, true);
@@ -73,6 +74,7 @@ export function setupCustomDragInteraction(
 
   interactionRect.on("mousedown", (event) => {
     isDraggingRef.current = true;
+    computationStore.setDragging(true);
     event.preventDefault();
     event.stopPropagation();
 

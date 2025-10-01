@@ -87,11 +87,14 @@ export function renderLines(
   const [xMin, xMax] = xRange;
   const [yMin, yMax] = yRange;
 
+  // Generate unique clipPath id to avoid collisions between multiple plot instances
+  const clipId = `plot-clip-${Math.random().toString(36).slice(2)}`;
+
   // Create clip path to hide lines outside plot area
   svg
     .append("defs")
     .append("clipPath")
-    .attr("id", "plot-clip")
+    .attr("id", clipId)
     .append("rect")
     .attr("width", plotWidth)
     .attr("height", plotHeight);
@@ -134,7 +137,7 @@ export function renderLines(
         .attr("fill", "none")
         .attr("stroke", color)
         .attr("stroke-width", lineWidth)
-        .attr("clip-path", "url(#plot-clip)")
+        .attr("clip-path", `url(#${clipId})`)
         .attr("d", lineGenerator);
 
       // Add current point highlight for each line (only if not using custom interaction)

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import { observer } from "mobx-react-lite";
 import { computationStore } from "../store/computation";
 
@@ -94,18 +95,13 @@ const SVGLabel = observer(({
     height: size.height * fontSize
   };
 
-  // TODO: Make this more robust
-  const sanitizeSVG = (svg: string): string => {
-    return svg
-      .replace(/<script[^>]*>.*?<\/script>/gi, '')
-      .replace(/<iframe[^>]*>.*?<\/iframe>/gi, '')
-      .replace(/<object[^>]*>.*?<\/object>/gi, '')
-      .replace(/<embed[^>]*>.*?<\/embed>/gi, '')
-      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-      .replace(/javascript:/gi, '');
-  };
+  // Sanitize SVG using DOMPurify with strict SVG-only profile
+  const sanitizedSvg = DOMPurify.sanitize(svgData, {
+    USE_PROFILES: { svg: true },
+    ADD_TAGS: [],
+    ADD_ATTR: []
+  });
 
-  const sanitizedSvg = sanitizeSVG(svgData);
   const finalSvg = sanitizedSvg.replace(
     /<svg([^>]*)>/,
     `<svg$1 width="${scaledSize.width}" height="${scaledSize.height}">`
