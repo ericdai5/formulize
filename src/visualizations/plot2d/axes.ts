@@ -1,7 +1,5 @@
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
-
 export interface AxisConfig {
   xScale: d3.ScaleLinear<number, number>;
   yScale: d3.ScaleLinear<number, number>;
@@ -26,13 +24,31 @@ export interface AxisConfig {
   allYVariables?: string[];
 }
 
+export interface AxisLabelInfo {
+  xLabel?: {
+    text: string;
+    x: number;
+    y: number;
+    xAxisVar?: string;
+    allXVariables: string[];
+  };
+  yLabel?: {
+    text: string;
+    x: number;
+    y: number;
+    rotation: number;
+    yAxisVar?: string;
+    allYVariables: string[];
+  };
+}
+
 /**
- * Adds X and Y axes to the SVG with optional labels
+ * Adds X and Y axes to the SVG and returns label information for React rendering
  */
 export function addAxes(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   config: AxisConfig
-): void {
+): AxisLabelInfo {
   const {
     xScale,
     yScale,
@@ -43,8 +59,6 @@ export function addAxes(
     yLabel,
     xAxisVar,
     yAxisVar,
-    xAxisVarHovered = false,
-    yAxisVarHovered = false,
     tickFontSize = 12,
     xAxisInterval,
     yAxisInterval,
@@ -96,77 +110,19 @@ export function addAxes(
     .attr("opacity", 1)
     .attr("font-size", `${tickFontSize}px`);
 
+  // Calculate X label position (to be returned for React rendering)
+  let xLabelInfo: AxisLabelInfo["xLabel"] | undefined;
   if (xLabel) {
-    // Calculate X label position and offset
     const xLabelX = xLabelPos === "right" ? plotWidth + 30 : plotWidth / 2;
     const xLabelY = xLabelPos === "right" ? 0 : 40;
 
-    // Create a group for the X label with background
-    const xLabelGroup = xAxis
-      .append("g")
-      .attr("class", "axis-label-group")
-      .attr("transform", `translate(${xLabelX}, ${xLabelY})`)
-      .style("cursor", "pointer");
-
-    // Add background rectangle (show if variable is hovered)
-    const xLabelBg = xLabelGroup
-      .append("rect")
-      .attr("class", "axis-label-bg")
-      .attr("fill", "#f3f4f6")
-      .attr("rx", 6)
-      .attr("ry", 6)
-      .attr("opacity", xAxisVarHovered ? 1 : 0);
-
-    // Add the text element
-    const xLabelElement = xLabelGroup
-      .append("text")
-      .attr("class", "axis-label")
-      .attr("x", 0)
-      .attr("y", 0)
-      .attr("fill", "#000")
-      .attr("opacity", 1)
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "central")
-      .attr("font-size", "14px")
-      .text(xLabel);
-
-    // Calculate and set background dimensions
-    const xLabelBBox = (xLabelElement.node() as SVGTextElement)?.getBBox();
-    if (xLabelBBox) {
-      const padding = 8;
-      xLabelBg
-        .attr("x", xLabelBBox.x - padding)
-        .attr("y", xLabelBBox.y - padding)
-        .attr("width", xLabelBBox.width + 2 * padding)
-        .attr("height", xLabelBBox.height + 2 * padding);
-    }
-
-    // Add hover functionality for X axis (always register handlers when xAxisVar exists)
-    if (xAxisVar || allXVariables.length > 0) {
-      xLabelGroup
-        .on("mouseenter", () => {
-          xLabelBg.attr("opacity", 1);
-          // Highlight the axis variable if it exists
-          if (xAxisVar) {
-            computationStore.setVariableHover(xAxisVar, true);
-          }
-          // Highlight all X components of vectors
-          allXVariables.forEach((varId) => {
-            computationStore.setVariableHover(varId, true);
-          });
-        })
-        .on("mouseleave", () => {
-          xLabelBg.attr("opacity", 0);
-          // Clear axis variable hover if it exists
-          if (xAxisVar) {
-            computationStore.setVariableHover(xAxisVar, false);
-          }
-          // Clear all X components of vectors
-          allXVariables.forEach((varId) => {
-            computationStore.setVariableHover(varId, false);
-          });
-        });
-    }
+    xLabelInfo = {
+      text: xLabel,
+      x: margin.left + xLabelX,
+      y: margin.top + xAxisY + xLabelY,
+      xAxisVar,
+      allXVariables,
+    };
   }
 
   // Create Y axis with interval-based ticks if specified
@@ -193,80 +149,27 @@ export function addAxes(
     .attr("opacity", 1)
     .attr("font-size", `${tickFontSize}px`);
 
+  // Calculate Y label position (to be returned for React rendering)
+  let yLabelInfo: AxisLabelInfo["yLabel"] | undefined;
   if (yLabel) {
-    // Calculate Y label position and rotation
-    const yLabelY = yLabelPos === "top" ? -20 : plotHeight / 2;
+    const yLabelY = yLabelPos === "top" ? -30 : plotHeight / 2;
     const yLabelX = yLabelPos === "top" ? 0 : -margin.left + 20;
     const yLabelRotation = yLabelPos === "top" ? 0 : -90;
 
-    // Create a group for the Y label with background
-    const yLabelGroup = yAxis
-      .append("g")
-      .attr("class", "axis-label-group")
-      .attr("transform", `translate(${yLabelX}, ${yLabelY})`)
-      .style("cursor", "pointer");
-
-    // Add background rectangle (show if variable is hovered)
-    const yLabelBg = yLabelGroup
-      .append("rect")
-      .attr("class", "axis-label-bg")
-      .attr("fill", "#f3f4f6")
-      .attr("rx", 6)
-      .attr("ry", 6)
-      .attr("opacity", yAxisVarHovered ? 1 : 0);
-
-    // Add the text element
-    const yLabelElement = yLabelGroup
-      .append("text")
-      .attr("class", "axis-label")
-      .attr("x", 0)
-      .attr("y", 0)
-      .attr("fill", "#000")
-      .attr("opacity", 1)
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "central")
-      .attr("font-size", "14px")
-      .attr("transform", `rotate(${yLabelRotation})`)
-      .text(yLabel);
-
-    // Calculate and set background dimensions (swap width/height for vertical orientation)
-    const yLabelBBox = (yLabelElement.node() as SVGTextElement)?.getBBox();
-    if (yLabelBBox) {
-      const padding = 8;
-      yLabelBg
-        .attr("x", -yLabelBBox.height / 2 - padding)
-        .attr("y", -yLabelBBox.width / 2 - padding)
-        .attr("width", yLabelBBox.height + 2 * padding)
-        .attr("height", yLabelBBox.width + 2 * padding);
-    }
-
-    // Add hover functionality for Y axis (always register handlers when yAxisVar exists)
-    if (yAxisVar || allYVariables.length > 0) {
-      yLabelGroup
-        .on("mouseenter", () => {
-          yLabelBg.attr("opacity", 1);
-          // Highlight the axis variable if it exists
-          if (yAxisVar) {
-            computationStore.setVariableHover(yAxisVar, true);
-          }
-          // Highlight all Y components of vectors
-          allYVariables.forEach((varId) => {
-            computationStore.setVariableHover(varId, true);
-          });
-        })
-        .on("mouseleave", () => {
-          yLabelBg.attr("opacity", 0);
-          // Clear axis variable hover if it exists
-          if (yAxisVar) {
-            computationStore.setVariableHover(yAxisVar, false);
-          }
-          // Clear all Y components of vectors
-          allYVariables.forEach((varId) => {
-            computationStore.setVariableHover(varId, false);
-          });
-        });
-    }
+    yLabelInfo = {
+      text: yLabel,
+      x: margin.left + yAxisX + yLabelX,
+      y: margin.top + yLabelY,
+      rotation: yLabelRotation,
+      yAxisVar,
+      allYVariables,
+    };
   }
+
+  return {
+    xLabel: xLabelInfo,
+    yLabel: yLabelInfo,
+  };
 }
 
 /**

@@ -7,11 +7,12 @@ import * as d3 from "d3";
 
 import { computationStore } from "../../store/computation";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
-import { addAxes, addGrid } from "./axes";
+import { AxisLabels } from "./AxisLabels";
+import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";
 import { updateHoverLines } from "./hover-lines";
 import { renderLines } from "./lines";
-import { calculatePlotDimensions, getVariableLabel } from "./utils";
+import { calculatePlotDimensions } from "./utils";
 import { getAllVectorVariables, renderVectors } from "./vectors";
 
 interface Plot2DProps {
@@ -26,6 +27,7 @@ export interface DataPoint {
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const axisLabelInfoRef = useRef<AxisLabelInfo>({});
 
   // Parse configuration options with defaults
   const {
@@ -87,8 +89,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         ? getAllVectorVariables(vectors)
         : { allXVariables: [], allYVariables: [] };
 
-    // Add axes using helper function
-    addAxes(svg, {
+    // Add axes using helper function and capture label info
+    const labelInfo = addAxes(svg, {
       xScale,
       yScale,
       plotWidth,
@@ -98,14 +100,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       yLabel: hasLines && yAxisVar ? yAxisVar : "Y",
       xAxisVar: hasLines ? xAxisVar : undefined,
       yAxisVar: hasLines ? yAxisVar : undefined,
-      xAxisVarHovered:
-        hasLines && xAxisVar
-          ? computationStore.hoverStates.get(xAxisVar) || false
-          : false,
-      yAxisVarHovered:
-        hasLines && yAxisVar
-          ? computationStore.hoverStates.get(yAxisVar) || false
-          : false,
       xAxisInterval,
       yAxisInterval,
       xAxisPos,
@@ -115,6 +109,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       allXVariables: vectorVars.allXVariables,
       allYVariables: vectorVars.allYVariables,
     });
+
+    // Store label info in ref for React rendering
+    axisLabelInfoRef.current = labelInfo;
 
     // Add grid using helper function
     addGrid(svg, {
@@ -231,6 +228,15 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           height: typeof height === "number" ? `${height}px` : height,
           overflow: "visible",
         }}
+      />
+      <AxisLabels
+        labelInfo={axisLabelInfoRef.current}
+        xAxisVarHovered={
+          xAxisVar ? computationStore.hoverStates.get(xAxisVar) || false : false
+        }
+        yAxisVarHovered={
+          yAxisVar ? computationStore.hoverStates.get(yAxisVar) || false : false
+        }
       />
       <div ref={tooltipRef} className="tooltip" />
     </div>
