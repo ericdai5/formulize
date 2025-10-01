@@ -1,12 +1,13 @@
 import { runInAction } from "mobx";
+
 import * as d3 from "d3";
 
 import { computationStore } from "../../store/computation";
 import type { DataPoint } from "./Plot2D";
-import { updateHoverPosition, setHoverVisibility } from "./hover";
-import { updateTooltip, setTooltipVisibility } from "./tooltip";
-import { updateCurrentPointLabel } from "./label";
 import { scaleCurrentPoint } from "./current-point";
+import { setHoverVisibility, updateHoverPosition } from "./hover";
+import { updateCurrentPointLabel } from "./label";
+import { setTooltipVisibility, updateTooltip } from "./tooltip";
 
 /**
  * Handles mouseover event for the interaction rectangle
@@ -73,8 +74,7 @@ export function handleMouseMove(
   const currentX = computationStore.variables.get(xAxisVar)?.value ?? 0;
   const currentY = computationStore.variables.get(yAxisVar)?.value ?? 0;
   const isNearCurrentPoint =
-    Math.abs(d.x - currentX) <
-    (xScale.domain()[1] - xScale.domain()[0]) * 0.01; // Within 1% of x range
+    Math.abs(d.x - currentX) < (xScale.domain()[1] - xScale.domain()[0]) * 0.01; // Within 1% of x range
 
   // Update variable during drag
   if (isDragging) {
@@ -107,10 +107,10 @@ export function handleMouseMove(
   } else {
     // Show hover dot during hover (not dragging, not near current point)
     setHoverVisibility(hover, true);
-    
+
     // Update hover position with crosshairs
     updateHoverPosition(hover, d, xScale, yScale, plotWidth, plotHeight);
-    
+
     scaleCurrentPoint(svg, false); // Reset current point scale
 
     updateTooltip(
@@ -138,7 +138,7 @@ export function handleMouseDown(
   runInAction(() => {
     computationStore.setDragging(true);
   });
-  
+
   setHoverVisibility(hover, true);
   setTooltipVisibility(tooltip, false);
 
@@ -171,7 +171,7 @@ export function handleMouseUp(
   runInAction(() => {
     computationStore.setDragging(false);
   });
-  
+
   d3.select(event.currentTarget as Element).style("cursor", "crosshair");
 
   // Trigger final re-render after dragging ends
@@ -181,12 +181,7 @@ export function handleMouseUp(
 
   // Hide hover point when not dragging or hovering
   const [mouseX, mouseY] = d3.pointer(event);
-  if (
-    mouseX < 0 ||
-    mouseX > plotWidth ||
-    mouseY < 0 ||
-    mouseY > plotHeight
-  ) {
+  if (mouseX < 0 || mouseX > plotWidth || mouseY < 0 || mouseY > plotHeight) {
     setHoverVisibility(hover, false);
   }
 }
@@ -258,6 +253,12 @@ function updateCurrentPointHighlight(
     .attr("cy", yScale(currentPoint.y));
 
   // Update existing current point label
-  updateCurrentPointLabel(svg, currentPoint, xScale, yScale, xAxisVar, yAxisVar);
+  updateCurrentPointLabel(
+    svg,
+    currentPoint,
+    xScale,
+    yScale,
+    xAxisVar,
+    yAxisVar
+  );
 }
-

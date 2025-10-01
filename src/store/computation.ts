@@ -51,7 +51,6 @@ class ComputationStore {
   @observable
   accessor variableTypesChanged = 0;
 
-  @observable
   accessor isDragging = false;
 
   @observable
@@ -59,6 +58,10 @@ class ComputationStore {
 
   @observable
   accessor processedIndices = new Map<string, Set<number>>();
+
+  // Track injected custom CSS to avoid re-injecting on re-renders
+  @observable
+  accessor injectedCustomCSS = new Map<string, string>();
 
   private evaluationFunction: EvaluationFunction | null = null;
   private isUpdatingDependents = false;
@@ -129,11 +132,17 @@ class ComputationStore {
   reset() {
     this.variables.clear();
     this.hoverStates.clear();
+    this.injectedCustomCSS.clear();
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
     this.evaluationFunction = null;
     this.displayedFormulas = [];
+    // Remove custom CSS style element
+    const styleElement = document.getElementById("custom-var-styles");
+    if (styleElement) {
+      styleElement.remove();
+    }
   }
 
   @action
@@ -459,6 +468,11 @@ class ComputationStore {
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
         labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
+        // SVG support
+        svgPath: variableDefinition?.svgPath,
+        svgContent: variableDefinition?.svgContent,
+        svgSize: variableDefinition?.svgSize,
+        customCSS: variableDefinition?.customCSS,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable
