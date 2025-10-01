@@ -213,7 +213,7 @@ export const processVariables = (
 
       // Get the value, type, and precision from the computation store
       let value: number | undefined = undefined;
-      let isInputVariable = false;
+      let variableType: "input" | "dependent" | "constant" = "constant";
       let hasDropdownOptions = false;
       let variablePrecision = defaultPrecision;
       let display: "name" | "value" | "both" = "both"; // Default to showing both for backward compatibility
@@ -222,7 +222,7 @@ export const processVariables = (
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
           value = variable.value;
-          isInputVariable = variable.type === "input";
+          variableType = variable.type || "constant";
           // Check if variable has dropdown options (set or options property)
           hasDropdownOptions = !!(variable.set || variable.options);
           // Use the variable's precision if defined, otherwise use default
@@ -249,11 +249,13 @@ export const processVariables = (
       const id = originalSymbol;
 
       // Use different CSS classes based on variable type and interaction mode
-      let cssClass = "interactive-var-dependent";
-      if (isInputVariable) {
+      let cssClass = "interactive-var-base";
+      if (variableType === "input") {
         cssClass = hasDropdownOptions
           ? "interactive-var-dropdown"
           : "interactive-var-slidable";
+      } else if (variableType === "dependent") {
+        cssClass = "interactive-var-dependent";
       }
 
       // Hover class is managed via MobX reactions to avoid full LaTeX re-renders

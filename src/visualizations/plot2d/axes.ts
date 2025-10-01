@@ -15,6 +15,12 @@ export interface AxisConfig {
   xAxisVarHovered?: boolean;
   yAxisVarHovered?: boolean;
   tickFontSize?: number;
+  xAxisInterval?: number;
+  yAxisInterval?: number;
+  xAxisPos?: "center" | "edge";
+  yAxisPos?: "center" | "edge";
+  xLabelPos?: "center" | "right";
+  yLabelPos?: "center" | "top";
   // Vector variables for enhanced axis hovering
   allXVariables?: string[];
   allYVariables?: string[];
@@ -40,16 +46,45 @@ export function addAxes(
     xAxisVarHovered = false,
     yAxisVarHovered = false,
     tickFontSize = 12,
+    xAxisInterval,
+    yAxisInterval,
+    xAxisPos = "edge",
+    yAxisPos = "edge",
+    xLabelPos = xAxisPos === "center" ? "right" : "center",
+    yLabelPos = "center",
     allXVariables = [],
     allYVariables = [],
   } = config;
+
+  // Calculate axis positions
+  const [yMin, yMax] = yScale.domain();
+  const [xMin, xMax] = xScale.domain();
+
+  // X-axis position: at bottom edge or at y=0
+  const xAxisY =
+    xAxisPos === "center"
+      ? Math.max(0, Math.min(yScale(0), plotHeight)) // Clamp to plot bounds
+      : plotHeight;
+
+  // Y-axis position: at left edge or at x=0
+  const yAxisX =
+    yAxisPos === "center"
+      ? Math.max(0, Math.min(xScale(0), plotWidth)) // Clamp to plot bounds
+      : 0;
+
+  // Create X axis with interval-based ticks if specified
+  const xAxisGenerator = d3.axisBottom(xScale).tickSize(0);
+  if (xAxisInterval !== undefined) {
+    const tickValues = d3.range(xMin, xMax + xAxisInterval / 2, xAxisInterval);
+    xAxisGenerator.tickValues(tickValues);
+  }
 
   // Add X axis
   const xAxis = svg
     .append("g")
     .attr("class", "x-axis")
-    .attr("transform", `translate(0,${plotHeight})`)
-    .call(d3.axisBottom(xScale).tickSize(0));
+    .attr("transform", `translate(0,${xAxisY})`)
+    .call(xAxisGenerator);
 
   // Style X axis line to match grid opacity
   xAxis.selectAll("path").attr("opacity", 0.1);
@@ -62,11 +97,15 @@ export function addAxes(
     .attr("font-size", `${tickFontSize}px`);
 
   if (xLabel) {
+    // Calculate X label position and offset
+    const xLabelX = xLabelPos === "right" ? plotWidth + 30 : plotWidth / 2;
+    const xLabelY = xLabelPos === "right" ? 0 : 40;
+
     // Create a group for the X label with background
     const xLabelGroup = xAxis
       .append("g")
       .attr("class", "axis-label-group")
-      .attr("transform", `translate(${plotWidth / 2}, 40)`)
+      .attr("transform", `translate(${xLabelX}, ${xLabelY})`)
       .style("cursor", "pointer");
 
     // Add background rectangle (show if variable is hovered)
@@ -112,7 +151,7 @@ export function addAxes(
             computationStore.setVariableHover(xAxisVar, true);
           }
           // Highlight all X components of vectors
-          allXVariables.forEach(varId => {
+          allXVariables.forEach((varId) => {
             computationStore.setVariableHover(varId, true);
           });
         })
@@ -123,18 +162,26 @@ export function addAxes(
             computationStore.setVariableHover(xAxisVar, false);
           }
           // Clear all X components of vectors
-          allXVariables.forEach(varId => {
+          allXVariables.forEach((varId) => {
             computationStore.setVariableHover(varId, false);
           });
         });
     }
   }
 
+  // Create Y axis with interval-based ticks if specified
+  const yAxisGenerator = d3.axisLeft(yScale).tickSize(0);
+  if (yAxisInterval !== undefined) {
+    const tickValues = d3.range(yMin, yMax + yAxisInterval / 2, yAxisInterval);
+    yAxisGenerator.tickValues(tickValues);
+  }
+
   // Add Y axis
   const yAxis = svg
     .append("g")
     .attr("class", "y-axis")
-    .call(d3.axisLeft(yScale).tickSize(0));
+    .attr("transform", `translate(${yAxisX},0)`)
+    .call(yAxisGenerator);
 
   // Style Y axis line to match grid opacity
   yAxis.selectAll("path").attr("opacity", 0.1);
@@ -147,11 +194,16 @@ export function addAxes(
     .attr("font-size", `${tickFontSize}px`);
 
   if (yLabel) {
+    // Calculate Y label position and rotation
+    const yLabelY = yLabelPos === "top" ? -20 : plotHeight / 2;
+    const yLabelX = yLabelPos === "top" ? 0 : -margin.left + 20;
+    const yLabelRotation = yLabelPos === "top" ? 0 : -90;
+
     // Create a group for the Y label with background
     const yLabelGroup = yAxis
       .append("g")
       .attr("class", "axis-label-group")
-      .attr("transform", `translate(${-margin.left + 20}, ${plotHeight / 2})`)
+      .attr("transform", `translate(${yLabelX}, ${yLabelY})`)
       .style("cursor", "pointer");
 
     // Add background rectangle (show if variable is hovered)
@@ -174,7 +226,7 @@ export function addAxes(
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "central")
       .attr("font-size", "14px")
-      .attr("transform", "rotate(-90)")
+      .attr("transform", `rotate(${yLabelRotation})`)
       .text(yLabel);
 
     // Calculate and set background dimensions (swap width/height for vertical orientation)
@@ -198,7 +250,7 @@ export function addAxes(
             computationStore.setVariableHover(yAxisVar, true);
           }
           // Highlight all Y components of vectors
-          allYVariables.forEach(varId => {
+          allYVariables.forEach((varId) => {
             computationStore.setVariableHover(varId, true);
           });
         })
@@ -209,7 +261,7 @@ export function addAxes(
             computationStore.setVariableHover(yAxisVar, false);
           }
           // Clear all Y components of vectors
-          allYVariables.forEach(varId => {
+          allYVariables.forEach((varId) => {
             computationStore.setVariableHover(varId, false);
           });
         });

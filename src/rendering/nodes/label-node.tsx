@@ -93,6 +93,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   };
 
   const interactiveClass = getInteractiveClass();
+  const isDraggable = type === "input" || type === "dependent";
+  const cursor = isDraggable ? "grab" : "default";
+  const valueCursor = type === "input" && !computationStore.isStepMode() ? "ns-resize" : "default";
 
   return (
     <div
@@ -102,18 +105,18 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         width: "auto",
         height: "auto",
         position: "relative",
-        cursor: "grab",
+        cursor,
       }}
-      title={`Variable: ${varId}${name ? ` (${name})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""} (draggable)`}
+      title={`Variable: ${varId}${name ? ` (${name})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""}${isDraggable ? " (draggable)" : ""}`}
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
       onMouseLeave={() => computationStore.setVariableHover(varId, false)}
     >
       <div className={`bg-white rounded-xl p-3 border border-slate-200}`}>
         <div className="flex flex-col items-center gap-1">
           <div
-            ref={valueDragRef}
+            ref={type === "input" ? valueDragRef : null}
             className={`${interactiveClass} ${isHovered ? "interactive-var-hovered" : ""}`}
-            style={{ cursor: "ns-resize" }}
+            style={{ cursor: valueCursor }}
           >
             <LatexLabel latex={displayLatex} />
           </div>

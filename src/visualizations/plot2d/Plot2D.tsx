@@ -31,12 +31,19 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const {
     xAxisVar,
     xRange = PLOT2D_DEFAULTS.xRange,
+    xAxisInterval,
+    xAxisPos,
+    xLabelPos,
     yAxisVar,
     yRange = PLOT2D_DEFAULTS.yRange,
+    yAxisInterval,
+    yAxisPos,
+    yLabelPos,
     vectors,
     lines,
     width = PLOT2D_DEFAULTS.width,
     height = PLOT2D_DEFAULTS.height,
+    interaction,
   } = config;
 
   // Calculate plot dimensions using helper function
@@ -87,8 +94,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       plotWidth,
       plotHeight,
       margin,
-      xLabel: hasLines && xAxisVar ? getVariableLabel(xAxisVar) : "X",
-      yLabel: hasLines && yAxisVar ? getVariableLabel(yAxisVar) : "Y",
+      xLabel: hasLines && xAxisVar ? xAxisVar : "X",
+      yLabel: hasLines && yAxisVar ? yAxisVar : "Y",
       xAxisVar: hasLines ? xAxisVar : undefined,
       yAxisVar: hasLines ? yAxisVar : undefined,
       xAxisVarHovered:
@@ -99,6 +106,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         hasLines && yAxisVar
           ? computationStore.hoverStates.get(yAxisVar) || false
           : false,
+      xAxisInterval,
+      yAxisInterval,
+      xAxisPos,
+      yAxisPos,
+      xLabelPos,
+      yLabelPos,
       allXVariables: vectorVars.allXVariables,
       allYVariables: vectorVars.allYVariables,
     });
@@ -138,7 +151,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         [yMin, yMax],
         plotWidth,
         plotHeight,
-        drawPlot
+        drawPlot,
+        interaction
       );
     }
 
@@ -166,14 +180,21 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     yMax,
     xAxisVar,
     yAxisVar,
+    xLabelPos,
+    yLabelPos,
+    xAxisInterval,
+    yAxisInterval,
+    xAxisPos,
+    yAxisPos,
+    interaction,
   ]);
 
   // Set up reaction to re-render when any variable changes
   useEffect(() => {
     const disposer = reaction(
       () => {
-        // Skip tracking during dragging to prevent re-renders
-        if (computationStore.isDragging) return null;
+        // Only skip tracking during default dragging (not custom interaction)
+        if (computationStore.isDragging && !interaction) return null;
 
         // Track all variable values and hover states for live updates
         const allVariables: Record<string, number | boolean> = {};
@@ -185,8 +206,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         return allVariables;
       },
       () => {
-        // Only re-render if not dragging
-        if (!computationStore.isDragging) {
+        // Re-render if not dragging OR if using custom interaction
+        if (!computationStore.isDragging || interaction) {
           drawPlot();
         }
       },
@@ -194,7 +215,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     );
 
     return () => disposer();
-  }, [drawPlot]);
+  }, [drawPlot, interaction]);
 
   // Re-draw when config changes
   useEffect(() => {
