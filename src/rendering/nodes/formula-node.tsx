@@ -120,7 +120,9 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
       (hoverStates) => {
         if (!nodeRef.current) return;
         hoverStates.forEach(([varId, isHovered]) => {
-          const elements = nodeRef.current!.querySelectorAll(`#${varId}`);
+          const elements = nodeRef.current!.querySelectorAll(
+            `#${CSS.escape(varId)}`
+          );
           elements.forEach((element) => {
             if (isHovered) {
               element.classList.add("interactive-var-hovered");
