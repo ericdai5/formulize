@@ -23,6 +23,7 @@ export interface IVariable {
   latexDisplay?: "name" | "value";
   labelDisplay?: "name" | "value" | "none";
   index?: string;
+  customCSS?: string;
 }
 
 export interface IVariableInput {

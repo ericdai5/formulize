@@ -25,6 +25,50 @@ import {
 } from "./formula-tree";
 
 /**
+ * Inject custom CSS for a specific variable ID into the document
+ */
+const injectCustomCSSForId = (varId: string, customCSS: string): void => {
+  // Check if already injected with same CSS (stored in computation store)
+  const cachedCSS = computationStore.injectedCustomCSS.get(varId);
+  if (cachedCSS === customCSS) {
+    return;
+  }
+
+  // Get or create style element
+  let styleElement = document.getElementById(
+    "custom-var-styles"
+  ) as HTMLStyleElement;
+  if (!styleElement) {
+    styleElement = document.createElement("style");
+    styleElement.id = "custom-var-styles";
+    document.head.appendChild(styleElement);
+  }
+
+  const sheet = styleElement.sheet;
+  if (!sheet) {
+    console.error("[injectCustomCSS] No stylesheet available");
+    return;
+  }
+
+  // Escape the varId for use in CSS selector
+  const escapedId = CSS.escape(varId);
+  const cssRule = `#${escapedId} { ${customCSS} }`;
+
+  // Remove existing rule if present (iterate backwards for safe deletion)
+  for (let i = sheet.cssRules.length - 1; i >= 0; i--) {
+    const rule = sheet.cssRules[i] as CSSStyleRule;
+    if (rule.selectorText === `#${escapedId}`) {
+      sheet.deleteRule(i);
+      break;
+    }
+  }
+
+  // Add the new rule and update cache in store
+  sheet.insertRule(cssRule, sheet.cssRules.length);
+  computationStore.injectedCustomCSS.set(varId, customCSS);
+};
+
+/**
  * Process index variable within a formula node subtree
  * Index variable should render as its value instead of variable name
  */
@@ -218,6 +262,7 @@ export const processVariables = (
       let variablePrecision = defaultPrecision;
       let display: "name" | "value" | "both" = "both"; // Default to showing both for backward compatibility
       let indexVariable = "";
+      let customCSS = "";
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
@@ -231,6 +276,8 @@ export const processVariables = (
           display = variable.latexDisplay ?? "name";
           // Get the index variable from the computation store
           indexVariable = variable.index || "";
+          // Get custom CSS if defined
+          customCSS = variable.customCSS || "";
           break;
         }
       }
@@ -259,6 +306,11 @@ export const processVariables = (
       }
 
       // Hover class is managed via MobX reactions to avoid full LaTeX re-renders
+
+      // Inject custom CSS into document head if defined
+      if (customCSS) {
+        injectCustomCSSForId(id, customCSS);
+      }
 
       // Wrap the processed body with CSS classes using the variable's specific precision
       // Show name, value, or both based on display property

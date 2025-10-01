@@ -20,7 +20,8 @@ export const sinTheta = `const config = {
       step: 0.1,
       precision: 1,
       latexDisplay: "value",
-      labelDisplay: "none"
+      labelDisplay: "none",
+      customCSS: "min-width:85px; text-align:right; margin-left:-2px"
     },
     "\\\\theta": {
       type: "constant",
