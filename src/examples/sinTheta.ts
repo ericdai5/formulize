@@ -42,6 +42,7 @@ export const sinTheta = `const config = {
       xAxisVar: "\\\\theta",
       xRange: [0, 13],
       xAxisPos: "center",
+      xGrid: "hide",
       yAxisVar: "y",
       yRange: [-2, 2],
       yLabelPos: "top",

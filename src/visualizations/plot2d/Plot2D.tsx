@@ -36,11 +36,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     xAxisInterval,
     xAxisPos,
     xLabelPos,
+    xGrid = "show",
     yAxisVar,
     yRange = PLOT2D_DEFAULTS.yRange,
     yAxisInterval,
     yAxisPos,
     yLabelPos,
+    yGrid = "show",
     vectors,
     lines,
     width = PLOT2D_DEFAULTS.width,
@@ -120,6 +122,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       plotWidth,
       plotHeight,
       margin,
+      xGrid,
+      yGrid,
     });
 
     if (hasVectors) {
@@ -183,6 +187,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     yAxisInterval,
     xAxisPos,
     yAxisPos,
+    xGrid,
+    yGrid,
     interaction,
   ]);
 

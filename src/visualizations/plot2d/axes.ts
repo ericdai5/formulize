@@ -19,6 +19,8 @@ export interface AxisConfig {
   yAxisPos?: "center" | "edge";
   xLabelPos?: "center" | "right";
   yLabelPos?: "center" | "top";
+  xGrid?: "show" | "hide";
+  yGrid?: "show" | "hide";
   // Vector variables for enhanced axis hovering
   allXVariables?: string[];
   allYVariables?: string[];
@@ -179,30 +181,65 @@ export function addGrid(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   config: AxisConfig
 ): void {
-  const { xScale, yScale, plotWidth, plotHeight } = config;
+  const {
+    xScale,
+    yScale,
+    plotWidth,
+    plotHeight,
+    xGrid = "show",
+    yGrid = "show",
+  } = config;
 
-  // Add Y grid lines
-  svg
-    .append("g")
-    .attr("class", "grid")
-    .attr("opacity", 0.1)
-    .call(
-      d3
-        .axisLeft(yScale)
-        .tickSize(-plotWidth)
-        .tickFormat(() => "")
-    );
+  // Add Y grid lines if yGrid is "show"
+  if (yGrid === "show") {
+    svg
+      .append("g")
+      .attr("class", "grid")
+      .attr("opacity", 0.1)
+      .call(
+        d3
+          .axisLeft(yScale)
+          .tickSize(-plotWidth)
+          .tickFormat(() => "")
+      );
+  } else {
+    // Add top border when yGrid is hidden
+    svg
+      .append("line")
+      .attr("class", "border-top")
+      .attr("x1", 0)
+      .attr("y1", 0)
+      .attr("x2", plotWidth)
+      .attr("y2", 0)
+      .attr("stroke", "#000")
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.1);
+  }
 
-  // Add X grid lines
-  svg
-    .append("g")
-    .attr("class", "grid")
-    .attr("transform", `translate(0,${plotHeight})`)
-    .attr("opacity", 0.1)
-    .call(
-      d3
-        .axisBottom(xScale)
-        .tickSize(-plotHeight)
-        .tickFormat(() => "")
-    );
+  // Add X grid lines if xGrid is "show"
+  if (xGrid === "show") {
+    svg
+      .append("g")
+      .attr("class", "grid")
+      .attr("transform", `translate(0,${plotHeight})`)
+      .attr("opacity", 0.1)
+      .call(
+        d3
+          .axisBottom(xScale)
+          .tickSize(-plotHeight)
+          .tickFormat(() => "")
+      );
+  } else {
+    // Add right border when xGrid is hidden
+    svg
+      .append("line")
+      .attr("class", "border-right")
+      .attr("x1", plotWidth)
+      .attr("y1", 0)
+      .attr("x2", plotWidth)
+      .attr("y2", plotHeight)
+      .attr("stroke", "#000")
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.1);
+  }
 }

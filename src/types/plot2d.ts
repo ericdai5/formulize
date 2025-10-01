@@ -33,11 +33,13 @@ export interface IPlot2D {
   xAxisInterval?: number;
   xAxisPos?: "center" | "edge"; // "center" = x-axis at y=0, "edge" = x-axis at bottom
   xLabelPos?: "center" | "right"; // Position of x-axis label along the axis line
+  xGrid?: "show" | "hide"; // Grid visibility for x-axis, default is "show"
   yAxisVar?: string;
   yRange?: [number, number];
   yAxisInterval?: number;
   yAxisPos?: "center" | "edge"; // "center" = y-axis at x=0, "edge" = y-axis at left
   yLabelPos?: "center" | "top"; // Position of y-axis label along the axis line
+  yGrid?: "show" | "hide"; // Grid visibility for y-axis, default is "show"
   vectors?: IVector[];
   lines?: ILine[];
   width?: number | string;
