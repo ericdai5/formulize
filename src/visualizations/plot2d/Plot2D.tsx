@@ -238,10 +238,18 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       <AxisLabels
         labelInfo={axisLabelInfoRef.current}
         xAxisVarHovered={
-          xAxisVar ? computationStore.hoverStates.get(xAxisVar) || false : false
+          xAxisVar
+            ? computationStore.hoverStates.get(xAxisVar) || false
+            : axisLabelInfoRef.current.xLabel?.allXVariables.some((varId) =>
+                computationStore.hoverStates.get(varId)
+              ) || false
         }
         yAxisVarHovered={
-          yAxisVar ? computationStore.hoverStates.get(yAxisVar) || false : false
+          yAxisVar
+            ? computationStore.hoverStates.get(yAxisVar) || false
+            : axisLabelInfoRef.current.yLabel?.allYVariables.some((varId) =>
+                computationStore.hoverStates.get(varId)
+              ) || false
         }
       />
       <div ref={tooltipRef} className="tooltip" />
