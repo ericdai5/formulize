@@ -9,6 +9,7 @@ import { quadratic2D } from "./quadratic2D";
 import { quadratic3D } from "./quadratic3D";
 import { sinTheta } from "./sinTheta";
 import { summationBasic } from "./summationBasic";
+import { svgIntegration } from "./svg-integration";
 import { svgKineticEnergy2D } from "./svgLabels";
 import { vectorAddition } from "./vectorAddition";
 
@@ -23,6 +24,7 @@ export const examples = {
   parameterizedPlane,
   bayesWithCustomVisualization,
   summationBasic,
+  svgIntegration,
   svgKineticEnergy2D,
   vectorAddition,
   lossFunction,
@@ -39,6 +41,7 @@ export const exampleDisplayNames = {
   parameterizedPlane: "Parameterized Plane",
   bayesWithCustomVisualization: "Bayes Custom Visualization",
   summationBasic: "Summation Basic",
+  svgIntegration: "SVG Icons in Formulas",
   svgKineticEnergy2D: "Kinetic Energy 2D with SVG",
   vectorAddition: "Vector Addition",
   lossFunction: "Loss Function with Regularization",

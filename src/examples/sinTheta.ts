@@ -21,7 +21,7 @@ export const sinTheta = `const config = {
       precision: 1,
       latexDisplay: "value",
       labelDisplay: "none",
-      customCSS: "min-width:85px; text-align:right; margin-left:-2px"
+      defaultCSS: "min-width:85px; text-align:right; margin-left:-2px"
     },
     "\\\\theta": {
       type: "constant",
