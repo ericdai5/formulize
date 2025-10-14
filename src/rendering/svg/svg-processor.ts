@@ -23,11 +23,11 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
     try {
       const varId = (varElement as HTMLElement).id;
 
-      // Check if this is a member variable reference (e.g., "N-in-member")
+      // Check if this is a member variable reference (e.g., "N-in-N_0")
       let variable = computationStore.variables?.get(varId);
-      if (!variable && varId.includes("-in-member")) {
-        // Extract the parent variable symbol (e.g., "N" from "N-in-member")
-        const parentSymbol = varId.replace("-in-member", "");
+      if (!variable && varId.includes("-in-")) {
+        // Extract the parent variable symbol (e.g., "N" from "N-in-N_0")
+        const parentSymbol = varId.split("-in-")[0];
         variable = computationStore.variables?.get(parentSymbol);
       }
 
