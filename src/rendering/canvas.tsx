@@ -268,6 +268,19 @@ const CanvasFlow = observer(
 
       let currentY = 50; // Starting Y position
 
+      // Add interpreter control node if in step mode
+      if (computationStore.isStepMode() && environment) {
+        nodes.push({
+          id: "interpreter-control",
+          type: "interpreterControl",
+          position: { x: 600, y: currentY },
+          data: { environment },
+          draggable: true,
+          dragHandle: ".interpreter-drag-handle",
+        });
+        currentY += 80; // Add space after interpreter controls
+      }
+
       // Add individual control nodes if controls exist
       if (controls && controls.length > 0) {
         controls.forEach((control, index) => {
@@ -345,7 +358,7 @@ const CanvasFlow = observer(
             y:
               formulaNode.position.y +
               (formulaNode.measured?.height || formulaNode.height || 200) +
-              50 +
+              100 +
               viewNodeIndex * 60,
           };
 

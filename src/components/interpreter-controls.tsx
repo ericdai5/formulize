@@ -140,3 +140,65 @@ const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
 );
 
 export default InterpreterControls;
+
+// Simplified Interpreter Controls for canvas nodes
+interface SimplifiedInterpreterControlsProps {
+  onRefresh: () => void;
+}
+
+export const SimplifiedInterpreterControls: React.FC<SimplifiedInterpreterControlsProps> = observer(
+  ({ onRefresh }) => {
+    // Common disabled state conditions
+    const isStepping =
+      ctx.isSteppingToView || ctx.isSteppingToIndex || ctx.isSteppingToBlock;
+
+    // Modularized disabled states for each button
+    const refreshDisabled = ctx.isRunning || isStepping;
+
+    const stepToBlockDisabled =
+      !ctx.interpreter ||
+      (ctx.isComplete && ctx.historyIndex >= ctx.history.length - 1) ||
+      ctx.isSteppingToView ||
+      ctx.isSteppingToIndex ||
+      ctx.isSteppingToBlock;
+
+    const handleStepToNextBlock = () => {
+      stepToNextBlock();
+    };
+
+    const handleStepToPrevBlock = () => {
+      stepToPrevBlock();
+    };
+
+    const handleStepToView = () => {
+      stepToView();
+    };
+
+    return (
+      <div className="flex justify-start items-center p-2 border-b gap-2">
+        <Button
+          onClick={onRefresh}
+          disabled={refreshDisabled}
+          icon={RotateCcw}
+        />
+        <Button
+          onClick={handleStepToPrevBlock}
+          disabled={ctx.historyIndex <= 0 || ctx.isRunning || isStepping}
+          icon={SkipBack}
+        />
+        <Button
+          onClick={handleStepToNextBlock}
+          disabled={stepToBlockDisabled}
+          icon={SkipForward}
+        />
+        <Button
+          onClick={handleStepToView}
+          disabled={stepToBlockDisabled}
+          icon={Eye}
+        >
+          {ctx.views.length}
+        </Button>
+      </div>
+    );
+  }
+);
