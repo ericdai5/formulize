@@ -72,7 +72,7 @@
   }
 
   .interactive-var-dropdown {
-    @apply interactive-var-base text-green-700 select-none transition-all;
+    @apply interactive-var-base text-slate-700 select-none transition-all;
   }
 
   .interactive-var-dropdown:active {
