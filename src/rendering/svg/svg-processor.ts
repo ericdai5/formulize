@@ -22,10 +22,21 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
   allVariableElements.forEach((varElement) => {
     try {
       const varId = (varElement as HTMLElement).id;
-      const variable = computationStore.variables?.get(varId);
+
+      // Check if this is a member variable reference (e.g., "N-in-member")
+      let variable = computationStore.variables?.get(varId);
+      if (!variable && varId.includes("-in-member")) {
+        // Extract the parent variable symbol (e.g., "N" from "N-in-member")
+        const parentSymbol = varId.replace("-in-member", "");
+        variable = computationStore.variables?.get(parentSymbol);
+      }
 
       // Skip if variable doesn't exist or doesn't have SVG configuration
       if (!variable || (!variable.svgPath && !variable.svgContent)) return;
+
+      // If svgMode is not explicitly declared, do not inject into formula content
+      // Label nodes render SVG via SVGLabel component separately
+      if (!variable.svgMode) return;
 
       // Check if SVG already exists (avoid duplicates)
       if (
@@ -46,8 +57,8 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
       // Create SVG element
       let svgElement: SVGElement | HTMLElement;
       const config: SVGConfig = {
-        width: variable.svgSize?.width || 16,
-        height: variable.svgSize?.height || 16,
+        width: variable.svgSize?.width,
+        height: variable.svgSize?.height,
         className: "variable-svg-icon",
       };
 

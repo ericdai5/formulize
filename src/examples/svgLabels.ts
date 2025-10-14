@@ -1,4 +1,3 @@
-
 export const svgKineticEnergy2D = `const config = {
   formulas: [
     {
@@ -59,4 +58,3 @@ export const svgKineticEnergy2D = `const config = {
   ],
   fontSize: 0.8
 };`;
-

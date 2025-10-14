@@ -33,11 +33,6 @@ export const createSVGElement = (
   config: SVGConfig = {}
 ): SVGElement | HTMLElement => {
   const {
-    width = 16,
-    height = 16,
-    fill = "currentColor",
-    stroke = "none",
-    strokeWidth = 1,
     className = "formula-svg-icon",
     preserveAspectRatio = "xMidYMid meet",
   } = config;
@@ -69,19 +64,42 @@ export const createSVGElement = (
   }
   let svgElement: SVGElement;
   if (typeof svgContent === "string") {
-    // Create wrapper and set innerHTML directly
-    const wrapper = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "svg"
-    );
-    wrapper.innerHTML = svgContent;
-    svgElement = wrapper;
+    // Parse the SVG string properly
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgContent, "image/svg+xml");
+    const parsedSvg = doc.querySelector("svg");
+
+    if (parsedSvg) {
+      // Use the parsed SVG element directly
+      svgElement = parsedSvg as SVGElement;
+    } else {
+      // Fallback: create wrapper and set innerHTML
+      const wrapper = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg"
+      );
+      wrapper.innerHTML = svgContent;
+      svgElement = wrapper;
+    }
   } else {
     svgElement = svgContent;
   }
-  // Apply configuration
-  svgElement.setAttribute("width", width.toString());
-  svgElement.setAttribute("height", height.toString());
+
+  // Auto-detect dimensions if not provided in config
+  const width = config.width;
+  const height = config.height;
+
+  // Special handling: if height wasn't specified in config, use 1em to match text height
+  if (config.height === undefined) {
+    svgElement.style.height = "0.8em";
+    svgElement.style.width = "auto";
+    svgElement.removeAttribute("height");
+    svgElement.removeAttribute("width");
+  } else {
+    // Apply explicit dimensions
+    svgElement.setAttribute("width", width?.toString() || "24");
+    svgElement.setAttribute("height", height?.toString() || "24");
+  }
   svgElement.setAttribute("preserveAspectRatio", preserveAspectRatio);
   if (className) {
     svgElement.classList.add(...className.split(" "));
