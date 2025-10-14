@@ -42,11 +42,11 @@
     @apply scale-105;
   }
 
-  .interactive-var-dependent.interactive-var-hovered {
+  .interactive-var-dependent.hovered {
     @apply text-slate-900 rounded-md scale-110;
   }
 
-  .interactive-var-slidable.interactive-var-hovered {
+  .interactive-var-slidable.hovered {
     @apply text-blue-700 rounded-md scale-110;
   }
 
@@ -59,13 +59,13 @@
     line-height: 1;
   }
 
-  .label-flow-node .interactive-var-slidable.interactive-var-hovered {
+  .label-flow-node .interactive-var-slidable.hovered {
     line-height: 1;
     display: inline-block;
     @apply scale-110;
   }
 
-  .label-flow-node .interactive-var-dependent.interactive-var-hovered {
+  .label-flow-node .interactive-var-dependent.hovered {
     line-height: 1;
     display: inline-block;
     @apply scale-110;

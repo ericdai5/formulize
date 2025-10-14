@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import DOMPurify from "dompurify";
+
 import { observer } from "mobx-react-lite";
+
+import DOMPurify from "dompurify";
+
 import { computationStore } from "../store/computation";
 
 interface SVGLabelProps {
@@ -9,11 +12,7 @@ interface SVGLabelProps {
   svgSize?: { width: number; height: number };
 }
 
-const SVGLabel = observer(({
-  svgPath,
-  svgContent,
-  svgSize
-}: SVGLabelProps) => {
+const SVGLabel = observer(({ svgPath, svgContent, svgSize }: SVGLabelProps) => {
   const svgRef = useRef<HTMLDivElement>(null);
   const [svgData, setSvgData] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +35,11 @@ const SVGLabel = observer(({
             throw new Error(`Failed to load SVG: ${response.statusText}`);
           }
           const svgText = await response.text();
-          if (!svgText || svgText.trim() === '') {
+          if (!svgText || svgText.trim() === "") {
             throw new Error("SVG file is empty");
           }
           // Check if the response is actually an SVG (not a fallback HTML page)
-          if (!svgText.includes('<svg') && !svgText.includes('<?xml')) {
+          if (!svgText.includes("<svg") && !svgText.includes("<?xml")) {
             throw new Error("Invalid SVG content");
           }
           setSvgData(svgText);
@@ -92,14 +91,14 @@ const SVGLabel = observer(({
   const size = svgSize || { width: 24, height: 24 };
   const scaledSize = {
     width: size.width * fontSize,
-    height: size.height * fontSize
+    height: size.height * fontSize,
   };
 
   // Sanitize SVG using DOMPurify with strict SVG-only profile
   const sanitizedSvg = DOMPurify.sanitize(svgData, {
     USE_PROFILES: { svg: true },
     ADD_TAGS: [],
-    ADD_ATTR: []
+    ADD_ATTR: [],
   });
 
   const finalSvg = sanitizedSvg.replace(
@@ -116,10 +115,10 @@ const SVGLabel = observer(({
         height: scaledSize.height,
         display: "flex",
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
       }}
       dangerouslySetInnerHTML={{
-        __html: finalSvg
+        __html: finalSvg,
       }}
     />
   );

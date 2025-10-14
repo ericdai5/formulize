@@ -61,7 +61,10 @@ class ComputationStore {
 
   // Track injected custom CSS to avoid re-injecting on re-renders
   @observable
-  accessor injectedCustomCSS = new Map<string, string>();
+  accessor injectedDefaultCSS = new Map<string, string>();
+
+  @observable
+  accessor injectedHoverCSS = new Map<string, string>();
 
   private evaluationFunction: EvaluationFunction | null = null;
   private isUpdatingDependents = false;
@@ -132,7 +135,8 @@ class ComputationStore {
   reset() {
     this.variables.clear();
     this.hoverStates.clear();
-    this.injectedCustomCSS.clear();
+    this.injectedDefaultCSS.clear();
+    this.injectedHoverCSS.clear();
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
@@ -472,7 +476,9 @@ class ComputationStore {
         svgPath: variableDefinition?.svgPath,
         svgContent: variableDefinition?.svgContent,
         svgSize: variableDefinition?.svgSize,
-        customCSS: variableDefinition?.customCSS,
+        svgMode: variableDefinition?.svgMode,
+        defaultCSS: variableDefinition?.defaultCSS,
+        hoverCSS: variableDefinition?.hoverCSS,
       });
 
       // If this variable has a key-set relationship, update its value based on the key variable
