@@ -200,6 +200,7 @@ const processIndexVariable = (
 const processMemberVariable = (
   node: AugmentedFormulaNode,
   memberOfSymbol: string,
+  memberSymbol: string,
   memberDefaultCSS?: string,
   memberHoverCSS?: string,
   memberValue?: number
@@ -240,7 +241,7 @@ const processMemberVariable = (
         }
 
         // Apply CSS - member CSS overrides parent CSS if provided
-        const parentId = `${memberOfSymbol}-in-member`;
+        const parentId = `${memberOfSymbol}-in-${memberSymbol}`;
         const cssToApply = memberDefaultCSS || parentDefaultCSS;
         const hoverCssToApply = memberHoverCSS || parentHoverCSS;
         const valueToUse =
@@ -473,6 +474,7 @@ export const processVariables = (
         processedBody = processMemberVariable(
           variableNode.body,
           memberOf,
+          originalSymbol,
           defaultCSS,
           hoverCSS,
           value
