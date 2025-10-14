@@ -109,7 +109,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const interactiveClass = getInteractiveClass();
   const isDraggable = type === "input" || type === "dependent";
   const cursor = isDraggable ? "grab" : "default";
-  const valueCursor = type === "input" && !computationStore.isStepMode() ? "ns-resize" : "default";
+  const valueCursor =
+    type === "input" && !computationStore.isStepMode()
+      ? "ns-resize"
+      : "default";
 
   return (
     <div
@@ -129,7 +132,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         <div className="flex flex-col items-center gap-1">
           <div
             ref={type === "input" ? valueDragRef : null}
-            className={`${interactiveClass} ${isHovered ? "interactive-var-hovered" : ""}`}
+            className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
             style={{ cursor: valueCursor }}
           >
             {displayComponent}

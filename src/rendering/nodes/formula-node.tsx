@@ -7,6 +7,7 @@ import { GripHorizontal, GripVertical } from "lucide-react";
 
 import { processLatexContent } from "../../parse/variable";
 import { computationStore } from "../../store/computation";
+import { injectVariableSVGs } from "../svg/svg-processor";
 
 interface FormulaNodeData {
   latex: string;
@@ -81,6 +82,13 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
         console.warn("Container ref became null during async operations");
         return;
       }
+
+      // Inject SVG elements for variables after MathJax rendering
+      try {
+        injectVariableSVGs(formulaContainer);
+      } catch (svgError) {
+        console.error("Error injecting variable SVGs:", svgError);
+      }
     } catch (error) {
       console.error("Error rendering formula:", error);
     }
@@ -125,9 +133,9 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
           );
           elements.forEach((element) => {
             if (isHovered) {
-              element.classList.add("interactive-var-hovered");
+              element.classList.add("hovered");
             } else {
-              element.classList.remove("interactive-var-hovered");
+              element.classList.remove("hovered");
             }
           });
         });

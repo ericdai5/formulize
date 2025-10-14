@@ -26,7 +26,9 @@ export interface IVariable {
   svgPath?: string;
   svgContent?: string;
   svgSize?: { width: number; height: number };
-  customCSS?: string;
+  svgMode?: "replace" | "append";
+  defaultCSS?: string;
+  hoverCSS?: string;
 }
 
 export interface IVariableInput {
