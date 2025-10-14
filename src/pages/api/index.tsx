@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { Info, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import Editor from "../../components/api-code-editor";
 import IconButton from "../../components/icon-button";
+import Modal from "../../components/modal";
 import TemplateSelector from "../../components/template-selector";
 import { examples as formulaExamples } from "../../examples";
 import { FormulizeConfig } from "../../formulize";
@@ -20,6 +21,7 @@ export default function APIPage() {
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<FormulizeConfig | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   // Execute code and extract config
   const executeCode = useCallback(async (codeToExecute: string) => {
@@ -59,15 +61,18 @@ export default function APIPage() {
   }, [code, executeCode]);
 
   // Save code changes for the current template
-  const handleCodeChange = useCallback((newCode: string) => {
-    setCode(newCode);
-    if (selectedTemplate) {
-      codeByTemplateRef.current = {
-        ...codeByTemplateRef.current,
-        [selectedTemplate]: newCode
-      };
-    }
-  }, [selectedTemplate]);
+  const handleCodeChange = useCallback(
+    (newCode: string) => {
+      setCode(newCode);
+      if (selectedTemplate) {
+        codeByTemplateRef.current = {
+          ...codeByTemplateRef.current,
+          [selectedTemplate]: newCode,
+        };
+      }
+    },
+    [selectedTemplate]
+  );
 
   return (
     <div className="relative h-full flex">
@@ -118,7 +123,33 @@ export default function APIPage() {
             title="Toggle Code Editor"
           />
         </div>
+        <div className="absolute bottom-4 right-4 z-30">
+          <IconButton
+            size="lg"
+            strokeWidth={1.5}
+            icon={Info}
+            alt="Team Members"
+            onClick={() => setIsModalOpen(true)}
+            title="Team Members"
+          />
+        </div>
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Built by HCI @ Penn"
+        maxWidth="max-w-md"
+      >
+        <div className="p-6">
+          <ul className="space-y-3 text-lg">
+            <li>Eric Dai</li>
+            <li>Zain Khan</li>
+            <li>Andrew Head</li>
+            <li>Jeff Tao</li>
+          </ul>
+        </div>
+      </Modal>
     </div>
   );
 }
