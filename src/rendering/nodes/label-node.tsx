@@ -10,6 +10,7 @@ import { executionStore } from "../../store/execution";
 
 export interface LabelNodeData {
   varId: string;
+  environment?: any;
 }
 
 // Static styles to prevent re-renders
@@ -24,7 +25,7 @@ const HANDLE_STYLE = {
 };
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
-  const { varId } = data;
+  const { varId, environment } = data;
 
   const variable = computationStore.variables.get(varId);
   const isVariableActive = executionStore.activeVariables.has(varId);
@@ -60,10 +61,20 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   let displayComponent: React.ReactNode = null;
 
   if (labelDisplay === "value") {
-    if (value !== undefined && value !== null) {
+    if (variable?.dataType === "set" && variable?.setValue) {
+      // Handle set values
+      const setElements = variable.setValue;
+      if (setElements.length > 0) {
+        mainDisplayText = `{${setElements.join(", ")}}`;
+        displayComponent = <LatexLabel latex={mainDisplayText} fontSize={environment?.fontSize} />;
+      } else {
+        mainDisplayText = "\\emptyset";
+        displayComponent = <LatexLabel latex={mainDisplayText} fontSize={environment?.fontSize} />;
+      }
+    } else if (value !== undefined && value !== null) {
       const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
       mainDisplayText = value.toFixed(displayPrecision);
-      displayComponent = <LatexLabel latex={mainDisplayText} />;
+      displayComponent = <LatexLabel latex={mainDisplayText} fontSize={environment?.fontSize} />;
     } else {
       // If labelDisplay is "value" but no value is set, hide the label node
       return null;
@@ -82,7 +93,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     const displayLatex = indexDisplay
       ? `${mainDisplayText}, ${indexDisplay}`
       : mainDisplayText;
-    displayComponent = <LatexLabel latex={displayLatex} />;
+    displayComponent = <LatexLabel latex={displayLatex} fontSize={environment?.fontSize} />;
   }
 
   // Determine interactive variable styling based on variable type and context

@@ -34,6 +34,11 @@ export interface FormulizeInstance {
 function setupComputationEngine(environment: IEnvironment) {
   computationStore.setComputationEngine(environment.computation.engine);
   computationStore.setComputationConfig(environment.computation);
+  
+  // Set up set functions if they exist
+  if (environment.computation.setFunctions) {
+    computationStore.setSetFunctions(environment.computation.setFunctions);
+  }
 }
 
 // Validate environment configuration
@@ -91,6 +96,9 @@ async function create(
         computationStore.setVariableType(varId, variable.type);
         if (variable.value !== undefined) {
           computationStore.setValue(varId, variable.value);
+        }
+        if (variable.dataType === "set" && variable.setValue) {
+          computationStore.setSetValue(varId, variable.setValue);
         }
       });
       computationStore.resolveKeySetRelationships();

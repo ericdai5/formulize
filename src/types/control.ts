@@ -1,6 +1,6 @@
 export interface IControl {
   id?: string;
-  type: "slider" | "dropdown" | "checkbox" | "button" | "radio" | "array";
+  type: "slider" | "dropdown" | "checkbox" | "button" | "radio" | "array" | "set";
   variable?: string;
 }
 
@@ -38,10 +38,18 @@ export interface IRadioControl extends IControl {
   selectedValue?: string;
 }
 
+export interface ISetControl extends IControl {
+  type: "set";
+  availableElements: string[];
+  color?: string;
+  maxHeight?: number;
+}
+
 export type IControls =
   | ISliderControl
   | IArrayControl
   | IDropdownControl
   | ICheckboxControl
   | IButtonControl
-  | IRadioControl;
+  | IRadioControl
+  | ISetControl;

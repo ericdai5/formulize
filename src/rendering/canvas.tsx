@@ -512,6 +512,7 @@ const CanvasFlow = observer(
             data: {
               varId: cssId,
               placement: labelPos.placement,
+              environment,
             },
             draggable: true,
             selectable: true,

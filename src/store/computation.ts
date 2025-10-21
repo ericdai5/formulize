@@ -17,6 +17,10 @@ export type EvaluationFunction = (
   variables: Record<string, number>
 ) => Record<string, number>;
 
+export type SetEvaluationFunction = (
+  variables: Record<string, IVariable>
+) => Record<string, string[]>;
+
 class ComputationStore {
   @observable
   accessor variables = new Map<string, IVariable>();
@@ -46,6 +50,11 @@ class ComputationStore {
   ) => number)[] = [];
 
   @observable
+  accessor setFunctions: Record<string, ((
+    variables: Record<string, IVariable>
+  ) => string[])> = {};
+
+  @observable
   accessor environment: IEnvironment | null = null;
 
   @observable
@@ -67,6 +76,7 @@ class ComputationStore {
   accessor injectedHoverCSS = new Map<string, string>();
 
   private evaluationFunction: EvaluationFunction | null = null;
+  private setEvaluationFunction: SetEvaluationFunction | null = null;
   private isUpdatingDependents = false;
   private isInitializing = false;
 
@@ -111,6 +121,10 @@ class ComputationStore {
     return this.evaluationFunction;
   }
 
+  get evaluateSetFormula(): SetEvaluationFunction | null {
+    return this.setEvaluationFunction;
+  }
+
   @action
   setLastGeneratedCode(code: string | null) {
     this.lastGeneratedCode = code;
@@ -140,7 +154,9 @@ class ComputationStore {
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
+    this.setFunctions = {};
     this.evaluationFunction = null;
+    this.setEvaluationFunction = null;
     this.displayedFormulas = [];
     // Remove custom CSS style element
     const styleElement = document.getElementById("custom-var-styles");
@@ -169,6 +185,13 @@ class ComputationStore {
     manual: ((variables: Record<string, IVariable>) => number)[]
   ): void {
     this.manualFunctions = manual;
+  }
+
+  @action
+  setSetFunctions(
+    setFunctions: Record<string, ((variables: Record<string, IVariable>) => string[])>
+  ): void {
+    this.setFunctions = setFunctions;
   }
 
   @action
@@ -203,6 +226,20 @@ class ComputationStore {
     if (!this.isUpdatingDependents && !this.isInitializing) {
       this.updateAllDependentVars();
     }
+  }
+
+  @action
+  setSetValue(id: string, setValue: string[]) {
+    const variable = this.variables.get(id);
+    if (!variable) {
+      return false;
+    }
+    variable.setValue = setValue;
+    // Update dependent set variables
+    if (!this.isUpdatingDependents && !this.isInitializing) {
+      this.updateAllDependentSetVars();
+    }
+    return true;
   }
 
   @action
@@ -251,6 +288,14 @@ class ComputationStore {
   @action
   setVariableHover(id: string, hover: boolean) {
     this.hoverStates.set(id, hover);
+  }
+
+  @action
+  setVariableProperty<K extends keyof IVariable>(id: string, property: K, value: IVariable[K]) {
+    const variable = this.variables.get(id);
+    if (variable) {
+      (variable as any)[property] = value;
+    }
   }
 
   getVariableHover(id: string): boolean {
@@ -398,9 +443,13 @@ class ComputationStore {
       this.setLastGeneratedCode(displayCode);
     }
 
+    // Set up set evaluation function for set operations
+    this.setEvaluationFunction = this.createSetEvaluator();
+
     // Initial evaluation of all dependent variables (skip in step mode)
     if (!this.isStepMode()) {
       this.updateAllDependentVars();
+      this.updateAllDependentSetVars();
     }
   }
 
@@ -451,6 +500,102 @@ class ComputationStore {
     };
   }
 
+  // Create a set evaluation function for set operations
+  private createSetEvaluator(): SetEvaluationFunction {
+    return (variables) => {
+      const results: Record<string, string[]> = {};
+      
+      // Get all dependent set variables
+      const dependentSetVars = Array.from(this.variables.entries())
+        .filter(([, v]) => v.type === "dependent" && v.dataType === "set");
+
+      for (const [varName] of dependentSetVars) {
+        // First, check if there's a set function defined for this variable
+        const setFunction = this.setFunctions[varName];
+        if (setFunction && typeof setFunction === 'function') {
+          try {
+            const result = setFunction(variables);
+            if (Array.isArray(result)) {
+              results[varName] = result;
+              continue;
+            }
+          } catch (error) {
+            console.error(`Error executing set function for ${varName}:`, error);
+          }
+        }
+
+        // If no manual function, look for set operations in the formulas
+        const formulas = this.environment?.formulas || [];
+        for (const formula of formulas) {
+          if (formula?.expression) {
+            // Check if this formula defines the current variable
+            const match = formula.expression.match(new RegExp(`^\\s*\\{${varName}\\}\\s*=\\s*(.+)$`));
+            if (match) {
+              try {
+                const expression = match[1];
+                const result = this.evaluateSetExpression(expression, variables);
+                if (result) {
+                  results[varName] = result;
+                  break;
+                }
+              } catch (error) {
+                console.error(`Error evaluating set expression for ${varName}:`, error);
+              }
+            }
+          }
+        }
+      }
+
+      return results;
+    };
+  }
+
+  // Evaluate a set expression (union, intersection, etc.)
+  private evaluateSetExpression(expression: string, variables: Record<string, IVariable>): string[] | null {
+    // Remove spaces and normalize
+    const normalized = expression.replace(/\s+/g, '');
+    
+    // Handle union operation: A ∪ B or A \cup B
+    const unionMatch = normalized.match(/^\{([^}]+)\}\s*[∪\\cup]\s*\{([^}]+)\}$/);
+    if (unionMatch) {
+      const [, setA, setB] = unionMatch;
+      const setAValue = this.getSetValue(setA, variables);
+      const setBValue = this.getSetValue(setB, variables);
+      if (setAValue && setBValue) {
+        return [...new Set([...setAValue, ...setBValue])];
+      }
+    }
+
+    // Handle intersection operation: A ∩ B or A \cap B
+    const intersectionMatch = normalized.match(/^\{([^}]+)\}\s*[∩\\cap]\s*\{([^}]+)\}$/);
+    if (intersectionMatch) {
+      const [, setA, setB] = intersectionMatch;
+      const setAValue = this.getSetValue(setA, variables);
+      const setBValue = this.getSetValue(setB, variables);
+      if (setAValue && setBValue) {
+        return setAValue.filter(item => setBValue.includes(item));
+      }
+    }
+
+    // Handle direct set reference: {A}
+    const directMatch = normalized.match(/^\{([^}]+)\}$/);
+    if (directMatch) {
+      const [, varName] = directMatch;
+      return this.getSetValue(varName, variables);
+    }
+
+    return null;
+  }
+
+  // Get set value from a variable name
+  private getSetValue(varName: string, variables: Record<string, IVariable>): string[] | null {
+    const variable = variables[varName];
+    if (variable && variable.dataType === "set" && variable.setValue) {
+      return variable.setValue;
+    }
+    return null;
+  }
+
   @action
   addVariable(id: string, variableDefinition?: Partial<IVariable>) {
     if (!this.variables.has(id)) {
@@ -467,6 +612,7 @@ class ComputationStore {
         step: variableDefinition?.step,
         options: variableDefinition?.options,
         set: variableDefinition?.set,
+        setValue: variableDefinition?.setValue,
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
@@ -559,6 +705,30 @@ class ComputationStore {
       }
     } catch (error) {
       console.error("Error updating dependent variables:", error);
+    } finally {
+      this.isUpdatingDependents = false;
+    }
+  }
+
+  @action
+  updateAllDependentSetVars() {
+    if (!this.setEvaluationFunction) return;
+
+    try {
+      this.isUpdatingDependents = true;
+      const variables = Object.fromEntries(this.variables.entries());
+      const results = this.setEvaluationFunction(variables);
+      // Update all dependent set variables with their computed values
+      for (const [symbol, variable] of this.variables.entries()) {
+        if (variable.type === "dependent" && variable.dataType === "set") {
+          const result = results[symbol];
+          if (Array.isArray(result)) {
+            variable.setValue = result;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error updating dependent set variables:", error);
     } finally {
       this.isUpdatingDependents = false;
     }

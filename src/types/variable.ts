@@ -8,7 +8,7 @@ export const INPUT_VARIABLE_DEFAULT = {
 export interface IVariable {
   type: "constant" | "input" | "dependent";
   value?: number;
-  dataType?: "scalar" | "vector" | "matrix";
+  dataType?: "scalar" | "vector" | "matrix" | "set";
   dimensions?: number[];
   units?: string;
   name?: string;
@@ -18,6 +18,7 @@ export interface IVariable {
   step?: number;
   options?: string[];
   set?: (string | number)[];
+  setValue?: string[];
   key?: string;
   memberOf?: string;
   latexDisplay?: "name" | "value";

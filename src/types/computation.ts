@@ -4,4 +4,5 @@ export interface IComputation {
   apiKey?: string;
   model?: string;
   mode?: "step" | "normal";
+  setFunctions?: Record<string, ((variables: Record<string, any>) => string[])>;
 }
