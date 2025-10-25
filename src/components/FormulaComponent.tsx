@@ -199,7 +199,11 @@ const FormulaCanvasInner = observer(
                   formulaNode,
                   formulaIndex,
                   nodesWithVariables,
-                  viewport
+                  viewport,
+                  {
+                    className: labelClassName,
+                    style: labelStyle,
+                  }
                 );
 
               // Apply variable node updates (labelPlacement)
@@ -257,6 +261,8 @@ const FormulaCanvasInner = observer(
       formulaIndex,
       setNodes,
       fitView,
+      labelClassName,
+      labelStyle,
     ]);
 
     // Initialize the canvas with the formula node
