@@ -2,7 +2,12 @@ import { Node } from "@xyflow/react";
 
 import { computationStore } from "../../store/computation";
 import { executionStore } from "../../store/execution";
-import { findFormulaNodeByIndex } from "./misc";
+import {
+  NODE_TYPES,
+  findFormulaNodeByFormulaId,
+  getFormulaNodes,
+  getVariableNodes,
+} from "./node-helpers";
 
 // Enhanced label positioning system
 export interface LabelPlacement {
@@ -117,7 +122,7 @@ export interface AdjustLabelPositionsParams {
  * Process variable elements for a single formula and create label nodes
  * @param formulaElement - The DOM element containing the formula
  * @param formulaNode - The React Flow formula node
- * @param formulaIndex - The index of the formula
+ * @param formulaId - The ID of the formula (e.g., "kinetic-energy")
  * @param currentNodes - Array of all current React Flow nodes
  * @param viewport - The React Flow viewport
  * @returns Object containing arrays of label nodes and variable node updates
@@ -125,7 +130,7 @@ export interface AdjustLabelPositionsParams {
 export const processVariableElementsForLabels = (
   formulaElement: Element,
   formulaNode: Node,
-  formulaIndex: number,
+  formulaId: string,
   currentNodes: Node[],
   viewport: { zoom: number; x: number; y: number }
 ): {
@@ -178,14 +183,9 @@ export const processVariableElementsForLabels = (
 
     // Get the corresponding variable node to get its actual position
     // Find the first variable node for this cssId since we may have multiple instances
+    // Use node properties instead of ID parsing to handle hyphens in cssId
     const variableNode = currentNodes.find((node) => {
-      const varIdParts = node.id.split("-");
-      return (
-        varIdParts.length >= 4 &&
-        varIdParts[0] === "variable" &&
-        varIdParts[1] === formulaIndex.toString() &&
-        varIdParts[2] === cssId
-      );
+      return node.parentId === formulaNode.id && node.data.varId === cssId;
     });
 
     if (!variableNode) return;
@@ -212,7 +212,7 @@ export const processVariableElementsForLabels = (
     // Create the label node - initially nearly transparent until positioned correctly
     // Use 0.01 instead of 0 so React Flow measures it properly
     labelNodes.push({
-      id: `label-${formulaIndex}-${cssId}`,
+      id: `label-${formulaId}-${cssId}`,
       type: "label",
       position: {
         x: labelPos.x,
@@ -220,6 +220,7 @@ export const processVariableElementsForLabels = (
       },
       data: {
         varId: cssId,
+        formulaId: formulaId,
         placement: labelPos.placement,
       },
       draggable: true,
@@ -257,17 +258,32 @@ export const addLabelNodes = ({
     labelPlacement: "below" | "above";
   }> = [];
 
-  const formulaElements = document.querySelectorAll(".formula-node");
-  formulaElements.forEach((formulaElement, formulaIndex) => {
-    const formulaNode = findFormulaNodeByIndex(currentNodes, formulaIndex);
-    if (!formulaNode || !formulaNode.measured) return;
+  // Iterate through formula nodes instead of DOM elements
+  const formulaNodes = getFormulaNodes(currentNodes);
+  formulaNodes.forEach((formulaNode) => {
+    if (!formulaNode.measured) return;
+
+    // Extract formulaId from node data - this is required
+    const formulaId = formulaNode.data.formulaId;
+    if (!formulaId || typeof formulaId !== "string") {
+      console.error(
+        `Formula node ${formulaNode.id} missing required formulaId`
+      );
+      return;
+    }
+
+    // Find the corresponding DOM element for this formula node
+    const formulaElement = document.querySelector(
+      `[data-id="${formulaNode.id}"] .formula-node`
+    );
+    if (!formulaElement) return;
 
     // Process variable elements for this formula using helper function
     const { labelNodes: formulaLabels, variableNodeUpdates: formulaUpdates } =
       processVariableElementsForLabels(
         formulaElement,
         formulaNode,
-        formulaIndex,
+        formulaId,
         currentNodes,
         viewport
       );
@@ -322,7 +338,7 @@ export const adjustLabelPositions = ({
   }> = [];
 
   const updatedNodes = currentNodes.map((node) => {
-    if (!node.id.startsWith("label-") || !node.measured) {
+    if (node.type !== NODE_TYPES.LABEL || !node.measured) {
       return node;
     }
 
@@ -341,21 +357,24 @@ export const adjustLabelPositions = ({
       return node;
     }
 
-    // Extract varId and formula index from label node ID
-    const labelIdParts = node.id.split("-");
-    if (labelIdParts.length < 3) return node;
+    // Extract varId and formulaId from label node data instead of parsing ID
+    // This handles cssId with hyphens correctly
+    const cssId = node.data.varId;
+    const formulaId = node.data.formulaId;
 
-    const formulaIndex = labelIdParts[1];
-    const cssId = labelIdParts[2];
+    if (!cssId || !formulaId || typeof formulaId !== "string") return node;
 
-    // Find the corresponding variable node
-    const variableNode = currentNodes.find((vNode) => {
-      const varIdParts = vNode.id.split("-");
+    // Find the formula node first
+    const formulaNode = findFormulaNodeByFormulaId(currentNodes, formulaId);
+    if (!formulaNode) return node;
+
+    // Find the corresponding variable node using node properties
+    const variableNodes = getVariableNodes(currentNodes);
+    const variableNode = variableNodes.find((vNode) => {
       return (
-        varIdParts.length >= 4 &&
-        varIdParts[0] === "variable" &&
-        varIdParts[1] === formulaIndex &&
-        varIdParts[2] === cssId
+        vNode.data.varId === cssId &&
+        // Check if variable belongs to same formula by checking parent
+        vNode.parentId === formulaNode.id
       );
     });
 
@@ -363,10 +382,6 @@ export const adjustLabelPositions = ({
 
     // Only proceed if the variable node is also measured to ensure coordinate consistency
     if (!variableNode.measured) return node;
-
-    // Find the formula node
-    const formulaNode = findFormulaNodeByIndex(currentNodes, formulaIndex);
-    if (!formulaNode) return node;
 
     // Calculate the perfect centered position using actual measured width
     const actualLabelWidth = node.measured.width || node.width || 40;

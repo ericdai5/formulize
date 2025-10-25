@@ -80,7 +80,7 @@
   }
 
   /* Formula expression hover state */
-  .formula.hovered > div {
+  [data-show-hover-outlines="true"] .formula.hovered > div {
     @apply outline outline-1 outline-blue-300;
   }
 

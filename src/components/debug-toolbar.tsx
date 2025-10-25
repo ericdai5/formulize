@@ -1,6 +1,7 @@
 import {
   Footprints,
   ListTree,
+  ScanEye,
   SquareDashed,
   SquareFunction,
   Variable,
@@ -16,7 +17,10 @@ interface ToolbarProps {
   onShowDebugModal: () => void;
   onOpenStoreModal: () => void;
   onToggleVariableBorders: () => void;
+  onToggleHoverOutlines: () => void;
   showDebugButton?: boolean;
+  showHoverOutlines?: boolean;
+  showVariableBorders?: boolean;
 }
 
 const Toolbar = ({
@@ -26,7 +30,10 @@ const Toolbar = ({
   onShowDebugModal,
   onOpenStoreModal,
   onToggleVariableBorders,
+  onToggleHoverOutlines,
   showDebugButton = false,
+  showHoverOutlines = false,
+  showVariableBorders = false,
 }: ToolbarProps) => {
   return (
     <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
@@ -63,6 +70,14 @@ const Toolbar = ({
         alt="Toggle Variable Borders"
         onClick={onToggleVariableBorders}
         title="Toggle Variable Borders"
+        isActive={showVariableBorders}
+      />
+      <IconButton
+        icon={ScanEye}
+        alt="Toggle Hover Outlines"
+        onClick={onToggleHoverOutlines}
+        title="Toggle Hover Outlines"
+        isActive={showHoverOutlines}
       />
     </div>
   );

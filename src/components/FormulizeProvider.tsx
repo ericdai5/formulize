@@ -3,10 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 
 import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
-import {
-  FormulizeContext,
-  FormulizeContextValue,
-} from "./useFormulize";
+import { FormulizeContext, FormulizeContextValue } from "./useFormulize";
 
 interface FormulizeProviderProps {
   config?: FormulizeConfig;

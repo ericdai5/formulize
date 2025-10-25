@@ -9,11 +9,11 @@ export interface VariableNodeData {
   varId: string;
   width?: number;
   height?: number;
-  showBorders?: boolean;
 }
 
 const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
-  const { varId, width, height, showBorders = false } = data;
+  const { varId, width, height } = data;
+  const showBorders = computationStore.showVariableBorders;
   const variable = computationStore.variables.get(varId);
   const type = variable?.type === "input" ? "input" : "output";
   const hasDropdownOptions = !!(variable?.set || variable?.options);
@@ -33,7 +33,8 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   };
 
   // Only show draggable cursor for input variables without dropdown
-  const cursor = type === "input" && !hasDropdownOptions ? "ns-resize" : "default";
+  const cursor =
+    type === "input" && !hasDropdownOptions ? "ns-resize" : "default";
 
   return (
     <div

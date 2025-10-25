@@ -31,26 +31,24 @@ import {
   adjustLabelPositions as adjustLabelPositionsUtil,
 } from "./util/label-node";
 import {
+  NODE_TYPES,
+  getFormulaNodes,
+  getLabelNodes,
+  getVariableNodes,
+} from "./util/node-helpers";
+import {
   useAddVariableNodes,
   useUpdateVariableNodes,
 } from "./util/variable-nodes";
 
 interface CanvasProps {
-  formulaIndex?: number;
   formulaStore?: FormulaStore;
   controls?: IControls[];
   environment?: IEnvironment;
-  showVariableBorders?: boolean;
 }
 
 const CanvasFlow = observer(
-  ({
-    formulaIndex,
-    formulaStore,
-    controls,
-    environment,
-    showVariableBorders = false,
-  }: CanvasProps = {}) => {
+  ({ formulaStore, controls, environment }: CanvasProps = {}) => {
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -76,16 +74,6 @@ const CanvasFlow = observer(
           return [storeLatex];
         }
       }
-
-      // If a specific formula index is provided, get that formula
-      if (formulaIndex !== undefined && computationStore.displayedFormulas) {
-        const specificFormula =
-          computationStore.displayedFormulas[formulaIndex];
-        if (specificFormula) {
-          return [specificFormula];
-        }
-      }
-
       // Use displayed formulas from computation store
       if (
         computationStore.displayedFormulas &&
@@ -93,9 +81,8 @@ const CanvasFlow = observer(
       ) {
         return computationStore.displayedFormulas;
       }
-
       return [];
-    }, [formulaIndex, formulaStore]);
+    }, [formulaStore]);
 
     // Initialize React Flow state first
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -131,20 +118,20 @@ const CanvasFlow = observer(
     const handleNodesChange = useCallback(
       (changes: NodeChange[]) => {
         // Track which labels are being dragged by the user
+        const currentNodes = getNodes();
         changes.forEach((change) => {
-          if (
-            change.type === "position" &&
-            change.dragging &&
-            change.id.startsWith("label-")
-          ) {
-            // Mark this label as manually positioned
-            manuallyPositionedLabelsRef.current.add(change.id);
+          if (change.type === "position" && change.dragging) {
+            const node = currentNodes.find((n) => n.id === change.id);
+            if (node && node.type === NODE_TYPES.LABEL) {
+              // Mark this label as manually positioned
+              manuallyPositionedLabelsRef.current.add(change.id);
+            }
           }
         });
 
         onNodesChange(changes);
       },
-      [onNodesChange]
+      [onNodesChange, getNodes]
     );
 
     // Create nodes from formulas and controls
@@ -183,14 +170,21 @@ const CanvasFlow = observer(
 
       // Add formula nodes vertically
       formulas.forEach((latex, index) => {
+        // Get formulaId from environment - this is required
+        const formula = environment?.formulas?.[index];
+        if (!formula?.formulaId) {
+          console.error(`Formula at index ${index} missing required formulaId`);
+          return;
+        }
+        const formulaId = formula.formulaId;
         nodes.push({
-          id: `formula-${index}`,
+          id: `formula-${formulaId}`,
           type: "formula",
           position: { x: 250, y: currentY },
           data: {
             latex,
             environment,
-            index,
+            formulaId,
           },
           draggable: true,
           dragHandle: ".formula-drag-handle",
@@ -232,9 +226,8 @@ const CanvasFlow = observer(
           if (!description) return;
 
           // Find the first formula node (typically formula-0)
-          const formulaNode = currentNodes.find((node) =>
-            node.id.startsWith("formula-")
-          );
+          const formulaNodes = getFormulaNodes(currentNodes);
+          const formulaNode = formulaNodes[0];
 
           if (!formulaNode) return;
 
@@ -270,7 +263,7 @@ const CanvasFlow = observer(
         setNodes((currentNodes) => {
           // Remove existing view nodes first
           const nonViewNodes = currentNodes.filter(
-            (node) => !node.id.startsWith("view-")
+            (node) => node.type !== NODE_TYPES.VIEW
           );
           return [...nonViewNodes, ...viewNodes];
         });
@@ -299,7 +292,6 @@ const CanvasFlow = observer(
     const addVariableNodes = useAddVariableNodes({
       nodesInitialized,
       setNodes,
-      showVariableBorders,
       addLabelNodes,
       addViewNodes,
       variableNodesAddedRef,
@@ -311,7 +303,6 @@ const CanvasFlow = observer(
     const updateVariableNodes = useUpdateVariableNodes({
       nodesInitialized,
       setNodes,
-      showVariableBorders,
       variableNodesAddedRef,
     });
 
@@ -345,30 +336,12 @@ const CanvasFlow = observer(
       };
     }, [createNodes, setNodes, setEdges, formulaStore, controls]);
 
-    // Update showBorders property of existing variable nodes when showVariableBorders changes
-    useEffect(() => {
-      setNodes((currentNodes) =>
-        currentNodes.map((node) => {
-          if (node.type === "variable") {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                showBorders: showVariableBorders,
-              },
-            };
-          }
-          return node;
-        })
-      );
-    }, [showVariableBorders, setNodes]);
-
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
       if (nodesInitialized && !variableNodesAddedRef.current) {
         addVariableNodes();
       }
-    }, [nodesInitialized, addVariableNodes]);
+    }, [nodesInitialized, nodes, addVariableNodes]);
 
     // Fit view after all nodes are properly loaded and positioned (only on initial load)
     useEffect(() => {
@@ -378,9 +351,8 @@ const CanvasFlow = observer(
         !initialFitViewCalledRef.current
       ) {
         // Check if we have variable nodes (indicating full setup is complete)
-        const hasVariableNodes = nodes.some((node) =>
-          node.id.startsWith("variable-")
-        );
+        const variableNodes = getVariableNodes(nodes);
+        const hasVariableNodes = variableNodes.length > 0;
 
         if (hasVariableNodes) {
           fitView({ duration: 300, padding: 0.2 });
@@ -437,7 +409,7 @@ const CanvasFlow = observer(
     useEffect(() => {
       if (nodes.length > 0) {
         // Check if all label nodes are visible (positioned correctly)
-        const labelNodes = nodes.filter((node) => node.id.startsWith("label-"));
+        const labelNodes = getLabelNodes(nodes);
         const visibleLabelNodes = labelNodes.filter(
           (node) => !node.style || node.style.opacity !== 0
         );
@@ -509,8 +481,8 @@ const CanvasFlow = observer(
               setNodes((currentNodes) => {
                 const nonLabelViewNodes = currentNodes.filter(
                   (node) =>
-                    !node.id.startsWith("label-") &&
-                    !node.id.startsWith("view-")
+                    node.type !== NODE_TYPES.LABEL &&
+                    node.type !== NODE_TYPES.VIEW
                 );
                 return nonLabelViewNodes;
               });
@@ -541,24 +513,25 @@ const CanvasFlow = observer(
       if (!nodesInitialized) return;
 
       // Check if we have label nodes that are measured
-      const labelNodes = nodes.filter((node) => node.id.startsWith("label-"));
+      const labelNodes = getLabelNodes(nodes);
       const measuredLabelNodes = labelNodes.filter((node) => node.measured);
 
       // Also check that all corresponding variable nodes are measured for coordinate consistency
+      // Use node properties instead of ID parsing to handle hyphens in cssId
+      const variableNodes = getVariableNodes(nodes);
       const allVariableNodesMeasured = labelNodes.every((labelNode) => {
-        const labelIdParts = labelNode.id.split("-");
-        if (labelIdParts.length < 3) return false;
+        const cssId = labelNode.data.varId;
+        const labelFormulaId = labelNode.data.formulaId;
 
-        const formulaIndex = labelIdParts[1];
-        const cssId = labelIdParts[2];
+        if (!cssId || !labelFormulaId || typeof labelFormulaId !== "string")
+          return false;
 
-        const variableNode = nodes.find((vNode) => {
-          const varIdParts = vNode.id.split("-");
+        const variableNode = variableNodes.find((vNode) => {
           return (
-            varIdParts.length >= 4 &&
-            varIdParts[0] === "variable" &&
-            varIdParts[1] === formulaIndex &&
-            varIdParts[2] === cssId
+            vNode.data.varId === cssId &&
+            vNode.parentId &&
+            typeof vNode.parentId === "string" &&
+            vNode.parentId.includes(labelFormulaId)
           );
         });
 

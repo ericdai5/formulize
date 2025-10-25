@@ -14,6 +14,7 @@ import {
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
+  const showHoverOutlines = computationStore.showHoverOutlines;
   const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
     const initializeMathJax = async () => {
@@ -87,10 +88,10 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const handleFormulaMouseEnter = useCallback(() => {
     if (!nodeRef.current) return;
     const formulaExpression = nodeRef.current.querySelector(".formula");
-    if (formulaExpression) {
+    if (formulaExpression && showHoverOutlines) {
       formulaExpression.classList.add("hovered");
     }
-  }, []);
+  }, [showHoverOutlines]);
 
   const handleFormulaMouseLeave = useCallback(() => {
     if (!nodeRef.current) return;
@@ -104,6 +105,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     <div
       ref={nodeRef}
       className="formula-node relative p-2.5 group"
+      data-show-hover-outlines={showHoverOutlines}
       onMouseEnter={handleFormulaMouseEnter}
       onMouseLeave={handleFormulaMouseLeave}
     >

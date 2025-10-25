@@ -25,6 +25,7 @@ const HANDLE_STYLE = {
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId } = data;
+  const showHoverOutlines = computationStore.showHoverOutlines;
 
   const variable = computationStore.variables.get(varId);
   const isVariableActive = executionStore.activeVariables.has(varId);
@@ -117,6 +118,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   return (
     <div
       className="label-flow-node text-base text-slate-700"
+      data-show-hover-outlines={showHoverOutlines}
       style={{
         pointerEvents: "auto",
         width: "auto",
@@ -128,7 +130,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
       onMouseLeave={() => computationStore.setVariableHover(varId, false)}
     >
-      <div className="flex flex-col items-center gap-1 hover:outline hover:outline-1 hover:outline-blue-300">
+      <div
+        className={`flex flex-col items-center gap-1 ${showHoverOutlines ? "hover:outline hover:outline-1 hover:outline-blue-300" : ""}`}
+      >
         <div
           ref={type === "input" ? valueDragRef : null}
           className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}

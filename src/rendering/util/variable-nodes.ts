@@ -1,7 +1,7 @@
 import { Node, useReactFlow } from "@xyflow/react";
 
 import { computationStore } from "../../store/computation";
-import { findFormulaNodeByIndex } from "./misc";
+import { NODE_TYPES, getFormulaNodes, getVariableNodes } from "./node-helpers";
 
 /*********** Helper Functions for Variable Nodes ***********/
 
@@ -34,7 +34,6 @@ export const getPosAndDim = (
  * @param formulaNode - The React Flow formula node
  * @param index - The index of the formula
  * @param viewport - The React Flow viewport
- * @param showVariableBorders - Whether to show borders on variable nodes
  * @param variableNodes - Map of existing variable nodes
  * @param foundNodeIds - Set to track which node IDs were found
  * @returns Object containing arrays of updated and new nodes
@@ -42,9 +41,8 @@ export const getPosAndDim = (
 export const updateVariableNodesForFormula = (
   formulaElement: Element,
   formulaNode: Node,
-  index: number,
+  formulaId: string,
   viewport: { zoom: number },
-  showVariableBorders: boolean,
   variableNodes: Map<string, Node>,
   foundNodeIds: Set<string>
 ): { updatedNodes: Node[]; newNodes: Node[] } => {
@@ -63,7 +61,7 @@ export const updateVariableNodesForFormula = (
 
     if (!computationStore.variables.has(cssId)) return;
 
-    const nodeId = `variable-${index}-${cssId}-${elementIndex}`;
+    const nodeId = `variable-${formulaId}-${cssId}-${elementIndex}`;
     foundNodeIds.add(nodeId);
 
     // Calculate new position and dimensions
@@ -111,7 +109,7 @@ export const updateVariableNodesForFormula = (
           width: dimensions.width,
           height: dimensions.height,
           labelPlacement: "below", // Default, will be updated when labels are recalculated
-          showBorders: showVariableBorders,
+          showBorders: computationStore.showVariableBorders,
         },
         draggable: false,
         selectable: true,
@@ -128,15 +126,13 @@ export const updateVariableNodesForFormula = (
  * @param formulaNode - The React Flow formula node
  * @param formulaId - The ID of the formula (e.g., "kinetic-energy" or index "0")
  * @param viewport - The React Flow viewport
- * @param showVariableBorders - Whether to show borders on variable nodes
  * @returns Array of variable nodes
  */
 export const createVariableNodesFromFormula = (
   formulaElement: Element,
   formulaNode: Node,
   formulaId: string,
-  viewport: { zoom: number },
-  showVariableBorders: boolean
+  viewport: { zoom: number }
 ): Node[] => {
   const variableNodes: Node[] = [];
   const formulaNodeId = formulaNode.id;
@@ -179,7 +175,7 @@ export const createVariableNodesFromFormula = (
         width: dimensions.width,
         height: dimensions.height,
         labelPlacement: "below", // Default placement, will be updated in phase 2
-        showBorders: showVariableBorders,
+        showBorders: computationStore.showVariableBorders,
       },
       draggable: false, // Subnodes typically aren't independently draggable
       selectable: true,
@@ -192,7 +188,6 @@ export const createVariableNodesFromFormula = (
 interface BaseVariableNodesParams {
   nodesInitialized: boolean;
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  showVariableBorders: boolean;
   variableNodesAddedRef: React.MutableRefObject<boolean>;
 }
 
@@ -209,7 +204,6 @@ type UpdateVariableNodesParams = BaseVariableNodesParams;
 export const useAddVariableNodes = ({
   nodesInitialized,
   setNodes,
-  showVariableBorders,
   addLabelNodes,
   addViewNodes,
   variableNodesAddedRef,
@@ -229,24 +223,34 @@ export const useAddVariableNodes = ({
 
         const variableNodes: Node[] = [];
 
-        // Find all formula nodes in the DOM
-        const formulaElements = document.querySelectorAll(".formula-node");
-
         // PHASE 1: Create only variable nodes first
-        formulaElements.forEach((formulaElement, index) => {
-          // Get the corresponding formula node using helper
-          const formulaNode = findFormulaNodeByIndex(currentNodes, index);
+        // Iterate through formula nodes instead of DOM elements
+        const formulaNodes = getFormulaNodes(currentNodes);
+        formulaNodes.forEach((formulaNode) => {
+          // Skip if the React Flow node is not measured yet
+          if (!formulaNode.measured) return;
 
-          // Skip if we can't find the React Flow node or it's not measured yet
-          if (!formulaNode || !formulaNode.measured) return;
+          // Extract formulaId from node data - this is required
+          const formulaId = formulaNode.data.formulaId;
+          if (!formulaId || typeof formulaId !== "string") {
+            console.error(
+              `Formula node ${formulaNode.id} missing required formulaId`
+            );
+            return;
+          }
+
+          // Find the corresponding DOM element for this formula node
+          const formulaElement = document.querySelector(
+            `[data-id="${formulaNode.id}"] .formula-node`
+          );
+          if (!formulaElement) return;
 
           // Use helper to create variable nodes for this formula
           const nodesForFormula = createVariableNodesFromFormula(
             formulaElement,
             formulaNode,
-            index.toString(),
-            viewport,
-            showVariableBorders
+            formulaId,
+            viewport
           );
           variableNodes.push(...nodesForFormula);
         });
@@ -256,7 +260,7 @@ export const useAddVariableNodes = ({
           setNodes((currentNodes) => {
             // Remove existing variable nodes and add new variable nodes
             const nonVariableNodes = currentNodes.filter(
-              (node) => !node.id.startsWith("variable-")
+              (node) => node.type !== NODE_TYPES.VARIABLE
             );
             return [...nonVariableNodes, ...variableNodes];
           });
@@ -294,7 +298,6 @@ export const useAddVariableNodes = ({
 export const useUpdateVariableNodes = ({
   nodesInitialized,
   setNodes,
-  showVariableBorders,
   variableNodesAddedRef,
 }: UpdateVariableNodesParams) => {
   const { getNodes, getViewport } = useReactFlow();
@@ -309,31 +312,43 @@ export const useUpdateVariableNodes = ({
         if (!nodesInitialized) return;
 
         // Create a map of existing variable node IDs for quick lookup
+        const variableNodesArray = getVariableNodes(currentNodes);
         const variableNodes = new Map<string, Node>();
-        currentNodes.forEach((node) => {
-          if (node.id.startsWith("variable-")) {
-            variableNodes.set(node.id, node);
-          }
+        variableNodesArray.forEach((node) => {
+          variableNodes.set(node.id, node);
         });
 
         const updatedNodes: Node[] = [];
         const newNodes: Node[] = [];
         const foundNodeIds = new Set<string>();
 
-        // Find all formula nodes in the DOM
-        const formulaElements = document.querySelectorAll(".formula-node");
-        formulaElements.forEach((formulaElement, index) => {
-          const formulaNode = findFormulaNodeByIndex(currentNodes, index);
-          if (!formulaNode || !formulaNode.measured) return;
+        // Iterate through formula nodes instead of DOM elements
+        const formulaNodesArray = getFormulaNodes(currentNodes);
+        formulaNodesArray.forEach((formulaNode) => {
+          if (!formulaNode.measured) return;
+
+          // Extract formulaId from node data - this is required
+          const formulaId = formulaNode.data.formulaId;
+          if (!formulaId || typeof formulaId !== "string") {
+            console.error(
+              `Formula node ${formulaNode.id} missing required formulaId`
+            );
+            return;
+          }
+
+          // Find the corresponding DOM element for this formula node
+          const formulaElement = document.querySelector(
+            `[data-id="${formulaNode.id}"] .formula-node`
+          );
+          if (!formulaElement) return;
 
           // Process variable elements for this formula using helper function
           const { updatedNodes: formulaUpdated, newNodes: formulaNew } =
             updateVariableNodesForFormula(
               formulaElement,
               formulaNode,
-              index,
+              formulaId,
               viewport,
-              showVariableBorders,
               variableNodes,
               foundNodeIds
             );
@@ -346,23 +361,20 @@ export const useUpdateVariableNodes = ({
         const hasChanges =
           updatedNodes.length > 0 ||
           newNodes.length > 0 ||
-          currentNodes.some(
-            (node) =>
-              node.id.startsWith("variable-") && !foundNodeIds.has(node.id)
-          );
+          variableNodesArray.some((node) => !foundNodeIds.has(node.id));
 
         // Only update nodes if there are actual changes
         if (hasChanges) {
           setNodes((currentNodes) => {
             // Keep non-variable nodes
             const nonVariableNodes = currentNodes.filter(
-              (node) => !node.id.startsWith("variable-")
+              (node) => node.type !== NODE_TYPES.VARIABLE
             );
 
             // Keep variable nodes that are still found in the DOM
-            const keptVariableNodes = currentNodes.filter(
-              (node) =>
-                node.id.startsWith("variable-") && foundNodeIds.has(node.id)
+            const variableNodesInCurrentNodes = getVariableNodes(currentNodes);
+            const keptVariableNodes = variableNodesInCurrentNodes.filter(
+              (node) => foundNodeIds.has(node.id)
             );
 
             // Apply updates to kept variable nodes
