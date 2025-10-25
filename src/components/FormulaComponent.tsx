@@ -43,15 +43,27 @@ interface FormulaComponentProps {
   showVariableBorders?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  formulaClassName?: string;
+  formulaStyle?: React.CSSProperties;
+  labelClassName?: string;
+  labelStyle?: React.CSSProperties;
 }
 
 const FormulaCanvasInner = observer(
   ({
     formulaId,
     showVariableBorders = false,
+    formulaClassName,
+    formulaStyle,
+    labelClassName,
+    labelStyle,
   }: {
     formulaId: string;
     showVariableBorders?: boolean;
+    formulaClassName?: string;
+    formulaStyle?: React.CSSProperties;
+    labelClassName?: string;
+    labelStyle?: React.CSSProperties;
   }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -282,6 +294,8 @@ const FormulaCanvasInner = observer(
                 mode: computationStore.computationEngine,
               },
             },
+            className: formulaClassName,
+            style: formulaStyle,
           },
         };
 
@@ -290,7 +304,15 @@ const FormulaCanvasInner = observer(
       };
 
       initializeCanvas();
-    }, [getFormula, formulaIndex, formulaId, setNodes, setEdges]);
+    }, [
+      getFormula,
+      formulaIndex,
+      formulaId,
+      setNodes,
+      setEdges,
+      formulaClassName,
+      formulaStyle,
+    ]);
 
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
@@ -467,7 +489,16 @@ const FormulaCanvasInner = observer(
 );
 
 export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
-  ({ formulaId, showVariableBorders = false, className = "", style = {} }) => {
+  ({
+    formulaId,
+    showVariableBorders = false,
+    className = "",
+    style = {},
+    formulaClassName,
+    formulaStyle,
+    labelClassName,
+    labelStyle,
+  }) => {
     const { instance, isLoading } = useFormulize();
     const containerStyle: React.CSSProperties = {
       width: "100%",
@@ -498,6 +529,10 @@ export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
           <FormulaCanvasInner
             formulaId={formulaId}
             showVariableBorders={showVariableBorders}
+            formulaClassName={formulaClassName}
+            formulaStyle={formulaStyle}
+            labelClassName={labelClassName}
+            labelStyle={labelStyle}
           />
         </ReactFlowProvider>
       </div>

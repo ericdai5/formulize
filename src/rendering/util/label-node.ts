@@ -127,7 +127,11 @@ export const processVariableElementsForLabels = (
   formulaNode: Node,
   formulaIndex: number,
   currentNodes: Node[],
-  viewport: { zoom: number; x: number; y: number }
+  viewport: { zoom: number; x: number; y: number },
+  styling?: {
+    className?: string;
+    style?: React.CSSProperties;
+  }
 ): {
   labelNodes: Node[];
   variableNodeUpdates: Array<{
@@ -221,6 +225,8 @@ export const processVariableElementsForLabels = (
       data: {
         varId: cssId,
         placement: labelPos.placement,
+        className: styling?.className,
+        style: styling?.style,
       },
       draggable: true,
       selectable: true,

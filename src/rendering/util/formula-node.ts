@@ -1,4 +1,7 @@
+import React from "react";
+
 import { processLatexContent } from "../../parse/variable";
+import { computationStore } from "../../store/computation";
 import { injectVariableSVGs } from "../svg/svg-processor";
 
 export interface FormulaNodeData {
@@ -9,6 +12,8 @@ export interface FormulaNodeData {
       mode?: string;
     };
   };
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -25,7 +30,7 @@ export async function renderFormulaWithMathJax(
 ): Promise<void> {
   if (!container || !isInitialized) return;
 
-  const { latex, environment } = data;
+  const { latex } = data;
 
   try {
     // Find the formula content container
@@ -49,7 +54,8 @@ export async function renderFormulaWithMathJax(
       processedLatex = latex; // Fallback to original latex
     }
 
-    const fontSize = environment?.fontSize || 1;
+    // Use validated fontSize from computationStore (already validated and defaulted)
+    const fontSize = computationStore.environment?.fontSize;
 
     const formulaHTML = `
       <div style="font-size: ${fontSize}em">\\(\\displaystyle ${processedLatex}\\)</div>

@@ -82,6 +82,18 @@ export const Kinetic2DExample: React.FC = () => {
             formulaId="kinetic-energy"
             showVariableBorders={false}
             style={{ height: "200px" }}
+            formulaStyle={{
+              backgroundColor: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "10px",
+            }}
+            labelStyle={{
+              backgroundColor: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "6px",
+            }}
           />
         </div>
         <div className="visualization-section">

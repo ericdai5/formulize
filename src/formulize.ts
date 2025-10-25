@@ -21,13 +21,13 @@ export interface FormulizeInstance {
   setVariable: (name: string, value: number) => boolean;
   update: (config: FormulizeConfig) => Promise<FormulizeInstance>;
   destroy: () => void;
-  getFormulaStore: (index: number) => FormulaStore | null;
-  getFormulaByIndex: (index: number) => string | null;
+  getFormulaStore: (formulaId: string) => FormulaStore | null;
+  getFormulaById: (formulaId: string) => string | null;
   getAllFormulaStores: () => FormulaStore[];
   getAllFormulas: () => string[];
   getFormulaStoreCount: () => number;
   resetFormulaState: () => void;
-  getFormulaExpression: (name: string) => string | null;
+  getFormulaExpression: (formulaId: string) => string | null;
 }
 
 // Set up computation engine configuration
@@ -70,6 +70,7 @@ async function create(
       visualizations: config.visualizations,
       controls: config.controls,
       fontSize: config.fontSize,
+      labelFontSize: config.labelFontSize,
     };
 
     // Reset all state to ensure we start fresh
@@ -193,13 +194,11 @@ async function create(
         formulaStoreManager.clearAllStores();
       },
       // Multi-formula management methods
-      getFormulaStore: (index: number) => {
-        const storeId = index.toString();
-        return formulaStoreManager.getStore(storeId);
+      getFormulaStore: (formulaId: string) => {
+        return formulaStoreManager.getStore(formulaId);
       },
-      getFormulaByIndex: (index: number) => {
-        const storeId = index.toString();
-        const store = formulaStoreManager.getStore(storeId);
+      getFormulaById: (formulaId: string) => {
+        const store = formulaStoreManager.getStore(formulaId);
         return store ? store.latexWithoutStyling : null;
       },
       getAllFormulaStores: () => {
@@ -239,14 +238,12 @@ async function create(
 const Formulize = {
   create,
 
-  getFormulaStore: (index: number): FormulaStore | null => {
-    const storeId = index.toString();
-    return formulaStoreManager.getStore(storeId);
+  getFormulaStore: (formulaId: string): FormulaStore | null => {
+    return formulaStoreManager.getStore(formulaId);
   },
 
-  getFormulaByIndex: (index: number): string | null => {
-    const storeId = index.toString();
-    const store = formulaStoreManager.getStore(storeId);
+  getFormulaById: (formulaId: string): string | null => {
+    const store = formulaStoreManager.getStore(formulaId);
     return store ? store.latexWithoutStyling : null;
   },
 

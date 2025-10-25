@@ -100,10 +100,14 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     }
   }, []);
 
+  const className = data.className || "";
+  const style = data.style || {};
+
   return (
     <div
       ref={nodeRef}
-      className="formula-node relative p-2.5 group"
+      className={`formula-node relative group ${className}`}
+      style={style}
       onMouseEnter={handleFormulaMouseEnter}
       onMouseLeave={handleFormulaMouseLeave}
     >

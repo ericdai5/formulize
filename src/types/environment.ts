@@ -11,4 +11,5 @@ export interface IEnvironment {
   visualizations?: IVisualization[];
   controls?: IControls[];
   fontSize?: number; // Font size multiplier (0.5 to 1.0) - will be formatted as "Xem"
+  labelFontSize?: number; // Label font size multiplier (0.5 to 1.0) - defaults to 0.5
 }

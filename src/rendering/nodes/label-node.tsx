@@ -10,6 +10,8 @@ import { executionStore } from "../../store/execution";
 
 export interface LabelNodeData {
   varId: string;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 // Static styles to prevent re-renders
@@ -29,6 +31,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const variable = computationStore.variables.get(varId);
   const isVariableActive = executionStore.activeVariables.has(varId);
   const isHovered = computationStore.hoverStates.get(varId) ?? false;
+
+  // Get labelFontSize from environment, default to 0.5
+  const labelFontSize = computationStore.environment?.labelFontSize;
 
   const valueDragRef = useVariableDrag({
     varId,
@@ -114,15 +119,20 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       ? "ns-resize"
       : "default";
 
+  const className = data.className || "";
+  const style = data.style || {};
+
   return (
     <div
-      className="label-flow-node text-base text-slate-700"
+      className={`label-flow-node text-base text-slate-700 ${className}`}
       style={{
         pointerEvents: "auto",
         width: "auto",
         height: "auto",
         position: "relative",
         cursor,
+        fontSize: `${labelFontSize}em`,
+        ...style,
       }}
       title={`Variable: ${varId}${name ? ` (${name})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""}${isDraggable ? " (draggable)" : ""}`}
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}

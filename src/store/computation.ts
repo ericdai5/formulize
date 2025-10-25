@@ -183,10 +183,21 @@ class ComputationStore {
           : 0.8
         : 0.8; // Default fontSize when not defined
 
-    // Always set environment with validated fontSize
+    // Validate and normalize labelFontSize, setting default if not provided
+    const validatedLabelFontSize =
+      environment.labelFontSize !== undefined
+        ? typeof environment.labelFontSize === "number" &&
+          environment.labelFontSize >= 0.5 &&
+          environment.labelFontSize <= 1
+          ? environment.labelFontSize
+          : 0.5
+        : 0.7; // Default labelFontSize when not defined
+
+    // Always set environment with validated fontSize and labelFontSize
     this.environment = {
       ...environment,
       fontSize: validatedFontSize,
+      labelFontSize: validatedLabelFontSize,
     };
   }
 
