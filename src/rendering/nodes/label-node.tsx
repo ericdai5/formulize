@@ -128,19 +128,17 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
       onMouseLeave={() => computationStore.setVariableHover(varId, false)}
     >
-      <div className={`bg-white rounded-xl p-3 border border-slate-200}`}>
-        <div className="flex flex-col items-center gap-1">
-          <div
-            ref={type === "input" ? valueDragRef : null}
-            className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
-            style={{ cursor: valueCursor }}
-          >
-            {displayComponent}
-          </div>
-          {name && (
-            <div className="text-xs text-slate-500 text-center">{name}</div>
-          )}
+      <div className="flex flex-col items-center gap-1 hover:outline hover:outline-1 hover:outline-blue-300">
+        <div
+          ref={type === "input" ? valueDragRef : null}
+          className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
+          style={{ cursor: valueCursor }}
+        >
+          {displayComponent}
         </div>
+        {name && (
+          <div className="text-xs text-slate-500 text-center">{name}</div>
+        )}
       </div>
       {/* Handle for edges to variable nodes positioned above - hidden */}
       <Handle

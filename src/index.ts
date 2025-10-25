@@ -2,6 +2,15 @@
 export { default as Formulize } from "./formulize";
 export type { FormulizeConfig, FormulizeInstance } from "./formulize";
 
+// Export new component-based API
+export { FormulaComponent } from "./components/FormulaComponent";
+export { VisualizationComponent } from "./components/VisualizationComponent";
+export { FormulizeProvider } from "./components/FormulizeProvider";
+export { useFormulize } from "./components/useFormulize";
+
+// Export example components
+export * from "./examples/components";
+
 // Export computation API
 export { computationStore } from "./store/computation";
 

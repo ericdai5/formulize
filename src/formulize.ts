@@ -99,12 +99,13 @@ async function create(
 
     // Now create individual formula stores for each formula
     // With variable trees available
-    const formulaLatex = environment.formulas.map((f) => f.latex);
     const formulaStores: FormulaStore[] = [];
 
-    formulaLatex.forEach((formulaLatex, index) => {
-      const storeId = index.toString();
-      const store = formulaStoreManager.createStore(storeId, formulaLatex);
+    environment.formulas.forEach((formula) => {
+      const store = formulaStoreManager.createStore(
+        formula.formulaId,
+        formula.latex
+      );
       formulaStores.push(store);
     });
 
@@ -127,9 +128,7 @@ async function create(
     const formulaObjects = environment.formulas;
 
     // Store the display formulas for rendering and the computation expressions for evaluation
-    computationStore.setDisplayedFormulas(
-      formulaObjects.map((f) => f.latex)
-    );
+    computationStore.setDisplayedFormulas(formulaObjects.map((f) => f.latex));
 
     // Set up expressions and enable evaluation
     if (symbolicFunctions.length > 0 || manualFunctions.length > 0) {
@@ -219,7 +218,9 @@ async function create(
       // Formula expression access
       getFormulaExpression: (formulaId: string) => {
         if (environment.formulas) {
-          const formula = environment.formulas.find((f) => f.formulaId === formulaId);
+          const formula = environment.formulas.find(
+            (f) => f.formulaId === formulaId
+          );
           if (formula) {
             return formula.expression ?? null;
           }
@@ -270,7 +271,9 @@ const Formulize = {
     formulaId: string
   ): string | null => {
     if (environment.formulas) {
-      const formula = environment.formulas.find((f) => f.formulaId === formulaId);
+      const formula = environment.formulas.find(
+        (f) => f.formulaId === formulaId
+      );
       if (formula) {
         return formula.expression ?? null;
       }
