@@ -15,7 +15,7 @@ export const summationBasic = `const config = {
           expectedValue += currExpected;
           // @view "E"->"Expected value E is updated"->"expectedValue"
         }
-        return expectedValue;
+        variables.E.value = expectedValue;
       },
       variableLinkage: {
         "xi": "x",

@@ -17,7 +17,8 @@ const StorePane = observer(({ className = "" }: StorePaneProps) => {
           id,
           symbol: id,
           type: variable.type,
-          value: variable.value,
+          dataType: variable.dataType,
+          value: variable.dataType === "set" ? variable.set : variable.value,
         })
       ),
       formulas: formulas.map((latex, index) => ({
@@ -42,7 +43,16 @@ const StorePane = observer(({ className = "" }: StorePaneProps) => {
             { label: "ID", value: variable.id },
             { label: "Symbol", value: variable.symbol },
             { label: "Type", value: variable.type },
-            { label: "Value", value: variable.value },
+            { label: "Data Type", value: variable.dataType || "scalar" },
+            {
+              label: "Value",
+              value:
+                variable.dataType === "set"
+                  ? Array.isArray(variable.value)
+                    ? `[${variable.value.join(", ")}]`
+                    : "[]"
+                  : variable.value,
+            },
           ];
 
           return (

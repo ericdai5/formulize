@@ -51,33 +51,37 @@ export function computeWithManualEngine(
       return {};
     }
 
-    // Execute manual functions for each dependent variable
-    for (const dependentVar of dependentVars) {
-      let computed = false;
-
-      // Try to find a formula that can compute this dependent variable
-      for (const formula of formulasWithManualFunctions) {
-        try {
-          // Execute the manual function with the full variable definitions
-          const computedValue = formula.manual!(environment.variables);
-
-          // Validate the result
-          if (typeof computedValue === "number" && isFinite(computedValue)) {
-            result[dependentVar] = computedValue;
-            computed = true;
-            break; // Use the first formula that successfully computes this variable
-          }
-        } catch (error) {
-          console.error(
-            `Error executing manual function for formula "${formula.formulaId}":`,
-            error
-          );
-        }
+    // Execute all manual functions - they update variables as side effects
+    for (const formula of formulasWithManualFunctions) {
+      try {
+        // Execute the formula - it will update variables directly
+        formula.manual!(environment.variables);
+      } catch (error) {
+        console.error(
+          `Error executing manual function for formula "${formula.formulaId}":`,
+          error
+        );
       }
+    }
 
-      if (!computed) {
+    // Collect results from the updated variables
+    for (const dependentVar of dependentVars) {
+      const varDef = environment.variables[dependentVar];
+
+      // Skip set variables - they use set arrays which are synced separately
+      if (varDef.dataType === "set") {
+        continue;
+      }
+      if (
+        varDef.value !== undefined &&
+        typeof varDef.value === "number" &&
+        isFinite(varDef.value)
+      ) {
+        result[dependentVar] = varDef.value;
+      } else {
         console.warn(
-          `⚠️ No valid manual function found for dependent variable: ${dependentVar}`
+          `⚠️ No valid value found for dependent variable: ${dependentVar}`,
+          varDef
         );
         result[dependentVar] = NaN;
       }

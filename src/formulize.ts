@@ -94,6 +94,9 @@ async function create(
         if (variable.value !== undefined) {
           computationStore.setValue(varId, variable.value);
         }
+        if (variable.dataType === "set" && variable.set) {
+          computationStore.setSetValue(varId, variable.set);
+        }
       });
       computationStore.resolveKeySetRelationships();
       computationStore.resolveMemberOfRelationships();

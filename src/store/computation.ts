@@ -212,6 +212,20 @@ class ComputationStore {
   }
 
   @action
+  setSetValue(id: string, set: (string | number)[]) {
+    const variable = this.variables.get(id);
+    if (!variable) {
+      return false;
+    }
+    variable.set = set;
+    // Trigger re-evaluation of dependent variables (including sets via manual functions)
+    if (!this.isUpdatingDependents && !this.isInitializing) {
+      this.updateAllDependentVars();
+    }
+    return true;
+  }
+
+  @action
   setValueInStepMode(id: string, value: number): boolean {
     const variable = this.variables.get(id);
     if (!variable) {
@@ -450,10 +464,20 @@ class ComputationStore {
           value: variables[varName] ?? computationVar.value,
         };
       }
-      return computeWithManualEngine({
+      const result = computeWithManualEngine({
         ...this.environment,
         variables: updatedVariables,
       });
+
+      // After manual execution, sync back any set changes from manual functions
+      for (const [varName, variable] of Object.entries(updatedVariables)) {
+        const computationVar = this.variables.get(varName);
+        if (computationVar && variable.dataType === "set" && variable.set) {
+          computationVar.set = variable.set;
+        }
+      }
+
+      return result;
     };
   }
 

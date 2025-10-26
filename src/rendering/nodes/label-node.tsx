@@ -10,6 +10,7 @@ import { executionStore } from "../../store/execution";
 
 export interface LabelNodeData {
   varId: string;
+  environment?: any;
 }
 
 // Static styles to prevent re-renders
@@ -24,7 +25,7 @@ const HANDLE_STYLE = {
 };
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
-  const { varId } = data;
+  const { varId, environment } = data;
   const showHoverOutlines = computationStore.showHoverOutlines;
 
   const variable = computationStore.variables.get(varId);
@@ -61,10 +62,32 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   let displayComponent: React.ReactNode = null;
 
   if (labelDisplay === "value") {
-    if (value !== undefined && value !== null) {
+    if (variable?.dataType === "set" && variable?.set) {
+      // Handle set values - convert all elements to strings for display
+      const setElements = variable.set.map((el) => String(el));
+      if (setElements.length > 0) {
+        mainDisplayText = `${setElements.join(", ")}`;
+        displayComponent = (
+          <LatexLabel
+            latex={mainDisplayText}
+            fontSize={environment?.fontSize}
+          />
+        );
+      } else {
+        mainDisplayText = "\\emptyset";
+        displayComponent = (
+          <LatexLabel
+            latex={mainDisplayText}
+            fontSize={environment?.fontSize}
+          />
+        );
+      }
+    } else if (value !== undefined && value !== null) {
       const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
       mainDisplayText = value.toFixed(displayPrecision);
-      displayComponent = <LatexLabel latex={mainDisplayText} />;
+      displayComponent = (
+        <LatexLabel latex={mainDisplayText} fontSize={environment?.fontSize} />
+      );
     } else {
       // If labelDisplay is "value" but no value is set, hide the label node
       return null;
@@ -83,7 +106,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     const displayLatex = indexDisplay
       ? `${mainDisplayText}, ${indexDisplay}`
       : mainDisplayText;
-    displayComponent = <LatexLabel latex={displayLatex} />;
+    displayComponent = (
+      <LatexLabel latex={displayLatex} fontSize={environment?.fontSize} />
+    );
   }
 
   // Determine interactive variable styling based on variable type and context
@@ -97,6 +122,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     }
 
     if (type === "input") {
+      // Input set variables get blue styling
+      if (variable.dataType === "set") {
+        return "interactive-var-slidable"; // Blue color for input sets
+      }
       if (set && set.length > 0) {
         return "interactive-var-dropdown";
       } else {
@@ -108,10 +137,13 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   };
 
   const interactiveClass = getInteractiveClass();
-  const isDraggable = type === "input" || type === "dependent";
+  const isSetVariable = variable.dataType === "set";
+  const isDraggable =
+    (type === "input" || type === "dependent") && !isSetVariable;
   const cursor = isDraggable ? "grab" : "default";
-  const valueCursor =
-    type === "input" && !computationStore.isStepMode()
+  const valueCursor = isSetVariable
+    ? "pointer"
+    : type === "input" && !computationStore.isStepMode()
       ? "ns-resize"
       : "default";
 
@@ -134,7 +166,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         className={`flex flex-col items-center gap-1 ${showHoverOutlines ? "hover:outline hover:outline-1 hover:outline-blue-300" : ""}`}
       >
         <div
-          ref={type === "input" ? valueDragRef : null}
+          ref={type === "input" && !isSetVariable ? valueDragRef : null}
           className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
           style={{ cursor: valueCursor }}
         >
