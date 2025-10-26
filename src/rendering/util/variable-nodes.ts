@@ -1,3 +1,5 @@
+import type { MutableRefObject } from "react";
+
 import { Node, useReactFlow } from "@xyflow/react";
 
 import { computationStore } from "../../store/computation";
@@ -188,7 +190,7 @@ export const createVariableNodesFromFormula = (
 interface BaseVariableNodesParams {
   nodesInitialized: boolean;
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  variableNodesAddedRef: React.MutableRefObject<boolean>;
+  variableNodesAddedRef: MutableRefObject<boolean>;
 }
 
 interface AddVariableNodesParams extends BaseVariableNodesParams {
