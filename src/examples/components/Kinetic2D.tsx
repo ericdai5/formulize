@@ -80,7 +80,6 @@ export const Kinetic2DExample: React.FC = () => {
         <div className="formula-section">
           <FormulaComponent
             formulaId="kinetic-energy"
-            showVariableBorders={false}
             style={{ height: "200px" }}
           />
         </div>
