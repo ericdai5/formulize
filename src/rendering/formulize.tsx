@@ -31,8 +31,6 @@ const FormulaCanvas = observer(
     const [showVariableTreePane, setShowVariableTreePane] =
       useState<boolean>(false);
     const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
-    const [showVariableBorders, setShowVariableBorders] =
-      useState<boolean>(false);
     const [configKey, setConfigKey] = useState<number>(0);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -107,9 +105,16 @@ const FormulaCanvas = observer(
             onShowDebugModal={() => setShowDebugModal(true)}
             onOpenStoreModal={handleOpenStoreModal}
             onToggleVariableBorders={() =>
-              setShowVariableBorders(!showVariableBorders)
+              (computationStore.showVariableBorders =
+                !computationStore.showVariableBorders)
+            }
+            onToggleHoverOutlines={() =>
+              (computationStore.showHoverOutlines =
+                !computationStore.showHoverOutlines)
             }
             showDebugButton={isStepMode}
+            showHoverOutlines={computationStore.showHoverOutlines}
+            showVariableBorders={computationStore.showVariableBorders}
           />
           <div
             ref={containerRef}
@@ -120,7 +125,6 @@ const FormulaCanvas = observer(
                 key={configKey}
                 controls={currentConfig?.controls}
                 environment={currentConfig || undefined}
-                showVariableBorders={showVariableBorders}
               />
             </div>
           </div>

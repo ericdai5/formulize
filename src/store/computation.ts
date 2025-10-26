@@ -26,6 +26,12 @@ class ComputationStore {
   accessor hoverStates = new Map<string, boolean>();
 
   @observable
+  accessor showHoverOutlines: boolean = false;
+
+  @observable
+  accessor showVariableBorders: boolean = false;
+
+  @observable
   accessor lastGeneratedCode: string | null = null;
 
   @observable

@@ -10,6 +10,7 @@ interface IconButtonProps {
   className?: string;
   size?: "sm" | "md" | "lg";
   strokeWidth?: number;
+  isActive?: boolean;
 }
 
 const IconButton: React.FC<IconButtonProps> = ({
@@ -20,6 +21,7 @@ const IconButton: React.FC<IconButtonProps> = ({
   className = "",
   size = "md",
   strokeWidth = 2,
+  isActive = false,
 }) => {
   const sizeClasses = {
     sm: "h-6 w-6",
@@ -36,12 +38,12 @@ const IconButton: React.FC<IconButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`bg-white border border-slate-200 ${sizeClasses[size]} rounded-xl flex items-center justify-center shadow-sm hover:shadow-md hover:bg-slate-50 hover:scale-105 transition-all duration-100 ${className}`}
+      className={`${isActive ? "bg-slate-900 border-slate-900" : "bg-white border-slate-200"} border ${sizeClasses[size]} rounded-xl flex items-center justify-center shadow-sm hover:shadow-md ${isActive ? "hover:bg-slate-800" : "hover:bg-slate-50"} hover:scale-105 transition-all duration-100 ${className}`}
       title={title}
       aria-label={alt}
     >
       <Icon
-        className={`${iconSizeClasses[size]} text-slate-700 hover:text-slate-950 transition-colors duration-100`}
+        className={`${iconSizeClasses[size]} ${isActive ? "text-white" : "text-slate-700 hover:text-slate-950"} transition-colors duration-100`}
         strokeWidth={strokeWidth}
       />
     </button>
