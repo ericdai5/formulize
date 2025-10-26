@@ -211,13 +211,18 @@ export const processVariableElementsForLabels = (
 
     // Create the label node - initially nearly transparent until positioned correctly
     // Use 0.01 instead of 0 so React Flow measures it properly
+    // Make label a child of the formula node so it automatically moves with the formula
+    // Convert absolute position to relative position (relative to formula node)
+    const relativePosition = {
+      x: labelPos.x - formulaNode.position.x,
+      y: labelPos.y - formulaNode.position.y,
+    };
+
     labelNodes.push({
       id: `label-${formulaId}-${cssId}`,
       type: "label",
-      position: {
-        x: labelPos.x,
-        y: labelPos.y,
-      },
+      position: relativePosition,
+      parentId: formulaNode.id, // Make this a child of the formula node
       data: {
         varId: cssId,
         formulaId: formulaId,
@@ -329,12 +334,14 @@ export const adjustLabelPositions = ({
   const currentNodes = getNodes();
 
   // Track positioned labels for horizontal collision detection (using actual measured dimensions)
+  // Group by parent formula node since positions are relative to parent
   const positionedLabels: Array<{
     x: number;
     y: number;
     width: number;
     height: number;
     placement: "above" | "below";
+    parentId: string; // Track which formula node this label belongs to
   }> = [];
 
   const updatedNodes = currentNodes.map((node) => {
@@ -345,13 +352,14 @@ export const adjustLabelPositions = ({
     // Skip labels that have been manually positioned by the user
     if (manuallyPositionedLabels.has(node.id)) {
       // Still track manually positioned labels for collision detection
-      if (node.measured.width && node.measured.height) {
+      if (node.measured.width && node.measured.height && node.parentId) {
         positionedLabels.push({
           x: node.position.x,
           y: node.position.y,
           width: node.measured.width,
           height: node.measured.height,
           placement: (node.data.placement as "above" | "below") || "below",
+          parentId: node.parentId, // Track parent for relative coordinate comparison
         });
       }
       return node;
@@ -386,51 +394,51 @@ export const adjustLabelPositions = ({
     // Calculate the perfect centered position using actual measured width
     const actualLabelWidth = node.measured.width || node.width || 40;
 
-    // Use React Flow's measured positions directly to avoid coordinate system mixing
-    // Both variable and label nodes are in the same React Flow coordinate space
+    // Since labels are now children of formula nodes (parentId set),
+    // all positions are relative to the formula node, not absolute
+    // Variable nodes are also children, so their positions are already relative
     let variableCenterX: number;
 
     if (variableNode.measured && variableNode.measured.width) {
-      // Variable node is measured - use its exact center in React Flow coordinates
-      const variableAbsoluteX =
-        (formulaNode.position.x || 0) + (variableNode.position.x || 0);
-      variableCenterX = variableAbsoluteX + variableNode.measured.width / 2;
+      // Variable node is measured - use its center in relative coordinates
+      variableCenterX =
+        variableNode.position.x + variableNode.measured.width / 2;
     } else {
       // Fallback to data dimensions if not yet measured
-      const variablePosition = variableNode.position;
       const variableDimensions = {
         width: (variableNode.data.width as number) || 0,
         height: (variableNode.data.height as number) || 0,
       };
-
-      const formulaNodePos = formulaNode.position;
-      const absoluteVariableX = formulaNodePos.x + variablePosition.x;
-      variableCenterX = absoluteVariableX + variableDimensions.width / 2;
+      variableCenterX = variableNode.position.x + variableDimensions.width / 2;
     }
 
     let finalLabelX = variableCenterX - actualLabelWidth / 2;
 
     // Calculate Y position based on placement and actual measured height
+    // All relative to formula node (0,0 is formula node's top-left)
     const actualLabelHeight = node.measured.height || node.height || 24;
     const placement = node.data.placement as "below" | "above";
     const spacing = { vertical: 2 };
 
     const formulaNodeHeight =
       formulaNode.measured?.height || formulaNode.height || 200;
-    const formulaNodeY = formulaNode.position.y;
 
     let adjustedY: number;
     if (placement === "above") {
-      // Position above: formulaTop - labelHeight - spacing
-      adjustedY = formulaNodeY - actualLabelHeight - spacing.vertical;
+      // Position above: negative Y (above formula's top edge)
+      adjustedY = -actualLabelHeight - spacing.vertical;
     } else {
-      // Position below: formulaBottom + spacing
-      adjustedY = formulaNodeY + formulaNodeHeight + spacing.vertical;
+      // Position below: formulaHeight + spacing
+      adjustedY = formulaNodeHeight + spacing.vertical;
     }
 
     // Check for horizontal collision with already positioned labels at same placement
+    // Only compare labels that share the same parent (same formula node)
     const hasHorizontalCollision = (testX: number): boolean => {
       return positionedLabels.some((positioned) => {
+        // Only check labels that belong to the same formula node (same coordinate system)
+        if (positioned.parentId !== formulaNode.id) return false;
+
         // Only check labels at the same placement (above/below)
         if (positioned.placement !== placement) return false;
 
@@ -493,6 +501,7 @@ export const adjustLabelPositions = ({
       width: actualLabelWidth,
       height: actualLabelHeight,
       placement: placement,
+      parentId: formulaNode.id, // Track parent for coordinate system comparison
     });
 
     // Fix X alignment and Y position, and make label visible

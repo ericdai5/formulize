@@ -50,7 +50,9 @@ export function computeEdgesForFormula(
     if (!variableNode) return;
 
     // Calculate absolute positions for comparison
-    const labelAbsoluteY = labelNode.position.y;
+    // Both label and variable nodes are now children of the formula node,
+    // so we need to add the formula node's position to get absolute coordinates
+    const labelAbsoluteY = formulaNode.position.y + labelNode.position.y;
     const variableAbsoluteY = formulaNode.position.y + variableNode.position.y;
 
     // Determine edge direction based on label position
