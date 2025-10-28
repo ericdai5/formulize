@@ -1,15 +1,58 @@
 {
-  "name": "formula-editor",
-  "private": true,
-  "version": "0.0.0",
+  "name": "formulize-math",
+  "private": false,
+  "version": "0.1.12",
+  "description": "A powerful formula editor and visualization library for mathematical expressions",
   "type": "module",
+  "main": "./dist/formulize.cjs.js",
+  "module": "./dist/formulize.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/formulize.es.js",
+      "require": "./dist/formulize.cjs.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "formula",
+    "math",
+    "editor",
+    "visualization",
+    "latex",
+    "katex",
+    "mathjax",
+    "react",
+    "component"
+  ],
+  "author": "Eric Dai <Ericdai2000@gmail.com>, Zain Khan <zain6khan@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ericdai5/formulize.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ericdai5/formulize/issues"
+  },
+  "homepage": "https://github.com/ericdai5/formulize#readme",
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "deploy": "rm -rf docs/forge/* && cp -r dist/* docs/forge/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.7",
@@ -43,8 +86,8 @@
     "mobx-state-tree": "^5.4.1",
     "plotly.js-dist": "^3.0.1",
     "prettier-plugin-latex": "^2.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "react-intersection-observer": "^9.8.2",
     "react-refresh": "^0.14.2",
     "react-split": "^2.0.14",
@@ -65,6 +108,7 @@
     "@typescript-eslint/parser": "^7.0.2",
     "@vitejs/plugin-react": "^4.3.3",
     "@vitejs/plugin-react-swc": "^3.7.1",
+    "ajv": "^8.17.1",
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
@@ -74,7 +118,8 @@
     "react-scan": "^0.4.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.2.2",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vite-plugin-dts": "^4.5.4"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --cache --fix",

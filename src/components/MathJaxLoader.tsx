@@ -1,0 +1,174 @@
+import React, { createContext, useEffect, useRef, useState } from "react";
+
+declare global {
+  interface Window {
+    MathJax: any;
+    MathJaxPromise?: Promise<void>;
+  }
+}
+
+export interface MathJaxContextType {
+  isLoaded: boolean;
+  MathJax: any;
+}
+
+export const MathJaxContext = createContext<MathJaxContextType>({
+  isLoaded: false,
+  MathJax: null,
+});
+
+export const MathJaxLoader: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+
+    const loadMathJax = async () => {
+      // Check if MathJax is already fully loaded
+      if (
+        window.MathJax &&
+        window.MathJax.tex2chtml &&
+        window.MathJax.startup &&
+        window.MathJax.startup.document
+      ) {
+        console.log("MathJax already fully loaded");
+        setIsLoaded(true);
+        return;
+      }
+
+      // If MathJax loading promise exists, wait for it
+      if (window.MathJaxPromise) {
+        await window.MathJaxPromise;
+        setIsLoaded(true);
+        return;
+      }
+
+      // Configure MathJax BEFORE creating the loading promise
+      // This must happen before the script loads
+      if (!window.MathJax) {
+        window.MathJax = {
+          tex: {
+            inlineMath: [
+              ["$", "$"],
+              ["\\(", "\\)"],
+            ],
+            displayMath: [
+              ["$$", "$$"],
+              ["\\[", "\\]"],
+            ],
+          },
+          chtml: {
+            scale: 2.0, // Double the size like in main.tsx
+            matchFontHeight: false, // Don't shrink to match surrounding text
+            mtextInheritFont: false, // Use MathJax fonts
+            merrorInheritFont: false, // Use MathJax fonts for errors
+          },
+          startup: {
+            ready: () => {
+              window.MathJax.startup.defaultReady();
+              window.MathJax.startup.promise.then(() => {
+                console.log(
+                  "MathJax loaded and ready by formulize-math with scale 2.0"
+                );
+                console.log(
+                  "MathJax chtml config:",
+                  window.MathJax.config?.chtml
+                );
+              });
+            },
+          },
+        };
+      }
+
+      // Create loading promise
+      window.MathJaxPromise = new Promise((resolve) => {
+        // Check if script already exists
+        const existingScript = document.getElementById("MathJax-script");
+        if (existingScript) {
+          // Script exists, wait for MathJax to be ready
+          const checkInterval = setInterval(() => {
+            if (
+              window.MathJax &&
+              window.MathJax.tex2chtml &&
+              window.MathJax.startup &&
+              window.MathJax.startup.document
+            ) {
+              clearInterval(checkInterval);
+              setIsLoaded(true);
+              resolve();
+            }
+          }, 50);
+
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            console.error("MathJax failed to load after 10 seconds");
+            setIsLoaded(true);
+            resolve(); // Resolve anyway to prevent infinite waiting
+          }, 10000);
+        } else {
+          // Load MathJax script
+          const script = document.createElement("script");
+          script.id = "MathJax-script";
+          script.src =
+            "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js";
+          script.async = true;
+
+          script.onload = () => {
+            // Wait for MathJax to be fully ready
+            if (window.MathJax && window.MathJax.startup) {
+              window.MathJax.startup.promise.then(() => {
+                console.log("MathJax script loaded and initialized");
+                setIsLoaded(true);
+                resolve();
+              });
+            } else {
+              setIsLoaded(true);
+              resolve();
+            }
+          };
+
+          script.onerror = () => {
+            console.error("Failed to load MathJax script");
+            setIsLoaded(true);
+            resolve();
+          };
+
+          document.head.appendChild(script);
+        }
+      });
+
+      await window.MathJaxPromise;
+    };
+
+    loadMathJax();
+  }, []);
+
+  if (!isLoaded) {
+    return (
+      <div style={{ padding: "20px", textAlign: "center" }}>
+        Loading mathematical notation...
+      </div>
+    );
+  }
+
+  // Double-check MathJax is available before rendering children
+  if (!window.MathJax || !window.MathJax.tex2chtml) {
+    console.error("MathJax not properly loaded");
+    return (
+      <div style={{ padding: "20px", textAlign: "center", color: "red" }}>
+        Error loading MathJax
+      </div>
+    );
+  }
+
+  return (
+    <MathJaxContext.Provider value={{ isLoaded, MathJax: window.MathJax }}>
+      {children}
+    </MathJaxContext.Provider>
+  );
+};

@@ -1,0 +1,40 @@
+# Source files
+src/
+docs/
+public/
+
+# Config files
+.eslintrc.*
+.prettierrc.*
+vite.config.ts
+tsconfig.json
+tsconfig.node.json
+tsconfig.build.json
+postcss.config.js
+tailwind.config.js
+.gitignore
+.cursorignore
+
+# Development files
+*.md
+!README.md
+CLAUDE.md
+
+# Build artifacts
+node_modules/
+.vite/
+.husky/
+
+# Git
+.git/
+.github/
+
+# Editor
+.vscode/
+.idea/
+
+# Misc
+*.log
+.DS_Store
+.env*
+

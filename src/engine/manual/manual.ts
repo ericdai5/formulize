@@ -51,11 +51,26 @@ export function computeWithManualEngine(
       return {};
     }
 
-    // Execute all manual functions - they update variables as side effects
+    // Execute all manual functions
     for (const formula of formulasWithManualFunctions) {
       try {
-        // Execute the formula - it will update variables directly
-        formula.manual!(environment.variables);
+        // Execute the formula and capture the return value
+        const returnValue = formula.manual!(environment.variables);
+
+        // If the function returns a value, use it to update the dependent variables
+        if (returnValue !== undefined && typeof returnValue === "number" && isFinite(returnValue)) {
+          // Find which dependent variable this formula updates
+          // Usually the formula updates the first dependent variable in the expression
+          for (const dependentVar of dependentVars) {
+            // Check if this variable appears in the formula's expression or latex
+            if (formula.expression?.includes(`{${dependentVar}}`) ||
+                formula.latex?.includes(dependentVar)) {
+              environment.variables[dependentVar].value = returnValue;
+              break; // Only update the first matching dependent variable
+            }
+          }
+        }
+        // If no return value, assume the function updated variables directly (backward compatibility)
       } catch (error) {
         console.error(
           `Error executing manual function for formula "${formula.formulaId}":`,
