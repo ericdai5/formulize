@@ -12,9 +12,6 @@ export { VisualizationComponent } from "./components/VisualizationComponent";
 export { FormulizeProvider } from "./components/FormulizeProvider";
 export { useFormulize } from "./components/useFormulize";
 
-// Export example components
-export * from "./examples/components";
-
 // Export computation API
 export { computationStore } from "./store/computation";
 
