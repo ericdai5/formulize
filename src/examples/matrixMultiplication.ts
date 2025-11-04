@@ -77,16 +77,58 @@ export const matrixMultiplication = `const config = {
   },
   controls: [
     {
-      type: "slider",
-      variable: "a_{11}"
+      type: "radio",
+      variable: "a_{11}",
+      orientation: "horizontal"
     },
     {
-      type: "slider",
-      variable: "a_{12}"
+      type: "radio",
+      variable: "a_{12}",
+      orientation: "horizontal"
     },
     {
-      type: "slider",
-      variable: "a_{22}"
+      type: "radio",
+      variable: "b_{22}",
+      orientation: "horizontal"
+    },
+    {
+      type: "button",
+      label: "Reset All to Zero",
+      code: (variables) => {
+        variables["a_{11}"].value = 0;
+        variables["a_{12}"].value = 0;
+        variables["a_{13}"].value = 0;
+        variables["a_{21}"].value = 0;
+        variables["a_{22}"].value = 0;
+        variables["a_{23}"].value = 0;
+        variables["a_{31}"].value = 0;
+        variables["a_{32}"].value = 0;
+        variables["a_{33}"].value = 0;
+        variables["b_{11}"].value = 0;
+        variables["b_{12}"].value = 0;
+        variables["b_{13}"].value = 0;
+        variables["b_{21}"].value = 0;
+        variables["b_{22}"].value = 0;
+        variables["b_{23}"].value = 0;
+        variables["b_{31}"].value = 0;
+        variables["b_{32}"].value = 0;
+        variables["b_{33}"].value = 0;
+      }
+    },
+    {
+      type: "button",
+      label: "Identity Matrix A",
+      code: function(variables) {
+        variables["a_{11}"].value = 1;
+        variables["a_{12}"].value = 0;
+        variables["a_{13}"].value = 0;
+        variables["a_{21}"].value = 0;
+        variables["a_{22}"].value = 1;
+        variables["a_{23}"].value = 0;
+        variables["a_{31}"].value = 0;
+        variables["a_{32}"].value = 0;
+        variables["a_{33}"].value = 1;
+      }
     }
   ],
   computation: {
