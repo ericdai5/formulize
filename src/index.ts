@@ -1,3 +1,7 @@
+// Import all required styles - these will be bundled into the output CSS
+import "./index.css"; // Includes Tailwind CSS and custom styles
+import "@xyflow/react/dist/style.css"; // React Flow styles
+
 // Export main Formulize API
 export { default as Formulize } from "./formulize";
 export type { FormulizeConfig, FormulizeInstance } from "./formulize";
@@ -7,9 +11,6 @@ export { FormulaComponent } from "./components/FormulaComponent";
 export { VisualizationComponent } from "./components/VisualizationComponent";
 export { FormulizeProvider } from "./components/FormulizeProvider";
 export { useFormulize } from "./components/useFormulize";
-
-// Export example components
-export * from "./examples/components";
 
 // Export computation API
 export { computationStore } from "./store/computation";

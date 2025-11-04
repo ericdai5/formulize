@@ -3,7 +3,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 
 import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
+import { MathJaxLoader } from "./MathJaxLoader";
 import { FormulizeContext, FormulizeContextValue } from "./useFormulize";
+import { useMathJax } from "./useMathJax";
 
 interface FormulizeProviderProps {
   config?: FormulizeConfig;
@@ -12,14 +14,21 @@ interface FormulizeProviderProps {
   onReady?: (instance: FormulizeInstance) => void;
 }
 
-export const FormulizeProvider: React.FC<FormulizeProviderProps> = observer(
+// Inner provider that runs after MathJax is loaded
+const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
   ({ config, children, onError, onReady }) => {
     const [instance, setInstance] = useState<FormulizeInstance | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const instanceRef = useRef<FormulizeInstance | null>(null);
+    const { isLoaded: mathJaxLoaded } = useMathJax();
 
     useEffect(() => {
+      // Only initialize after MathJax is loaded
+      if (!mathJaxLoaded) {
+        return;
+      }
+
       if (!config) {
         setInstance(null);
         setError(null);
@@ -36,6 +45,11 @@ export const FormulizeProvider: React.FC<FormulizeProviderProps> = observer(
           if (instanceRef.current) {
             instanceRef.current.destroy();
             instanceRef.current = null;
+          }
+
+          // Double-check MathJax is available
+          if (!window.MathJax || !window.MathJax.tex2chtml) {
+            throw new Error("MathJax is not properly loaded");
           }
 
           // Create new Formulize instance
@@ -67,7 +81,7 @@ export const FormulizeProvider: React.FC<FormulizeProviderProps> = observer(
           instanceRef.current = null;
         }
       };
-    }, [config, onError, onReady]);
+    }, [config, onError, onReady, mathJaxLoaded]);
 
     const contextValue: FormulizeContextValue = {
       instance,
@@ -83,5 +97,14 @@ export const FormulizeProvider: React.FC<FormulizeProviderProps> = observer(
     );
   }
 );
+
+// Outer provider that ensures MathJax is loaded first
+export const FormulizeProvider: React.FC<FormulizeProviderProps> = (props) => {
+  return (
+    <MathJaxLoader>
+      <FormulizeProviderInner {...props} />
+    </MathJaxLoader>
+  );
+};
 
 export default FormulizeProvider;
