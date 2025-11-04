@@ -51,11 +51,15 @@ export async function renderFormulaWithMathJax(
 
     const fontSize = environment?.fontSize || 1;
 
-    const formulaHTML = `
-      <div style="font-size: ${fontSize}em">\\(\\displaystyle ${processedLatex}\\)</div>
-    `;
+    // Create div element via DOM APIs to avoid XSS risk
+    const formulaDiv = document.createElement("div");
+    formulaDiv.style.fontSize = `${fontSize}em`;
+    formulaDiv.textContent = `\\(\\displaystyle ${processedLatex}\\)`;
 
-    renderedLatex.innerHTML = formulaHTML;
+    // Clear and append the new element
+    renderedLatex.innerHTML = "";
+    renderedLatex.appendChild(formulaDiv);
+
     await window.MathJax.typesetPromise([renderedLatex]);
 
     // Check if container is still valid after async operation
