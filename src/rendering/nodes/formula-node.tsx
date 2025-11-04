@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { reaction } from "mobx";
+import { reaction, toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { GripVertical } from "lucide-react";
@@ -101,11 +101,16 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     }
   }, []);
 
+  const customStyle = computationStore.environment?.formulaNodeStyle
+    ? toJS(computationStore.environment.formulaNodeStyle)
+    : {};
+
   return (
     <div
       ref={nodeRef}
       className="formula-node relative p-2.5 group"
       data-show-hover-outlines={showHoverOutlines}
+      style={customStyle}
       onMouseEnter={handleFormulaMouseEnter}
       onMouseLeave={handleFormulaMouseLeave}
     >

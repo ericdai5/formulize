@@ -72,6 +72,9 @@ async function create(
       visualizations: config.visualizations,
       controls: config.controls,
       fontSize: config.fontSize,
+      labelFontSize: config.labelFontSize,
+      labelNodeStyle: config.labelNodeStyle,
+      formulaNodeStyle: config.formulaNodeStyle,
     };
 
     // Reset all state to ensure we start fresh

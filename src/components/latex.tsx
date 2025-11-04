@@ -9,38 +9,41 @@ interface LatexLabelProps {
   fontSize?: number;
 }
 
-const LatexLabel = observer(({ latex, fontSize: customFontSize }: LatexLabelProps) => {
-  const labelRef = useRef<HTMLSpanElement>(null);
+const LatexLabel = observer(
+  ({ latex, fontSize: customFontSize }: LatexLabelProps) => {
+    const labelRef = useRef<HTMLSpanElement>(null);
 
-  const fontSize = customFontSize ?? computationStore.environment?.fontSize;
+    const fontSize =
+      customFontSize ?? computationStore.environment?.labelFontSize ?? 0.7;
 
-  useEffect(() => {
-    let isMounted = true; // Track if component is still mounted
-    const renderLatex = async () => {
-      if (!labelRef.current || !window.MathJax || !isMounted) return;
-      try {
-        await window.MathJax.startup.promise;
-        // Check again after async operation
-        if (!labelRef.current || !isMounted) return;
-        // Apply fontSize directly to the HTML like formula-node.tsx does
-        labelRef.current.innerHTML = `<div style="font-size: ${fontSize}em">\\(${latex}\\)</div>`;
-        await window.MathJax.typesetPromise([labelRef.current]);
-      } catch (error) {
-        console.error("Error rendering LaTeX label:", error);
-        // Fallback to plain text with null check
-        if (labelRef.current && isMounted) {
-          labelRef.current.textContent = latex;
+    useEffect(() => {
+      let isMounted = true; // Track if component is still mounted
+      const renderLatex = async () => {
+        if (!labelRef.current || !window.MathJax || !isMounted) return;
+        try {
+          await window.MathJax.startup.promise;
+          // Check again after async operation
+          if (!labelRef.current || !isMounted) return;
+          // Apply fontSize directly to the HTML like formula-node.tsx does
+          labelRef.current.innerHTML = `<div style="font-size: ${fontSize}em">\\(${latex}\\)</div>`;
+          await window.MathJax.typesetPromise([labelRef.current]);
+        } catch (error) {
+          console.error("Error rendering LaTeX label:", error);
+          // Fallback to plain text with null check
+          if (labelRef.current && isMounted) {
+            labelRef.current.textContent = latex;
+          }
         }
-      }
-    };
-    renderLatex();
-    // Cleanup function
-    return () => {
-      isMounted = false;
-    };
-  }, [latex, fontSize]); // Add fontSize to dependencies
+      };
+      renderLatex();
+      // Cleanup function
+      return () => {
+        isMounted = false;
+      };
+    }, [latex, fontSize]); // Add fontSize to dependencies
 
-  return <span ref={labelRef}>{latex}</span>;
-});
+    return <span ref={labelRef}>{latex}</span>;
+  }
+);
 
 export default LatexLabel;

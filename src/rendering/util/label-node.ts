@@ -42,8 +42,8 @@ export const getLabelNodePos = (
 
   // Define spacing constants (adjusted for zoom)
   const spacing = {
-    vertical: 2 / viewport.zoom, // Space between formula and labels
-    labelSpacing: 8 / viewport.zoom, // Space between multiple labels
+    vertical: 10 / viewport.zoom, // Space between formula and labels
+    labelSpacing: 12 / viewport.zoom, // Space between multiple labels
   };
 
   // varNodePos is already relative to the formula node (from HTML element positioning)
@@ -418,7 +418,7 @@ export const adjustLabelPositions = ({
     // All relative to formula node (0,0 is formula node's top-left)
     const actualLabelHeight = node.measured.height || node.height || 24;
     const placement = node.data.placement as "below" | "above";
-    const spacing = { vertical: 2 };
+    const spacing = { vertical: 10, horizontal: 4 }; // Consistent spacing from formula and between labels
 
     const formulaNodeHeight =
       formulaNode.measured?.height || formulaNode.height || 200;
@@ -462,15 +462,13 @@ export const adjustLabelPositions = ({
 
     // Adjust X position if collision detected
     if (hasHorizontalCollision(finalLabelX)) {
-      const horizontalSpacing = 8; // Minimum spacing between labels
-
       // Try shifting right first
-      let shiftedX = finalLabelX + horizontalSpacing;
+      let shiftedX = finalLabelX + spacing.horizontal;
       let attempts = 0;
       const maxAttempts = 10;
 
       while (hasHorizontalCollision(shiftedX) && attempts < maxAttempts) {
-        shiftedX += actualLabelWidth / 2 + horizontalSpacing;
+        shiftedX += actualLabelWidth / 2 + spacing.horizontal;
         attempts++;
       }
 
@@ -479,11 +477,11 @@ export const adjustLabelPositions = ({
         finalLabelX = shiftedX;
       } else {
         // Try shifting left instead
-        shiftedX = finalLabelX - horizontalSpacing;
+        shiftedX = finalLabelX - spacing.horizontal;
         attempts = 0;
 
         while (hasHorizontalCollision(shiftedX) && attempts < maxAttempts) {
-          shiftedX -= actualLabelWidth / 2 + horizontalSpacing;
+          shiftedX -= actualLabelWidth / 2 + spacing.horizontal;
           attempts++;
         }
 

@@ -1,4 +1,5 @@
 import { observer } from "mobx-react-lite";
+import { toJS } from "mobx";
 
 import { Handle, Position } from "@xyflow/react";
 
@@ -147,6 +148,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       ? "ns-resize"
       : "default";
 
+  const customStyle = computationStore.environment?.labelNodeStyle
+    ? toJS(computationStore.environment.labelNodeStyle)
+    : {};
+
   return (
     <div
       className="label-flow-node text-base text-slate-700"
@@ -157,6 +162,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         height: "auto",
         position: "relative",
         cursor,
+        ...customStyle,
       }}
       title={`Variable: ${varId}${name ? ` (${name})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""}${isDraggable ? " (draggable)" : ""}`}
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
