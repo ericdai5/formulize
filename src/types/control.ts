@@ -24,7 +24,8 @@ export interface IDropdownControl extends IControl {
 
 export interface ICheckboxControl extends IControl {
   type: "checkbox";
-  checked?: boolean;
+  availableElements: string[];
+  orientation?: "horizontal" | "vertical";
 }
 
 export interface IButtonControl extends IControl {

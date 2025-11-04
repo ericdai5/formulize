@@ -55,6 +55,18 @@ export const setOperations = `const config = {
   },
   controls: [
     {
+      type: "checkbox",
+      variable: "M",
+      availableElements: ["elephant", "platypus", "kangaroo", "dog", "giraffe", "whale", "dolphin", "bat", "mouse", "cat"],
+      orientation: "vertical"
+    },
+    {
+      type: "checkbox",
+      variable: "B",
+      availableElements: ["platypus", "duck", "goose", "parrot", "flamingo", "penguin", "toucan", "pelican", "swan", "eagle"],
+      orientation: "vertical"
+    },
+    {
       type: "set",
       variable: "M",
       availableElements: ["elephant", "platypus", "kangaroo", "dog", "giraffe", "whale", "dolphin", "bat", "mouse", "cat"],
@@ -62,7 +74,7 @@ export const setOperations = `const config = {
     },
     {
       type: "set",
-      variable: "B", 
+      variable: "B",
       availableElements: ["platypus", "duck", "goose", "parrot", "flamingo", "penguin", "toucan", "pelican", "swan", "eagle"],
       color: "#ef4444"
     }
