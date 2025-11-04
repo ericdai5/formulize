@@ -49,7 +49,6 @@ const loadMathJax = () => {
       chtml: {
         scale: 2.0,
       },
-      // @ts-expect-error This is valid, MathJax types are incomplete
       startup: {
         pageReady: () => {
           // @ts-expect-error MathJax startup types are incomplete
@@ -63,7 +62,11 @@ const loadMathJax = () => {
     };
 
     const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
+    script.src =
+      "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js";
+    script.integrity =
+      "sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei";
+    script.crossOrigin = "anonymous";
     script.async = true;
     document.head.appendChild(script);
   });

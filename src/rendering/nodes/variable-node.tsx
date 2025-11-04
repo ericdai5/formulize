@@ -9,19 +9,20 @@ export interface VariableNodeData {
   varId: string;
   width?: number;
   height?: number;
-  showBorders?: boolean;
 }
 
 const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
-  const { varId, width, height, showBorders = false } = data;
+  const { varId, width, height } = data;
+  const showBorders = computationStore.showVariableBorders;
   const variable = computationStore.variables.get(varId);
   const type = variable?.type === "input" ? "input" : "output";
   const hasDropdownOptions = !!(variable?.set || variable?.options);
+  const isSetVariable = variable?.dataType === "set";
 
   const nodeRef = useVariableDrag({
     varId,
-    type,
-    hasDropdownOptions,
+    type: isSetVariable ? "output" : type, // Set variables are not draggable
+    hasDropdownOptions: hasDropdownOptions || isSetVariable,
   });
 
   const handleMouseEnter = () => {
@@ -32,8 +33,13 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     computationStore.setVariableHover(varId, false);
   };
 
-  // Only show draggable cursor for input variables without dropdown
-  const cursor = type === "input" && !hasDropdownOptions ? "ns-resize" : "default";
+  // Only show draggable cursor for input variables without dropdown and not set variables
+  // Set variables get pointer cursor for click interaction
+  const cursor = isSetVariable
+    ? "pointer"
+    : type === "input" && !hasDropdownOptions
+      ? "ns-resize"
+      : "default";
 
   return (
     <div

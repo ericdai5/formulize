@@ -85,9 +85,15 @@ export const updateFormula = (
 ): {
   renderSpec: RenderSpec;
 } => {
+  // Ensure MathJax is loaded before attempting to render
+  if (!window.MathJax || !window.MathJax.tex2chtml) {
+    throw new Error('MathJax is not loaded. Please ensure MathJax is loaded before rendering formulas.');
+  }
+
   console.log("LaTeX:", newFormula.toLatex("no-id"));
   console.log("New formula:", newFormula);
-  const renderLatex = newFormula.toLatex("render");
+  // Use "no-id" mode instead of "render" mode because MathJax doesn't understand \cssId
+  const renderLatex = newFormula.toLatex("no-id");
   const chtml = window.MathJax.tex2chtml(renderLatex);
   const renderSpec = deriveRenderSpec(chtml);
   console.log("Render spec:", renderSpec);

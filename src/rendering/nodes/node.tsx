@@ -6,6 +6,7 @@ import ControlNode from "./control-node";
 import FormulaNode from "./formula-node";
 import InterpreterControlNode from "./interpreter-control-node";
 import LabelNode from "./label-node";
+import SetNode from "./set-node";
 import SliderNode from "./slider-node";
 import VariableNode from "./variable-node";
 import ViewNode from "./view-node";
@@ -22,4 +23,5 @@ export const nodeTypes: NodeTypes = {
   visualization: VisualizationNode,
   slider: SliderNode,
   array: ArrayNode,
+  set: SetNode,
 };

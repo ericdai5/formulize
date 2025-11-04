@@ -21,13 +21,15 @@ export interface FormulizeInstance {
   setVariable: (name: string, value: number) => boolean;
   update: (config: FormulizeConfig) => Promise<FormulizeInstance>;
   destroy: () => void;
-  getFormulaStore: (index: number) => FormulaStore | null;
-  getFormulaByIndex: (index: number) => string | null;
+  getFormulaStore: (index: number) => FormulaStore | null; // Get by array index
+  getFormulaStoreById: (formulaId: string) => FormulaStore | null; // Get by formulaId
+  getFormulaByIndex: (index: number) => string | null; // Get by array index
+  getFormulaById: (formulaId: string) => string | null; // Get by formulaId
   getAllFormulaStores: () => FormulaStore[];
   getAllFormulas: () => string[];
   getFormulaStoreCount: () => number;
   resetFormulaState: () => void;
-  getFormulaExpression: (name: string) => string | null;
+  getFormulaExpression: (formulaId: string) => string | null;
 }
 
 // Set up computation engine configuration
@@ -70,6 +72,9 @@ async function create(
       visualizations: config.visualizations,
       controls: config.controls,
       fontSize: config.fontSize,
+      labelFontSize: config.labelFontSize,
+      labelNodeStyle: config.labelNodeStyle,
+      formulaNodeStyle: config.formulaNodeStyle,
     };
 
     // Reset all state to ensure we start fresh
@@ -92,6 +97,9 @@ async function create(
         if (variable.value !== undefined) {
           computationStore.setValue(varId, variable.value);
         }
+        if (variable.dataType === "set" && variable.set) {
+          computationStore.setSetValue(varId, variable.set);
+        }
       });
       computationStore.resolveKeySetRelationships();
       computationStore.resolveMemberOfRelationships();
@@ -99,12 +107,13 @@ async function create(
 
     // Now create individual formula stores for each formula
     // With variable trees available
-    const formulaLatex = environment.formulas.map((f) => f.latex);
     const formulaStores: FormulaStore[] = [];
 
-    formulaLatex.forEach((formulaLatex, index) => {
-      const storeId = index.toString();
-      const store = formulaStoreManager.createStore(storeId, formulaLatex);
+    environment.formulas.forEach((formula) => {
+      const store = formulaStoreManager.createStore(
+        formula.formulaId,
+        formula.latex
+      );
       formulaStores.push(store);
     });
 
@@ -127,9 +136,7 @@ async function create(
     const formulaObjects = environment.formulas;
 
     // Store the display formulas for rendering and the computation expressions for evaluation
-    computationStore.setDisplayedFormulas(
-      formulaObjects.map((f) => f.latex)
-    );
+    computationStore.setDisplayedFormulas(formulaObjects.map((f) => f.latex));
 
     // Set up expressions and enable evaluation
     if (symbolicFunctions.length > 0 || manualFunctions.length > 0) {
@@ -195,12 +202,21 @@ async function create(
       },
       // Multi-formula management methods
       getFormulaStore: (index: number) => {
-        const storeId = index.toString();
-        return formulaStoreManager.getStore(storeId);
+        const formula = environment.formulas[index];
+        if (!formula) return null;
+        return formulaStoreManager.getStore(formula.formulaId);
+      },
+      getFormulaStoreById: (formulaId: string) => {
+        return formulaStoreManager.getStore(formulaId);
       },
       getFormulaByIndex: (index: number) => {
-        const storeId = index.toString();
-        const store = formulaStoreManager.getStore(storeId);
+        const formula = environment.formulas[index];
+        if (!formula) return null;
+        const store = formulaStoreManager.getStore(formula.formulaId);
+        return store ? store.latexWithoutStyling : null;
+      },
+      getFormulaById: (formulaId: string) => {
+        const store = formulaStoreManager.getStore(formulaId);
         return store ? store.latexWithoutStyling : null;
       },
       getAllFormulaStores: () => {
@@ -219,7 +235,9 @@ async function create(
       // Formula expression access
       getFormulaExpression: (formulaId: string) => {
         if (environment.formulas) {
-          const formula = environment.formulas.find((f) => f.formulaId === formulaId);
+          const formula = environment.formulas.find(
+            (f) => f.formulaId === formulaId
+          );
           if (formula) {
             return formula.expression ?? null;
           }
@@ -238,14 +256,12 @@ async function create(
 const Formulize = {
   create,
 
-  getFormulaStore: (index: number): FormulaStore | null => {
-    const storeId = index.toString();
-    return formulaStoreManager.getStore(storeId);
+  getFormulaStoreById: (formulaId: string): FormulaStore | null => {
+    return formulaStoreManager.getStore(formulaId);
   },
 
-  getFormulaByIndex: (index: number): string | null => {
-    const storeId = index.toString();
-    const store = formulaStoreManager.getStore(storeId);
+  getFormulaById: (formulaId: string): string | null => {
+    const store = formulaStoreManager.getStore(formulaId);
     return store ? store.latexWithoutStyling : null;
   },
 
@@ -270,7 +286,9 @@ const Formulize = {
     formulaId: string
   ): string | null => {
     if (environment.formulas) {
-      const formula = environment.formulas.find((f) => f.formulaId === formulaId);
+      const formula = environment.formulas.find(
+        (f) => f.formulaId === formulaId
+      );
       if (formula) {
         return formula.expression ?? null;
       }

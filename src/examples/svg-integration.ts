@@ -8,7 +8,7 @@ export const svgIntegration = `const config = {
         var N_0 = variables.N_0.value;
         var lambda = variables["\\\\lambda"].value;
         var t = variables.t.value;
-        return N_0 * Math.exp(-lambda * t);
+        variables.N.value = N_0 * Math.exp(-lambda * t);
       }
     }
   ],

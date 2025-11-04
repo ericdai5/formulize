@@ -7,7 +7,7 @@ export const svgKineticEnergy2D = `const config = {
       manual: function(variables) {
         var m = variables.m.value;
         var v = variables.v.value;
-        return 0.5 * m * Math.pow(v, 2);
+        variables.K.value = 0.5 * m * Math.pow(v, 2);
       }
     }
   ],

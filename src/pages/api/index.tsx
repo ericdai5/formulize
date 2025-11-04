@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Info, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import Editor from "../../components/api-code-editor";
+import ExampleSwitcher from "../../components/example-switcher";
 import IconButton from "../../components/icon-button";
 import Modal from "../../components/modal";
-import TemplateSelector from "../../components/template-selector";
 import { examples as formulaExamples } from "../../examples";
 import { FormulizeConfig } from "../../formulize";
 import Formulize from "../../rendering/formulize";
@@ -60,6 +60,7 @@ export default function APIPage() {
     executeCode(code);
   }, [code, executeCode]);
 
+
   // Save code changes for the current template
   const handleCodeChange = useCallback(
     (newCode: string) => {
@@ -83,10 +84,10 @@ export default function APIPage() {
         } overflow-hidden flex flex-col`}
       >
         <div className="min-w-[400px] h-full flex flex-col">
-          <div className="p-4 flex gap-3 border-b border-slate-200 flex-shrink-0">
-            <TemplateSelector
-              onTemplateSelect={setSelectedTemplate}
-              activeTemplate={selectedTemplate}
+          <div className="p-4 border-b border-slate-200 flex-shrink-0">
+            <ExampleSwitcher
+              onConfigSelect={setSelectedTemplate}
+              activeConfigKey={selectedTemplate}
             />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
@@ -100,7 +101,7 @@ export default function APIPage() {
         </div>
       </div>
 
-      {/* Formulize Panel */}
+      {/* Main Content Panel */}
       <div
         className={`relative flex-1 transition-all duration-300 ease-in-out`}
       >

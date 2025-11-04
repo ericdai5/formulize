@@ -26,7 +26,7 @@ export const lossFunction = `const config = {
         }
         regularization = lambda * regularization;
         var loss = mse + regularization;
-        return loss;
+        variables["J(\\\\theta)"].value = loss;
       },
       variableLinkage: {
         "index": "i",

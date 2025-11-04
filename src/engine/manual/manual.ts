@@ -51,33 +51,52 @@ export function computeWithManualEngine(
       return {};
     }
 
-    // Execute manual functions for each dependent variable
-    for (const dependentVar of dependentVars) {
-      let computed = false;
+    // Execute all manual functions
+    for (const formula of formulasWithManualFunctions) {
+      try {
+        // Execute the formula and capture the return value
+        const returnValue = formula.manual!(environment.variables);
 
-      // Try to find a formula that can compute this dependent variable
-      for (const formula of formulasWithManualFunctions) {
-        try {
-          // Execute the manual function with the full variable definitions
-          const computedValue = formula.manual!(environment.variables);
-
-          // Validate the result
-          if (typeof computedValue === "number" && isFinite(computedValue)) {
-            result[dependentVar] = computedValue;
-            computed = true;
-            break; // Use the first formula that successfully computes this variable
+        // If the function returns a value, use it to update the dependent variables
+        if (returnValue !== undefined && typeof returnValue === "number" && isFinite(returnValue)) {
+          // Find which dependent variable this formula updates
+          // Usually the formula updates the first dependent variable in the expression
+          for (const dependentVar of dependentVars) {
+            // Check if this variable appears in the formula's expression or latex
+            if (formula.expression?.includes(`{${dependentVar}}`) ||
+                formula.latex?.includes(dependentVar)) {
+              environment.variables[dependentVar].value = returnValue;
+              break; // Only update the first matching dependent variable
+            }
           }
-        } catch (error) {
-          console.error(
-            `Error executing manual function for formula "${formula.formulaId}":`,
-            error
-          );
         }
+        // If no return value, assume the function updated variables directly (backward compatibility)
+      } catch (error) {
+        console.error(
+          `Error executing manual function for formula "${formula.formulaId}":`,
+          error
+        );
       }
+    }
 
-      if (!computed) {
+    // Collect results from the updated variables
+    for (const dependentVar of dependentVars) {
+      const varDef = environment.variables[dependentVar];
+
+      // Skip set variables - they use set arrays which are synced separately
+      if (varDef.dataType === "set") {
+        continue;
+      }
+      if (
+        varDef.value !== undefined &&
+        typeof varDef.value === "number" &&
+        isFinite(varDef.value)
+      ) {
+        result[dependentVar] = varDef.value;
+      } else {
         console.warn(
-          `⚠️ No valid manual function found for dependent variable: ${dependentVar}`
+          `⚠️ No valid value found for dependent variable: ${dependentVar}`,
+          varDef
         );
         result[dependentVar] = NaN;
       }

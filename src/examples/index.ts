@@ -7,6 +7,7 @@ import { parameterizedPlane } from "./parameterizedPlane";
 import { parametric3D } from "./parametric3D";
 import { quadratic2D } from "./quadratic2D";
 import { quadratic3D } from "./quadratic3D";
+import { setOperations } from "./setOperations";
 import { sinTheta } from "./sinTheta";
 import { summationBasic } from "./summationBasic";
 import { svgIntegration } from "./svg-integration";
@@ -28,6 +29,7 @@ export const examples = {
   svgKineticEnergy2D,
   vectorAddition,
   lossFunction,
+  setOperations,
 };
 
 export const exampleDisplayNames = {
@@ -45,6 +47,7 @@ export const exampleDisplayNames = {
   svgKineticEnergy2D: "Kinetic Energy 2D with SVG",
   vectorAddition: "Vector Addition",
   lossFunction: "Loss Function with Regularization",
+  setOperations: "Set Operations (Union & Intersection)",
 } as const;
 
 export default examples;
