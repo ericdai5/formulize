@@ -12,8 +12,9 @@ export const CheckboxControl = observer<CheckboxControlProps>(({ control }) => {
   const { variable, availableElements, orientation = "horizontal" } = control;
 
   const variableData = computationStore.variables.get(variable || "");
-  const selected =
-    variableData?.dataType === "set" ? variableData?.set || [] : [];
+  const selected = Array.isArray(variableData?.value)
+    ? variableData.value
+    : [];
 
   const toggle = (element: string) => {
     if (variable) {

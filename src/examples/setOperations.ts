@@ -22,32 +22,28 @@ export const setOperations = `const config = {
   variables: {
     M: {
       type: "input",
-      dataType: "set",
-      set: ["elephant", "platypus", "kangaroo", "dog", "giraffe"],
+      value: ["elephant", "platypus", "kangaroo", "dog", "giraffe"],
       name: "Mammals",
       description: "Set of mammals",
       labelDisplay: "value"
     },
     B: {
-      type: "input", 
-      dataType: "set",
-      set: ["platypus", "duck", "goose", "parrot", "flamingo"],
+      type: "input",
+      value: ["platypus", "duck", "goose", "parrot", "flamingo"],
       name: "Billed Animals",
       description: "Set of animals with bills",
       labelDisplay: "value"
     },
     P: {
       type: "dependent",
-      dataType: "set",
-      set: [],
+      value: [],
       name: "Platypus",
       description: "Intersection of mammals and billed animals",
       labelDisplay: "value"
     },
     U: {
       type: "dependent",
-      dataType: "set", 
-      set: [],
+      value: [],
       name: "All Animals",
       description: "Union of mammals and billed animals",
       labelDisplay: "value"

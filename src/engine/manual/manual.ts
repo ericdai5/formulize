@@ -8,7 +8,7 @@
  */
 import { IEnvironment } from "../../types/environment";
 import { IFormula } from "../../types/formula";
-import { IVariable } from "../../types/variable";
+import { IVariable, IValue } from "../../types/variable";
 
 // ============================================================================
 // Validation
@@ -57,18 +57,13 @@ function getManualFormulas(formulas: IFormula[]): IFormula[] {
 
 function createValueAccessor(
   variables: Record<string, IVariable>
-): Record<string, unknown> {
-  const vars: Record<string, unknown> = {};
+): Record<string, IValue> {
+  const vars: Record<string, IValue> = {};
 
   for (const [key, variable] of Object.entries(variables)) {
-    if (variable && typeof variable === "object") {
-      // For set variables, return the set array directly
-      // For regular variables, return the value
-      if (variable.dataType === "set" && "set" in variable) {
-        vars[key] = variable.set;
-      } else if ("value" in variable) {
-        vars[key] = variable.value;
-      }
+    if (variable && typeof variable === "object" && "value" in variable && variable.value !== undefined) {
+      // Value can be either a number or an array (for sets)
+      vars[key] = variable.value;
     }
   }
 
@@ -111,15 +106,19 @@ function executeManualFormula(
   // Execute the manual function
   const returnValue = formula.manual!(vars);
 
+  // Handle return value if provided (for single dependent variable)
   if (isValidNumericResult(returnValue)) {
     updateDependentVariable(formula, returnValue, dependentVars, variables);
   }
 
-  // Sync back any modified set variables
+  // Sync back all modified variables (both arrays and numbers)
   for (const [key, value] of Object.entries(vars)) {
     const variable = variables[key];
-    if (variable && variable.dataType === "set" && Array.isArray(value)) {
-      variable.set = value;
+    if (variable) {
+      // Update the variable value if it was modified
+      if (Array.isArray(value) || typeof value === 'number') {
+        variable.value = value;
+      }
     }
   }
 }
@@ -154,8 +153,8 @@ function collectResults(
   for (const dependentVar of dependentVars) {
     const varDef = variables[dependentVar];
 
-    // Skip set variables - they use set arrays which are synced separately
-    if (varDef.dataType === "set") {
+    // Skip set variables (inferred from array values) - they use set arrays which are synced separately
+    if (Array.isArray(varDef.value)) {
       continue;
     }
 

@@ -48,7 +48,7 @@ const processIndexVariable = (
           variable,
         ] of computationStore.variables.entries()) {
           if (varSymbol === symbol.value) {
-            value = variable.value;
+            value = typeof variable.value === 'number' ? variable.value : undefined;
             variablePrecision = variable.precision ?? defaultPrecision;
             break;
           }
@@ -225,7 +225,7 @@ const processMemberVariable = (
           variable,
         ] of computationStore.variables.entries()) {
           if (varSymbol === memberOfSymbol) {
-            parentValue = variable.value;
+            parentValue = typeof variable.value === 'number' ? variable.value : undefined;
             parentDefaultCSS = variable.defaultCSS || "";
             parentHoverCSS = variable.hoverCSS || "";
             // Only consider parent as having SVG for in-formula rendering if svgMode is explicitly set
@@ -235,7 +235,7 @@ const processMemberVariable = (
             );
             parentSvgMode = variable.svgMode;
             parentVariableType = variable.type || "constant";
-            parentHasDropdownOptions = !!(variable.set || variable.options);
+            parentHasDropdownOptions = !!(Array.isArray(variable.value) || variable.options);
             break;
           }
         }
@@ -257,9 +257,7 @@ const processMemberVariable = (
         // Determine CSS class based on parent's type
         let cssClass = "interactive-var-base";
         if (parentVariableType === "input") {
-          cssClass = parentHasDropdownOptions
-            ? "interactive-var-dropdown"
-            : "interactive-var-slidable";
+          cssClass = "interactive-var-input";
         } else if (parentVariableType === "dependent") {
           cssClass = "interactive-var-dependent";
         }
@@ -436,10 +434,10 @@ export const processVariables = (
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
-          value = variable.value;
+          value = typeof variable.value === 'number' ? variable.value : undefined;
           variableType = variable.type || "constant";
-          // Check if variable has dropdown options (set or options property)
-          hasDropdownOptions = !!(variable.set || variable.options);
+          // Check if variable has dropdown options (value array or options property)
+          hasDropdownOptions = !!(Array.isArray(variable.value) || variable.options);
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           // Use the variable's display property if defined, otherwise default to "name"
@@ -487,9 +485,7 @@ export const processVariables = (
       // Use different CSS classes based on variable type and interaction mode
       let cssClass = "interactive-var-base";
       if (variableType === "input") {
-        cssClass = hasDropdownOptions
-          ? "interactive-var-dropdown"
-          : "interactive-var-slidable";
+        cssClass = "interactive-var-input";
       } else if (variableType === "dependent") {
         cssClass = "interactive-var-dependent";
       }

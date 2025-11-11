@@ -6,7 +6,7 @@ export const dropdownHandler = (container: HTMLElement) => {
   if (!container) return;
 
   const dropdownElements = container.querySelectorAll(
-    ".interactive-var-dropdown"
+    ".interactive-var-input"
   );
 
   dropdownElements.forEach((element) => {
@@ -26,15 +26,15 @@ export const dropdownHandler = (container: HTMLElement) => {
     let availableOptions: (string | number)[] = [];
     let isKeyVariable = false;
 
-    if (variable.set) {
-      availableOptions = variable.set;
+    if (Array.isArray(variable.value)) {
+      availableOptions = variable.value;
     } else if (variable.options) {
       availableOptions = variable.options;
     } else if (variable.key) {
-      // For variables with a key, show options from the key variable's set
+      // For variables with a key, show options from the key variable's value array
       const keyVar = getVariable(variable.key);
-      if (keyVar && keyVar.set) {
-        availableOptions = keyVar.set;
+      if (keyVar && Array.isArray(keyVar.value)) {
+        availableOptions = keyVar.value;
         isKeyVariable = true;
       }
     }

@@ -17,14 +17,24 @@ export const ButtonControl = observer<ButtonControlProps>(({ control }) => {
       try {
         // Execute code in a MobX action for proper reactivity
         runInAction(() => {
-          // Convert computationStore.variables Map to plain object (same as manual engine)
-          const variablesObj: Record<string, any> = {};
-          computationStore.variables.forEach((value, key) => {
-            variablesObj[key] = value;
+          // Create value accessor with just the values (same as manual engine)
+          const vars: Record<string, any> = {};
+          computationStore.variables.forEach((variable, key) => {
+            if (variable && variable.value !== undefined) {
+              vars[key] = variable.value;
+            }
           });
 
-          // Execute the function directly
-          code(variablesObj);
+          // Execute the function
+          code(vars);
+
+          // Sync back all modified variables
+          for (const [key, value] of Object.entries(vars)) {
+            const variable = computationStore.variables.get(key);
+            if (variable && (Array.isArray(value) || typeof value === 'number')) {
+              variable.value = value;
+            }
+          }
 
           // Trigger recomputation of dependent variables
           computationStore.updateAllDependentVars();
