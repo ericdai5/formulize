@@ -3,19 +3,19 @@ export const setOperations = `const config = {
     {
       formulaId: "set-intersection",
       latex: "P = M \\\\cap B",
-      manual: (variables) => {
-        const M = variables.M?.set || [];
-        const B = variables.B?.set || [];
-        variables.P.set = M.filter(item => B.includes(item));
+      manual: (vars) => {
+        const M = vars.M;
+        const B = vars.B;
+        vars.P = M.filter(item => B.includes(item));
       }
     },
     {
       formulaId: "set-union",
       latex: "U = M \\\\cup B",
-      manual: (variables) => {
-        const M = variables.M?.set || [];
-        const B = variables.B?.set || [];
-        variables.U.set = [...new Set([...M, ...B])];
+      manual: (vars) => {
+        const M = vars.M;
+        const B = vars.B;
+        vars.U = [...new Set([...M, ...B])];
       }
     }
   ],
