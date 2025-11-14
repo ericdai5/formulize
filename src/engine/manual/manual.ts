@@ -8,7 +8,7 @@
  */
 import { IEnvironment } from "../../types/environment";
 import { IFormula } from "../../types/formula";
-import { IVariable, IValue } from "../../types/variable";
+import { IValue, IVariable } from "../../types/variable";
 
 // ============================================================================
 // Validation
@@ -59,14 +59,17 @@ function createValueAccessor(
   variables: Record<string, IVariable>
 ): Record<string, IValue> {
   const vars: Record<string, IValue> = {};
-
   for (const [key, variable] of Object.entries(variables)) {
-    if (variable && typeof variable === "object" && "value" in variable && variable.value !== undefined) {
+    if (
+      variable &&
+      typeof variable === "object" &&
+      "value" in variable &&
+      variable.value !== undefined
+    ) {
       // Value can be either a number or an array (for sets)
       vars[key] = variable.value;
     }
   }
-
   return vars;
 }
 
@@ -78,46 +81,25 @@ function isValidNumericResult(value: unknown): value is number {
 // Execution
 // ============================================================================
 
-function updateDependentVariable(
-  formula: IFormula,
-  returnValue: number,
-  dependentVars: string[],
-  variables: Record<string, IVariable>
-): void {
-  for (const dependentVar of dependentVars) {
-    if (
-      formula.expression?.includes(`{${dependentVar}}`) ||
-      formula.latex?.includes(dependentVar)
-    ) {
-      variables[dependentVar].value = returnValue;
-      break;
-    }
-  }
-}
-
 function executeManualFormula(
   formula: IFormula,
-  variables: Record<string, IVariable>,
-  dependentVars: string[]
+  variables: Record<string, IVariable>
 ): void {
   // Create value accessor with all variable values
   const vars = createValueAccessor(variables);
-
   // Execute the manual function
   const returnValue = formula.manual!(vars);
-
-  // Handle return value if provided (for single dependent variable)
-  if (isValidNumericResult(returnValue)) {
-    updateDependentVariable(formula, returnValue, dependentVars, variables);
+  // Sync back all changed values from vars to variables
+  for (const [varName, value] of Object.entries(vars)) {
+    if (variables[varName]) {
+      variables[varName].value = value;
+    }
   }
-
-  // Sync back all modified variables (both arrays and numbers)
-  for (const [key, value] of Object.entries(vars)) {
-    const variable = variables[key];
-    if (variable) {
-      // Update the variable value if it was modified
-      if (Array.isArray(value) || typeof value === 'number') {
-        variable.value = value;
+  // If manual function returns a value, also sync it to dependent variables
+  if (isValidNumericResult(returnValue)) {
+    for (const variable of Object.values(variables)) {
+      if (variable.type === "dependent") {
+        variable.value = returnValue;
       }
     }
   }
@@ -125,12 +107,11 @@ function executeManualFormula(
 
 function executeManualFormulas(
   formulas: IFormula[],
-  variables: Record<string, IVariable>,
-  dependentVars: string[]
+  variables: Record<string, IVariable>
 ): void {
   for (const formula of formulas) {
     try {
-      executeManualFormula(formula, variables, dependentVars);
+      executeManualFormula(formula, variables);
     } catch (error) {
       console.error(
         `Error executing manual function for formula "${formula.formulaId}":`,
@@ -145,30 +126,14 @@ function executeManualFormulas(
 // ============================================================================
 
 function collectResults(
-  dependentVars: string[],
   variables: Record<string, IVariable>
-): Record<string, number> {
-  const result: Record<string, number> = {};
-
-  for (const dependentVar of dependentVars) {
-    const varDef = variables[dependentVar];
-
-    // Skip set variables (inferred from array values) - they use set arrays which are synced separately
-    if (Array.isArray(varDef.value)) {
-      continue;
-    }
-
-    if (isValidNumericResult(varDef.value)) {
-      result[dependentVar] = varDef.value;
-    } else {
-      console.warn(
-        `⚠️ No valid value found for dependent variable: ${dependentVar}`,
-        varDef
-      );
-      result[dependentVar] = NaN;
+): Record<string, IValue> {
+  const result: Record<string, IValue> = {};
+  for (const [varName, variable] of Object.entries(variables)) {
+    if (variable.value !== undefined) {
+      result[varName] = variable.value;
     }
   }
-
   return result;
 }
 
@@ -180,7 +145,7 @@ function collectResults(
  * Computes the formula with the given variable values using custom JavaScript functions
  *
  * @param environment - The Formulize environment containing formulas and variables
- * @returns An object mapping dependent variable names to their computed values
+ * @returns An object mapping variable names to their computed values
  *
  * @example
  * ```ts
@@ -190,7 +155,7 @@ function collectResults(
  */
 export function computeWithManualEngine(
   environment: IEnvironment
-): Record<string, number> {
+): Record<string, IValue> {
   try {
     // Validate environment
     const validation = validateEnvironment(environment);
@@ -214,9 +179,9 @@ export function computeWithManualEngine(
     }
 
     // Execute all manual formulas
-    executeManualFormulas(manualFormulas, environment.variables, dependentVars);
+    executeManualFormulas(manualFormulas, environment.variables);
     // Collect and return results
-    return collectResults(dependentVars, environment.variables);
+    return collectResults(environment.variables);
   } catch (error) {
     console.error("Error computing with manual engine:", error);
     return {};

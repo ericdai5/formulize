@@ -15,7 +15,7 @@ import { IValue, IVariable } from "../types/variable";
 
 export type EvaluationFunction = (
   variables: Record<string, number>
-) => Record<string, number>;
+) => Record<string, IValue>;
 
 class ComputationStore {
   @observable
