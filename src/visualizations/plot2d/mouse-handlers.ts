@@ -71,8 +71,10 @@ export function handleMouseMove(
   const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
 
   // Check if hovering near the current point
-  const currentX = computationStore.variables.get(xAxisVar)?.value ?? 0;
-  const currentY = computationStore.variables.get(yAxisVar)?.value ?? 0;
+  const xValue = computationStore.variables.get(xAxisVar)?.value;
+  const yValue = computationStore.variables.get(yAxisVar)?.value;
+  const currentX = typeof xValue === "number" ? xValue : 0;
+  const currentY = typeof yValue === "number" ? yValue : 0;
   const isNearCurrentPoint =
     Math.abs(d.x - currentX) < (xScale.domain()[1] - xScale.domain()[0]) * 0.01; // Within 1% of x range
 
@@ -211,7 +213,8 @@ export function handleClick(
       const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
 
       // Check if clicking near current point
-      const currentX = computationStore.variables.get(xAxisVar)?.value ?? 0;
+      const xClickValue = computationStore.variables.get(xAxisVar)?.value;
+      const currentX = typeof xClickValue === "number" ? xClickValue : 0;
       const isNearCurrentPoint =
         Math.abs(d.x - currentX) <
         (xScale.domain()[1] - xScale.domain()[0]) * 0.01;

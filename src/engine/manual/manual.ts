@@ -57,8 +57,8 @@ function getManualFormulas(formulas: IFormula[]): IFormula[] {
 
 function createValueAccessor(
   variables: Record<string, IVariable>
-): Record<string, IValue> {
-  const vars: Record<string, IValue> = {};
+): Record<string, any> {
+  const vars: Record<string, any> = {};
   for (const [key, variable] of Object.entries(variables)) {
     if (
       variable &&
@@ -91,7 +91,7 @@ function executeManualFormula(
   const returnValue = formula.manual!(vars);
   // Sync back all changed values from vars to variables
   for (const [varName, value] of Object.entries(vars)) {
-    if (variables[varName]) {
+    if (variables[varName] && typeof value === "number") {
       variables[varName].value = value;
     }
   }

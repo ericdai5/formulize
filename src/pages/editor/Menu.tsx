@@ -423,13 +423,21 @@ const AnnotateMenu = ({
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(true)}
         >
-          <img src={CurlyBraceListOptionIcon} height={"17rem"} alt="Curly brace list option" />
+          <img
+            src={CurlyBraceListOptionIcon}
+            height={"17rem"}
+            alt="Curly brace list option"
+          />
         </div>
         <div
           className="flex justify-center items-center p-0.5 w-full cursor-pointer transform -rotate-90 hover:bg-slate-100"
           onClick={makeAnnotationCallback(false)}
         >
-          <img src={CurlyBraceListOptionIcon} height={"17rem"} alt="Curly brace list option" />
+          <img
+            src={CurlyBraceListOptionIcon}
+            height={"17rem"}
+            alt="Curly brace list option"
+          />
         </div>
       </div>
     </SubMenu>

@@ -48,7 +48,8 @@ const processIndexVariable = (
           variable,
         ] of computationStore.variables.entries()) {
           if (varSymbol === symbol.value) {
-            value = typeof variable.value === 'number' ? variable.value : undefined;
+            value =
+              typeof variable.value === "number" ? variable.value : undefined;
             variablePrecision = variable.precision ?? defaultPrecision;
             break;
           }
@@ -217,7 +218,6 @@ const processMemberVariable = (
         let parentHasSVG = false;
         let parentSvgMode: "replace" | "append" | undefined = undefined;
         let parentVariableType: "input" | "dependent" | "constant" = "constant";
-        let parentHasDropdownOptions = false;
 
         // Get parent variable's configuration
         for (const [
@@ -225,7 +225,8 @@ const processMemberVariable = (
           variable,
         ] of computationStore.variables.entries()) {
           if (varSymbol === memberOfSymbol) {
-            parentValue = typeof variable.value === 'number' ? variable.value : undefined;
+            parentValue =
+              typeof variable.value === "number" ? variable.value : undefined;
             parentDefaultCSS = variable.defaultCSS || "";
             parentHoverCSS = variable.hoverCSS || "";
             // Only consider parent as having SVG for in-formula rendering if svgMode is explicitly set
@@ -235,7 +236,6 @@ const processMemberVariable = (
             );
             parentSvgMode = variable.svgMode;
             parentVariableType = variable.type || "constant";
-            parentHasDropdownOptions = !!(Array.isArray(variable.value) || variable.options);
             break;
           }
         }
@@ -422,7 +422,6 @@ export const processVariables = (
       // Get the value, type, and precision from the computation store
       let value: number | undefined = undefined;
       let variableType: "input" | "dependent" | "constant" = "constant";
-      let hasDropdownOptions = false;
       let variablePrecision = defaultPrecision;
       let display: "name" | "value" | "both" = "both"; // Default to showing both for backward compatibility
       let indexVariable = "";
@@ -434,10 +433,9 @@ export const processVariables = (
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
-          value = typeof variable.value === 'number' ? variable.value : undefined;
+          value =
+            typeof variable.value === "number" ? variable.value : undefined;
           variableType = variable.type || "constant";
-          // Check if variable has dropdown options (value array or options property)
-          hasDropdownOptions = !!(Array.isArray(variable.value) || variable.options);
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           // Use the variable's display property if defined, otherwise default to "name"

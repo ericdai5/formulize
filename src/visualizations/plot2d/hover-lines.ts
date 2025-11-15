@@ -25,11 +25,13 @@ export function updateHoverLines(config: HoverLinesConfig): void {
   // Add vertical line for x variable if hovered
   if (xAxisVar) {
     const xAxisVariable = computationStore.variables.get(xAxisVar);
+    const xValue = xAxisVariable?.value;
     if (
-      xAxisVariable?.value !== undefined &&
+      xValue !== undefined &&
+      typeof xValue === "number" &&
       computationStore.hoverStates.get(xAxisVar)
     ) {
-      const xPos = xScale(xAxisVariable.value);
+      const xPos = xScale(xValue);
 
       svg
         .append("line")
@@ -48,11 +50,13 @@ export function updateHoverLines(config: HoverLinesConfig): void {
   // Add horizontal line for y variable if hovered
   if (yAxisVar) {
     const yAxisVariable = computationStore.variables.get(yAxisVar);
+    const yValue = yAxisVariable?.value;
     if (
-      yAxisVariable?.value !== undefined &&
+      yValue !== undefined &&
+      typeof yValue === "number" &&
       computationStore.hoverStates.get(yAxisVar)
     ) {
-      const yPos = yScale(yAxisVariable.value);
+      const yPos = yScale(yValue);
 
       svg
         .append("line")
