@@ -55,7 +55,9 @@
   },
   "sideEffects": [
     "*.css",
-    "src/**/*.css"
+    "src/**/*.css",
+    "src/visualizations/custom/components/**/*.tsx",
+    "src/visualizations/custom/components/index.ts"
   ],
   "scripts": {
     "dev": "vite",

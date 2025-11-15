@@ -58,7 +58,7 @@ const Slider = observer(({ control }: SliderProps) => {
   );
 
   const isVertical = control.orientation === "vertical";
-  const currentValue = variable?.value ?? (min + max) / 2;
+  const currentValue = typeof variable?.value === "number" ? variable.value : (min + max) / 2;
 
   return (
     <div

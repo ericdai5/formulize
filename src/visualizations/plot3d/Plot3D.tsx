@@ -157,10 +157,10 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
 
       // Get current variable values as base context
       const baseVariables = Object.fromEntries(
-        Array.from(computationStore.variables.entries()).map(([symbol, v]) => [
-          symbol,
-          v.value ?? 0,
-        ])
+        Array.from(computationStore.variables.entries()).map(([symbol, v]) => {
+          const value = v.value;
+          return [symbol, typeof value === "number" ? value : 0];
+        })
       );
 
       // Check if this is an automatic surface intersection

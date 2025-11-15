@@ -8,7 +8,8 @@ import { computationStore } from "../store/computation";
 export const getVariableValue = (variableName: string): number => {
   try {
     const variable = computationStore.variables.get(variableName);
-    return variable?.value ?? 0;
+    const value = variable?.value;
+    return typeof value === "number" ? value : 0;
   } catch (error) {
     console.warn(`Variable ${variableName} not found:`, error);
     return 0;
@@ -22,8 +23,9 @@ export const getVariableValue = (variableName: string): number => {
 export const getAllVariables = (): Record<string, number> => {
   const variables: Record<string, number> = {};
   computationStore.variables.forEach((variable, name) => {
-    if (variable.value !== undefined) {
-      variables[name] = variable.value;
+    const value = variable.value;
+    if (value !== undefined && typeof value === "number") {
+      variables[name] = value;
     }
   });
   return variables;

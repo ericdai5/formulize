@@ -5,9 +5,11 @@ export const INPUT_VARIABLE_DEFAULT = {
   VALUE: 0 as number,
 };
 
+export type IValue = number | (string | number)[];
+
 export interface IVariable {
   type: "constant" | "input" | "dependent";
-  value?: number;
+  value?: IValue;
   dataType?: "scalar" | "vector" | "matrix" | "set";
   dimensions?: number[];
   units?: string;
@@ -17,7 +19,6 @@ export interface IVariable {
   range?: [number, number];
   step?: number;
   options?: string[];
-  set?: (string | number)[];
   key?: string;
   memberOf?: string;
   latexDisplay?: "name" | "value";

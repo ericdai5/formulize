@@ -30,7 +30,8 @@ export const useVariableDrag = ({
 
     // Get initial value from computation store
     const currentVariable = computationStore.variables.get(varId);
-    let startValue = currentVariable?.value ?? 0;
+    const value = currentVariable?.value;
+    let startValue = typeof value === "number" ? value : 0;
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
@@ -59,7 +60,8 @@ export const useVariableDrag = ({
       startY = e.clientY;
       // Update startValue to current value at drag start
       const currentVariable = computationStore.variables.get(varId);
-      startValue = currentVariable?.value ?? 0;
+      startValue =
+        typeof currentVariable?.value === "number" ? currentVariable.value : 0;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();

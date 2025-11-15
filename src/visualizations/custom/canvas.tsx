@@ -58,7 +58,8 @@ const Canvas: React.FC<CanvasProps> = ({ config }) => {
   const getAllVariablesSafe = useCallback(() => {
     const vars: Record<string, number> = {};
     computationStore.variables.forEach((variable, name) => {
-      vars[name] = variable.value ?? 0;
+      const value = variable.value;
+      vars[name] = typeof value === "number" ? value : 0;
     });
     return vars;
   }, []);

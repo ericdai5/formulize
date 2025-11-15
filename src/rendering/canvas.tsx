@@ -159,7 +159,7 @@ const CanvasFlow = observer(
         controls.forEach((control, index) => {
           nodes.push({
             id: `control-${index}`,
-            type: control.type,
+            type: "control",
             position: { x: 250, y: currentY },
             data: { control },
             draggable: true,

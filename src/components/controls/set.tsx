@@ -16,8 +16,11 @@ export const SetControl = observer<SetControlProps>(({ control }) => {
   const variableData = computationStore.variables.get(variableId || "");
 
   const currentSelectedElements = useMemo(
-    () => (variableData?.dataType === "set" ? variableData?.set || [] : []),
-    [variableData?.dataType, variableData?.set]
+    () =>
+      Array.isArray(variableData?.value)
+        ? variableData.value
+        : [],
+    [variableData?.value]
   );
 
   const currentAvailableElements = useMemo(

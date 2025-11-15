@@ -85,7 +85,8 @@ export function setupCustomDragInteraction(
 
     // Get current value from computation store
     const currentVariable = getVariable(customVar);
-    startValue = currentVariable?.value ?? 0;
+    const value = currentVariable?.value;
+    startValue = typeof value === "number" ? value : 0;
 
     // Add document-level listeners with capture phase
     document.addEventListener("mousemove", handleMove, true);

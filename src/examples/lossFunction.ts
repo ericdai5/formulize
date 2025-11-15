@@ -3,12 +3,12 @@ export const lossFunction = `const config = {
     {
       formulaId: "loss-function-regularization",
       latex: "J(\\\\theta) = \\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} ||\\\\theta_j||^2",
-      manual: function(variables) {
-        var m = variables.m.value;
-        var y = variables.y.set;
-        var yHat = variables["\\\\hat{y}"].set;
-        var lambda = variables["\\\\lambda"].value;
-        var theta = variables["\\\\theta"].set;
+      manual: function(vars) {
+        var m = vars.m;
+        var y = vars.y;
+        var yHat = vars["\\\\hat{y}"];
+        var lambda = vars["\\\\lambda"];
+        var theta = vars["\\\\theta"];
         var mse = 0;
         for (var i = 0; i < m; i++) {
           var index = i + 1;
@@ -26,7 +26,7 @@ export const lossFunction = `const config = {
         }
         regularization = lambda * regularization;
         var loss = mse + regularization;
-        variables["J(\\\\theta)"].value = loss;
+        return loss;
       },
       variableLinkage: {
         "index": "i",
@@ -66,12 +66,12 @@ export const lossFunction = `const config = {
     },
     y: {
       type: "input",
-      set: [2.5, 3.0, 7.0],
+      value: [2.5, 3.0, 7.0],
       name: "Actual value of the i-th example"
     },
     "\\\\hat{y}": {
       type: "input",
-      set: [2.0, 4.0, 5.0],
+      value: [2.0, 4.0, 5.0],
       name: "Predicted value of the i-th example"
     },
     "\\\\lambda": {
@@ -88,7 +88,7 @@ export const lossFunction = `const config = {
     },
     "\\\\theta": {
       type: "input",
-      set: [0.5, -1.0],
+      value: [0.5, -1.0],
       name: "Parameters of the model",
     },
     K: {

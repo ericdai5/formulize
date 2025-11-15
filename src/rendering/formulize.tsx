@@ -37,6 +37,8 @@ const FormulaCanvas = observer(
     // Update config when formulizeConfig prop changes
     useEffect(() => {
       if (formulizeConfig) {
+        // Clear displayedFormulas immediately to prevent stale data from previous config
+        computationStore.setDisplayedFormulas([]);
         setCurrentConfig(formulizeConfig);
         setConfigKey((prev) => prev + 1);
       } else {

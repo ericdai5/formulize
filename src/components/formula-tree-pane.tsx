@@ -2,13 +2,12 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import Icon from "@mui/material/Icon";
+import { Icon } from "@mui/material";
 import { ChevronRight } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
-import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
-
+import { ColorPicker, ColorSwatch } from "../pages/editor/Menu";
 import { assertUnreachable, replaceNodes } from "../parse/formula-transform";
 import {
   AugmentedFormulaNode,
@@ -19,9 +18,9 @@ import {
   Script,
   Variable,
 } from "../parse/formula-tree";
-import { ColorPicker, ColorSwatch } from "../pages/editor/Menu";
 import { FormulaStore, formulaStoreManager } from "../store/formulas";
 
+import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
 
 const FormulaElementPaneContext = createContext<{
   collapsed: { [key: string]: boolean };
@@ -330,7 +329,11 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
           );
         }}
       >
-        <img className="w-4 h-4" src={CurlyBraceListOptionIcon} alt="Curly brace list option" />
+        <img
+          className="w-4 h-4"
+          src={CurlyBraceListOptionIcon}
+          alt="Curly brace list option"
+        />
       </div>
       <div
         className="flex flex-row justify-between items-center w-full"

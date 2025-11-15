@@ -16,7 +16,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const showBorders = computationStore.showVariableBorders;
   const variable = computationStore.variables.get(varId);
   const type = variable?.type === "input" ? "input" : "output";
-  const hasDropdownOptions = !!(variable?.set || variable?.options);
+  const hasDropdownOptions = !!(Array.isArray(variable?.value) || variable?.options);
   const isSetVariable = variable?.dataType === "set";
 
   const nodeRef = useVariableDrag({

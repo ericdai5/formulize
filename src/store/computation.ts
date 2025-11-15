@@ -11,11 +11,11 @@ import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
 import { IComputation } from "../types/computation";
 import { IEnvironment } from "../types/environment";
-import { IVariable } from "../types/variable";
+import { IValue, IVariable } from "../types/variable";
 
 export type EvaluationFunction = (
   variables: Record<string, number>
-) => Record<string, number>;
+) => Record<string, IValue>;
 
 class ComputationStore {
   @observable
@@ -48,8 +48,8 @@ class ComputationStore {
 
   @observable
   accessor manualFunctions: ((
-    variables: Record<string, IVariable>
-  ) => number)[] = [];
+    vars: Record<string, IValue>
+  ) => IValue | void)[] = [];
 
   @observable
   accessor environment: IEnvironment | null = null;
@@ -172,7 +172,7 @@ class ComputationStore {
 
   @action
   setManualFunctions(
-    manual: ((variables: Record<string, IVariable>) => number)[]
+    manual: ((vars: Record<string, IValue>) => IValue | void)[]
   ): void {
     this.manualFunctions = manual;
   }
@@ -217,7 +217,7 @@ class ComputationStore {
     if (!variable) {
       return false;
     }
-    variable.set = set;
+    variable.value = set; // Use unified value field
     // Trigger re-evaluation of dependent variables (including sets via manual functions)
     if (!this.isUpdatingDependents && !this.isInitializing) {
       this.updateAllDependentVars();
@@ -285,51 +285,24 @@ class ComputationStore {
     this.refreshCallback = callback;
   }
 
-  // Resolve any key-set relationships after all variables have been added
-  @action
-  resolveKeySetRelationships() {
-    for (const variable of this.variables.values()) {
-      if (variable.key && variable.set) {
-        const keyVariable = this.variables.get(variable.key);
-        if (keyVariable && keyVariable.set && keyVariable.value !== undefined) {
-          const keyIndex = keyVariable.set.indexOf(keyVariable.value);
-          if (keyIndex !== -1 && keyIndex < variable.set.length) {
-            const setValue = variable.set[keyIndex];
-            variable.value =
-              typeof setValue === "number"
-                ? setValue
-                : parseFloat(String(setValue));
-          }
-        }
-      }
-    }
-  }
-
   // Resolve memberOf relationships after all variables have been added
   @action
   resolveMemberOfRelationships() {
     for (const [, variable] of this.variables.entries()) {
       if (variable.memberOf) {
         const parentVar = this.variables.get(variable.memberOf);
-        if (parentVar?.set) {
-          variable.set = [...parentVar.set];
-          // If the parent variable has a value, set this variable's value to match
+        if (parentVar && Array.isArray(parentVar.value)) {
+          // Set default value to first element if child doesn't have a value, no index, and not in step mode
           if (
-            parentVar.value !== undefined &&
-            parentVar.set.includes(parentVar.value)
-          ) {
-            variable.value = parentVar.value;
-          } else if (
-            parentVar.set.length > 0 &&
+            variable.value === undefined &&
+            parentVar.value.length > 0 &&
             !variable.index &&
             !this.isStepMode()
           ) {
-            // Only set default to first element if this variable doesn't have an index
-            // AND we're not in step mode (variables should only get values during manual execution)
             variable.value =
-              typeof parentVar.set[0] === "number"
-                ? parentVar.set[0]
-                : parseFloat(String(parentVar.set[0]));
+              typeof parentVar.value[0] === "number"
+                ? parentVar.value[0]
+                : parseFloat(String(parentVar.value[0]));
           }
         }
       }
@@ -346,14 +319,14 @@ class ComputationStore {
     if (!changedVariable) return;
 
     // Case 1: The changed variable has a key (depends on another variable)
-    if (changedVariable.key && changedVariable.set) {
+    if (changedVariable.key && Array.isArray(changedVariable.value)) {
       const keyVariable = this.variables.get(changedVariable.key);
-      if (keyVariable && keyVariable.set) {
+      if (keyVariable && Array.isArray(keyVariable.value)) {
         // Find the index of the changed value in the changed variable's set
-        const changedIndex = changedVariable.set.indexOf(changedValue);
-        if (changedIndex !== -1 && changedIndex < keyVariable.set.length) {
+        const changedIndex = changedVariable.value.indexOf(changedValue);
+        if (changedIndex !== -1 && changedIndex < keyVariable.value.length) {
           // Update the key variable's value using the same index
-          const keyValue = keyVariable.set[changedIndex];
+          const keyValue = keyVariable.value[changedIndex];
           keyVariable.value =
             typeof keyValue === "number"
               ? keyValue
@@ -366,15 +339,15 @@ class ComputationStore {
     for (const [varId, variable] of this.variables.entries()) {
       if (
         variable.key === changedVariableId &&
-        variable.set &&
+        Array.isArray(variable.value) &&
         varId !== changedVariableId
       ) {
-        if (changedVariable.set) {
+        if (Array.isArray(changedVariable.value)) {
           // Find the index of the changed value in the changed variable's set
-          const changedIndex = changedVariable.set.indexOf(changedValue);
-          if (changedIndex !== -1 && changedIndex < variable.set.length) {
+          const changedIndex = changedVariable.value.indexOf(changedValue);
+          if (changedIndex !== -1 && changedIndex < variable.value.length) {
             // Update the dependent variable's value using the same index
-            const setValue = variable.set[changedIndex];
+            const setValue = variable.value[changedIndex];
             variable.value =
               typeof setValue === "number"
                 ? setValue
@@ -389,7 +362,7 @@ class ComputationStore {
   @action
   async setComputation(
     expressions: string[],
-    manual: ((variables: Record<string, IVariable>) => number)[]
+    manual: ((vars: Record<string, IValue>) => IValue | void)[]
   ) {
     this.setSymbolicFunctions(expressions);
     this.setManualFunctions(manual);
@@ -472,8 +445,8 @@ class ComputationStore {
       // After manual execution, sync back any set changes from manual functions
       for (const [varName, variable] of Object.entries(updatedVariables)) {
         const computationVar = this.variables.get(varName);
-        if (computationVar && variable.dataType === "set" && variable.set) {
-          computationVar.set = variable.set;
+        if (computationVar && Array.isArray(variable.value)) {
+          computationVar.value = variable.value;
         }
       }
 
@@ -496,13 +469,11 @@ class ComputationStore {
         range: variableDefinition?.range,
         step: variableDefinition?.step,
         options: variableDefinition?.options,
-        set: variableDefinition?.set,
         key: variableDefinition?.key,
         memberOf: variableDefinition?.memberOf,
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
         labelDisplay: variableDefinition?.labelDisplay ?? "value",
         index: variableDefinition?.index,
-        // SVG support
         svgPath: variableDefinition?.svgPath,
         svgContent: variableDefinition?.svgContent,
         svgSize: variableDefinition?.svgSize,
@@ -510,21 +481,6 @@ class ComputationStore {
         defaultCSS: variableDefinition?.defaultCSS,
         hoverCSS: variableDefinition?.hoverCSS,
       });
-
-      // If this variable has a key-set relationship, update its value based on the key variable
-      if (variableDefinition?.key && variableDefinition?.set) {
-        const keyVariable = this.variables.get(variableDefinition.key);
-        if (keyVariable && keyVariable.set && keyVariable.value !== undefined) {
-          const keyIndex = keyVariable.set.indexOf(keyVariable.value);
-          if (keyIndex !== -1 && keyIndex < variableDefinition.set.length) {
-            const setValue = variableDefinition.set[keyIndex];
-            this.variables.get(id)!.value =
-              typeof setValue === "number"
-                ? setValue
-                : parseFloat(String(setValue));
-          }
-        }
-      }
     }
   }
 
@@ -574,8 +530,10 @@ class ComputationStore {
       this.isUpdatingDependents = true;
       const values = Object.fromEntries(
         Array.from(this.variables.entries())
-          .filter(([, v]) => v.value !== undefined)
-          .map(([symbol, v]) => [symbol, v.value!])
+          .filter(
+            ([, v]) => v.value !== undefined && typeof v.value === "number"
+          )
+          .map(([symbol, v]) => [symbol, v.value as number])
       );
       const results = this.evaluationFunction(values);
       // Update all dependent variables with their computed values

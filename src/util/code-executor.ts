@@ -91,12 +91,11 @@ export async function executeUserCode(jsCode: string): Promise<FormulizeConfig |
 
         if (
           !config.formulas ||
-          !config.variables ||
-          !config.computation
+          !config.variables
         ) {
           reject(
             new Error(
-              "Invalid configuration returned. Configuration must include formulas, variables, and computation properties."
+              "Invalid configuration returned. Configuration must include formulas and variables properties."
             )
           );
           return;

@@ -3,57 +3,65 @@ export const setOperations = `const config = {
     {
       formulaId: "set-intersection",
       latex: "P = M \\\\cap B",
-      manual: (variables) => {
-        const M = variables.M?.set || [];
-        const B = variables.B?.set || [];
-        variables.P.set = M.filter(item => B.includes(item));
+      manual: (vars) => {
+        const M = vars.M;
+        const B = vars.B;
+        vars.P = M.filter(item => B.includes(item));
       }
     },
     {
       formulaId: "set-union",
       latex: "U = M \\\\cup B",
-      manual: (variables) => {
-        const M = variables.M?.set || [];
-        const B = variables.B?.set || [];
-        variables.U.set = [...new Set([...M, ...B])];
+      manual: (vars) => {
+        const M = vars.M;
+        const B = vars.B;
+        vars.U = [...new Set([...M, ...B])];
       }
     }
   ],
   variables: {
     M: {
       type: "input",
-      dataType: "set",
-      set: ["elephant", "platypus", "kangaroo", "dog", "giraffe"],
+      value: ["elephant", "platypus", "kangaroo", "dog", "giraffe"],
       name: "Mammals",
       description: "Set of mammals",
       labelDisplay: "value"
     },
     B: {
-      type: "input", 
-      dataType: "set",
-      set: ["platypus", "duck", "goose", "parrot", "flamingo"],
+      type: "input",
+      value: ["platypus", "duck", "goose", "parrot", "flamingo"],
       name: "Billed Animals",
       description: "Set of animals with bills",
       labelDisplay: "value"
     },
     P: {
       type: "dependent",
-      dataType: "set",
-      set: [],
+      value: [],
       name: "Platypus",
       description: "Intersection of mammals and billed animals",
       labelDisplay: "value"
     },
     U: {
       type: "dependent",
-      dataType: "set", 
-      set: [],
+      value: [],
       name: "All Animals",
       description: "Union of mammals and billed animals",
       labelDisplay: "value"
     }
   },
   controls: [
+    {
+      type: "checkbox",
+      variable: "M",
+      availableElements: ["elephant", "platypus", "kangaroo", "dog", "giraffe", "whale", "dolphin", "bat", "mouse", "cat"],
+      orientation: "vertical"
+    },
+    {
+      type: "checkbox",
+      variable: "B",
+      availableElements: ["platypus", "duck", "goose", "parrot", "flamingo", "penguin", "toucan", "pelican", "swan", "eagle"],
+      orientation: "vertical"
+    },
     {
       type: "set",
       variable: "M",
@@ -62,7 +70,7 @@ export const setOperations = `const config = {
     },
     {
       type: "set",
-      variable: "B", 
+      variable: "B",
       availableElements: ["platypus", "duck", "goose", "parrot", "flamingo", "penguin", "toucan", "pelican", "swan", "eagle"],
       color: "#ef4444"
     }

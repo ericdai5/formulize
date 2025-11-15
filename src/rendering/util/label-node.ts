@@ -169,8 +169,13 @@ export const processVariableElementsForLabels = (
     if (variable?.labelDisplay === "none") return;
 
     // Only create label node if there's either a label OR a value
-    const hasValue = variable?.value !== undefined && variable?.value !== null;
+    const hasValue = variable?.value !== undefined && variable?.value !== null &&
+      (typeof variable.value === 'number' ? !isNaN(variable.value) : true);
     const hasName = variable?.name;
+
+    // For labelDisplay === "value", we must have a valid value to show
+    // For other displays, we can show just the name
+    if (variable?.labelDisplay === "value" && !hasValue) return;
     if (!hasValue && !hasName) return;
 
     // Check if this label should be visible using the same logic as LabelNode component

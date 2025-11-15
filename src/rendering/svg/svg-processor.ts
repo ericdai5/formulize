@@ -51,7 +51,7 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
       // For compatibility, look for elements with specific variable classes
       const element =
         varElement.querySelector(
-          ".interactive-var-base, .interactive-var-slidable, .interactive-var-dropdown, .interactive-var-dependent"
+          ".interactive-var-base, .interactive-var-input, .interactive-var-dependent"
         ) || varElement;
 
       // Create SVG element

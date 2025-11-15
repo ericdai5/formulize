@@ -28,7 +28,7 @@ export {
 export type { IComputation } from "./types/computation";
 export type { IEnvironment } from "./types/environment";
 export type { IFormula } from "./types/formula";
-export type { IVariable } from "./types/variable";
+export type { IVariable, IValue } from "./types/variable";
 export type { IVisualization } from "./types/visualization";
 export type { IPlot2D } from "./types/plot2d";
 export type { IPlot3D } from "./types/plot3d";

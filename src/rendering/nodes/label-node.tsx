@@ -36,14 +36,14 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const valueDragRef = useVariableDrag({
     varId,
     type: variable?.type === "input" ? "input" : "output",
-    hasDropdownOptions: !!(variable?.set || variable?.options),
+    hasDropdownOptions: !!(Array.isArray(variable?.value) || variable?.options),
   });
 
   // All conditional returns must happen after all hooks are called
   if (!variable) return null;
   if (computationStore.isStepMode() && !isVariableActive) return null;
 
-  const { name, type, set, value, precision, labelDisplay, index } = variable;
+  const { name, type, value, precision, labelDisplay, index } = variable;
 
   // Get index variable information
   const indexVariable = index;
@@ -51,7 +51,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   if (indexVariable) {
     const indexVar = computationStore.variables.get(indexVariable);
-    if (indexVar && indexVar.value !== undefined && !isNaN(indexVar.value)) {
+    if (indexVar && typeof indexVar.value === 'number' && !isNaN(indexVar.value)) {
       // Format precision based on the index variable's precision or default to 0 for integers
       const precision = indexVar.precision ?? 0;
       indexDisplay = `${indexVariable} = ${indexVar.value.toFixed(precision)}`;
@@ -63,9 +63,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   let displayComponent: React.ReactNode = null;
 
   if (labelDisplay === "value") {
-    if (variable?.dataType === "set" && variable?.set) {
+    if (Array.isArray(variable?.value)) {
       // Handle set values - convert all elements to strings for display
-      const setElements = variable.set.map((el) => String(el));
+      const setElements = variable.value.map((el) => String(el));
       if (setElements.length > 0) {
         mainDisplayText = `${setElements.join(", ")}`;
         displayComponent = (
@@ -83,7 +83,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
           />
         );
       }
-    } else if (value !== undefined && value !== null) {
+    } else if (typeof value === 'number' && value !== null) {
       const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
       mainDisplayText = value.toFixed(displayPrecision);
       displayComponent = (
@@ -123,22 +123,15 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     }
 
     if (type === "input") {
-      // Input set variables get blue styling
-      if (variable.dataType === "set") {
-        return "interactive-var-slidable"; // Blue color for input sets
-      }
-      if (set && set.length > 0) {
-        return "interactive-var-dropdown";
-      } else {
-        return "interactive-var-slidable";
-      }
+      // All input variables get the unified input class
+      return "interactive-var-input";
     }
 
     return "interactive-var-base";
   };
 
   const interactiveClass = getInteractiveClass();
-  const isSetVariable = variable.dataType === "set";
+  const isSetVariable = Array.isArray(variable.value);
   const isDraggable =
     (type === "input" || type === "dependent") && !isSetVariable;
   const cursor = isDraggable ? "grab" : "default";

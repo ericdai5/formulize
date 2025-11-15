@@ -3,9 +3,9 @@ export const summationBasic = `const config = {
     {
       formulaId: "summation-basic",
       latex: "E = \\\\sum_{x \\\\in X} x P(x)",
-      manual: function(variables) {
-        var xValues = variables.x.set;
-        var pxValues = variables["P(x)"].set;
+      manual: function(vars) {
+        var xValues = vars.X;
+        var pxValues = vars["P(x)"];
         var expectedValue = 0;
         for (var i = 0; i < xValues.length; i++) {
           var xi = xValues[i];
@@ -15,7 +15,7 @@ export const summationBasic = `const config = {
           expectedValue += currExpected;
           // @view "E"->"Expected value E is updated"->"expectedValue"
         }
-        variables.E.value = expectedValue;
+        return expectedValue;
       },
       variableLinkage: {
         "xi": "x",
@@ -43,13 +43,13 @@ export const summationBasic = `const config = {
     },
     X: {
       type: "input",
-      set: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      value: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       precision: 0,
     },
     "P(x)": {
       type: "input",
       key: "x",
-      set: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
+      value: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
       precision: 2,
       name: "Probability of x",
       latexDisplay: "name",

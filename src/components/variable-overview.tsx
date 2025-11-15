@@ -18,7 +18,7 @@ const StorePane = observer(({ className = "" }: StorePaneProps) => {
           symbol: id,
           type: variable.type,
           dataType: variable.dataType,
-          value: variable.dataType === "set" ? variable.set : variable.value,
+          value: variable.value,
         })
       ),
       formulas: formulas.map((latex, index) => ({
