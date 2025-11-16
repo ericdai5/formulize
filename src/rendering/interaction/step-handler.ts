@@ -5,7 +5,7 @@ import { getVariable } from "../../util/computation-helpers";
 export const stepHandler = (container: HTMLElement) => {
   if (!container) return;
   const interactiveElements = container.querySelectorAll(
-    ".interactive-var-dropdown, .interactive-var-slider, .interactive-var-dependent"
+    ".interactive-var-input, .interactive-var-dependent"
   );
 
   interactiveElements.forEach((element) => {
@@ -83,7 +83,7 @@ export const updateAllVariables = (
  */
 export const applyCue = (updatedVarIds: Set<string>) => {
   const interactiveElements = document.querySelectorAll(
-    ".interactive-var-dropdown, .interactive-var-slider, .interactive-var-dependent"
+    ".interactive-var-input, .interactive-var-dependent"
   );
   interactiveElements.forEach((element) => {
     const variables = findVariableByElement(element as HTMLElement);
@@ -105,7 +105,7 @@ export const applyCue = (updatedVarIds: Set<string>) => {
  */
 export const clearAllCues = () => {
   const interactiveElements = document.querySelectorAll(
-    ".interactive-var-dropdown, .interactive-var-slider, .interactive-var-dependent"
+    ".interactive-var-input, .interactive-var-dependent"
   );
   interactiveElements.forEach((element) => {
     const target = element as HTMLElement;

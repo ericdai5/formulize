@@ -24,18 +24,19 @@ export interface IDropdownControl extends IControl {
 
 export interface ICheckboxControl extends IControl {
   type: "checkbox";
-  checked?: boolean;
+  availableElements: string[];
+  orientation?: "horizontal" | "vertical";
 }
 
 export interface IButtonControl extends IControl {
   type: "button";
-  onClick?: () => void;
+  code?: (variables: Record<string, any>) => void; // Function to execute when button is clicked
+  label?: string; // Button label text
 }
 
 export interface IRadioControl extends IControl {
   type: "radio";
-  options: Array<{ value: string; label: string }>;
-  selectedValue?: string;
+  orientation?: "horizontal" | "vertical";
 }
 
 export interface ISetControl extends IControl {

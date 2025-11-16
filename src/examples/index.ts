@@ -3,6 +3,7 @@ import { gravitationalPotential } from "./gravitationalPotential";
 import { kinetic2D } from "./kinetic2D";
 import { kinetic3D } from "./kinetic3D";
 import { lossFunction } from "./lossFunction";
+import { matrixMultiplication } from "./matrixMultiplication";
 import { parameterizedPlane } from "./parameterizedPlane";
 import { parametric3D } from "./parametric3D";
 import { quadratic2D } from "./quadratic2D";
@@ -28,6 +29,7 @@ export const examples = {
   svgIntegration,
   svgKineticEnergy2D,
   vectorAddition,
+  matrixMultiplication,
   lossFunction,
   setOperations,
 };
@@ -46,6 +48,7 @@ export const exampleDisplayNames = {
   svgIntegration: "SVG Icons in Formulas",
   svgKineticEnergy2D: "Kinetic Energy 2D with SVG",
   vectorAddition: "Vector Addition",
+  matrixMultiplication: "Matrix Multiplication 3x3",
   lossFunction: "Loss Function with Regularization",
   setOperations: "Set Operations (Union & Intersection)",
 } as const;

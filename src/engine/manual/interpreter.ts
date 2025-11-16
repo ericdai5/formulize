@@ -2,7 +2,7 @@
  * JS-Interpreter utility functions for manual computation debugging
  */
 import { IStep } from "../../types/step";
-import { IVariable } from "../../types/variable";
+import { IValue } from "../../types/variable";
 
 // Window interface extension for JS-Interpreter
 declare global {
@@ -177,17 +177,16 @@ const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
 };
 
 /**
- * Initialize JS-Interpreter with environment variables and debugging utilities
+ * Initialize JS-Interpreter with variable values for step-through debugging
  * @param currentCode - The JavaScript code to execute
- * @param environment - The Formulize environment containing variables
  * @param setError - Error callback function
- * @param variables - Resolved variables from computation store
+ * @param values - Variable values (IValue) from computation store
  * @returns Initialized interpreter instance or null if failed
  */
 export const initializeInterpreter = (
   currentCode: string,
   setError: (error: string) => void,
-  variables: Record<string, IVariable>
+  values: Record<string, IValue>
 ): JSInterpreter | null => {
   if (!window.Interpreter) {
     setError("JS-Interpreter not loaded.");
@@ -199,22 +198,12 @@ export const initializeInterpreter = (
   }
 
   try {
-    // Create initialization function to set up variables properly
+    // Create initialization function to set up the vars object with values
     const initFunc = (interpreter: JSInterpreter, globalObject: unknown) => {
-      const variablesToUse = variables;
-
-      // Set up each variable as a global property for tracking
-      for (const [key, variable] of Object.entries(variablesToUse)) {
-        try {
-          // Convert the variable to a pseudo object that the interpreter can track
-          const pseudoVariable = interpreter.nativeToPseudo(variable);
-          interpreter.setProperty(globalObject, key, pseudoVariable);
-        } catch (err) {
-          console.error(`Error setting up variable ${key}:`, err);
-          // Fallback to setting as primitive value
-          interpreter.setProperty(globalObject, key, variable);
-        }
-      }
+      // Create vars object directly from the values
+      // This is cleaner - just the values, no IVariable wrapper objects
+      const varsObject = interpreter.nativeToPseudo(values);
+      interpreter.setProperty(globalObject, "vars", varsObject);
 
       // Set up the view() function as a breakpoint trigger
       // This function acts as a breakpoint marker
@@ -228,10 +217,9 @@ export const initializeInterpreter = (
         interpreter.createNativeFunction(view)
       );
 
-      // Also provide the getVariablesJSON function
+      // Also provide the getVariablesJSON function for debugging
       const getVariablesJSON = function () {
-        // Variables are already cleaned by toJS() in computation store
-        return JSON.stringify(variablesToUse);
+        return JSON.stringify(values);
       };
       interpreter.setProperty(
         globalObject,

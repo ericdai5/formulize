@@ -34,8 +34,23 @@ export interface FormulizeInstance {
 
 // Set up computation engine configuration
 function setupComputationEngine(environment: IEnvironment) {
-  computationStore.setComputationEngine(environment.computation.engine);
-  computationStore.setComputationConfig(environment.computation);
+  // Auto-detect engine if not specified
+  let engine: "llm" | "symbolic-algebra" | "manual" = "llm"; // default
+
+  if (environment.computation?.engine) {
+    engine = environment.computation.engine;
+  } else {
+    // Auto-detect: if any formula has a manual function, use manual engine
+    const hasManualFunctions = environment.formulas?.some(
+      (f) => f.manual && typeof f.manual === "function"
+    );
+    if (hasManualFunctions) {
+      engine = "manual";
+    }
+  }
+
+  computationStore.setComputationEngine(engine);
+  computationStore.setComputationConfig(environment.computation || { engine });
 }
 
 // Validate environment configuration
@@ -43,17 +58,11 @@ function validateEnvironment(environment: IEnvironment) {
   if (!environment) {
     throw new Error("No configuration provided");
   }
-
   if (!environment.formulas || environment.formulas.length === 0) {
     throw new Error("No formulas defined in configuration");
   }
-
   if (!environment.variables) {
     throw new Error("No variables defined in configuration");
-  }
-
-  if (!environment.computation) {
-    throw new Error("No computation configuration provided");
   }
 }
 
@@ -95,13 +104,13 @@ async function create(
         computationStore.addVariable(varId, variable);
         computationStore.setVariableType(varId, variable.type);
         if (variable.value !== undefined) {
-          computationStore.setValue(varId, variable.value);
-        }
-        if (variable.dataType === "set" && variable.set) {
-          computationStore.setSetValue(varId, variable.set);
+          if (variable.dataType === "set" && Array.isArray(variable.value)) {
+            computationStore.setSetValue(varId, variable.value);
+          } else if (typeof variable.value === "number") {
+            computationStore.setValue(varId, variable.value);
+          }
         }
       });
-      computationStore.resolveKeySetRelationships();
       computationStore.resolveMemberOfRelationships();
     }
 
@@ -179,7 +188,6 @@ async function create(
           range: variable.range,
           step: variable.step,
           options: variable.options,
-          set: variable.set,
           key: variable.key,
         };
       },
