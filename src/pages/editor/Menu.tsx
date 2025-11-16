@@ -1,8 +1,7 @@
 import { default as React } from "react";
 
 import { observer } from "mobx-react-lite";
-
-import Icon from "@mui/material/Icon";
+import { Undo, Redo, Strikethrough as StrikethroughIcon, Type, Square, Braces, AlignJustify, Zap } from "lucide-react";
 
 import { consolidateGroups, replaceNodes } from "../../parse/formula-transform";
 import {
@@ -24,8 +23,6 @@ import {
   undoStore,
 } from "../../store";
 
-import AnnotateIcon from "/AnnotateIcon.svg";
-import BoxIcon from "/BoxIcon.svg";
 import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
 
 // import LogoIcon from "./Icons/LogoIcon.svg";
@@ -217,7 +214,7 @@ const UndoMenu = observer(() => {
         }
       }}
     >
-      <Icon>undo</Icon>
+      <Undo size={18} />
     </div>
   );
 });
@@ -232,7 +229,7 @@ const RedoMenu = observer(() => {
         }
       }}
     >
-      <Icon>redo</Icon>
+      <Redo size={18} />
     </div>
   );
 });
@@ -264,7 +261,7 @@ const StrikethroughMenu = () => {
           e.stopPropagation();
         }}
       >
-        <Icon>format_strikethrough</Icon>
+        <StrikethroughIcon size={18} />
       </div>
     </MenuItem>
   );
@@ -273,7 +270,7 @@ const StrikethroughMenu = () => {
 const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   return (
     <SubMenu
-      menuButton={<Icon>format_color_text</Icon>}
+      menuButton={<Type size={18} />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -322,7 +319,7 @@ const ColorMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
 const BoxMenu = ({ open, onMenuOpen, onMenuClose }: DismissableMenuProps) => {
   return (
     <SubMenu
-      menuButton={<img src={BoxIcon} alt="Box icon" />}
+      menuButton={<Square size={18} />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -413,7 +410,7 @@ const AnnotateMenu = ({
   };
   return (
     <SubMenu
-      menuButton={<img src={AnnotateIcon} alt="Annotate icon" />}
+      menuButton={<Braces size={18} />}
       open={open}
       onMenuOpen={onMenuOpen}
       onMenuClose={onMenuClose}
@@ -463,7 +460,7 @@ const AlignMenu = observer(() => {
         e.stopPropagation();
       }}
     >
-      <Icon>format_align_justify</Icon>
+      <AlignJustify size={18} />
     </div>
   );
 });
@@ -476,7 +473,7 @@ const EnlivenToggle = observer(() => {
         editingStore.setShowEnlivenMode(!editingStore.showEnlivenMode);
       }}
     >
-      <Icon>flash_on</Icon>
+      <Zap size={18} />
     </div>
   );
 });

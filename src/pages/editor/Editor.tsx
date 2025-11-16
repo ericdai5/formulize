@@ -1,4 +1,3 @@
-import { css as classname } from "@emotion/css";
 import { useEffect, useState } from "react";
 import useStateRef from "react-usestateref";
 
@@ -74,41 +73,16 @@ const styledRanges = (view: EditorView) => {
                   from: baseOffset,
                   to: offset,
                   decoration: Decoration.mark({
-                    class: classname`
-                position: relative;
-                pointer-events: none;
-                /* border: 1px solid ${range.hints?.color || "black"}; */
-
-                &::before {
-                  content: "";
-                  position: absolute;
-                  top: 0;
-                  bottom: 0;
-                  left: 0;
-                  right: 0;
-                  opacity: ${
-                    view.state.field(styledRangeSelectionState).has(range.id)
-                      ? 0.1
-                      : 0
-                  };
-                  background-color: ${range.hints?.color || "black"};
-                }
-
-                &::after {
-                  content: "";
-                  position: absolute;
-                  z-index: ${nestingDepth};
-                  top: ${-4 + 4 * nestingDepth}px;
-                  left: 0;
-                  width: 100%;
-                  height: ${
-                    view.state.field(styledRangeSelectionState).has(range.id)
-                      ? "4px"
-                      : "2px"
-                  };
-                  background-color: ${range.hints?.color || "black"};
-                }
-              `,
+                    class: "styled-range-mark",
+                    attributes: {
+                      style: `
+                        --range-color: ${range.hints?.color || "black"};
+                        --range-opacity: ${view.state.field(styledRangeSelectionState).has(range.id) ? 0.1 : 0};
+                        --range-z-index: ${nestingDepth};
+                        --range-top: ${-4 + 4 * nestingDepth}px;
+                        --range-height: ${view.state.field(styledRangeSelectionState).has(range.id) ? "4px" : "2px"};
+                      `.trim(),
+                    },
                     // This isn't actually very good: perfectly overlapping ranges will be obscured
                     // by the innermost range's tooltip. But doing otherwise requires injecting HTML
                     // via CodeMirror's "Widget" decorations

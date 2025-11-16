@@ -158,4 +158,32 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+
+  /* Styled range marks for CodeMirror editor */
+  .styled-range-mark {
+    position: relative;
+    pointer-events: none;
+  }
+
+  .styled-range-mark::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: var(--range-opacity, 0);
+    background-color: var(--range-color, black);
+  }
+
+  .styled-range-mark::after {
+    content: "";
+    position: absolute;
+    z-index: var(--range-z-index, 0);
+    top: var(--range-top, 0);
+    left: 0;
+    width: 100%;
+    height: var(--range-height, 2px);
+    background-color: var(--range-color, black);
+  }
 }

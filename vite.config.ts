@@ -11,10 +11,8 @@ export default defineConfig({
   },
   plugins: [
     react({
-      jsxImportSource: "@emotion/react",
       babel: {
         plugins: [
-          "@emotion/babel-plugin",
           ["@babel/plugin-proposal-decorators", { version: "2023-11" }],
         ],
       },
@@ -46,20 +44,13 @@ export default defineConfig({
     },
     rollupOptions: {
       // Externalize dependencies that shouldn't be bundled
-      external: [
-        "react",
-        "react-dom",
-        "react/jsx-runtime",
-      ],
+      external: ["react", "react-dom", "react/jsx-runtime"],
       output: {
         // Global variables for UMD build
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
           "react/jsx-runtime": "jsxRuntime",
-          "@emotion/react": "emotionReact",
-          "@emotion/styled": "emotionStyled",
-          "@mui/material": "MaterialUI",
           mobx: "mobx",
           "mobx-react-lite": "mobxReactLite",
           "mobx-state-tree": "mobxStateTree",

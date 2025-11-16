@@ -1,4 +1,3 @@
-import { css } from "@emotion/react";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
@@ -331,16 +330,11 @@ const AlignmentGuidesInternal = observer(
 
     return (
       <div
-        css={css`
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          height: 100%;
-          pointer-events: ${dragState === null ? "none" : "auto"};
-          cursor: ${dragState === null ? "auto" : "col-resize"};
-          z-index: 1000;
-        `}
+        className="absolute left-0 top-0 w-full h-full z-[1000]"
+        style={{
+          pointerEvents: dragState === null ? "none" : "auto",
+          cursor: dragState === null ? "auto" : "col-resize",
+        }}
       >
         {alignTargets.flatMap((rowTargets, row) => {
           // We want all markers in a row to have the same height
