@@ -27,7 +27,8 @@ function calculateLineDataPoints(
   // Get current variable values
   const allVariables: Record<string, number> = {};
   for (const [id, variable] of computationStore.variables.entries()) {
-    allVariables[id] = variable.value ?? 0;
+    const value = variable.value;
+    allVariables[id] = typeof value === "number" ? value : 0;
   }
 
   // Try to get evaluation function from store

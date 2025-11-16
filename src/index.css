@@ -30,28 +30,31 @@
   .interactive-var-base {
     @apply text-black cursor-default;
   }
-  .interactive-var-dependent {
-    @apply text-slate-600 rounded-md select-none transition-all duration-200 cursor-default;
+
+  /* Unified input variable style - black by default, no special blue styling */
+  .interactive-var-input {
+    @apply text-black rounded-md select-none transition-all duration-200;
   }
 
-  .interactive-var-slidable {
-    @apply text-blue-500 rounded-md select-none transition-all duration-200 cursor-ns-resize;
-  }
-
-  .interactive-var-slidable:active {
+  .interactive-var-input:active {
     @apply scale-105;
   }
 
-  .interactive-var-dependent.hovered {
-    @apply text-slate-900 rounded-md scale-110;
+  .interactive-var-input.hovered {
+    @apply text-blue-600 rounded-md scale-110;
   }
 
-  .interactive-var-slidable.hovered {
-    @apply text-blue-700 rounded-md scale-110;
+  /* Dependent variable style */
+  .interactive-var-dependent {
+    @apply text-black rounded-md select-none transition-all duration-200 cursor-default;
+  }
+
+  .interactive-var-dependent.hovered {
+    @apply text-black rounded-md scale-110;
   }
 
   /* Specific styling for interactive variables in label nodes */
-  .label-flow-node .interactive-var-slidable {
+  .label-flow-node .interactive-var-input {
     line-height: 1;
   }
 
@@ -59,7 +62,7 @@
     line-height: 1;
   }
 
-  .label-flow-node .interactive-var-slidable.hovered {
+  .label-flow-node .interactive-var-input.hovered {
     line-height: 1;
     display: inline-block;
     @apply scale-110;
@@ -69,14 +72,6 @@
     line-height: 1;
     display: inline-block;
     @apply scale-110;
-  }
-
-  .interactive-var-dropdown {
-    @apply interactive-var-base text-slate-700 select-none transition-all;
-  }
-
-  .interactive-var-dropdown:active {
-    @apply scale-105;
   }
 
   /* Formula expression hover state */

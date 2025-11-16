@@ -202,7 +202,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Track all variable values and hover states for live updates
         const allVariables: Record<string, number | boolean> = {};
         for (const [id, variable] of computationStore.variables.entries()) {
-          allVariables[id] = variable.value ?? 0;
+          const value = variable.value;
+          allVariables[id] = typeof value === "number" ? value : 0;
           allVariables[`${id}_hover`] =
             computationStore.hoverStates.get(id) || false;
         }

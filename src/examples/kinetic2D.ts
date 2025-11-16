@@ -4,9 +4,7 @@ export const kinetic2D = `const config = {
       formulaId: "kinetic-energy",
       latex: "K = \\\\frac{1}{2}mv^2",
       expression: "{K} = 0.5 * {m} * {v} * {v}",
-      manual: function(variables) {
-        var m = variables.m.value;
-        var v = variables.v.value;
+      manual: function({ m, v }) {
         return 0.5 * m * Math.pow(v, 2);
       }
     }

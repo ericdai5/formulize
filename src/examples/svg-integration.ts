@@ -4,11 +4,8 @@ export const svgIntegration = `const config = {
       formulaId: "radioactive-decay",
       latex: "{N} = {N_{0}} \\\\times e^{-{\\\\lambda} \\\\times {t}}",
       expression: "{N} = {N_0} * Math.exp(-{lambda} * {t})",
-      manual: function(variables) {
-        var N_0 = variables.N_0.value;
-        var lambda = variables["\\\\lambda"].value;
-        var t = variables.t.value;
-        variables.N.value = N_0 * Math.exp(-lambda * t);
+      manual: function({ N_0, "\\\\lambda": lambda, t }) {
+        return N_0 * Math.exp(-lambda * t);
       }
     }
   ],

@@ -72,11 +72,19 @@ export class Controller {
   // ============================================================================
 
   private static initializeExecution(): void {
+    // Extract just the values from variables for the interpreter
     const variables = computationStore.getVariables();
+    const values: Record<string, number | (string | number)[]> = {};
+    for (const [key, variable] of Object.entries(variables)) {
+      if (variable.value !== undefined) {
+        values[key] = variable.value;
+      }
+    }
+
     const interpreter = initializeInterpreter(
       ctx.code,
       ctx.setError.bind(ctx),
-      variables
+      values
     );
     if (!interpreter) return;
 
@@ -240,6 +248,12 @@ export class Controller {
     ctx.setHistory(history);
     ctx.setHistoryIndex(0);
     ctx.setIsComplete(true);
+
+    // Clear all active variables and visual cues for the initial state
+    ctx.setActiveVariables(new Set());
+    requestAnimationFrame(() => {
+      clearAllCues();
+    });
   }
 
   static refresh(code: string, environment: IEnvironment | null): void {
@@ -249,6 +263,23 @@ export class Controller {
     this.clearProcessedIndices();
     this.clearAutoPlay();
     this.resetCodeMirror();
+
+    // Reset variables in computation store to their original values from environment
+    if (environment?.variables) {
+      for (const [varId, varDef] of Object.entries(environment.variables)) {
+        const computationVar = computationStore.variables.get(varId);
+        if (computationVar) {
+          // Reset the value if defined in environment
+          if (varDef.value !== undefined) {
+            computationVar.value = varDef.value;
+          } else if (varDef.memberOf) {
+            // For memberOf variables, clear the value (it will be set during execution)
+            computationVar.value = undefined;
+          }
+        }
+      }
+    }
+
     if (!code.trim()) {
       ctx.setError(ERROR_MESSAGES.NO_CODE);
       return;

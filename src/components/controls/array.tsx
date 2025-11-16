@@ -12,7 +12,7 @@ interface ArrayProps {
   control: IArrayControl;
 }
 
-const Array = observer(({ control }: ArrayProps) => {
+const ArrayControl = observer(({ control }: ArrayProps) => {
   // Get the variable ID from the control's variable property
   const getVariableId = useCallback(() => {
     if (control.variable) {
@@ -27,7 +27,7 @@ const Array = observer(({ control }: ArrayProps) => {
     [variableId]
   );
 
-  // Get array values from the variable's set property or from memberOf parent
+  // Get array values from the variable's value property or from memberOf parent
   const getArrayValues = useCallback(() => {
     if (variable) {
       // If variable has memberOf, get values from parent variable
@@ -37,22 +37,22 @@ const Array = observer(({ control }: ArrayProps) => {
           console.warn(
             `Circular memberOf reference detected for variable ${variableId}`
           );
-          return variable.set || [];
+          return Array.isArray(variable.value) ? variable.value : [];
         }
         const parentVariable = computationStore.variables.get(
           variable.memberOf
         );
-        if (parentVariable?.set) {
-          return parentVariable.set;
+        if (Array.isArray(parentVariable?.value)) {
+          return parentVariable.value;
         }
       }
-      // Otherwise, get values from the variable's own set property
-      if (variable.set) {
-        return variable.set;
+      // Otherwise, get values from the variable's own value property
+      if (Array.isArray(variable.value)) {
+        return variable.value;
       }
     }
     return [];
-  }, [variable]);
+  }, [variable, variableId]);
 
   const arrayValues = getArrayValues();
 
@@ -147,4 +147,6 @@ const Array = observer(({ control }: ArrayProps) => {
   );
 });
 
-export default Array;
+ArrayControl.displayName = "ArrayControl";
+
+export default ArrayControl;
