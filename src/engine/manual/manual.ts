@@ -91,7 +91,7 @@ function executeManualFormula(
   const returnValue = formula.manual!(vars);
   // Sync back all changed values from vars to variables
   for (const [varName, value] of Object.entries(vars)) {
-    if (variables[varName] && typeof value === "number") {
+    if (variables[varName] && (typeof value === "number" || Array.isArray(value))) {
       variables[varName].value = value;
     }
   }

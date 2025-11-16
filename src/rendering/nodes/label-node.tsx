@@ -66,8 +66,16 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     if (Array.isArray(variable?.value)) {
       // Handle set values - convert all elements to strings for display
       const setElements = variable.value.map((el) => String(el));
+      const isStringArray = variable.value.every((el) => typeof el === 'string');
+
       if (setElements.length > 0) {
-        mainDisplayText = `${setElements.join(", ")}`;
+        if (isStringArray) {
+          // For string arrays, use smaller non-italic LaTeX text
+          mainDisplayText = `\\scriptstyle\\textrm{${setElements.join(", ")}}`;
+        } else {
+          // For number arrays, use default LaTeX styling
+          mainDisplayText = `${setElements.join(", ")}`;
+        }
         displayComponent = (
           <LatexLabel
             latex={mainDisplayText}
