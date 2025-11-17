@@ -51,13 +51,14 @@ export default defineConfig({
     },
     rollupOptions: {
       // Externalize dependencies that shouldn't be bundled
-      external: ["react", "react-dom", "react/jsx-runtime"],
+      external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
       output: {
         // Global variables for UMD build
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
           "react/jsx-runtime": "jsxRuntime",
+          "react/jsx-dev-runtime": "jsxDevRuntime",
           mobx: "mobx",
           "mobx-react-lite": "mobxReactLite",
           "mobx-state-tree": "mobxStateTree",
