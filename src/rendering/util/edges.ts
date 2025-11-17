@@ -1,50 +1,46 @@
 import { Edge, Node } from "@xyflow/react";
 
 import {
-  extractFormulaIds,
-  findFormulaNodeByFormulaId,
-  findLabelNodesByFormulaId,
+  extractIds,
+  findFormulaNodeById,
+  findLabelNodesById,
   findVariableNodesByVarId,
   getLabelNodes,
 } from "./node-helpers";
 
 /**
  * Compute edges for a single formula between label nodes and their corresponding variable nodes.
- * @param formulaId - The ID of the formula to process edges for (e.g., "kinetic-energy")
+ * @param id - The ID of the formula to process edges for (e.g., "kinetic-energy")
  * @param allNodes - All React Flow nodes (we'll filter internally)
  * @param shouldLabelBeVisible - Predicate function to check if a label should be visible
  * @param createdEdgeIds - Set to track which edge IDs have been created
  * @returns Array of edges for this specific formula
  */
 export function computeEdgesForFormula(
-  formulaId: string,
+  id: string,
   allNodes: Node[],
   shouldLabelBeVisible: (varId: string) => boolean,
   createdEdgeIds: Set<string>
 ): Edge[] {
   const edges: Edge[] = [];
 
-  // Find the formula node for this formulaId
-  const formulaNode = findFormulaNodeByFormulaId(allNodes, formulaId);
+  // Find the formula node for this id
+  const formulaNode = findFormulaNodeById(allNodes, id);
   if (!formulaNode) return edges;
 
   // Filter label nodes for this specific formula
-  const formulaLabelNodes = findLabelNodesByFormulaId(allNodes, formulaId);
+  const formulaLabelNodes = findLabelNodesById(allNodes, id);
 
   formulaLabelNodes.forEach((labelNode) => {
     const labelNodeData = labelNode.data as {
       varId?: string;
-      formulaId?: string;
+      id?: string;
     };
     const varId = labelNodeData?.varId;
     if (!varId || !shouldLabelBeVisible(varId)) return;
 
     // Find matching variable nodes for this formula using the helper
-    const matchingVariableNodes = findVariableNodesByVarId(
-      allNodes,
-      formulaId,
-      varId
-    );
+    const matchingVariableNodes = findVariableNodesByVarId(allNodes, id, varId);
 
     const variableNode = matchingVariableNodes[0];
     if (!variableNode) return;
@@ -104,12 +100,12 @@ export function computeLabelVariableEdges(
 
   // Extract unique formula IDs from label nodes
   const labelNodes = getLabelNodes(currentNodes);
-  const formulaIds = extractFormulaIds(labelNodes);
+  const ids = extractIds(labelNodes);
 
   // Process edges for each formula
-  formulaIds.forEach((formulaId) => {
+  ids.forEach((id) => {
     const formulaEdges = computeEdgesForFormula(
-      formulaId,
+      id,
       currentNodes,
       shouldLabelBeVisible,
       createdEdgeIds

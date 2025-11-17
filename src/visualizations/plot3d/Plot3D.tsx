@@ -94,8 +94,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
 
   // Create a bound getFormulaById function that uses the environment
   const getFormulaByIdWithConfig = useCallback(
-    (formulaId: string) => {
-      return getFormulaById(formulaId, environment);
+    (id: string) => {
+      return getFormulaById(id, environment);
     },
     [environment]
   );
@@ -324,7 +324,13 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
       setLinesData([]);
       setCurrentPoint(null);
     }
-  }, [calculateSurfacesDataWrapper, calculateLinesData, xAxisVar, yAxisVar, zVar]);
+  }, [
+    calculateSurfacesDataWrapper,
+    calculateLinesData,
+    xAxisVar,
+    yAxisVar,
+    zVar,
+  ]);
 
   useEffect(() => {
     setSurfacesData([]);
@@ -399,7 +405,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
         )
       );
       if (!hasValidData) {
-        console.warn(`No valid data for surface: ${surfaceData.formulaId}`);
+        console.warn(`No valid data for surface: ${surfaceData.id}`);
         return;
       }
 
@@ -423,7 +429,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
           showscale: shouldShowColorbar,
           opacity: surfaceData.opacity,
           connectgaps: false,
-          name: surfaceData.formulaId,
+          name: surfaceData.id,
           showlegend: surfaceData.showInLegend,
           contours: {
             x: { show: false },
@@ -437,7 +443,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
                 len: 0.8, // Make it shorter to leave room for legend
                 thickness: 5,
                 title: {
-                  text: surfaceData.formulaId, // Use surface formulaId as colorbar title
+                  text: surfaceData.id, // Use surface id as colorbar title
                   side: "right",
                 },
               }
@@ -455,7 +461,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
             opacity: surfaceData.opacity,
             colorscale: surfaceData.color,
             intensity: validPoints.map((p: IPoint3D) => p.z),
-            name: surfaceData.formulaId,
+            name: surfaceData.id,
             showlegend: surfaceData.showInLegend,
             showscale: shouldShowColorbar,
             colorbar: shouldShowColorbar
@@ -464,7 +470,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
                   len: 0.8,
                   thickness: 5,
                   title: {
-                    text: surfaceData.formulaId,
+                    text: surfaceData.id,
                     side: "right",
                   },
                 }
@@ -493,13 +499,13 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
                     len: 0.8,
                     thickness: 5,
                     title: {
-                      text: surfaceData.formulaId,
+                      text: surfaceData.id,
                       side: "right",
                     },
                   }
                 : undefined,
             },
-            name: surfaceData.formulaId,
+            name: surfaceData.id,
             showlegend: surfaceData.showInLegend,
           });
         }

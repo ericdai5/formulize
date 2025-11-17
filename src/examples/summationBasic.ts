@@ -1,7 +1,7 @@
 export const summationBasic = `const config = {
   formulas: [
     {
-      formulaId: "summation-basic",
+      id: "summation-basic",
       latex: "E = \\\\sum_{x \\\\in X} x P(x)",
       manual: function(vars) {
         var xValues = vars.X;

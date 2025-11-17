@@ -1,7 +1,7 @@
 export const fittsLaw = `const config = {
   formulas: [
     {
-      formulaId: "fitts-law",
+      id: "fitts-law",
       latex: "T = a + b \\\\log \\\\left( \\\\frac{2D}{W} \\\\right)",
       expression: "{T} = {a} + {b} * log((2 * {D}) / {W})"
     }

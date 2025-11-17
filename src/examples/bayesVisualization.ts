@@ -1,27 +1,27 @@
 export const bayesWithCustomVisualization = `const config = {
     formulas: [
       {
-        formulaId: "bayes-theorem",
+        id: "bayes-theorem",
         latex: "P(B \\\\mid A) = \\\\frac{P(A \\\\mid B)P(B)}{P(A)}",
         expression: "{P(B \\\\mid A)} = ({P(A \\\\mid B)} * {P(B)}) / {P(A)}"
       },
       {
-        formulaId: "conditional-probability",
+        id: "conditional-probability",
         latex: "P(A \\\\mid B) = \\\\frac{P(A \\\\cap B)}{P(B)}",
         expression: "{P(A \\\\mid B)} = {P(A \\\\cap B)} / {P(B)}"
       },
       {
-        formulaId: "a-and-not-b",
+        id: "a-and-not-b",
         latex: "P(A \\\\cap \\\\neg B) = P(A) - P(A \\\\cap B)",
         expression: "{P(A \\\\cap \\\\neg B)} = {P(A)} - {P(A \\\\cap B)}"
       },
       {
-        formulaId: "b-and-not-a",
+        id: "b-and-not-a",
         latex: "P(B \\\\cap \\\\neg A) = P(B) - P(A \\\\cap B)",
         expression: "{P(B \\\\cap \\\\neg A)} = {P(B)} - {P(A \\\\cap B)}"
       },
       {
-        formulaId: "not-a-and-not-b",
+        id: "not-a-and-not-b",
         latex: "P(\\\\neg A \\\\cap \\\\neg B) = 1 - P(A) - P(B) + P(A \\\\cap B)",
         expression: "{P(\\\\neg A \\\\cap \\\\neg B)} = 1 - {P(A)} - {P(B)} + {P(A \\\\cap B)}"
       },

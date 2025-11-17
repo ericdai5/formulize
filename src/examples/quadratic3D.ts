@@ -1,7 +1,7 @@
 export const quadratic3D = `const config = {
   formulas: [
     {
-      formulaId: "quadratic-equation-3d",
+      id: "quadratic-equation-3d",
       latex: "y = ax^2 + bx + c",
       expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
     }
@@ -61,7 +61,7 @@ export const quadratic3D = `const config = {
       height: 600,
       surfaces: [
         {
-          formulaId: "quadratic-equation-3d",
+          id: "quadratic-equation-3d",
           color: "Viridis",
           opacity: 0.7,
           showInLegend: true

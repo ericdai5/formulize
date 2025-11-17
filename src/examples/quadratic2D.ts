@@ -1,7 +1,7 @@
 export const quadratic2D = `const config = {
   formulas: [
     {
-      formulaId: "quadratic-equation",
+      id: "quadratic-equation",
       latex: "y = ax^2 + bx + c",
       expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
     }

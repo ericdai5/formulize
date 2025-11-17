@@ -1,7 +1,7 @@
 export const sinTheta = `const config = {
   formulas: [
     {
-      formulaId: "sin-theta",
+      id: "sin-theta",
       latex: "y = c \\\\sin(\\\\theta)",
       expression: "{y} = {c} * sin({\\\\theta})"
     }

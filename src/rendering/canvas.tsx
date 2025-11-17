@@ -170,21 +170,21 @@ const CanvasFlow = observer(
 
       // Add formula nodes vertically
       formulas.forEach((latex, index) => {
-        // Get formulaId from environment - this is required
+        // Get id from environment - this is required
         const formula = environment?.formulas?.[index];
-        if (!formula?.formulaId) {
-          console.error(`Formula at index ${index} missing required formulaId`);
+        if (!formula?.id) {
+          console.error(`Formula at index ${index} missing required id`);
           return;
         }
-        const formulaId = formula.formulaId;
+        const id = formula.id;
         nodes.push({
-          id: `formula-${formulaId}`,
+          id: `formula-${id}`,
           type: "formula",
           position: { x: 250, y: currentY },
           data: {
             latex,
             environment,
-            formulaId,
+            id,
           },
           draggable: true,
           dragHandle: ".formula-drag-handle",
@@ -521,17 +521,16 @@ const CanvasFlow = observer(
       const variableNodes = getVariableNodes(nodes);
       const allVariableNodesMeasured = labelNodes.every((labelNode) => {
         const cssId = labelNode.data.varId;
-        const labelFormulaId = labelNode.data.formulaId;
+        const labelId = labelNode.data.id;
 
-        if (!cssId || !labelFormulaId || typeof labelFormulaId !== "string")
-          return false;
+        if (!cssId || !labelId || typeof labelId !== "string") return false;
 
         const variableNode = variableNodes.find((vNode) => {
           return (
             vNode.data.varId === cssId &&
             vNode.parentId &&
             typeof vNode.parentId === "string" &&
-            vNode.parentId.includes(labelFormulaId)
+            vNode.parentId.includes(labelId)
           );
         });
 

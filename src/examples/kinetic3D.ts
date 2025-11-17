@@ -1,7 +1,7 @@
 export const kinetic3D = `const config = {
   formulas: [
     {
-      formulaId: "kinetic-energy-3d",
+      id: "kinetic-energy-3d",
       latex: "K = \\\\frac{1}{2}mv^2",
       expression: "{K} = 0.5 * {m} * {v} * {v}"
     }
@@ -36,7 +36,7 @@ export const kinetic3D = `const config = {
     {
       type: "plot3d",
       id: "energy3DPlot",
-      formulaId: "kinetic-energy-3d",
+      id: "kinetic-energy-3d",
       title: "3D Kinetic Energy Surface",
       xAxisVar: "m",
       xRange: [0.5, 5],
@@ -49,7 +49,7 @@ export const kinetic3D = `const config = {
       height: 600,
       surfaces: [
         {
-          formulaId: "kinetic-energy-3d",
+          id: "kinetic-energy-3d",
           color: "Viridis",
           opacity: 0.7,
           showInLegend: true

@@ -28,7 +28,7 @@ import {
 } from "../rendering/util/label-node";
 import {
   NODE_TYPES,
-  findFormulaNodeByFormulaId,
+  findFormulaNodeById,
   getLabelNodes,
   getVariableNodes,
 } from "../rendering/util/node-helpers";
@@ -44,12 +44,12 @@ const nodeTypes = {
 };
 
 interface FormulaComponentProps {
-  formulaId: string;
+  id: string;
   className?: string;
   style?: React.CSSProperties;
 }
 
-const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
+const FormulaCanvasInner = observer(({ id }: { id: string }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [canvasVisible, setCanvasVisible] = React.useState(false);
@@ -60,16 +60,16 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
   const { getNodes, getViewport, fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
 
-  // Helper function to get the formula latex by formulaId
+  // Helper function to get the formula latex by id
   const getFormula = useCallback((): string | null => {
     if (!computationStore.environment?.formulas) {
       return null;
     }
     const formula = computationStore.environment.formulas.find(
-      (f) => f.formulaId === formulaId
+      (f) => f.id === id
     );
     return formula ? formula.latex : null;
-  }, [formulaId]);
+  }, [id]);
 
   // Check if a label node should be visible based on step mode
   const shouldLabelBeVisible = useCallback((varId: string): boolean => {
@@ -130,8 +130,8 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
           return;
         }
 
-        // Find formula node by its formulaId
-        const formulaNode = findFormulaNodeByFormulaId(currentNodes, formulaId);
+        // Find formula node by its id
+        const formulaNode = findFormulaNodeById(currentNodes, id);
         if (!formulaNode || !formulaNode.measured) {
           console.log("FormulaComponent: Formula node not measured yet");
           return;
@@ -141,7 +141,7 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
         const variableNodes = createVariableNodesFromFormula(
           formulaElement,
           formulaNode,
-          formulaId,
+          id,
           viewport
         );
 
@@ -163,7 +163,7 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
               processVariableElementsForLabels(
                 formulaElement,
                 formulaNode,
-                formulaId,
+                id,
                 nodesWithVariables,
                 viewport
               );
@@ -211,21 +211,14 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
         setTimeout(checkMathJaxAndProceed, 200);
       }
     });
-  }, [
-    formulaId,
-    getFormula,
-    getNodes,
-    getViewport,
-    nodesInitialized,
-    setNodes,
-  ]);
+  }, [id, getFormula, getNodes, getViewport, nodesInitialized, setNodes]);
 
   // Initialize the canvas with the formula node
   useEffect(() => {
     const initializeCanvas = async () => {
       const latex = getFormula();
       if (!latex) {
-        console.warn(`Formula not found with id: ${formulaId}`);
+        console.warn(`Formula not found with id: ${id}`);
         return;
       }
 
@@ -241,12 +234,12 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
 
       // Create the main formula node
       const formulaNode: Node = {
-        id: `formula-${formulaId}`,
+        id: `formula-${id}`,
         type: "formula",
         position: { x: 100, y: 100 },
         data: {
           latex: latex,
-          formulaId: formulaId,
+          id: id,
           environment: {
             fontSize: computationStore.environment?.fontSize || 1,
             computation: {
@@ -261,7 +254,7 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
     };
 
     initializeCanvas();
-  }, [getFormula, formulaId, setNodes, setEdges]);
+  }, [getFormula, id, setNodes, setEdges]);
 
   // Add variable nodes when React Flow nodes are initialized and measured
   useEffect(() => {
@@ -330,17 +323,16 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
     const variableNodes = getVariableNodes(nodes);
     const allVariableNodesMeasured = labelNodes.every((labelNode) => {
       const cssId = labelNode.data.varId;
-      const labelFormulaId = labelNode.data.formulaId;
+      const labelId = labelNode.data.id;
 
-      if (!cssId || !labelFormulaId || typeof labelFormulaId !== "string")
-        return false;
+      if (!cssId || !labelId || typeof labelId !== "string") return false;
 
       const variableNode = variableNodes.find((vNode) => {
         return (
           vNode.data.varId === cssId &&
           vNode.parentId &&
           typeof vNode.parentId === "string" &&
-          vNode.parentId.includes(labelFormulaId)
+          vNode.parentId.includes(labelId)
         );
       });
 
@@ -383,7 +375,7 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
         visibleLabelNodes.length === labelNodes.length
       ) {
         const computedEdges = computeEdgesForFormula(
-          formulaId,
+          id,
           nodes,
           shouldLabelBeVisible,
           new Set()
@@ -421,7 +413,7 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
     } else {
       setEdges([]);
     }
-  }, [nodes, edges, formulaId, shouldLabelBeVisible, setEdges]);
+  }, [nodes, edges, id, shouldLabelBeVisible, setEdges]);
 
   return (
     <div ref={containerRef} className="w-full h-full">
@@ -453,7 +445,7 @@ const FormulaCanvasInner = observer(({ formulaId }: { formulaId: string }) => {
 });
 
 export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
-  ({ formulaId, className = "", style = {} }) => {
+  ({ id, className = "", style = {} }) => {
     const { instance, isLoading } = useFormulize();
     const containerStyle: React.CSSProperties = {
       width: "100%",
@@ -481,7 +473,7 @@ export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
     return (
       <div className={`formula-component ${className}`} style={containerStyle}>
         <ReactFlowProvider>
-          <FormulaCanvasInner formulaId={formulaId} />
+          <FormulaCanvasInner id={id} />
         </ReactFlowProvider>
       </div>
     );

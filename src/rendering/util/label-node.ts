@@ -4,7 +4,7 @@ import { computationStore } from "../../store/computation";
 import { executionStore } from "../../store/execution";
 import {
   NODE_TYPES,
-  findFormulaNodeByFormulaId,
+  findFormulaNodeById,
   getFormulaNodes,
   getVariableNodes,
 } from "./node-helpers";
@@ -122,7 +122,7 @@ export interface AdjustLabelPositionsParams {
  * Process variable elements for a single formula and create label nodes
  * @param formulaElement - The DOM element containing the formula
  * @param formulaNode - The React Flow formula node
- * @param formulaId - The ID of the formula (e.g., "kinetic-energy")
+ * @param id - The ID of the formula (e.g., "kinetic-energy")
  * @param currentNodes - Array of all current React Flow nodes
  * @param viewport - The React Flow viewport
  * @returns Object containing arrays of label nodes and variable node updates
@@ -130,7 +130,7 @@ export interface AdjustLabelPositionsParams {
 export const processVariableElementsForLabels = (
   formulaElement: Element,
   formulaNode: Node,
-  formulaId: string,
+  id: string,
   currentNodes: Node[],
   viewport: { zoom: number; x: number; y: number }
 ): {
@@ -169,8 +169,10 @@ export const processVariableElementsForLabels = (
     if (variable?.labelDisplay === "none") return;
 
     // Only create label node if there's either a label OR a value
-    const hasValue = variable?.value !== undefined && variable?.value !== null &&
-      (typeof variable.value === 'number' ? !isNaN(variable.value) : true);
+    const hasValue =
+      variable?.value !== undefined &&
+      variable?.value !== null &&
+      (typeof variable.value === "number" ? !isNaN(variable.value) : true);
     const hasName = variable?.name;
 
     // For labelDisplay === "value", we must have a valid value to show
@@ -224,13 +226,13 @@ export const processVariableElementsForLabels = (
     };
 
     labelNodes.push({
-      id: `label-${formulaId}-${cssId}`,
+      id: `label-${id}-${cssId}`,
       type: "label",
       position: relativePosition,
       parentId: formulaNode.id, // Make this a child of the formula node
       data: {
         varId: cssId,
-        formulaId: formulaId,
+        id: id,
         placement: labelPos.placement,
       },
       draggable: true,
@@ -273,12 +275,10 @@ export const addLabelNodes = ({
   formulaNodes.forEach((formulaNode) => {
     if (!formulaNode.measured) return;
 
-    // Extract formulaId from node data - this is required
-    const formulaId = formulaNode.data.formulaId;
-    if (!formulaId || typeof formulaId !== "string") {
-      console.error(
-        `Formula node ${formulaNode.id} missing required formulaId`
-      );
+    // Extract id from node data - this is required
+    const id = formulaNode.data.id;
+    if (!id || typeof id !== "string") {
+      console.error(`Formula node ${formulaNode.id} missing required id`);
       return;
     }
 
@@ -293,7 +293,7 @@ export const addLabelNodes = ({
       processVariableElementsForLabels(
         formulaElement,
         formulaNode,
-        formulaId,
+        id,
         currentNodes,
         viewport
       );
@@ -370,15 +370,15 @@ export const adjustLabelPositions = ({
       return node;
     }
 
-    // Extract varId and formulaId from label node data instead of parsing ID
+    // Extract varId and id from label node data instead of parsing ID
     // This handles cssId with hyphens correctly
     const cssId = node.data.varId;
-    const formulaId = node.data.formulaId;
+    const id = node.data.id;
 
-    if (!cssId || !formulaId || typeof formulaId !== "string") return node;
+    if (!cssId || !id || typeof id !== "string") return node;
 
     // Find the formula node first
-    const formulaNode = findFormulaNodeByFormulaId(currentNodes, formulaId);
+    const formulaNode = findFormulaNodeById(currentNodes, id);
     if (!formulaNode) return node;
 
     // Find the corresponding variable node using node properties

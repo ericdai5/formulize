@@ -1,7 +1,7 @@
 export const gravitationalPotential = `const config = {
   formulas: [
     {
-      formulaId: "gravitational-potential",
+      id: "gravitational-potential",
       latex: "U = mgh",
       expression: "{U} = {m} * {g} * {h}"
     }
