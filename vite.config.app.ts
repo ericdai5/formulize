@@ -9,10 +9,10 @@ export default defineConfig({
   },
   plugins: [
     react({
-      jsxImportSource: "@emotion/react",
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react',
       babel: {
         plugins: [
-          "@emotion/babel-plugin",
           ["@babel/plugin-proposal-decorators", { version: "2023-11" }],
         ],
       },

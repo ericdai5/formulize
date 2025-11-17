@@ -4,7 +4,7 @@
   "semi": true,
   "plugins": ["@trivago/prettier-plugin-sort-imports"],
   "importOrder": [
-    "(^react|^@emotion)",
+    "^react",
     "^mobx",
     "<THIRD_PARTY_MODULES>",
     "^[./].*(?<!\\.svg)$",

@@ -1,5 +1,3 @@
-import styled from "@emotion/styled";
-
 import { observer } from "mobx-react-lite";
 
 import {
@@ -12,11 +10,6 @@ import {
 function formatCoordinate(n: number) {
   return Math.round(n).toString().padStart(3, " ");
 }
-
-const CoordinateCell = styled.td`
-  text-align: right;
-  padding-right: 1rem;
-`;
 
 export const Debug = observer(() => {
   return (
@@ -88,12 +81,12 @@ const Targets = observer(() => (
     <table className="font-mono">
       <thead className="font-bold">
         <tr>
-          <CoordinateCell>Id</CoordinateCell>
-          <CoordinateCell>Type</CoordinateCell>
-          <CoordinateCell>Left</CoordinateCell>
-          <CoordinateCell>Top</CoordinateCell>
-          <CoordinateCell>Width</CoordinateCell>
-          <CoordinateCell>Height</CoordinateCell>
+          <td className="text-right pr-4">Id</td>
+          <td className="text-right pr-4">Type</td>
+          <td className="text-right pr-4">Left</td>
+          <td className="text-right pr-4">Top</td>
+          <td className="text-right pr-4">Width</td>
+          <td className="text-right pr-4">Height</td>
         </tr>
       </thead>
       <tbody>
@@ -101,14 +94,14 @@ const Targets = observer(() => (
           .sort((a, b) => a.id.localeCompare(b.id))
           .map((target) => (
             <tr key={target.id}>
-              <CoordinateCell>{target.id}</CoordinateCell>
-              <CoordinateCell>
+              <td className="text-right pr-4">{target.id}</td>
+              <td className="text-right pr-4">
                 {formulaStore.augmentedFormula.findNode(target.id)?.type}
-              </CoordinateCell>
-              <CoordinateCell>{formatCoordinate(target.left)}</CoordinateCell>
-              <CoordinateCell>{formatCoordinate(target.top)}</CoordinateCell>
-              <CoordinateCell>{formatCoordinate(target.width)}</CoordinateCell>
-              <CoordinateCell>{formatCoordinate(target.height)}</CoordinateCell>
+              </td>
+              <td className="text-right pr-4">{formatCoordinate(target.left)}</td>
+              <td className="text-right pr-4">{formatCoordinate(target.top)}</td>
+              <td className="text-right pr-4">{formatCoordinate(target.width)}</td>
+              <td className="text-right pr-4">{formatCoordinate(target.height)}</td>
             </tr>
           ))}
       </tbody>

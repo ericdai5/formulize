@@ -2,8 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { Icon } from "@mui/material";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
@@ -294,7 +293,7 @@ const LabeledNode = ({
           );
         }}
       >
-        <Icon className="cursor-pointer mr-2 hover:text-red-500">close</Icon>
+        <X className="cursor-pointer mr-2 hover:text-red-500" />
       </div>
     </div>
   );
@@ -359,7 +358,7 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
             );
           }}
         >
-          <Icon className="cursor-pointer mr-2 hover:text-red-500">close</Icon>
+          <X className="cursor-pointer mr-2 hover:text-red-500" />
         </div>
       </div>
     </div>
