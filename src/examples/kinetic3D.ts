@@ -36,7 +36,6 @@ export const kinetic3D = `const config = {
     {
       type: "plot3d",
       id: "energy3DPlot",
-      id: "kinetic-energy-3d",
       title: "3D Kinetic Energy Surface",
       xAxis: "m",
       xRange: [0.5, 5],

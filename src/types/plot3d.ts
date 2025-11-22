@@ -13,7 +13,7 @@ export interface IPlot3D {
   plotType?: "scatter" | "surface" | "line" | "mesh";
   showCurrentPointInLegend?: boolean;
   surfaces?: {
-    id: string; // Changed from id to id
+    id: string;
     color?: string | string[];
     opacity?: number;
     showInLegend?: boolean;
@@ -22,8 +22,8 @@ export interface IPlot3D {
   lines?: {
     name: string;
     surfaceIntersection?: {
-      surface1: string; // These should also be ids
-      surface2: string; // These should also be ids
+      surface1: string;
+      surface2: string;
     };
     color?: string;
     width?: number;
