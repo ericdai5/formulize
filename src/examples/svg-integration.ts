@@ -106,10 +106,10 @@ export const svgIntegration = `const config = {
   visualizations: [
     {
       type: "plot2d",
-      xAxisVar: "t",
+      xAxis: "t",
       xRange: [0, 50],
       xGrid: "show",
-      yAxisVar: "N",
+      yAxis: "N",
       yRange: [0, 1100],
       yGrid: "show",
       lines: [

@@ -2,9 +2,9 @@ export interface IPlot3D {
   type: "plot3d";
   id?: string;
   title?: string;
-  xAxisVar: string;
+  xAxis: string;
   xRange?: [number, number];
-  yAxisVar: string;
+  yAxis: string;
   yRange?: [number, number];
   zVar: string;
   zRange?: [number, number];

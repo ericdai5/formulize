@@ -44,16 +44,16 @@ export const fittsLaw = `const config = {
   },
   visualizations: [{
     type: "plot2d",
-    xAxisVar: "D",
+    xAxis: "D",
     xRange: [0, 200],
-    yAxisVar: "T",
+    yAxis: "T",
     yRange: [0, 2],
     lines: [{ name: "line" }],
   }, {
     type: "plot2d",
-    xAxisVar: "W",
+    xAxis: "W",
     xRange: [0, 200],
-    yAxisVar: "T",
+    yAxis: "T",
     yRange: [0, 2],
     lines: [{ name: "line" }],
   }]

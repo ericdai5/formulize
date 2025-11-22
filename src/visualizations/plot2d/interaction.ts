@@ -25,12 +25,12 @@ export function addInteractions(
   yScale: d3.ScaleLinear<number, number>,
   plotWidth: number,
   plotHeight: number,
-  xAxisVar?: string,
-  yAxisVar?: string,
+  xAxis?: string,
+  yAxis?: string,
   onDragEnd?: () => void,
   interaction?: ["horizontal-drag" | "vertical-drag", string]
 ): void {
-  if (!xAxisVar || !yAxisVar || dataPoints.length === 0) return;
+  if (!xAxis || !yAxis || dataPoints.length === 0) return;
 
   // Create hover group with crosshairs (only if not using custom interaction)
   const hover = interaction ? null : createHoverGroup(svg);
@@ -77,15 +77,15 @@ export function addInteractions(
           yScale,
           plotWidth,
           plotHeight,
-          xAxisVar,
-          yAxisVar,
+          xAxis,
+          yAxis,
           isDragging
         );
       })
       .on("mousedown", (event) => {
         isDragging = true;
         computationStore.setDragging(true);
-        handleMouseDown(event, hover, tooltip, xScale, xAxisVar);
+        handleMouseDown(event, hover, tooltip, xScale, xAxis);
       })
       .on("mouseup", (event) => {
         isDragging = false;
@@ -93,7 +93,7 @@ export function addInteractions(
         handleMouseUp(event, hover, plotWidth, plotHeight, onDragEnd);
       })
       .on("click", (event) => {
-        handleClick(event, hover, dataPoints, xScale, xAxisVar, isDragging);
+        handleClick(event, hover, dataPoints, xScale, xAxis, isDragging);
       });
   } else if (interaction) {
     // Custom interaction: incremental drag based on mouse delta

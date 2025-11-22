@@ -31,13 +31,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Parse configuration options with defaults
   const {
-    xAxisVar,
+    xAxis,
     xRange = PLOT2D_DEFAULTS.xRange,
     xAxisInterval,
     xAxisPos,
     xLabelPos,
     xGrid = "show",
-    yAxisVar,
+    yAxis,
     yRange = PLOT2D_DEFAULTS.yRange,
     yAxisInterval,
     yAxisPos,
@@ -66,7 +66,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // Check if we have vectors or lines
     const hasVectors = vectors && vectors.length > 0;
-    const hasLines = lines && lines.length > 0 && xAxisVar && yAxisVar;
+    const hasLines = lines && lines.length > 0 && xAxis && yAxis;
 
     if (!hasVectors && !hasLines) return;
 
@@ -98,10 +98,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       plotWidth,
       plotHeight,
       margin,
-      xLabel: hasLines && xAxisVar ? xAxisVar : "X",
-      yLabel: hasLines && yAxisVar ? yAxisVar : "Y",
-      xAxisVar: hasLines ? xAxisVar : undefined,
-      yAxisVar: hasLines ? yAxisVar : undefined,
+      xLabel: hasLines && xAxis ? xAxis : "X",
+      yLabel: hasLines && yAxis ? yAxis : "Y",
+      xAxis: hasLines ? xAxis : undefined,
+      yAxis: hasLines ? yAxis : undefined,
       xAxisInterval,
       yAxisInterval,
       xAxisPos,
@@ -144,8 +144,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         svg,
         tooltipRef,
         lines,
-        xAxisVar!,
-        yAxisVar!,
+        xAxis!,
+        yAxis!,
         xScale,
         yScale,
         [xMin, xMax],
@@ -158,15 +158,15 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     }
 
     // Add hover lines for x/y variables
-    if (hasLines && (xAxisVar || yAxisVar)) {
+    if (hasLines && (xAxis || yAxis)) {
       updateHoverLines({
         svg,
         xScale,
         yScale,
         plotWidth,
         plotHeight,
-        xAxisVar,
-        yAxisVar,
+        xAxis,
+        yAxis,
       });
     }
   }, [
@@ -179,8 +179,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     xMax,
     yMin,
     yMax,
-    xAxisVar,
-    yAxisVar,
+    xAxis,
+    yAxis,
     xLabelPos,
     yLabelPos,
     xAxisInterval,
@@ -238,16 +238,16 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       />
       <AxisLabels
         labelInfo={axisLabelInfoRef.current}
-        xAxisVarHovered={
-          xAxisVar
-            ? computationStore.hoverStates.get(xAxisVar) || false
+        xAxisHovered={
+          xAxis
+            ? computationStore.hoverStates.get(xAxis) || false
             : axisLabelInfoRef.current.xLabel?.allXVariables.some((varId) =>
                 computationStore.hoverStates.get(varId)
               ) || false
         }
-        yAxisVarHovered={
-          yAxisVar
-            ? computationStore.hoverStates.get(yAxisVar) || false
+        yAxisHovered={
+          yAxis
+            ? computationStore.hoverStates.get(yAxis) || false
             : axisLabelInfoRef.current.yLabel?.allYVariables.some((varId) =>
                 computationStore.hoverStates.get(varId)
               ) || false

@@ -5,9 +5,7 @@ import { formatVariableValue, getVariableLabel } from "./utils";
 /**
  * Creates and configures the tooltip element
  */
-export function createTooltip(
-  tooltipRef: React.RefObject<HTMLDivElement>
-) {
+export function createTooltip(tooltipRef: React.RefObject<HTMLDivElement>) {
   return d3
     .select(tooltipRef.current)
     .attr("class", "tooltip")
@@ -30,14 +28,14 @@ export function updateTooltip(
   y: number,
   pageX: number,
   pageY: number,
-  xAxisVar: string,
-  yAxisVar: string
+  xAxis: string,
+  yAxis: string
 ): void {
   tooltip
     .style("left", `${pageX + 10}px`)
     .style("top", `${pageY - 30}px`)
     .html(
-      `${getVariableLabel(xAxisVar)}: ${formatVariableValue(Number(x), xAxisVar)}<br>${getVariableLabel(yAxisVar)}: ${formatVariableValue(Number(y), yAxisVar)}`
+      `${getVariableLabel(xAxis)}: ${formatVariableValue(Number(x), xAxis)}<br>${getVariableLabel(yAxis)}: ${formatVariableValue(Number(y), yAxis)}`
     );
 }
 

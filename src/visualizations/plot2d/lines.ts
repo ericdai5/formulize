@@ -14,8 +14,8 @@ export interface DataPoint {
  * Function to calculate data points for a specific line
  */
 function calculateLineDataPoints(
-  xAxisVar: string,
-  yAxisVar: string,
+  xAxis: string,
+  yAxis: string,
   xMin: number,
   xMax: number,
   yMin: number,
@@ -47,9 +47,9 @@ function calculateLineDataPoints(
   for (let i = 0; i <= 100; i++) {
     const x = xMin + i * step;
     try {
-      const vars = { ...allVariables, [xAxisVar]: x };
+      const vars = { ...allVariables, [xAxis]: x };
       const result = evalFunction(vars);
-      const y = result[yAxisVar];
+      const y = result[yAxis];
       // Include points within extended range - SVG clip-path will handle exact clipping
       if (
         typeof y === "number" &&
@@ -74,8 +74,8 @@ export function renderLines(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   tooltipRef: React.RefObject<HTMLDivElement>,
   lines: ILine[],
-  xAxisVar: string,
-  yAxisVar: string,
+  xAxis: string,
+  yAxis: string,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
   xRange: [number, number],
@@ -119,8 +119,8 @@ export function renderLines(
 
   lines.forEach((lineConfig, index) => {
     const points = calculateLineDataPoints(
-      xAxisVar,
-      yAxisVar,
+      xAxis,
+      yAxis,
       xMin,
       xMax,
       yMin,
@@ -143,8 +143,8 @@ export function renderLines(
 
       // Add current point highlight for each line (only if not using custom interaction)
       if (!interaction) {
-        const currentX = getVariableValue(xAxisVar);
-        const currentY = getVariableValue(yAxisVar);
+        const currentX = getVariableValue(xAxis);
+        const currentY = getVariableValue(yAxis);
         const currentPointData = {
           x:
             typeof currentX === "number"
@@ -163,8 +163,8 @@ export function renderLines(
           yScale,
           [xMin, xMax],
           [yMin, yMax],
-          xAxisVar,
-          yAxisVar
+          xAxis,
+          yAxis
         );
       }
 
@@ -178,8 +178,8 @@ export function renderLines(
           yScale,
           plotWidth,
           plotHeight,
-          xAxisVar,
-          yAxisVar,
+          xAxis,
+          yAxis,
           onDragEnd,
           interaction
         );

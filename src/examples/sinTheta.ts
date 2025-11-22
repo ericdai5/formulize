@@ -40,11 +40,11 @@ export const sinTheta = `const config = {
   visualizations: [
     {
       type: "plot2d",
-      xAxisVar: "\\\\theta",
+      xAxis: "\\\\theta",
       xRange: [0, 13],
       xAxisPos: "center",
       xGrid: "hide",
-      yAxisVar: "y",
+      yAxis: "y",
       yRange: [-2, 2],
       yLabelPos: "top",
       yAxisInterval: 0.5,
