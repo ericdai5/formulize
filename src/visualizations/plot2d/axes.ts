@@ -8,10 +8,10 @@ export interface AxisConfig {
   margin: { top: number; right: number; bottom: number; left: number };
   xLabel?: string;
   yLabel?: string;
-  xAxisVar?: string;
-  yAxisVar?: string;
-  xAxisVarHovered?: boolean;
-  yAxisVarHovered?: boolean;
+  xAxis?: string;
+  yAxis?: string;
+  xAxisHovered?: boolean;
+  yAxisHovered?: boolean;
   tickFontSize?: number;
   xAxisInterval?: number;
   yAxisInterval?: number;
@@ -31,7 +31,7 @@ export interface AxisLabelInfo {
     text: string;
     x: number;
     y: number;
-    xAxisVar?: string;
+    xAxis?: string;
     allXVariables: string[];
   };
   yLabel?: {
@@ -39,7 +39,7 @@ export interface AxisLabelInfo {
     x: number;
     y: number;
     rotation: number;
-    yAxisVar?: string;
+    yAxis?: string;
     allYVariables: string[];
   };
 }
@@ -59,8 +59,8 @@ export function addAxes(
     margin,
     xLabel,
     yLabel,
-    xAxisVar,
-    yAxisVar,
+    xAxis,
+    yAxis,
     tickFontSize = 12,
     xAxisInterval,
     yAxisInterval,
@@ -96,17 +96,17 @@ export function addAxes(
   }
 
   // Add X axis
-  const xAxis = svg
+  const xAxisDraw = svg
     .append("g")
     .attr("class", "x-axis")
     .attr("transform", `translate(0,${xAxisY})`)
     .call(xAxisGenerator);
 
   // Style X axis line to match grid opacity
-  xAxis.selectAll("path").attr("opacity", 0.1);
+  xAxisDraw.selectAll("path").attr("opacity", 0.1);
 
   // Style X axis text to be black
-  xAxis
+  xAxisDraw
     .selectAll("text")
     .attr("fill", "#000")
     .attr("opacity", 1)
@@ -122,7 +122,7 @@ export function addAxes(
       text: xLabel,
       x: margin.left + xLabelX,
       y: margin.top + xAxisY + xLabelY,
-      xAxisVar,
+      xAxis,
       allXVariables,
     };
   }
@@ -135,17 +135,17 @@ export function addAxes(
   }
 
   // Add Y axis
-  const yAxis = svg
+  const yAxisDraw = svg
     .append("g")
     .attr("class", "y-axis")
     .attr("transform", `translate(${yAxisX},0)`)
     .call(yAxisGenerator);
 
   // Style Y axis line to match grid opacity
-  yAxis.selectAll("path").attr("opacity", 0.1);
+  yAxisDraw.selectAll("path").attr("opacity", 0.1);
 
   // Style Y axis text to be black
-  yAxis
+  yAxisDraw
     .selectAll("text")
     .attr("fill", "#000")
     .attr("opacity", 1)
@@ -163,7 +163,7 @@ export function addAxes(
       x: margin.left + yAxisX + yLabelX,
       y: margin.top + yLabelY,
       rotation: yLabelRotation,
-      yAxisVar,
+      yAxis,
       allYVariables,
     };
   }

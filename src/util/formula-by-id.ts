@@ -1,13 +1,13 @@
 import { IFormula } from "../types/formula";
 
 /**
- * Get formula expression by formulaId from a provided configuration
- * @param formulaId - The formulaId of the formula to retrieve
+ * Get formula expression by id from a provided configuration
+ * @param id - The id of the formula to retrieve
  * @param config - Configuration object containing formulas
  * @returns The formula expression string or null if not found
  */
 export const getFormulaById = (
-  formulaId: string,
+  id: string,
   config?: { formulas?: IFormula[] }
 ): string | null => {
   try {
@@ -16,7 +16,7 @@ export const getFormulaById = (
       return null;
     }
 
-    const formula = config.formulas.find((f) => f.formulaId === formulaId);
+    const formula = config.formulas.find((f) => f.id === id);
     return formula?.expression || null;
   } catch (error) {
     console.error("Error getting formula by ID:", error);

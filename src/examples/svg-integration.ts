@@ -1,7 +1,7 @@
 export const svgIntegration = `const config = {
   formulas: [
     {
-      formulaId: "radioactive-decay",
+      id: "radioactive-decay",
       latex: "{N} = {N_{0}} \\\\times e^{-{\\\\lambda} \\\\times {t}}",
       expression: "{N} = {N_0} * Math.exp(-{lambda} * {t})",
       manual: function({ N_0, "\\\\lambda": lambda, t }) {
@@ -106,10 +106,10 @@ export const svgIntegration = `const config = {
   visualizations: [
     {
       type: "plot2d",
-      xAxisVar: "t",
+      xAxis: "t",
       xRange: [0, 50],
       xGrid: "show",
-      yAxisVar: "N",
+      yAxis: "N",
       yRange: [0, 1100],
       yGrid: "show",
       lines: [

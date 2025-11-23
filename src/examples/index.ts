@@ -1,4 +1,5 @@
 import { bayesWithCustomVisualization } from "./bayesVisualization";
+import { fittsLaw } from "./fittsLaw";
 import { gravitationalPotential } from "./gravitationalPotential";
 import { kinetic2D } from "./kinetic2D";
 import { kinetic3D } from "./kinetic3D";
@@ -32,6 +33,7 @@ export const examples = {
   matrixMultiplication,
   lossFunction,
   setOperations,
+  fittsLaw,
 };
 
 export const exampleDisplayNames = {
@@ -51,6 +53,7 @@ export const exampleDisplayNames = {
   matrixMultiplication: "Matrix Multiplication 3x3",
   lossFunction: "Loss Function with Regularization",
   setOperations: "Set Operations (Union & Intersection)",
+  fittsLaw: "Fitts' Law",
 } as const;
 
 export default examples;

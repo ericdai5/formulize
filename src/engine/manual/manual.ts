@@ -91,7 +91,10 @@ function executeManualFormula(
   const returnValue = formula.manual!(vars);
   // Sync back all changed values from vars to variables
   for (const [varName, value] of Object.entries(vars)) {
-    if (variables[varName] && (typeof value === "number" || Array.isArray(value))) {
+    if (
+      variables[varName] &&
+      (typeof value === "number" || Array.isArray(value))
+    ) {
       variables[varName].value = value;
     }
   }
@@ -114,7 +117,7 @@ function executeManualFormulas(
       executeManualFormula(formula, variables);
     } catch (error) {
       console.error(
-        `Error executing manual function for formula "${formula.formulaId}":`,
+        `Error executing manual function for formula "${formula.id}":`,
         error
       );
     }

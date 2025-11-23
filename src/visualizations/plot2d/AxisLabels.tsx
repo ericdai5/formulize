@@ -8,15 +8,15 @@ import { type AxisLabelInfo } from "./axes";
 
 interface AxisLabelsProps {
   labelInfo: AxisLabelInfo;
-  xAxisVarHovered?: boolean;
-  yAxisVarHovered?: boolean;
+  xAxisHovered?: boolean;
+  yAxisHovered?: boolean;
 }
 
 export const AxisLabels: React.FC<AxisLabelsProps> = observer(
-  ({ labelInfo, xAxisVarHovered = false, yAxisVarHovered = false }) => {
+  ({ labelInfo, xAxisHovered = false, yAxisHovered = false }) => {
     const handleXLabelMouseEnter = () => {
-      if (labelInfo.xLabel?.xAxisVar) {
-        computationStore.setVariableHover(labelInfo.xLabel.xAxisVar, true);
+      if (labelInfo.xLabel?.xAxis) {
+        computationStore.setVariableHover(labelInfo.xLabel.xAxis, true);
       }
       labelInfo.xLabel?.allXVariables.forEach((varId) => {
         computationStore.setVariableHover(varId, true);
@@ -24,8 +24,8 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
     };
 
     const handleXLabelMouseLeave = () => {
-      if (labelInfo.xLabel?.xAxisVar) {
-        computationStore.setVariableHover(labelInfo.xLabel.xAxisVar, false);
+      if (labelInfo.xLabel?.xAxis) {
+        computationStore.setVariableHover(labelInfo.xLabel.xAxis, false);
       }
       labelInfo.xLabel?.allXVariables.forEach((varId) => {
         computationStore.setVariableHover(varId, false);
@@ -33,8 +33,8 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
     };
 
     const handleYLabelMouseEnter = () => {
-      if (labelInfo.yLabel?.yAxisVar) {
-        computationStore.setVariableHover(labelInfo.yLabel.yAxisVar, true);
+      if (labelInfo.yLabel?.yAxis) {
+        computationStore.setVariableHover(labelInfo.yLabel.yAxis, true);
       }
       labelInfo.yLabel?.allYVariables.forEach((varId) => {
         computationStore.setVariableHover(varId, true);
@@ -42,8 +42,8 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
     };
 
     const handleYLabelMouseLeave = () => {
-      if (labelInfo.yLabel?.yAxisVar) {
-        computationStore.setVariableHover(labelInfo.yLabel.yAxisVar, false);
+      if (labelInfo.yLabel?.yAxis) {
+        computationStore.setVariableHover(labelInfo.yLabel.yAxis, false);
       }
       labelInfo.yLabel?.allYVariables.forEach((varId) => {
         computationStore.setVariableHover(varId, false);
@@ -62,7 +62,7 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
               cursor: "pointer",
               padding: "8px",
               borderRadius: "6px",
-              backgroundColor: xAxisVarHovered ? "#f3f4f6" : "transparent",
+              backgroundColor: xAxisHovered ? "#f3f4f6" : "transparent",
               transition: "background-color 0.2s",
             }}
             onMouseEnter={handleXLabelMouseEnter}
@@ -81,7 +81,7 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
               cursor: "pointer",
               padding: "8px",
               borderRadius: "6px",
-              backgroundColor: yAxisVarHovered ? "#f3f4f6" : "transparent",
+              backgroundColor: yAxisHovered ? "#f3f4f6" : "transparent",
               transition: "background-color 0.2s",
             }}
             onMouseEnter={handleYLabelMouseEnter}

@@ -1,7 +1,7 @@
 export const vectorAddition = `const config = {
   formulas: [
     {
-      formulaId: "vector-addition",
+      id: "vector-addition",
       latex: "{k_1} \\\\begin{bmatrix} {a_x} \\\\\\\\ {a_y} \\\\end{bmatrix} + {k_2} \\\\begin{bmatrix} {b_x} \\\\\\\\ {b_y} \\\\end{bmatrix} = \\\\begin{bmatrix} {c_x} \\\\\\\\ {c_y} \\\\end{bmatrix}",
       expression: "[{c_x}, {c_y}] = {k_1} * [{a_x}, {a_y}] + {k_2} * [{b_x}, {b_y}]"
     }

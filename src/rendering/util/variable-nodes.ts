@@ -43,7 +43,7 @@ export const getPosAndDim = (
 export const updateVariableNodesForFormula = (
   formulaElement: Element,
   formulaNode: Node,
-  formulaId: string,
+  id: string,
   viewport: { zoom: number },
   variableNodes: Map<string, Node>,
   foundNodeIds: Set<string>
@@ -63,7 +63,7 @@ export const updateVariableNodesForFormula = (
 
     if (!computationStore.variables.has(cssId)) return;
 
-    const nodeId = `variable-${formulaId}-${cssId}-${elementIndex}`;
+    const nodeId = `variable-${id}-${cssId}-${elementIndex}`;
     foundNodeIds.add(nodeId);
 
     // Calculate new position and dimensions
@@ -126,14 +126,14 @@ export const updateVariableNodesForFormula = (
  * Create variable nodes from DOM elements for a single formula
  * @param formulaElement - The DOM element containing the formula
  * @param formulaNode - The React Flow formula node
- * @param formulaId - The ID of the formula (e.g., "kinetic-energy" or index "0")
+ * @param id - The ID of the formula (e.g., "kinetic-energy" or index "0")
  * @param viewport - The React Flow viewport
  * @returns Array of variable nodes
  */
 export const createVariableNodesFromFormula = (
   formulaElement: Element,
   formulaNode: Node,
-  formulaId: string,
+  id: string,
   viewport: { zoom: number }
 ): Node[] => {
   const variableNodes: Node[] = [];
@@ -161,7 +161,7 @@ export const createVariableNodesFromFormula = (
       viewport
     );
 
-    const nodeId = `variable-${formulaId}-${cssId}-${elementIndex}`;
+    const nodeId = `variable-${id}-${cssId}-${elementIndex}`;
 
     // Create only the variable node - no labels yet
     variableNodes.push({
@@ -232,12 +232,10 @@ export const useAddVariableNodes = ({
           // Skip if the React Flow node is not measured yet
           if (!formulaNode.measured) return;
 
-          // Extract formulaId from node data - this is required
-          const formulaId = formulaNode.data.formulaId;
-          if (!formulaId || typeof formulaId !== "string") {
-            console.error(
-              `Formula node ${formulaNode.id} missing required formulaId`
-            );
+          // Extract id from node data - this is required
+          const id = formulaNode.data.id;
+          if (!id || typeof id !== "string") {
+            console.error(`Formula node ${formulaNode.id} missing required id`);
             return;
           }
 
@@ -251,7 +249,7 @@ export const useAddVariableNodes = ({
           const nodesForFormula = createVariableNodesFromFormula(
             formulaElement,
             formulaNode,
-            formulaId,
+            id,
             viewport
           );
           variableNodes.push(...nodesForFormula);
@@ -329,12 +327,10 @@ export const useUpdateVariableNodes = ({
         formulaNodesArray.forEach((formulaNode) => {
           if (!formulaNode.measured) return;
 
-          // Extract formulaId from node data - this is required
-          const formulaId = formulaNode.data.formulaId;
-          if (!formulaId || typeof formulaId !== "string") {
-            console.error(
-              `Formula node ${formulaNode.id} missing required formulaId`
-            );
+          // Extract id from node data - this is required
+          const id = formulaNode.data.id;
+          if (!id || typeof id !== "string") {
+            console.error(`Formula node ${formulaNode.id} missing required id`);
             return;
           }
 
@@ -349,7 +345,7 @@ export const useUpdateVariableNodes = ({
             updateVariableNodesForFormula(
               formulaElement,
               formulaNode,
-              formulaId,
+              id,
               viewport,
               variableNodes,
               foundNodeIds

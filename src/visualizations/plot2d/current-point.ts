@@ -13,13 +13,13 @@ export function addCurrentPointHighlight(
   yScale: d3.ScaleLinear<number, number>,
   xRange: [number, number],
   yRange: [number, number],
-  xAxisVar?: string,
-  yAxisVar?: string
+  xAxis?: string,
+  yAxis?: string
 ): void {
   if (
     !currentPoint ||
-    !xAxisVar ||
-    !yAxisVar ||
+    !xAxis ||
+    !yAxis ||
     currentPoint.x < xRange[0] ||
     currentPoint.x > xRange[1] ||
     currentPoint.y < yRange[0] ||
@@ -40,7 +40,15 @@ export function addCurrentPointHighlight(
     .attr("stroke-width", 2);
 
   // Add label with background
-  createLabelWithBackground(svg, currentPoint, xScale, yScale, xAxisVar, yAxisVar, "current-point-label");
+  createLabelWithBackground(
+    svg,
+    currentPoint,
+    xScale,
+    yScale,
+    xAxis,
+    yAxis,
+    "current-point-label"
+  );
 }
 
 /**

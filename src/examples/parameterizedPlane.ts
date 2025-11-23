@@ -1,22 +1,22 @@
 export const parameterizedPlane = `const config = {
   formulas: [
     {
-      formulaId: "x-parameterization",
+      id: "x-parameterization",
       latex: "x = 1 - t - w",
       expression: "{x} = 1 - {t} - {w}"
     },
     {
-      formulaId: "y-parameterization",
+      id: "y-parameterization",
       latex: "y = t",
       expression: "{y} = {t}"
     },
     {
-      formulaId: "z-parameterization",
+      id: "z-parameterization",
       latex: "z = w",
       expression: "{z} = {w}"
     },
     {
-      formulaId: "plane-equation",
+      id: "plane-equation",
       latex: "x + y + z = 1",
       expression: "{x} + {y} + {z} = 1"
     }
@@ -76,9 +76,9 @@ export const parameterizedPlane = `const config = {
       type: "plot3d",
       id: "parameterizedPlane3D",
       title: "Parameterized Plane: x + y + z = 1",
-      xAxisVar: "x",
+      xAxis: "x",
       xRange: [-15, 15],
-      yAxisVar: "y",
+      yAxis: "y",
       yRange: [-15, 15],
       zVar: "z",
       zRange: [-15, 15],
@@ -89,7 +89,7 @@ export const parameterizedPlane = `const config = {
       showCurrentPointInLegend: true,
       surfaces: [
         {
-          formulaId: "plane-equation",
+          id: "plane-equation",
           color: "rgba(128, 0, 128, 0.6)",
           opacity: 0.6,
           showInLegend: true,

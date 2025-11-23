@@ -1,27 +1,27 @@
 export const parametric3D = `const config = {
   formulas: [
     {
-      formulaId: "x-and-t",
+      id: "x-and-t",
       latex: "x = t",
       expression: "{x} = {t}"
     },
     {
-      formulaId: "y-and-t",
+      id: "y-and-t",
       latex: "y = 1 - 2t",
       expression: "{y} = 1 - 2 * {t}"
     },
     {
-      formulaId: "z-and-t",
+      id: "z-and-t",
       latex: "z = t",
       expression: "{z} = {t}"
     },
     {
-      formulaId: "x-plus-y-plus-z-equals-1",
+      id: "x-plus-y-plus-z-equals-1",
       latex: "1 = x + y + z",
       expression: "{x} + {y} + {z} = 1"
     },
     {
-      formulaId: "x-and-z",
+      id: "x-and-z",
       latex: "x - z = 0",
       expression: "{x} - {z} = 0"
     }
@@ -59,9 +59,9 @@ export const parametric3D = `const config = {
       type: "plot3d",
       id: "parametricPlane3D",
       title: "3D Parametric Surfaces",
-      xAxisVar: "x",
+      xAxis: "x",
       xRange: [-10, 10],
-      yAxisVar: "y",
+      yAxis: "y",
       yRange: [-10, 10],
       zVar: "z",
       zRange: [-10, 10],
@@ -72,14 +72,14 @@ export const parametric3D = `const config = {
       showCurrentPointInLegend: true,
       surfaces: [
         {
-          formulaId: "x-plus-y-plus-z-equals-1",
+          id: "x-plus-y-plus-z-equals-1",
           color: "purple",
           opacity: 0.3,
           showInLegend: true,
           showColorbar: false
         },
         {
-          formulaId: "x-and-z",
+          id: "x-and-z",
           color: "green",
           opacity: 0.3,
           showInLegend: true,

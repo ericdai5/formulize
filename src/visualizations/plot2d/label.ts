@@ -11,13 +11,13 @@ export function updateCurrentPointLabel(
   currentPoint: DataPoint,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
-  xAxisVar?: string,
-  yAxisVar?: string
+  xAxis?: string,
+  yAxis?: string
 ): void {
-  if (!xAxisVar || !yAxisVar) return;
+  if (!xAxis || !yAxis) return;
 
   // Update existing current point label
-  const labelText = `${getVariableLabel(xAxisVar)}: ${formatVariableValue(Number(currentPoint.x), xAxisVar)}, ${getVariableLabel(yAxisVar)}: ${formatVariableValue(Number(currentPoint.y), yAxisVar)}`;
+  const labelText = `${getVariableLabel(xAxis)}: ${formatVariableValue(Number(currentPoint.x), xAxis)}, ${getVariableLabel(yAxis)}: ${formatVariableValue(Number(currentPoint.y), yAxis)}`;
   const labelX = xScale(currentPoint.x) + 10;
   const labelY = yScale(currentPoint.y) - 10;
 

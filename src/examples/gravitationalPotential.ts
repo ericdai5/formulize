@@ -1,7 +1,7 @@
 export const gravitationalPotential = `const config = {
   formulas: [
     {
-      formulaId: "gravitational-potential",
+      id: "gravitational-potential",
       latex: "U = mgh",
       expression: "{U} = {m} * {g} * {h}"
     }
@@ -44,9 +44,9 @@ export const gravitationalPotential = `const config = {
       type: "plot2d",
       id: "potentialEnergyPlot",
       title: "Potential Energy vs. Height",
-      xAxisVar: "h",
+      xAxis: "h",
       xRange: [0, 100],
-      yAxisVar: "U",
+      yAxis: "U",
       yRange: [0, 10000],
       width: 600,
       height: 600,

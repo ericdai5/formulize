@@ -1,7 +1,7 @@
 export const setOperations = `const config = {
   formulas: [
     {
-      formulaId: "set-intersection",
+      id: "set-intersection",
       latex: "P = M \\\\cap B",
       manual: (vars) => {
         const M = vars.M;
@@ -10,7 +10,7 @@ export const setOperations = `const config = {
       }
     },
     {
-      formulaId: "set-union",
+      id: "set-union",
       latex: "U = M \\\\cup B",
       manual: (vars) => {
         const M = vars.M;

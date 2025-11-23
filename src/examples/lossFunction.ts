@@ -1,7 +1,7 @@
 export const lossFunction = `const config = {
   formulas: [
     {
-      formulaId: "loss-function-regularization",
+      id: "loss-function-regularization",
       latex: "J(\\\\theta) = \\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} ||\\\\theta_j||^2",
       manual: function(vars) {
         var m = vars.m;

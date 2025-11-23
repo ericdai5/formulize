@@ -14,7 +14,7 @@ interface SurfaceCalculationParams {
   zMin: number;
   zMax: number;
   samples: number;
-  getFormulaById: (formulaId: string) => string | null;
+  getFormulaById: (id: string) => string | null;
 }
 
 // Helper function to solve equations using singular formula solver
@@ -50,9 +50,9 @@ export const getSurface = (
     getFormulaById,
   } = params;
 
-  const formulaExpression = getFormulaById(surfaceConfig.formulaId);
+  const formulaExpression = getFormulaById(surfaceConfig.id);
   if (!formulaExpression) {
-    console.warn(`Formula not found: ${surfaceConfig.formulaId}`);
+    console.warn(`Formula not found: ${surfaceConfig.id}`);
     return null;
   }
 
@@ -117,7 +117,7 @@ export const getSurface = (
   }
 
   return {
-    formulaId: surfaceConfig.formulaId,
+    id: surfaceConfig.id,
     matrixData: { xCoords, yCoords, zCoords },
     points,
     color: resolveColor(surfaceConfig.color as ColorScale, index),
@@ -145,7 +145,7 @@ export const getSurfaces = (
     if (surfaceData) {
       results.push(surfaceData);
     } else {
-      console.warn(`Failed to calculate surface: ${surfaceConfig.formulaId}`);
+      console.warn(`Failed to calculate surface: ${surfaceConfig.id}`);
     }
   });
 

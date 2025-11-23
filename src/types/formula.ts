@@ -1,5 +1,5 @@
 export interface IFormula {
-  formulaId: string; // Unique identifier for this formula
+  id: string; // Unique identifier for this formula
   latex: string;
   expression?: string; // Optional computational expression for this formula
   manual?: (vars: Record<string, any>) => any; // Optional manual computation function - vars contains values (numbers or arrays)
