@@ -27,14 +27,14 @@ export const summationBasic = `const config = {
   ],
   variables: {
     E: {
-      type: "dependent",
+      role: "dependent",
       precision: 2,
       name: "Expected Value",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     x: {
-      type: "input",
+      role: "input",
       memberOf: "X",
       precision: 0,
       name: "x: member of X",
@@ -42,12 +42,12 @@ export const summationBasic = `const config = {
       labelDisplay: "value",
     },
     X: {
-      type: "input",
+      role: "input",
       value: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       precision: 0,
     },
     "P(x)": {
-      type: "input",
+      role: "input",
       key: "x",
       value: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
       precision: 2,
@@ -56,7 +56,7 @@ export const summationBasic = `const config = {
       labelDisplay: "value",
     },
     c: {
-      type: "dependent",
+      role: "dependent",
       precision: 2,
       name: "Current Expected Value",
       latexDisplay: "name",

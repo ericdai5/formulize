@@ -11,13 +11,13 @@ export const svgKineticEnergy2D = `const config = {
   ],
   variables: {
     K: {
-      type: "dependent",
+      role: "dependent",
       units: "J",
       name: "Kinetic Energy",
       precision: 2,
     },
     m: {
-      type: "input",
+      role: "input",
       value: 1,
       range: [0.1, 10],
       step: 1,
@@ -28,7 +28,7 @@ export const svgKineticEnergy2D = `const config = {
       svgSize: { width: 24, height: 24 }
     },
     v: {
-      type: "input",
+      role: "input",
       value: 2,
       range: [0.1, 100],
       step: 1,

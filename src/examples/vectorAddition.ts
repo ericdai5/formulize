@@ -8,21 +8,21 @@ export const vectorAddition = `const config = {
   ],
   variables: {
     k_1: {
-      type: "input",
+      role: "input",
       value: 1,
       range: [-3, 3],
       step: 0.1,
       precision: 1
     },
     k_2: {
-      type: "input",
+      role: "input",
       value: 1,
       range: [-3, 3],
       step: 0.1,
       precision: 1
     },
     a_x: {
-      type: "input",
+      role: "input",
       value: 2,
       range: [-10, 10],
       step: 0.5,
@@ -31,7 +31,7 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     a_y: {
-      type: "input", 
+      role: "input", 
       value: 2,
       range: [-10, 10],
       step: 0.5,
@@ -40,7 +40,7 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     b_x: {
-      type: "input",
+      role: "input",
       value: -1,
       range: [-10, 10], 
       step: 0.5,
@@ -49,7 +49,7 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     b_y: {
-      type: "input",
+      role: "input",
       value: -1,
       range: [-10, 10],
       step: 0.5,
@@ -58,13 +58,13 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     c_x: {
-      type: "dependent",
+      role: "dependent",
       precision: 1,
       latexDisplay: "value",
       labelDisplay: "name"
     },
     c_y: {
-      type: "dependent",
+      role: "dependent",
       precision: 1,
       latexDisplay: "value",
       labelDisplay: "name"

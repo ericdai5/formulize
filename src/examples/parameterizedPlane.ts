@@ -23,29 +23,29 @@ export const parameterizedPlane = `const config = {
   ],
   variables: {
     x: {
-      type: "dependent",
+      role: "dependent",
       name: "x-coordinate",
       precision: 2
     },
     y: {
-      type: "dependent",
+      role: "dependent",
       name: "y-coordinate",
       precision: 2
     },
     z: {
-      type: "dependent",
+      role: "dependent",
       name: "z-coordinate",
       precision: 2
     },
     t: {
-      type: "input",
+      role: "input",
       value: 0,
       range: [-10, 10],
       step: 0.1,
       name: "Parameter t"
     },
     w: {
-      type: "input",
+      role: "input",
       value: 0,
       range: [-10, 10],
       step: 0.1,

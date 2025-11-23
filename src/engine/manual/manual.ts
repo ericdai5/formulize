@@ -45,7 +45,7 @@ function getDependentVariableNames(
   variables: Record<string, IVariable>
 ): string[] {
   return Object.entries(variables)
-    .filter(([, varDef]) => varDef.type === "dependent")
+    .filter(([, varDef]) => varDef.role === "dependent")
     .map(([varName]) => varName);
 }
 
@@ -101,7 +101,7 @@ function executeManualFormula(
   // If manual function returns a value, also sync it to dependent variables
   if (isValidNumericResult(returnValue)) {
     for (const variable of Object.values(variables)) {
-      if (variable.type === "dependent") {
+      if (variable.role === "dependent") {
         variable.value = returnValue;
       }
     }

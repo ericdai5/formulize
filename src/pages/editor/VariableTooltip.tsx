@@ -6,12 +6,12 @@ import { getVariable } from "../../util/computation-helpers";
 const VariableTooltip = ({
   position,
   onSelect,
-  currentType,
+  currentRole,
   id, // id of the currently selected variable
 }: {
   position: { x: number; y: number };
-  onSelect: (type: "constant" | "input" | "dependent") => void;
-  currentType: "constant" | "input" | "dependent" | "none";
+  onSelect: (role: "constant" | "input" | "dependent") => void;
+  currentRole: "constant" | "input" | "dependent" | "none";
   id: string;
 }) => {
   const [value, setValue] = useState("0");
@@ -24,13 +24,13 @@ const VariableTooltip = ({
     }
   }, [variable?.value]);
 
-  const handleTypeSelect = (type: "constant" | "input" | "dependent") => {
-    if (type === "constant") {
+  const handleRoleSelect = (role: "constant" | "input" | "dependent") => {
+    if (role === "constant") {
       setShowValueInput(true);
     } else {
       // For non-constant types, just update the type
-      computationStore.setVariableType(id, type);
-      onSelect(type);
+      computationStore.setVariableRole(id, role);
+      onSelect(role);
     }
   };
 
@@ -44,17 +44,17 @@ const VariableTooltip = ({
   };
 
   const [showValueInput, setShowValueInput] = useState(
-    currentType === "constant"
+    currentRole === "constant"
   );
 
   useEffect(() => {
-    setShowValueInput(currentType === "constant");
-  }, [currentType]);
+    setShowValueInput(currentRole === "constant");
+  }, [currentRole]);
 
   const options = [
-    { type: "constant" as const, icon: "📌", label: "Fixed" },
-    { type: "input" as const, icon: "↔️", label: "Slidable" },
-    { type: "dependent" as const, icon: "🔄", label: "Dependent" },
+    { role: "constant" as const, icon: "📌", label: "Fixed" },
+    { role: "input" as const, icon: "↔️", label: "Slidable" },
+    { role: "dependent" as const, icon: "🔄", label: "Dependent" },
   ];
 
   return (
@@ -94,16 +94,16 @@ const VariableTooltip = ({
       )}
 
       <div className="flex items-center">
-        {options.map(({ type, icon, label }, index) => (
-          <div key={type} className="flex items-center">
+        {options.map(({ role, icon, label }, index) => (
+          <div key={role} className="flex items-center">
             <button
-              onClick={() => handleTypeSelect(type)}
+              onClick={() => handleRoleSelect(role)}
               className={`
                 flex flex-row gap-2 items-center
                 px-2 py-1 min-w-16 cursor-pointer
                 border rounded-lg transition-all duration-200
                 ${
-                  currentType === type
+                  currentRole === role
                     ? "border-blue-300 bg-blue-50"
                     : "border-1 border-white bg-white hover:bg-slate-100"
                 }

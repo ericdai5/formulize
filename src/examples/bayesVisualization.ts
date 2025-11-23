@@ -28,40 +28,40 @@ export const bayesWithCustomVisualization = `const config = {
     ],
     variables: {
       "P(B \\\\mid A)": {
-        type: "dependent",
+        role: "dependent",
         name: "P(B|A)",
         precision: 4
       },
       "P(A \\\\mid B)": {
-        type: "dependent",
+        role: "dependent",
         name: "P(A|B)"
       },
       "P(A \\\\cap B)": {
-        type: "input",
+        role: "input",
         value: 0.1,
         range: [0, 1],
         name: "P(A and B)"
       },
       "P(A \\\\cap \\\\neg B)": {
-        type: "dependent",
+        role: "dependent",
         name: "P(A and not B)"
       },
       "P(B \\\\cap \\\\neg A)": {
-        type: "dependent",
+        role: "dependent",
         name: "P(B and not A)"
       },
       "P(\\\\neg A \\\\cap \\\\neg B)": {
-        type: "dependent",
+        role: "dependent",
         name: "P(not A and not B)"
       },
       "P(B)": {
-        type: "input",
+        role: "input",
         value: 0.2,
         range: [0, 1],
         name: "P(B)"
       },
       "P(A)": {
-        type: "input",
+        role: "input",
         value: 0.2,
         range: [0, 1],
         name: "P(A)"

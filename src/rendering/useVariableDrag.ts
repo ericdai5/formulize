@@ -5,20 +5,20 @@ import { computationStore } from "../store/computation";
 
 interface UseVariableDragProps {
   varId: string;
-  type: "input" | "output";
+  role: "input" | "output";
   hasDropdownOptions?: boolean;
 }
 
 export const useVariableDrag = ({
   varId,
-  type,
+  role,
   hasDropdownOptions,
 }: UseVariableDragProps) => {
   const nodeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const element = nodeRef.current;
-    if (!element || type !== "input" || hasDropdownOptions) return;
+    if (!element || role !== "input" || hasDropdownOptions) return;
 
     let isDragging = false;
     let startY = 0;
@@ -78,7 +78,7 @@ export const useVariableDrag = ({
       document.removeEventListener("mousemove", handleMouseMove, true);
       document.removeEventListener("mouseup", handleMouseUp, true);
     };
-  }, [varId, type, hasDropdownOptions]);
+  }, [varId, role, hasDropdownOptions]);
 
   return nodeRef;
 };

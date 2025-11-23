@@ -16,7 +16,7 @@ const StorePane = observer(({ className = "" }: StorePaneProps) => {
         ([id, variable]) => ({
           id,
           symbol: id,
-          type: variable.type,
+          role: variable.role,
           dataType: variable.dataType,
           value: variable.value,
         })
@@ -42,7 +42,7 @@ const StorePane = observer(({ className = "" }: StorePaneProps) => {
           const fields = [
             { label: "ID", value: variable.id },
             { label: "Symbol", value: variable.symbol },
-            { label: "Type", value: variable.type },
+            { label: "Role", value: variable.role },
             { label: "Data Type", value: variable.dataType || "scalar" },
             {
               label: "Value",

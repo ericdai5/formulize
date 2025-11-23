@@ -87,7 +87,7 @@ async function create(
     // Clear computation store variables and state
     computationStore.reset();
     computationStore.setLastGeneratedCode(null);
-    computationStore.setVariableTypesChanged(0);
+    computationStore.setVariableRolesChanged(0);
 
     // Set initialization flag to prevent premature evaluations
     computationStore.setInitializing(true);
@@ -102,7 +102,7 @@ async function create(
     ) {
       Object.entries(environment.variables).forEach(([varId, variable]) => {
         computationStore.addVariable(varId, variable);
-        computationStore.setVariableType(varId, variable.type);
+        computationStore.setVariableRole(varId, variable.role);
         if (variable.value !== undefined) {
           if (variable.dataType === "set" && Array.isArray(variable.value)) {
             computationStore.setSetValue(varId, variable.value);
@@ -177,7 +177,7 @@ async function create(
         const computationVariable = getVariable(varId);
 
         return {
-          type: variable.type,
+          role: variable.role,
           value: computationVariable?.value ?? variable.value ?? 0,
           dataType: variable.dataType,
           dimensions: variable.dimensions,
@@ -194,7 +194,7 @@ async function create(
       setVariable: (name: string, value: number) => {
         if (environment.variables) {
           const variable = environment.variables[name];
-          if (variable && variable.type !== "dependent") {
+          if (variable && variable.role !== "dependent") {
             computationStore.setValue(name, value);
             return true;
           }

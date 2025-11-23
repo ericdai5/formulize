@@ -315,7 +315,7 @@ export function computeWithSymbolicEngine(
 
     // Get all dependent variables
     const dependentVars = Object.entries(environment.variables)
-      .filter(([, varDef]) => varDef.type === "dependent")
+      .filter(([, varDef]) => varDef.role === "dependent")
       .map(([varName]) => varName);
 
     // No dependent variables, nothing to compute
