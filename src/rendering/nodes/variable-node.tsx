@@ -4,6 +4,7 @@ import { Handle, Position } from "@xyflow/react";
 
 import { useVariableDrag } from "../../rendering/useVariableDrag";
 import { computationStore } from "../../store/computation";
+import { VAR_CLASSES } from "../css-classes";
 
 export interface VariableNodeData {
   varId: string;
@@ -46,7 +47,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   return (
     <div
       ref={nodeRef}
-      className={`interactive-var-base text-xs text-white border-dashed text-center nodrag ${
+      className={`${VAR_CLASSES.BASE} text-xs text-white border-dashed text-center nodrag ${
         showBorders ? "border border-blue-500 bg-blue-500/50" : ""
       }`}
       style={{

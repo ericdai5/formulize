@@ -20,7 +20,7 @@ const engineDescriptions = {
   manual: {
     title: "Manual JavaScript",
     description:
-      "The manual engine allows authors to define custom JavaScript functions for computing dependent variables. This provides maximum flexibility for complex calculations and custom logic.",
+      "The manual engine allows authors to define custom JavaScript functions for computing computed variables. This provides maximum flexibility for complex calculations and custom logic.",
   },
 };
 

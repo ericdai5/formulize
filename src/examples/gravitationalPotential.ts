@@ -8,7 +8,7 @@ export const gravitationalPotential = `const config = {
   ],
   variables: {
     U: {
-      role: "dependent",
+      role: "computed",
       units: "J",
       name: "Potential Energy",
       precision: 2

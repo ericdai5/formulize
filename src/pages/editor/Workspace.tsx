@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite";
 import { MathSymbol } from "../../parse/formula-tree";
 import { editingStore, formulaStore, selectionStore } from "../../store";
 import { computationStore } from "../../store/computation";
+import { IRole } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";
 import { AlignmentGuides } from "./AlignmentGuides";
 import { RenderedFormula } from "./RenderedFormula";
@@ -122,7 +123,7 @@ export const Workspace = observer(() => {
   }, [getActiveVariable]);
 
   const handleVariableRoleSelect = useCallback(
-    (role: "constant" | "input" | "dependent") => {
+    (role: IRole) => {
       const activeVar = getActiveVariable();
       if (!activeVar) return;
       computationStore.addVariable(activeVar.id);
@@ -271,9 +272,7 @@ export const EnlivenMode = observer(() => {
     return (node as MathSymbol).value;
   };
 
-  const handleVariableRoleSelect = (
-    role: "constant" | "input" | "dependent"
-  ) => {
+  const handleVariableRoleSelect = (role: IRole) => {
     const selection = selectionStore.siblingSelections[0]?.[0];
     if (!selection) return;
 

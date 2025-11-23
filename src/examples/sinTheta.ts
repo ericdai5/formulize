@@ -8,7 +8,7 @@ export const sinTheta = `const config = {
   ],
   variables: {
     y: {
-      role: "dependent",
+      role: "computed",
       precision: 2,
       latexDisplay: "name",
       labelDisplay: "none"

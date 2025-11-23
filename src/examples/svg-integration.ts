@@ -11,7 +11,7 @@ export const svgIntegration = `const config = {
   ],
   variables: {
     N: {
-      role: "dependent",
+      role: "computed",
       name: "Substance Remaining",
       units: "atoms",
       precision: 0,

@@ -58,13 +58,13 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     c_x: {
-      role: "dependent",
+      role: "computed",
       precision: 1,
       latexDisplay: "value",
       labelDisplay: "name"
     },
     c_y: {
-      role: "dependent",
+      role: "computed",
       precision: 1,
       latexDisplay: "value",
       labelDisplay: "name"

@@ -35,14 +35,14 @@ export const setOperations = `const config = {
       labelDisplay: "value"
     },
     P: {
-      role: "dependent",
+      role: "computed",
       value: [],
       name: "Platypus",
       description: "Intersection of mammals and billed animals",
       labelDisplay: "value"
     },
     U: {
-      role: "dependent",
+      role: "computed",
       value: [],
       name: "All Animals",
       description: "Union of mammals and billed animals",

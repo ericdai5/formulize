@@ -2,6 +2,7 @@
  * SVG Processor for handling SVG in variables
  */
 import { computationStore } from "../../store/computation";
+import { VAR_SELECTORS } from "../css-classes";
 import { SVGConfig, createSVGElement } from "./svg-registry";
 
 export interface SVGPlaceholder {
@@ -49,10 +50,7 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
       }
 
       // For compatibility, look for elements with specific variable classes
-      const element =
-        varElement.querySelector(
-          ".interactive-var-base, .interactive-var-input, .interactive-var-dependent"
-        ) || varElement;
+      const element = varElement.querySelector(VAR_SELECTORS.ALL) || varElement;
 
       // Create SVG element
       let svgElement: SVGElement | HTMLElement;

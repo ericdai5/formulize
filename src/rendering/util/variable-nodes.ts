@@ -3,6 +3,7 @@ import type { MutableRefObject } from "react";
 import { Node, useReactFlow } from "@xyflow/react";
 
 import { computationStore } from "../../store/computation";
+import { VAR_SELECTORS } from "../css-classes";
 import { NODE_TYPES, getFormulaNodes, getVariableNodes } from "./node-helpers";
 
 /*********** Helper Functions for Variable Nodes ***********/
@@ -52,9 +53,7 @@ export const updateVariableNodesForFormula = (
   const newNodes: Node[] = [];
 
   // Find variable elements within this formula
-  const variableElements = formulaElement.querySelectorAll(
-    '[class*="interactive-var-"]'
-  );
+  const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
 
   variableElements.forEach((varElement: Element, elementIndex: number) => {
     const htmlVarElement = varElement as HTMLElement;
@@ -140,9 +139,7 @@ export const createVariableNodesFromFormula = (
   const formulaNodeId = formulaNode.id;
 
   // Find variable elements within this formula
-  const variableElements = formulaElement.querySelectorAll(
-    '[class*="interactive-var-"]'
-  );
+  const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
 
   variableElements.forEach((varElement: Element, elementIndex: number) => {
     const htmlVarElement = varElement as HTMLElement;

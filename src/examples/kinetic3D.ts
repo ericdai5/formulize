@@ -8,7 +8,7 @@ export const kinetic3D = `const config = {
   ],
   variables: {
     K: {
-      role: "dependent",
+      role: "computed",
       units: "J",
       name: "Kinetic Energy",
       precision: 2

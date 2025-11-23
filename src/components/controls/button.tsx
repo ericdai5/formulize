@@ -31,16 +31,19 @@ export const ButtonControl = observer<ButtonControlProps>(({ control }) => {
           // Sync back all modified variables
           for (const [key, value] of Object.entries(vars)) {
             const variable = computationStore.variables.get(key);
-            if (variable && (Array.isArray(value) || typeof value === 'number')) {
+            if (
+              variable &&
+              (Array.isArray(value) || typeof value === "number")
+            ) {
               variable.value = value;
             }
           }
 
-          // Trigger recomputation of dependent variables
-          computationStore.updateAllDependentVars();
+          // Trigger recomputation of computed variables
+          computationStore.updateAllComputedVars();
         });
       } catch (error) {
-        console.error('Error executing button code:', error);
+        console.error("Error executing button code:", error);
       }
     }
   };

@@ -1,4 +1,6 @@
+import { VAR_CLASSES } from "../rendering/css-classes";
 import { computationStore } from "../store/computation";
+import { IRole } from "../types/variable";
 import { getVariable } from "../util/computation-helpers";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
@@ -56,7 +58,7 @@ const processIndexVariable = (
         }
         // Apply CSS class for index variables - only if value exists
         if (value !== null && value !== undefined && !isNaN(value)) {
-          const result = `\\class{interactive-var-index}{${value.toFixed(variablePrecision)}}`;
+          const result = `\\class{${VAR_CLASSES.INDEX}}{${value.toFixed(variablePrecision)}}`;
           return result;
         } else {
           // Fallback to showing the symbol if no value
@@ -217,7 +219,7 @@ const processMemberVariable = (
         let parentHoverCSS = "";
         let parentHasSVG = false;
         let parentSvgMode: "replace" | "append" | undefined = undefined;
-        let parentVariableRole: "input" | "dependent" | "constant" = "constant";
+        let parentVariableRole: IRole = "constant";
 
         // Get parent variable's configuration
         for (const [
@@ -255,11 +257,11 @@ const processMemberVariable = (
         }
 
         // Determine CSS class based on parent's type
-        let cssClass = "interactive-var-base";
+        let cssClass: string = VAR_CLASSES.BASE;
         if (parentVariableRole === "input") {
-          cssClass = "interactive-var-input";
-        } else if (parentVariableRole === "dependent") {
-          cssClass = "interactive-var-dependent";
+          cssClass = VAR_CLASSES.INPUT;
+        } else if (parentVariableRole === "computed") {
+          cssClass = VAR_CLASSES.COMPUTED;
         }
 
         // If parent has SVG in replace mode, use phantom for the matching symbol
@@ -421,7 +423,7 @@ export const processVariables = (
 
       // Get the value, type, and precision from the computation store
       let value: number | undefined = undefined;
-      let variableRole: "input" | "dependent" | "constant" = "constant";
+      let variableRole: IRole = "constant";
       let variablePrecision = defaultPrecision;
       let display: "name" | "value" | "both" = "both"; // Default to showing both for backward compatibility
       let indexVariable = "";
@@ -481,11 +483,11 @@ export const processVariables = (
       const id = originalSymbol;
 
       // Use different CSS classes based on variable type and interaction mode
-      let cssClass = "interactive-var-base";
+      let cssClass: string = VAR_CLASSES.BASE;
       if (variableRole === "input") {
-        cssClass = "interactive-var-input";
-      } else if (variableRole === "dependent") {
-        cssClass = "interactive-var-dependent";
+        cssClass = VAR_CLASSES.INPUT;
+      } else if (variableRole === "computed") {
+        cssClass = VAR_CLASSES.COMPUTED;
       }
 
       // Hover class is managed via MobX reactions to avoid full LaTeX re-renders

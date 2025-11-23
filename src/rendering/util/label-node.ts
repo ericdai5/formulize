@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 
 import { computationStore } from "../../store/computation";
 import { executionStore } from "../../store/execution";
+import { VAR_SELECTORS } from "../css-classes";
 import {
   NODE_TYPES,
   findFormulaNodeById,
@@ -150,9 +151,7 @@ export const processVariableElementsForLabels = (
   const processedVariables = new Set<string>();
 
   // Find variable elements within this formula
-  const variableElements = formulaElement.querySelectorAll(
-    '[class*="interactive-var-"]'
-  );
+  const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
 
   variableElements.forEach((varElement: Element) => {
     const htmlVarElement = varElement as HTMLElement;

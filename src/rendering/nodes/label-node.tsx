@@ -8,6 +8,7 @@ import SVGLabel from "../../components/svg-label";
 import { useVariableDrag } from "../../rendering/useVariableDrag";
 import { computationStore } from "../../store/computation";
 import { executionStore } from "../../store/execution";
+import { VAR_CLASSES } from "../css-classes";
 
 export interface LabelNodeData {
   varId: string;
@@ -132,22 +133,22 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       return "step-cue"; // Step mode styling
     }
 
-    if (role === "dependent") {
-      return "interactive-var-dependent";
+    if (role === "computed") {
+      return VAR_CLASSES.COMPUTED;
     }
 
     if (role === "input") {
       // All input variables get the unified input class
-      return "interactive-var-input";
+      return VAR_CLASSES.INPUT;
     }
 
-    return "interactive-var-base";
+    return VAR_CLASSES.BASE;
   };
 
   const interactiveClass = getInteractiveClass();
   const isSetVariable = Array.isArray(variable.value);
   const isDraggable =
-    (role === "input" || role === "dependent") && !isSetVariable;
+    (role === "input" || role === "computed") && !isSetVariable;
   const cursor = isDraggable ? "grab" : "default";
   const valueCursor = isSetVariable
     ? "pointer"
