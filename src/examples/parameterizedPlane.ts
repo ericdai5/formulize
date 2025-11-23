@@ -23,17 +23,17 @@ export const parameterizedPlane = `const config = {
   ],
   variables: {
     x: {
-      role: "dependent",
+      role: "computed",
       name: "x-coordinate",
       precision: 2
     },
     y: {
-      role: "dependent",
+      role: "computed",
       name: "y-coordinate",
       precision: 2
     },
     z: {
-      role: "dependent",
+      role: "computed",
       name: "z-coordinate",
       precision: 2
     },

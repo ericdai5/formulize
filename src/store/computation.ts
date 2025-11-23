@@ -11,7 +11,7 @@ import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
 import { IComputation } from "../types/computation";
 import { IEnvironment } from "../types/environment";
-import { IValue, IVariable } from "../types/variable";
+import { IRole, IValue, IVariable } from "../types/variable";
 
 export type EvaluationFunction = (
   variables: Record<string, number>
@@ -76,21 +76,21 @@ class ComputationStore {
   private isUpdatingDependents = false;
   private isInitializing = false;
 
-  private hasDependentVars(): boolean {
+  private hasComputedVars(): boolean {
     return Array.from(this.variables.values()).some(
-      (v) => v.role === "dependent"
+      (v) => v.role === "computed"
     );
   }
 
-  private getDependentVars(): IVariable[] {
+  private getComputedVars(): IVariable[] {
     return Array.from(this.variables.values()).filter(
-      (v) => v.role === "dependent"
+      (v) => v.role === "computed"
     );
   }
 
-  private getDependentVarSymbols(): string[] {
+  private getComputedVarSymbols(): string[] {
     return Array.from(this.variables.entries())
-      .filter(([, v]) => v.role === "dependent")
+      .filter(([, v]) => v.role === "computed")
       .map(([id]) => id);
   }
 
@@ -104,7 +104,7 @@ class ComputationStore {
     return {
       computationConfig: this.computationConfig,
       variables: this.variables,
-      getDependentVariableSymbols: () => this.getDependentVarSymbols(),
+      getComputedVariableSymbols: () => this.getComputedVarSymbols(),
       getInputVariableSymbols: () => this.getInputVarSymbols(),
     };
   }
@@ -203,11 +203,11 @@ class ComputationStore {
       return false;
     }
     variable.value = value;
-    // Update index-based dependent variables
+    // Update index-based computed variables
     this.updateIndexBasedVariables(id, value);
-    // Only update dependent variables if we're not initializing and not already in an update cycle
+    // Only update computed variables if we're not initializing and not already in an update cycle
     if (!this.isUpdatingDependents && !this.isInitializing) {
-      this.updateAllDependentVars();
+      this.updateAllComputedVars();
     }
   }
 
@@ -218,9 +218,9 @@ class ComputationStore {
       return false;
     }
     variable.value = set; // Use unified value field
-    // Trigger re-evaluation of dependent variables (including sets via manual functions)
+    // Trigger re-evaluation of computed variables (including sets via manual functions)
     if (!this.isUpdatingDependents && !this.isInitializing) {
-      this.updateAllDependentVars();
+      this.updateAllComputedVars();
     }
     return true;
   }
@@ -346,7 +346,7 @@ class ComputationStore {
           // Find the index of the changed value in the changed variable's set
           const changedIndex = changedVariable.value.indexOf(changedValue);
           if (changedIndex !== -1 && changedIndex < variable.value.length) {
-            // Update the dependent variable's value using the same index
+            // Update the computed variable's value using the same index
             const setValue = variable.value[changedIndex];
             variable.value =
               typeof setValue === "number"
@@ -391,9 +391,9 @@ class ComputationStore {
       this.setLastGeneratedCode(displayCode);
     }
 
-    // Initial evaluation of all dependent variables (skip in step mode)
+    // Initial evaluation of all computed variables (skip in step mode)
     if (!this.isStepMode()) {
-      this.updateAllDependentVars();
+      this.updateAllComputedVars();
     }
   }
 
@@ -485,7 +485,7 @@ class ComputationStore {
   }
 
   @action
-  setVariableRole(id: string, role: IVariable["role"]) {
+  setVariableRole(id: string, role: IRole) {
     const variable = this.variables.get(id);
     if (!variable) {
       return;
@@ -510,24 +510,24 @@ class ComputationStore {
 
     this.variableRolesChanged++;
 
-    // Check if we have dependent variables and expressions to evaluate
-    const hasDependentVars = this.hasDependentVars();
+    // Check if we have computed variables and expressions to evaluate
+    const hasComputedVars = this.hasComputedVars();
 
-    if (hasDependentVars && this.symbolicFunctions.length > 0) {
+    if (hasComputedVars && this.symbolicFunctions.length > 0) {
       // Re-evaluate all expressions when variable types change
       this.setComputation(this.symbolicFunctions, this.manualFunctions);
-    } else if (!hasDependentVars) {
-      // Clear evaluation function if no dependent variables
+    } else if (!hasComputedVars) {
+      // Clear evaluation function if no computed variables
       this.evaluationFunction = null;
       this.lastGeneratedCode = null;
     }
 
-    // Update all dependent variables
-    this.updateAllDependentVars();
+    // Update all computed variables
+    this.updateAllComputedVars();
   }
 
   @action
-  updateAllDependentVars() {
+  updateAllComputedVars() {
     if (!this.evaluationFunction) return;
 
     try {
@@ -540,9 +540,9 @@ class ComputationStore {
           .map(([symbol, v]) => [symbol, v.value as number])
       );
       const results = this.evaluationFunction(values);
-      // Update all dependent variables with their computed values
+      // Update all computed variables with their computed values
       for (const [symbol, variable] of this.variables.entries()) {
-        if (variable.role === "dependent") {
+        if (variable.role === "computed") {
           const result = results[symbol];
           if (typeof result === "number" && !isNaN(result)) {
             variable.value = result;
@@ -550,7 +550,7 @@ class ComputationStore {
         }
       }
     } catch (error) {
-      console.error("Error updating dependent variables:", error);
+      console.error("Error updating computed variables:", error);
     } finally {
       this.isUpdatingDependents = false;
     }
@@ -585,9 +585,9 @@ class ComputationStore {
 
   // Create an LLM-based multi-expression evaluator
   private async createLLMMultiExpressionEvaluator(expressions: string[]) {
-    const dependentVars = this.getDependentVars();
+    const computedVars = this.getComputedVars();
 
-    if (dependentVars.length === 0) {
+    if (computedVars.length === 0) {
       return;
     }
 
@@ -599,13 +599,13 @@ class ComputationStore {
         return;
       }
 
-      const dependentVars = this.getDependentVarSymbols();
+      const computedVars = this.getComputedVarSymbols();
       const inputVars = this.getInputVarSymbols();
 
       // Generate function code via LLM
       const functionCode = await generateLLMFunction({
         formula: primaryExpression,
-        dependentVars,
+        computedVars,
         inputVars,
       });
 

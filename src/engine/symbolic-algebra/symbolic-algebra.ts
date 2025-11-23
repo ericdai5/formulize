@@ -89,7 +89,7 @@ function toNumberArray(result: unknown): number[] | null {
  * Tries to evaluate a matrix expression and assign results to variables
  * @param expr The expression to evaluate
  * @param scope The current variable scope
- * @param translatedDependentVars Array of translated dependent variable names
+ * @param translatedComputedVars Array of translated computed variable names
  * @param unresolved Set of unresolved variables
  * @param result The result object to update
  * @param reverseTranslationMap Map from translated names back to original names
@@ -168,16 +168,16 @@ function processFormulaString(
 
 /**
  * Derives a JavaScript function from a symbolic formula that computes
- * dependent variables based on input variables
+ * computed variables based on input variables
  *
  * @param expressions The expressions extracted from formula objects
- * @param dependentVars Names of the dependent variables to solve for
+ * @param computedVars Names of the computed variables to solve for
  * @param translationMap Mapping from original variable names to translated names
  * @returns A JavaScript function that evaluates the formula
  */
 export function deriveSymbolicFunction(
   expressions: string[],
-  dependentVars: string[],
+  computedVars: string[],
   translationMap: Record<string, string>
 ): (variables: Record<string, number>) => Record<string, number> {
   const processedExpressions = expressions.map((expr: string) =>
@@ -201,12 +201,12 @@ export function deriveSymbolicFunction(
       scope[translatedName] = value;
     }
 
-    // Translate dependent variable names for processing
-    const translatedDependentVars = dependentVars.map(
+    // Translate computed variable names for processing
+    const translatedComputedVars = computedVars.map(
       (depVar) => translationMap[depVar] || translateVariableName(depVar)
     );
 
-    const unresolved = new Set(translatedDependentVars);
+    const unresolved = new Set(translatedComputedVars);
 
     // Keep propagating changes until all variables are resolved or no progress
     while (unresolved.size > 0) {
@@ -218,7 +218,7 @@ export function deriveSymbolicFunction(
           tryEvaluateMatrixExpression(
             expr,
             scope,
-            translatedDependentVars,
+            translatedComputedVars,
             unresolved,
             result,
             reverseTranslationMap
@@ -287,7 +287,7 @@ export function deriveSymbolicFunction(
  * @param environment The Formulize environment
  * @param computation The computation settings
  * @param variables Current variable values
- * @returns An object with updated dependent variable values
+ * @returns An object with updated computed variable values
  */
 export function computeWithSymbolicEngine(
   environment: IEnvironment,
@@ -313,14 +313,14 @@ export function computeWithSymbolicEngine(
     // Create translation map for all variables
     const translationMap = createVariableTranslationMap(allVariableNames);
 
-    // Get all dependent variables
-    const dependentVars = Object.entries(environment.variables)
-      .filter(([, varDef]) => varDef.role === "dependent")
+    // Get all computed variables
+    const computedVars = Object.entries(environment.variables)
+      .filter(([, varDef]) => varDef.role === "computed")
       .map(([varName]) => varName);
 
-    // No dependent variables, nothing to compute
-    if (dependentVars.length === 0) {
-      console.warn("⚠️ No dependent variables found");
+    // No computed variables, nothing to compute
+    if (computedVars.length === 0) {
+      console.warn("⚠️ No computed variables found");
       return {};
     }
 
@@ -342,7 +342,7 @@ export function computeWithSymbolicEngine(
     // Derive the evaluation function with translation map
     const evaluationFunction = deriveSymbolicFunction(
       expressions,
-      dependentVars,
+      computedVars,
       translationMap
     );
 

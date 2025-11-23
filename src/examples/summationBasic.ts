@@ -27,7 +27,7 @@ export const summationBasic = `const config = {
   ],
   variables: {
     E: {
-      role: "dependent",
+      role: "computed",
       precision: 2,
       name: "Expected Value",
       latexDisplay: "name",
@@ -56,7 +56,7 @@ export const summationBasic = `const config = {
       labelDisplay: "value",
     },
     c: {
-      role: "dependent",
+      role: "computed",
       precision: 2,
       name: "Current Expected Value",
       latexDisplay: "name",

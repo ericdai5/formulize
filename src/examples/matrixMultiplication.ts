@@ -63,15 +63,15 @@ export const matrixMultiplication = `const config = {
     "b_{33}": { role: "input", value: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
 
     // Matrix C (3x3 result)
-    "c_{11}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{12}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{13}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{21}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{22}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{23}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{31}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{32}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    "c_{33}": { role: "dependent", precision: 0, latexDisplay: "value", labelDisplay: "none" }
+    "c_{11}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{12}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{13}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{21}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{22}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{23}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{31}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{32}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
+    "c_{33}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" }
   },
   controls: [
     {

@@ -4,7 +4,7 @@ import { IVariable } from "../types/variable";
 export interface DisplayCodeGeneratorContext {
   computationConfig: IComputation | null;
   variables: Map<string, IVariable>;
-  getDependentVariableSymbols: () => string[];
+  getComputedVariableSymbols: () => string[];
   getInputVariableSymbols: () => string[];
 }
 
@@ -15,7 +15,7 @@ export function generateSymbolicAlgebraDisplayCode(
   expressions: string[],
   context: DisplayCodeGeneratorContext
 ): string {
-  const dependentVars = context.getDependentVariableSymbols();
+  const computedVars = context.getComputedVariableSymbols();
 
   // Generate evaluation function that matches what's really used by SymbolicAlgebraEngine
   let functionCode = `function evaluate(variables) {
@@ -40,8 +40,8 @@ export function generateSymbolicAlgebraDisplayCode(
     const result = {};
 `;
 
-  // For each dependent variable, find its expression and generate code
-  dependentVars.forEach((varName) => {
+  // For each computed variable, find its expression and generate code
+  computedVars.forEach((varName) => {
     functionCode += `
     // Calculate ${varName}`;
 
@@ -102,7 +102,7 @@ export function generateSymbolicAlgebraDisplayCode(
     return result;
   } catch (error) {
     console.error("Error in symbolic algebra evaluation:", error);
-    return { ${dependentVars.map((v) => `${v}: NaN`).join(", ")} };
+    return { ${computedVars.map((v) => `${v}: NaN`).join(", ")} };
   }
 }`;
 
@@ -115,15 +115,15 @@ export function generateSymbolicAlgebraDisplayCode(
 export function generateManualDisplayCode(
   context: DisplayCodeGeneratorContext
 ): string {
-  const dependentVars = context.getDependentVariableSymbols();
+  const computedVars = context.getComputedVariableSymbols();
 
   // Check if we have formulas with manual functions instead of mappings
   const hasManualFunctions = Array.from(context.variables.values()).some(
-    (variable) => variable.role === "dependent"
+    (variable) => variable.role === "computed"
   );
 
   if (!hasManualFunctions) {
-    return "// No dependent variables found for manual engine";
+    return "// No computed variables found for manual engine";
   }
 
   // Generate evaluation function that shows the manual functions in formulas
@@ -135,8 +135,8 @@ export function generateManualDisplayCode(
     const result = {};
 `;
 
-  // For each dependent variable, show that it will be computed by manual functions
-  dependentVars.forEach((varName) => {
+  // For each computed variable, show that it will be computed by manual functions
+  computedVars.forEach((varName) => {
     functionCode += `
     // ${varName} will be computed by manual function in formula definition
     result.${varName} = manualFunction_${varName}(variables);`;
@@ -147,7 +147,7 @@ export function generateManualDisplayCode(
     return result;
   } catch (error) {
     console.error("Error in manual engine evaluation:", error);
-    return { ${dependentVars.map((v) => `${v}: NaN`).join(", ")} };
+    return { ${computedVars.map((v) => `${v}: NaN`).join(", ")} };
   }
 }`;
 

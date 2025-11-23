@@ -7,8 +7,10 @@ export const INPUT_VARIABLE_DEFAULT = {
 
 export type IValue = number | (string | number)[];
 
+export type IRole = "constant" | "input" | "computed";
+
 export interface IVariable {
-  role: "constant" | "input" | "dependent";
+  role: IRole;
   value?: IValue;
   dataType?: "scalar" | "vector" | "matrix" | "set";
   dimensions?: number[];

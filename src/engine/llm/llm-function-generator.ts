@@ -7,13 +7,13 @@
 
 export interface GenerateFunctionParams {
   formula: string;
-  dependentVars: string[];
+  computedVars: string[];
   inputVars: string[];
 }
 
 export async function generateEvaluationFunction({
   formula,
-  dependentVars,
+  computedVars,
   inputVars,
 }: GenerateFunctionParams): Promise<string> {
   // Validate inputs
@@ -21,8 +21,8 @@ export async function generateEvaluationFunction({
     throw new Error("Cannot generate function from empty formula");
   }
 
-  if (dependentVars.length === 0) {
-    throw new Error("Cannot generate function without dependent variables");
+  if (computedVars.length === 0) {
+    throw new Error("Cannot generate function without computed variables");
   }
 
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -47,7 +47,7 @@ export async function generateEvaluationFunction({
           },
           {
             role: "user",
-            content: buildPrompt(formula, inputVars, dependentVars),
+            content: buildPrompt(formula, inputVars, computedVars),
           },
         ],
         temperature: 0.1,
@@ -64,7 +64,7 @@ export async function generateEvaluationFunction({
     const result = await response.json();
     const generatedCode = result.choices[0].message.content.trim();
 
-    validateGeneratedCode(generatedCode, dependentVars, inputVars, formula);
+    validateGeneratedCode(generatedCode, computedVars, inputVars, formula);
 
     return generatedCode;
   } catch (error) {
@@ -76,17 +76,17 @@ export async function generateEvaluationFunction({
 function buildPrompt(
   formula: string,
   inputVars: string[],
-  dependentVars: string[]
+  computedVars: string[]
 ): string {
   return `Create a JavaScript function that evaluates this formula: ${formula}
 Input variables: ${inputVars.join(", ")}
-Dependent variables to calculate: ${dependentVars.join(", ")}
+Computed variables to calculate: ${computedVars.join(", ")}
 
 Requirements:
 1. Function must be named 'evaluate'
 2. Takes a single parameter 'variables' containing input variable values as numbers
 3. Must use ONLY the specified input variables
-4. Returns object with computed values for dependent variables
+4. Returns object with computed values for computed variables
 5. Must handle division by zero and invalid operations
 6. Return ONLY the function code
 
@@ -106,7 +106,7 @@ function evaluate(variables) {
 
 function validateGeneratedCode(
   generatedCode: string,
-  dependentVars: string[],
+  computedVars: string[],
   inputVars: string[],
   formula: string
 ): void {
@@ -122,30 +122,30 @@ function validateGeneratedCode(
     }
   }
 
-  // Check for dependent variables in the generated code
-  const dependentVarPatterns = dependentVars.map(
+  // Check for computed variables in the generated code
+  const computedVarPatterns = computedVars.map(
     (v) => new RegExp(`["']?${v}["']?\\s*:`, "i")
   );
 
-  // Extract the formula's left-side variable (the dependent variable)
+  // Extract the formula's left-side variable (the computed variable)
   const formulaMatch = formula.match(/^\s*([A-Za-z])\s*=/);
   const formulaDepVar = formulaMatch ? formulaMatch[1] : null;
 
-  // If we have a formula-defined dependent variable, include it in our check
+  // If we have a formula-defined computed variable, include it in our check
   if (formulaDepVar) {
-    dependentVarPatterns.push(
+    computedVarPatterns.push(
       new RegExp(`["']?${formulaDepVar}["']?\\s*:`, "i")
     );
   }
 
-  // Check if any of the dependent vars are in the generated code
-  const foundDepVar = dependentVarPatterns.some((pattern) =>
+  // Check if any of the computed vars are in the generated code
+  const foundDepVar = computedVarPatterns.some((pattern) =>
     pattern.test(generatedCode)
   );
 
   if (!foundDepVar) {
     throw new Error(
-      `Generated code is missing dependent variables: ${dependentVars.join(", ")}${formulaDepVar ? ` and ${formulaDepVar}` : ""}`
+      `Generated code is missing computed variables: ${computedVars.join(", ")}${formulaDepVar ? ` and ${formulaDepVar}` : ""}`
     );
   }
 }

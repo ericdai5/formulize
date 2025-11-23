@@ -11,7 +11,7 @@ export const svgKineticEnergy2D = `const config = {
   ],
   variables: {
     K: {
-      role: "dependent",
+      role: "computed",
       units: "J",
       name: "Kinetic Energy",
       precision: 2,

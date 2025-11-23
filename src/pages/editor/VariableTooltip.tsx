@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import { computationStore } from "../../store/computation";
+import { IRole } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";
 
 const VariableTooltip = ({
@@ -10,8 +11,8 @@ const VariableTooltip = ({
   id, // id of the currently selected variable
 }: {
   position: { x: number; y: number };
-  onSelect: (role: "constant" | "input" | "dependent") => void;
-  currentRole: "constant" | "input" | "dependent" | "none";
+  onSelect: (role: IRole) => void;
+  currentRole: IRole | "none";
   id: string;
 }) => {
   const [value, setValue] = useState("0");
@@ -24,7 +25,7 @@ const VariableTooltip = ({
     }
   }, [variable?.value]);
 
-  const handleRoleSelect = (role: "constant" | "input" | "dependent") => {
+  const handleRoleSelect = (role: IRole) => {
     if (role === "constant") {
       setShowValueInput(true);
     } else {
@@ -54,7 +55,7 @@ const VariableTooltip = ({
   const options = [
     { role: "constant" as const, icon: "📌", label: "Fixed" },
     { role: "input" as const, icon: "↔️", label: "Slidable" },
-    { role: "dependent" as const, icon: "🔄", label: "Dependent" },
+    { role: "computed" as const, icon: "🔄", label: "Dependent" },
   ];
 
   return (

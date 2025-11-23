@@ -41,7 +41,7 @@ export const lossFunction = `const config = {
   ],
   variables: {
     "J(\\\\theta)": {
-      role: "dependent",
+      role: "computed",
       name: "Loss Function"
     },
     m: {

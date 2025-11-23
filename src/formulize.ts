@@ -154,7 +154,7 @@ async function create(
 
     // Trigger initial evaluation now that everything is set up (skip in step mode)
     if (!computationStore.isStepMode()) {
-      computationStore.updateAllDependentVars();
+      computationStore.updateAllComputedVars();
     }
 
     // Store the id for setVariable method to use
@@ -194,7 +194,7 @@ async function create(
       setVariable: (name: string, value: number) => {
         if (environment.variables) {
           const variable = environment.variables[name];
-          if (variable && variable.role !== "dependent") {
+          if (variable && variable.role !== "computed") {
             computationStore.setValue(name, value);
             return true;
           }

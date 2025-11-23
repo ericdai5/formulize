@@ -1,13 +1,12 @@
 import { findVariableByElement } from "../../parse/variable";
 import { computationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";
+import { VAR_SELECTORS } from "../css-classes";
 
 export const dropdownHandler = (container: HTMLElement) => {
   if (!container) return;
 
-  const dropdownElements = container.querySelectorAll(
-    ".interactive-var-input"
-  );
+  const dropdownElements = container.querySelectorAll(VAR_SELECTORS.INPUT);
 
   dropdownElements.forEach((element) => {
     // Find the variable using the improved matching function
@@ -62,9 +61,9 @@ export const dropdownHandler = (container: HTMLElement) => {
           if (!isNaN(numericValue)) {
             if (isKeyVariable && variable.key) {
               // For variables with a key, update the key variable first
-              // This will automatically update the dependent variable via updateIndexBasedVariables
+              // This will automatically update the computed variable via updateIndexBasedVariables
               computationStore.setValue(variable.key, numericValue);
-              // The dependent variable (this variable) will be updated automatically
+              // The computed variable (this variable) will be updated automatically
             } else {
               // For regular set/options variables, update directly
               computationStore.setValue(varId, numericValue);

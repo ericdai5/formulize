@@ -49,7 +49,7 @@ const variableCompletions: CompletionOption[] = [
 const variableRoleValues: CompletionOption[] = [
   { label: '"constant"', type: "value", info: "Constant variable type" },
   { label: '"input"', type: "value", info: "Input variable type" },
-  { label: '"dependent"', type: "value", info: "Dependent variable type" },
+  { label: '"computed"', type: "value", info: "Computed variable type" },
 ];
 
 // Data type values

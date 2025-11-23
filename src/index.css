@@ -27,48 +27,48 @@
 
   /* ------------------- Interactive variable styles ------------------- */
 
-  .interactive-var-base {
+  .var-base {
     @apply text-black cursor-default;
   }
 
   /* Unified input variable style - black by default, no special blue styling */
-  .interactive-var-input {
+  .var-input {
     @apply text-black rounded-md select-none transition-all duration-200;
   }
 
-  .interactive-var-input:active {
+  .var-input:active {
     @apply scale-105;
   }
 
-  .interactive-var-input.hovered {
+  .var-input.hovered {
     @apply text-blue-600 rounded-md scale-110;
   }
 
   /* Dependent variable style */
-  .interactive-var-dependent {
+  .var-computed {
     @apply text-black rounded-md select-none transition-all duration-200 cursor-default;
   }
 
-  .interactive-var-dependent.hovered {
+  .var-computed.hovered {
     @apply text-black rounded-md scale-110;
   }
 
   /* Specific styling for interactive variables in label nodes */
-  .label-flow-node .interactive-var-input {
+  .label-flow-node .var-input {
     line-height: 1;
   }
 
-  .label-flow-node .interactive-var-dependent {
+  .label-flow-node .var-computed {
     line-height: 1;
   }
 
-  .label-flow-node .interactive-var-input.hovered {
+  .label-flow-node .var-input.hovered {
     line-height: 1;
     display: inline-block;
     @apply scale-110;
   }
 
-  .label-flow-node .interactive-var-dependent.hovered {
+  .label-flow-node .var-computed.hovered {
     line-height: 1;
     display: inline-block;
     @apply scale-110;

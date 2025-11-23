@@ -28,17 +28,17 @@ export const parametric3D = `const config = {
   ],
   variables: {
     x: {
-      role: "dependent",
+      role: "computed",
       name: "x-coordinate",
       precision: 1
     },
     y: {
-      role: "dependent",
+      role: "computed",
       name: "y-coordinate",
       precision: 1
     },
     z: {
-      role: "dependent",
+      role: "computed",
       name: "z-coordinate",
       precision: 1
     },

@@ -8,7 +8,7 @@ export const fittsLaw = `const config = {
   ],
   variables: {
     T: {
-      role: "dependent",
+      role: "computed",
       precision: 2,
       name: "Time"
     },

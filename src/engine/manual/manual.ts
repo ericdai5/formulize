@@ -2,7 +2,7 @@
  * Manual Computation Engine for Formulize
  *
  * This module provides manual computation capability allowing authors to define
- * custom JavaScript functions for computing dependent variables.
+ * custom JavaScript functions for computing computed variables.
  *
  * @module engine/manual
  */
@@ -41,11 +41,11 @@ function validateEnvironment(environment: IEnvironment): ValidationResult {
 // Helpers
 // ============================================================================
 
-function getDependentVariableNames(
+function getComputedVariableNames(
   variables: Record<string, IVariable>
 ): string[] {
   return Object.entries(variables)
-    .filter(([, varDef]) => varDef.role === "dependent")
+    .filter(([, varDef]) => varDef.role === "computed")
     .map(([varName]) => varName);
 }
 
@@ -98,10 +98,10 @@ function executeManualFormula(
       variables[varName].value = value;
     }
   }
-  // If manual function returns a value, also sync it to dependent variables
+  // If manual function returns a value, also sync it to computed variables
   if (isValidNumericResult(returnValue)) {
     for (const variable of Object.values(variables)) {
-      if (variable.role === "dependent") {
+      if (variable.role === "computed") {
         variable.value = returnValue;
       }
     }
@@ -167,10 +167,10 @@ export function computeWithManualEngine(
       return {};
     }
 
-    // Extract dependent variables
-    const dependentVars = getDependentVariableNames(environment.variables);
-    if (dependentVars.length === 0) {
-      console.warn("⚠️ No dependent variables found");
+    // Extract computed variables
+    const computedVars = getComputedVariableNames(environment.variables);
+    if (computedVars.length === 0) {
+      console.warn("⚠️ No computed variables found");
       return {};
     }
 

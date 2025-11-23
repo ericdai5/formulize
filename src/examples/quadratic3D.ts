@@ -8,7 +8,7 @@ export const quadratic3D = `const config = {
   ],
   variables: {
     y: {
-      role: "dependent",
+      role: "computed",
       name: "y-value",
       precision: 2
     },
