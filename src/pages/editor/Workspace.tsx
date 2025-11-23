@@ -114,21 +114,21 @@ export const Workspace = observer(() => {
   }, []);
 
   // Get current variable type for tooltip
-  const getCurrentVariableType = useCallback(() => {
+  const getCurrentVariableRole = useCallback(() => {
     const activeVar = getActiveVariable();
     if (!activeVar) return "none";
 
-    return getVariable(activeVar.id)?.type || "none";
+    return getVariable(activeVar.id)?.role || "none";
   }, [getActiveVariable]);
 
-  const handleVariableTypeSelect = useCallback(
-    (type: "constant" | "input" | "dependent") => {
+  const handleVariableRoleSelect = useCallback(
+    (role: "constant" | "input" | "dependent") => {
       const activeVar = getActiveVariable();
       if (!activeVar) return;
       computationStore.addVariable(activeVar.id);
-      computationStore.setVariableType(activeVar.id, type);
+      computationStore.setVariableRole(activeVar.id, role);
       // Only keep selection for constant variables
-      if (type !== "constant") {
+      if (role !== "constant") {
         selectionStore.clearSelection();
       }
     },
@@ -153,8 +153,8 @@ export const Workspace = observer(() => {
         {editingStore.showEnlivenMode && getActiveVariable() && (
           <VariableTooltip
             position={getTooltipPosition() || { x: 0, y: 0 }}
-            onSelect={handleVariableTypeSelect}
-            currentType={getCurrentVariableType()}
+            onSelect={handleVariableRoleSelect}
+            currentRole={getCurrentVariableRole()}
             id={getActiveVariable()?.id || ""}
           />
         )}
@@ -271,8 +271,8 @@ export const EnlivenMode = observer(() => {
     return (node as MathSymbol).value;
   };
 
-  const handleVariableTypeSelect = (
-    type: "constant" | "input" | "dependent"
+  const handleVariableRoleSelect = (
+    role: "constant" | "input" | "dependent"
   ) => {
     const selection = selectionStore.siblingSelections[0]?.[0];
     if (!selection) return;
@@ -282,9 +282,9 @@ export const EnlivenMode = observer(() => {
       const symbol = (node as MathSymbol).value;
       const id = symbol;
       computationStore.addVariable(id);
-      computationStore.setVariableType(id, type);
+      computationStore.setVariableRole(id, role);
 
-      if (type === "constant") {
+      if (role === "constant") {
         setSelectedVar(id);
       } else {
         setSelectedVar(null);
@@ -301,8 +301,8 @@ export const EnlivenMode = observer(() => {
   return (
     <VariableTooltip
       position={tooltipPosition}
-      onSelect={handleVariableTypeSelect}
-      currentType={getVariable(variableId)?.type || "none"}
+      onSelect={handleVariableRoleSelect}
+      currentRole={getVariable(variableId)?.role || "none"}
       id={variableId}
     />
   );

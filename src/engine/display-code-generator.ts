@@ -119,7 +119,7 @@ export function generateManualDisplayCode(
 
   // Check if we have formulas with manual functions instead of mappings
   const hasManualFunctions = Array.from(context.variables.values()).some(
-    (variable) => variable.type === "dependent"
+    (variable) => variable.role === "dependent"
   );
 
   if (!hasManualFunctions) {

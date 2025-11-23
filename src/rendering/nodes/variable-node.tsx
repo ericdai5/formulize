@@ -15,13 +15,15 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const { varId, width, height } = data;
   const showBorders = computationStore.showVariableBorders;
   const variable = computationStore.variables.get(varId);
-  const type = variable?.type === "input" ? "input" : "output";
-  const hasDropdownOptions = !!(Array.isArray(variable?.value) || variable?.options);
+  const role = variable?.role === "input" ? "input" : "output";
+  const hasDropdownOptions = !!(
+    Array.isArray(variable?.value) || variable?.options
+  );
   const isSetVariable = variable?.dataType === "set";
 
   const nodeRef = useVariableDrag({
     varId,
-    type: isSetVariable ? "output" : type, // Set variables are not draggable
+    role: isSetVariable ? "output" : role, // Set variables are not draggable
     hasDropdownOptions: hasDropdownOptions || isSetVariable,
   });
 
@@ -37,7 +39,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   // Set variables get pointer cursor for click interaction
   const cursor = isSetVariable
     ? "pointer"
-    : type === "input" && !hasDropdownOptions
+    : role === "input" && !hasDropdownOptions
       ? "ns-resize"
       : "default";
 

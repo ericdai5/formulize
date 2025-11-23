@@ -8,20 +8,20 @@ export const kinetic3D = `const config = {
   ],
   variables: {
     K: {
-      type: "dependent",
+      role: "dependent",
       units: "J",
       name: "Kinetic Energy",
       precision: 2
     },
     m: {
-      type: "input",
+      role: "input",
       value: 2,
       range: [0.5, 5],
       units: "kg",
       name: "Mass"
     },
     v: {
-      type: "input",
+      role: "input",
       value: 3,
       range: [0.5, 10],
       units: "m/s",

@@ -1,5 +1,5 @@
-import { observer } from "mobx-react-lite";
 import { toJS } from "mobx";
+import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
@@ -35,7 +35,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   const valueDragRef = useVariableDrag({
     varId,
-    type: variable?.type === "input" ? "input" : "output",
+    role: variable?.role === "input" ? "input" : "output",
     hasDropdownOptions: !!(Array.isArray(variable?.value) || variable?.options),
   });
 
@@ -43,7 +43,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   if (!variable) return null;
   if (computationStore.isStepMode() && !isVariableActive) return null;
 
-  const { name, type, value, precision, labelDisplay, index } = variable;
+  const { name, role, value, precision, labelDisplay, index } = variable;
 
   // Get index variable information
   const indexVariable = index;
@@ -51,7 +51,11 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   if (indexVariable) {
     const indexVar = computationStore.variables.get(indexVariable);
-    if (indexVar && typeof indexVar.value === 'number' && !isNaN(indexVar.value)) {
+    if (
+      indexVar &&
+      typeof indexVar.value === "number" &&
+      !isNaN(indexVar.value)
+    ) {
       // Format precision based on the index variable's precision or default to 0 for integers
       const precision = indexVar.precision ?? 0;
       indexDisplay = `${indexVariable} = ${indexVar.value.toFixed(precision)}`;
@@ -66,7 +70,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     if (Array.isArray(variable?.value)) {
       // Handle set values - convert all elements to strings for display
       const setElements = variable.value.map((el) => String(el));
-      const isStringArray = variable.value.every((el) => typeof el === 'string');
+      const isStringArray = variable.value.every(
+        (el) => typeof el === "string"
+      );
 
       if (setElements.length > 0) {
         if (isStringArray) {
@@ -91,7 +97,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
           />
         );
       }
-    } else if (typeof value === 'number' && value !== null) {
+    } else if (typeof value === "number" && value !== null) {
       const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
       mainDisplayText = value.toFixed(displayPrecision);
       displayComponent = (
@@ -126,11 +132,11 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       return "step-cue"; // Step mode styling
     }
 
-    if (type === "dependent") {
+    if (role === "dependent") {
       return "interactive-var-dependent";
     }
 
-    if (type === "input") {
+    if (role === "input") {
       // All input variables get the unified input class
       return "interactive-var-input";
     }
@@ -141,11 +147,11 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const interactiveClass = getInteractiveClass();
   const isSetVariable = Array.isArray(variable.value);
   const isDraggable =
-    (type === "input" || type === "dependent") && !isSetVariable;
+    (role === "input" || role === "dependent") && !isSetVariable;
   const cursor = isDraggable ? "grab" : "default";
   const valueCursor = isSetVariable
     ? "pointer"
-    : type === "input" && !computationStore.isStepMode()
+    : role === "input" && !computationStore.isStepMode()
       ? "ns-resize"
       : "default";
 
@@ -173,7 +179,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         className={`flex flex-col items-center gap-1 ${showHoverOutlines ? "hover:outline hover:outline-1 hover:outline-blue-300" : ""}`}
       >
         <div
-          ref={type === "input" && !isSetVariable ? valueDragRef : null}
+          ref={role === "input" && !isSetVariable ? valueDragRef : null}
           className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
           style={{ cursor: valueCursor }}
         >

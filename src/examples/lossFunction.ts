@@ -41,71 +41,71 @@ export const lossFunction = `const config = {
   ],
   variables: {
     "J(\\\\theta)": {
-      type: "dependent",
+      role: "dependent",
       name: "Loss Function"
     },
     m: {
-      type: "input",
+      role: "input",
       value: 3,
       latexDisplay: "value",
       precision: 0,
     },
     "y^{(i)}": {
-      type: "input",
+      role: "input",
       memberOf: "y",
       name: "Actual value of the i-th example",
       latexDisplay: "value",
       index: "i"
     },
     "\\\\hat{y}^{(i)}": {
-      type: "input",
+      role: "input",
       memberOf: "\\\\hat{y}",
       name: "Predicted value of the i-th example",
       latexDisplay: "value",
       index: "i"
     },
     y: {
-      type: "input",
+      role: "input",
       value: [2.5, 3.0, 7.0],
       name: "Actual value of the i-th example"
     },
     "\\\\hat{y}": {
-      type: "input",
+      role: "input",
       value: [2.0, 4.0, 5.0],
       name: "Predicted value of the i-th example"
     },
     "\\\\lambda": {
-      type: "input",
+      role: "input",
       value: 0.1,
       name: "Regularization parameter",
       latexDisplay: "value",
     },
     "\\\\theta_j": {
-      type: "input",
+      role: "input",
       memberOf: "\\\\theta",
       name: "Parameter j of the model",
       index: "j",
     },
     "\\\\theta": {
-      type: "input",
+      role: "input",
       value: [0.5, -1.0],
       name: "Parameters of the model",
     },
     K: {
-      type: "input",
+      role: "input",
       name: "Number of features",
       value: 2,
       latexDisplay: "value",
       precision: 0,
     },
     i: {
-      type: "input",
+      role: "input",
       name: "Index",
       latexDisplay: "value",
       precision: 0,
     },
     j: {
-      type: "input",
+      role: "input",
       name: "Index",
       latexDisplay: "value",
       precision: 0,

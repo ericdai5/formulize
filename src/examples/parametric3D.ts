@@ -28,22 +28,22 @@ export const parametric3D = `const config = {
   ],
   variables: {
     x: {
-      type: "dependent",
+      role: "dependent",
       name: "x-coordinate",
       precision: 1
     },
     y: {
-      type: "dependent",
+      role: "dependent",
       name: "y-coordinate",
       precision: 1
     },
     z: {
-      type: "dependent",
+      role: "dependent",
       name: "z-coordinate",
       precision: 1
     },
     t: {
-      type: "input",
+      role: "input",
       value: 0,
       range: [-2, 2],
       step: 0.1,

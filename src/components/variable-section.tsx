@@ -20,7 +20,7 @@ interface VariableSectionProps {
   children: React.ReactNode;
 }
 
-const VariableType: React.FC<VariableSectionProps> = ({
+const VariableRole: React.FC<VariableSectionProps> = ({
   title,
   count,
   colorScheme,
@@ -72,7 +72,7 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
               {/* {currentState &&
                 currentState.assignments &&
                 currentState.assignments.length > 0 && (
-                  <VariableType
+                  <VariableRole
                     title="Variable Assignments"
                     count={currentState.assignments.length}
                     colorScheme="blue"
@@ -95,14 +95,14 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
                         </div>
                       </div>
                     ))}
-                  </VariableType>
+                  </VariableRole>
                 )} */}
 
               {/* View Variables - shown in green boxes when view() is called */}
               {/* {currentState &&
                 currentState.viewVariables &&
                 Object.keys(currentState.viewVariables).length > 0 && (
-                  <VariableType
+                  <VariableRole
                     title="View Variables"
                     count={Object.keys(currentState.viewVariables).length}
                     colorScheme="green"
@@ -125,7 +125,7 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
                         </div>
                       )
                     )}
-                  </VariableType>
+                  </VariableRole>
                 )} */}
 
               {/* Display regular variables */}
@@ -175,5 +175,5 @@ const VariablesSection: React.FC<CurrentVariablesSectionProps> = ({
   );
 };
 
-export default VariableType;
+export default VariableRole;
 export { VariablesSection };

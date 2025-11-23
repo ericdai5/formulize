@@ -47,11 +47,11 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
         variables: Array.from(computationStore.variables.entries()).map(
           ([id, v]) => ({
             id,
-            type: v.type,
+            role: v.role,
             value: v.value,
           })
         ),
-        variableTypesChanged: computationStore.variableTypesChanged,
+        variableRolesChanged: computationStore.variableRolesChanged,
       }),
       () => {
         if (isInitialized) {

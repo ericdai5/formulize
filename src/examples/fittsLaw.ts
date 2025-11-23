@@ -8,31 +8,31 @@ export const fittsLaw = `const config = {
   ],
   variables: {
     T: {
-      type: "dependent",
+      role: "dependent",
       precision: 2,
       name: "Time"
     },
     a: {
-      type: "constant",
+      role: "constant",
       value: 0.1,
       range: [0.1, 10],
       step: 0.1,
     },
     b: {
-      type: "constant",
+      role: "constant",
       value: 0.3,
       range: [0, 10],
       step: 0.1,
     },
     D: {
-      type: "input",
+      role: "input",
       value: 50,
       range: [0, 200],
       step: 1,
       name: "Distance"
     },
     W: {
-      type: "input",
+      role: "input",
       value: 10,
       step: 1,
       range: [1, 500],

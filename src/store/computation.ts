@@ -55,7 +55,7 @@ class ComputationStore {
   accessor environment: IEnvironment | null = null;
 
   @observable
-  accessor variableTypesChanged = 0;
+  accessor variableRolesChanged = 0;
 
   accessor isDragging = false;
 
@@ -78,25 +78,25 @@ class ComputationStore {
 
   private hasDependentVars(): boolean {
     return Array.from(this.variables.values()).some(
-      (v) => v.type === "dependent"
+      (v) => v.role === "dependent"
     );
   }
 
   private getDependentVars(): IVariable[] {
     return Array.from(this.variables.values()).filter(
-      (v) => v.type === "dependent"
+      (v) => v.role === "dependent"
     );
   }
 
   private getDependentVarSymbols(): string[] {
     return Array.from(this.variables.entries())
-      .filter(([, v]) => v.type === "dependent")
+      .filter(([, v]) => v.role === "dependent")
       .map(([id]) => id);
   }
 
   private getInputVarSymbols(): string[] {
     return Array.from(this.variables.entries())
-      .filter(([, v]) => v.type === "input")
+      .filter(([, v]) => v.role === "input")
       .map(([id]) => id);
   }
 
@@ -156,8 +156,8 @@ class ComputationStore {
   }
 
   @action
-  setVariableTypesChanged(value: number) {
-    this.variableTypesChanged = value;
+  setVariableRolesChanged(value: number) {
+    this.variableRolesChanged = value;
   }
 
   @action
@@ -459,7 +459,7 @@ class ComputationStore {
     if (!this.variables.has(id)) {
       this.variables.set(id, {
         value: variableDefinition?.value ?? undefined,
-        type: variableDefinition?.type ?? "constant",
+        role: variableDefinition?.role ?? "constant",
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
         units: variableDefinition?.units,
@@ -485,26 +485,30 @@ class ComputationStore {
   }
 
   @action
-  setVariableType(id: string, type: IVariable["type"]) {
+  setVariableRole(id: string, role: IVariable["role"]) {
     const variable = this.variables.get(id);
     if (!variable) {
       return;
     }
 
-    variable.type = type;
+    if (variable.role === role) {
+      return;
+    }
+
+    variable.role = role;
 
     // Get the environment variable if it exists
     if (this.environment?.variables) {
       const envVar = this.environment.variables[id];
-      if (envVar && envVar.type === "input" && !variable.range) {
+      if (envVar && envVar.role === "input" && !variable.range) {
         variable.range = envVar.range || [-10, 10];
       }
-    } else if (type === "input" && !variable.range) {
+    } else if (role === "input" && !variable.range) {
       // Only set default range if no range is already defined
       variable.range = [-10, 10];
     }
 
-    this.variableTypesChanged++;
+    this.variableRolesChanged++;
 
     // Check if we have dependent variables and expressions to evaluate
     const hasDependentVars = this.hasDependentVars();
@@ -538,7 +542,7 @@ class ComputationStore {
       const results = this.evaluationFunction(values);
       // Update all dependent variables with their computed values
       for (const [symbol, variable] of this.variables.entries()) {
-        if (variable.type === "dependent") {
+        if (variable.role === "dependent") {
           const result = results[symbol];
           if (typeof result === "number" && !isNaN(result)) {
             variable.value = result;
@@ -557,7 +561,7 @@ class ComputationStore {
       variables: Array.from(this.variables.entries()).map(([id, v]) => ({
         id,
         value: v.value,
-        type: v.type,
+        role: v.role,
       })),
       lastGeneratedCode: this.lastGeneratedCode,
       hasFunction: !!this.evaluationFunction,

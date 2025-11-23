@@ -217,7 +217,7 @@ const processMemberVariable = (
         let parentHoverCSS = "";
         let parentHasSVG = false;
         let parentSvgMode: "replace" | "append" | undefined = undefined;
-        let parentVariableType: "input" | "dependent" | "constant" = "constant";
+        let parentVariableRole: "input" | "dependent" | "constant" = "constant";
 
         // Get parent variable's configuration
         for (const [
@@ -235,7 +235,7 @@ const processMemberVariable = (
               (variable.svgPath || variable.svgContent)
             );
             parentSvgMode = variable.svgMode;
-            parentVariableType = variable.type || "constant";
+            parentVariableRole = variable.role || "constant";
             break;
           }
         }
@@ -256,9 +256,9 @@ const processMemberVariable = (
 
         // Determine CSS class based on parent's type
         let cssClass = "interactive-var-base";
-        if (parentVariableType === "input") {
+        if (parentVariableRole === "input") {
           cssClass = "interactive-var-input";
-        } else if (parentVariableType === "dependent") {
+        } else if (parentVariableRole === "dependent") {
           cssClass = "interactive-var-dependent";
         }
 
@@ -421,7 +421,7 @@ export const processVariables = (
 
       // Get the value, type, and precision from the computation store
       let value: number | undefined = undefined;
-      let variableType: "input" | "dependent" | "constant" = "constant";
+      let variableRole: "input" | "dependent" | "constant" = "constant";
       let variablePrecision = defaultPrecision;
       let display: "name" | "value" | "both" = "both"; // Default to showing both for backward compatibility
       let indexVariable = "";
@@ -435,7 +435,7 @@ export const processVariables = (
         if (symbol === originalSymbol) {
           value =
             typeof variable.value === "number" ? variable.value : undefined;
-          variableType = variable.type || "constant";
+          variableRole = variable.role || "constant";
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           // Use the variable's display property if defined, otherwise default to "name"
@@ -482,9 +482,9 @@ export const processVariables = (
 
       // Use different CSS classes based on variable type and interaction mode
       let cssClass = "interactive-var-base";
-      if (variableType === "input") {
+      if (variableRole === "input") {
         cssClass = "interactive-var-input";
-      } else if (variableType === "dependent") {
+      } else if (variableRole === "dependent") {
         cssClass = "interactive-var-dependent";
       }
 

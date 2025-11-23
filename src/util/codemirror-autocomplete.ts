@@ -46,7 +46,7 @@ const variableCompletions: CompletionOption[] = [
 ];
 
 // Variable type values
-const variableTypeValues: CompletionOption[] = [
+const variableRoleValues: CompletionOption[] = [
   { label: '"constant"', type: "value", info: "Constant variable type" },
   { label: '"input"', type: "value", info: "Input variable type" },
   { label: '"dependent"', type: "value", info: "Dependent variable type" },
@@ -177,7 +177,7 @@ function getCompletionContext(context: CompletionContext): string {
 
   // Check for property access context
   if (textBefore.includes("type:") || textBefore.includes("type :")) {
-    return "variableType";
+    return "variableRole";
   }
 
   if (textBefore.includes("dataType:") || textBefore.includes("dataType :")) {
@@ -263,8 +263,8 @@ export function editorCompletions(
   let options: CompletionOption[] = [];
 
   switch (completionContext) {
-    case "variableType":
-      options = variableTypeValues;
+    case "variableRole":
+      options = variableRoleValues;
       break;
     case "dataType":
       options = dataTypeValues;

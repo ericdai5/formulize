@@ -8,27 +8,27 @@ export const gravitationalPotential = `const config = {
   ],
   variables: {
     U: {
-      type: "dependent",
+      role: "dependent",
       units: "J",
       name: "Potential Energy",
       precision: 2
     },
     m: {
-      type: "input",
+      role: "input",
       value: 1,
       range: [0.1, 100],
       units: "kg",
       name: "Mass"
     },
     g: {
-      type: "input",
+      role: "input",
       value: 9.8,
       range: [1, 20],
       units: "m/s²",
       name: "Gravity"
     },
     h: {
-      type: "input",
+      role: "input",
       value: 10,
       range: [0, 1000],
       units: "m",
