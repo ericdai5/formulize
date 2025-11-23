@@ -61,9 +61,6 @@ function validateEnvironment(environment: IEnvironment) {
   if (!environment.formulas || environment.formulas.length === 0) {
     throw new Error("No formulas defined in configuration");
   }
-  if (!environment.variables) {
-    throw new Error("No variables defined in configuration");
-  }
 }
 
 async function create(
@@ -98,8 +95,11 @@ async function create(
     // Clear all individual formula stores
     formulaStoreManager.clearAllStores();
 
-    // Setup variables
-    if (environment.variables) {
+    // Setup variables (if provided)
+    if (
+      environment.variables &&
+      Object.keys(environment.variables).length > 0
+    ) {
       Object.entries(environment.variables).forEach(([varId, variable]) => {
         computationStore.addVariable(varId, variable);
         computationStore.setVariableType(varId, variable.type);
@@ -162,7 +162,10 @@ async function create(
       environment: environment,
       getVariable: (name: string): IVariable => {
         // Find the variable by name
-        if (!environment.variables) {
+        if (
+          !environment.variables ||
+          Object.keys(environment.variables).length === 0
+        ) {
           throw new Error("No variables defined in environment");
         }
         const variable = environment.variables[name];

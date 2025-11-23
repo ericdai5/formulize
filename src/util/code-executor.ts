@@ -8,7 +8,9 @@ let currentExecution: (() => void) | null = null;
  * Uses secure iframe sandboxing to prevent access to the main page context
  * Automatically cancels previous executions to prevent race conditions
  */
-export async function executeUserCode(jsCode: string): Promise<FormulizeConfig | null> {
+export async function executeUserCode(
+  jsCode: string
+): Promise<FormulizeConfig | null> {
   // Cancel any previous execution
   if (currentExecution) {
     currentExecution();
@@ -34,7 +36,7 @@ export async function executeUserCode(jsCode: string): Promise<FormulizeConfig |
 
   return new Promise((resolve, reject) => {
     let isCompleted = false;
-    
+
     // Create sandboxed iframe for secure code execution
     const iframe = document.createElement("iframe");
     iframe.setAttribute("sandbox", "allow-scripts");
@@ -44,16 +46,16 @@ export async function executeUserCode(jsCode: string): Promise<FormulizeConfig |
     const cleanup = () => {
       if (isCompleted) return;
       isCompleted = true;
-      
+
       window.removeEventListener("message", handleMessage);
       if (document.body.contains(iframe)) {
         document.body.removeChild(iframe);
       }
-      
+
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      
+
       // Clear current execution tracker
       if (currentExecution === cleanup) {
         currentExecution = null;
@@ -89,13 +91,10 @@ export async function executeUserCode(jsCode: string): Promise<FormulizeConfig |
           return;
         }
 
-        if (
-          !config.formulas ||
-          !config.variables
-        ) {
+        if (!config.formulas) {
           reject(
             new Error(
-              "Invalid configuration returned. Configuration must include formulas and variables properties."
+              "Invalid configuration returned. Configuration must include a formulas property."
             )
           );
           return;
