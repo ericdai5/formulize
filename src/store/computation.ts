@@ -491,6 +491,10 @@ class ComputationStore {
       return;
     }
 
+    if (variable.role === role) {
+      return;
+    }
+
     variable.role = role;
 
     // Get the environment variable if it exists
