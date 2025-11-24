@@ -22,7 +22,6 @@ function calculateLineDataPoints(
   yMax: number
 ): DataPoint[] {
   const points: DataPoint[] = [];
-  const step = (xMax - xMin) / 100; // 100 points for smooth curve
 
   // Get current variable values
   const allVariables: Record<string, number> = {};
@@ -39,25 +38,34 @@ function calculateLineDataPoints(
 
   // Allow points slightly outside the visible range for smooth clipping
   // This prevents huge coordinate values while maintaining visual continuity
-  const yRange = yMax - yMin;
-  const yBuffer = yRange * 1.1; // Allow 1.1x range on each side
+  const yRangeSize = yMax - yMin;
+  const yBuffer = yRangeSize * 1.5; // Allow 1.5x range on each side for asymptotes
   const yMinExtended = yMin - yBuffer;
   const yMaxExtended = yMax + yBuffer;
 
+  // For asymptotic curves, avoid exact zero which often causes singularities
+  const epsilon = (xMax - xMin) * 0.001;
+  const effectiveXMin = xMin === 0 ? epsilon : xMin;
+
   for (let i = 0; i <= 100; i++) {
-    const x = xMin + i * step;
+    const x = effectiveXMin + i * ((xMax - effectiveXMin) / 100);
     try {
       const vars = { ...allVariables, [xAxis]: x };
       const result = evalFunction(vars);
-      const y = result[yAxis];
-      // Include points within extended range - SVG clip-path will handle exact clipping
-      if (
-        typeof y === "number" &&
-        isFinite(y) &&
-        y >= yMinExtended &&
-        y <= yMaxExtended
-      ) {
-        points.push({ x, y });
+      let y = result[yAxis];
+
+      if (typeof y === "number") {
+        // Handle infinity by clamping to extended range (for asymptotes)
+        if (y === Infinity || y > yMaxExtended) {
+          y = yMaxExtended;
+        } else if (y === -Infinity || y < yMinExtended) {
+          y = yMinExtended;
+        }
+
+        // Include the point if it's a valid number
+        if (isFinite(y)) {
+          points.push({ x, y });
+        }
       }
     } catch (error) {
       // Skip invalid points
