@@ -25,16 +25,12 @@ export const fittsLaw = `const config = {
   visualizations: [{
     type: "plot2d",
     xAxis: "D",
-    xRange: [0, 200],
     yAxis: "T",
-    yRange: [0, 2],
     lines: [{ name: "line" }],
   }, {
     type: "plot2d",
     xAxis: "W",
-    xRange: [0, 200],
     yAxis: "T",
-    yRange: [0, 2],
     lines: [{ name: "line" }],
   }]
 };`;
