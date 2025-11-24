@@ -151,16 +151,27 @@ export function addAxes(
     .attr("opacity", 1)
     .attr("font-size", `${tickFontSize}px`);
 
+  // Measure max width of Y-axis tick labels to adjust label position dynamically
+  let maxTickWidth = 0;
+  yAxisDraw.selectAll("text").each(function () {
+    const bbox = (this as SVGTextElement).getBBox();
+    maxTickWidth = Math.max(maxTickWidth, bbox.width);
+  });
+
   // Calculate Y label position (to be returned for React rendering)
   let yLabelInfo: AxisLabelInfo["yLabel"] | undefined;
   if (yLabel) {
     const yLabelY = yLabelPos === "top" ? -30 : plotHeight / 2;
-    const yLabelX = yLabelPos === "top" ? 0 : -margin.left + 20;
+
+    // Dynamic X position: move left by maxTickWidth + padding
+    const padding = 25;
+    const labelXOffset = yLabelPos === "top" ? 0 : -(maxTickWidth + padding);
+
     const yLabelRotation = yLabelPos === "top" ? 0 : -90;
 
     yLabelInfo = {
       text: yLabel,
-      x: margin.left + yAxisX + yLabelX,
+      x: margin.left + yAxisX + labelXOffset,
       y: margin.top + yLabelY,
       rotation: yLabelRotation,
       yAxis,
@@ -188,20 +199,37 @@ export function addGrid(
     plotHeight,
     xGrid = "show",
     yGrid = "show",
+    xAxisInterval,
+    yAxisInterval,
   } = config;
+
+  // Get scale domains
+  const [yMin, yMax] = yScale.domain();
+  const [xMin, xMax] = xScale.domain();
 
   // Add Y grid lines if yGrid is "show"
   if (yGrid === "show") {
+    const yGridGenerator = d3
+      .axisLeft(yScale)
+      .tickSize(-plotWidth)
+      .tickFormat(() => "");
+
+    // Use same tick values as Y axis if interval is specified
+    if (yAxisInterval !== undefined) {
+      const firstTick = Math.floor(yMin / yAxisInterval) * yAxisInterval;
+      const tickValues = d3.range(
+        firstTick,
+        yMax + yAxisInterval / 2,
+        yAxisInterval
+      );
+      yGridGenerator.tickValues(tickValues);
+    }
+
     svg
       .append("g")
       .attr("class", "grid")
       .attr("opacity", 0.1)
-      .call(
-        d3
-          .axisLeft(yScale)
-          .tickSize(-plotWidth)
-          .tickFormat(() => "")
-      );
+      .call(yGridGenerator);
   } else {
     // Add top border when yGrid is hidden
     svg
@@ -218,17 +246,28 @@ export function addGrid(
 
   // Add X grid lines if xGrid is "show"
   if (xGrid === "show") {
+    const xGridGenerator = d3
+      .axisBottom(xScale)
+      .tickSize(-plotHeight)
+      .tickFormat(() => "");
+
+    // Use same tick values as X axis if interval is specified
+    if (xAxisInterval !== undefined) {
+      const firstTick = Math.floor(xMin / xAxisInterval) * xAxisInterval;
+      const tickValues = d3.range(
+        firstTick,
+        xMax + xAxisInterval / 2,
+        xAxisInterval
+      );
+      xGridGenerator.tickValues(tickValues);
+    }
+
     svg
       .append("g")
       .attr("class", "grid")
       .attr("transform", `translate(0,${plotHeight})`)
       .attr("opacity", 0.1)
-      .call(
-        d3
-          .axisBottom(xScale)
-          .tickSize(-plotHeight)
-          .tickFormat(() => "")
-      );
+      .call(xGridGenerator);
   } else {
     // Add right border when xGrid is hidden
     svg

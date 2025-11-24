@@ -8,6 +8,7 @@ import * as d3 from "d3";
 import { computationStore } from "../../store/computation";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
 import { AxisLabels } from "./AxisLabels";
+import { autoDetectPlotConfig } from "./auto-detect";
 import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";
 import { updateHoverLines } from "./hover-lines";
@@ -29,16 +30,15 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const axisLabelInfoRef = useRef<AxisLabelInfo>({});
 
-  // Parse configuration options with defaults
+  // Auto-detect axes and ranges if not provided
+  const autoDetected = autoDetectPlotConfig(config);
+
+  // Parse configuration options with defaults (using auto-detected values)
   const {
-    xAxis,
-    xRange = PLOT2D_DEFAULTS.xRange,
     xAxisInterval,
     xAxisPos,
     xLabelPos,
     xGrid = "show",
-    yAxis,
-    yRange = PLOT2D_DEFAULTS.yRange,
     yAxisInterval,
     yAxisPos,
     yLabelPos,
@@ -49,6 +49,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     height = PLOT2D_DEFAULTS.height,
     interaction,
   } = config;
+
+  // Use auto-detected or config-specified values
+  const xAxis = config.xAxis || autoDetected.xAxis;
+  const yAxis = config.yAxis || autoDetected.yAxis;
+  const xRange = config.xRange || autoDetected.xRange;
+  const yRange = config.yRange || autoDetected.yRange;
 
   // Calculate plot dimensions using helper function
   const { plotWidth, plotHeight, margin } = calculatePlotDimensions(
@@ -62,6 +68,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Function to draw the plot
   const drawPlot = useCallback(() => {
+    // Don't full-redraw during standard drag operations to prevent losing the interaction element
+    // The 'reaction' below handles live updates via DOM manipulation instead
+    if (computationStore.isDragging && !interaction) return;
+
     if (!svgRef.current) return;
 
     // Check if we have vectors or lines
@@ -124,6 +134,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       margin,
       xGrid,
       yGrid,
+      xAxisInterval,
+      yAxisInterval,
     });
 
     if (hasVectors) {

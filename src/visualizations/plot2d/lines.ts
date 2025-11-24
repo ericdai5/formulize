@@ -117,6 +117,8 @@ export function renderLines(
     "#f97316",
   ];
 
+  const firstLinePoints: DataPoint[] = [];
+
   lines.forEach((lineConfig, index) => {
     const points = calculateLineDataPoints(
       xAxis,
@@ -128,6 +130,10 @@ export function renderLines(
     );
 
     if (points.length > 0) {
+      if (index === 0) {
+        firstLinePoints.push(...points);
+      }
+
       const color = lineConfig.color || colors[index % colors.length];
       const lineWidth = lineConfig.lineWidth || 2;
 
@@ -139,7 +145,8 @@ export function renderLines(
         .attr("stroke", color)
         .attr("stroke-width", lineWidth)
         .attr("clip-path", `url(#${clipId})`)
-        .attr("d", lineGenerator);
+        .attr("d", lineGenerator)
+        .style("pointer-events", "none"); // Ensure line doesn't block interactions
 
       // Add current point highlight for each line (only if not using custom interaction)
       if (!interaction) {
@@ -167,23 +174,23 @@ export function renderLines(
           yAxis
         );
       }
-
-      // Add interactions for the first line (to avoid conflicts)
-      if (index === 0) {
-        addInteractions(
-          svg,
-          tooltipRef,
-          points,
-          xScale,
-          yScale,
-          plotWidth,
-          plotHeight,
-          xAxis,
-          yAxis,
-          onDragEnd,
-          interaction
-        );
-      }
     }
   });
+
+  // Add interactions layer ON TOP of all lines
+  if (firstLinePoints.length > 0) {
+    addInteractions(
+      svg,
+      tooltipRef,
+      firstLinePoints, // Use points from first line for snapping
+      xScale,
+      yScale,
+      plotWidth,
+      plotHeight,
+      xAxis,
+      yAxis,
+      onDragEnd,
+      interaction
+    );
+  }
 }
