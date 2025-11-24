@@ -9,8 +9,9 @@ import { FormulaStore, formulaStoreManager } from "./store/formulas";
 import { IEnvironment } from "./types/environment";
 import { IVariable } from "./types/variable";
 import { getVariable } from "./util/computation-helpers";
+import { normalizeVariables } from "./util/normalize-variables";
 
-export interface FormulizeConfig extends IEnvironment {}
+export type FormulizeConfig = IEnvironment;
 
 /**
  * Interface for the object returned by Formulize.create()
@@ -54,11 +55,11 @@ function setupComputationEngine(environment: IEnvironment) {
 }
 
 // Validate environment configuration
-function validateEnvironment(environment: IEnvironment) {
-  if (!environment) {
+function validateEnvironment(config: FormulizeConfig) {
+  if (!config) {
     throw new Error("No configuration provided");
   }
-  if (!environment.formulas || environment.formulas.length === 0) {
+  if (!config.formulas || config.formulas.length === 0) {
     throw new Error("No formulas defined in configuration");
   }
 }
@@ -71,9 +72,12 @@ async function create(
     // Validate the config
     validateEnvironment(config);
 
+    // Normalize variables from simplified format to full IVariable objects
+    const normalizedVariables = normalizeVariables(config.variables);
+
     const environment: IEnvironment = {
       formulas: config.formulas,
-      variables: config.variables,
+      variables: normalizedVariables,
       computation: config.computation,
       visualizations: config.visualizations,
       controls: config.controls,
@@ -96,11 +100,8 @@ async function create(
     formulaStoreManager.clearAllStores();
 
     // Setup variables (if provided)
-    if (
-      environment.variables &&
-      Object.keys(environment.variables).length > 0
-    ) {
-      Object.entries(environment.variables).forEach(([varId, variable]) => {
+    if (Object.keys(normalizedVariables).length > 0) {
+      Object.entries(normalizedVariables).forEach(([varId, variable]) => {
         computationStore.addVariable(varId, variable);
         computationStore.setVariableRole(varId, variable.role);
         if (variable.value !== undefined) {
@@ -162,13 +163,10 @@ async function create(
       environment: environment,
       getVariable: (name: string): IVariable => {
         // Find the variable by name
-        if (
-          !environment.variables ||
-          Object.keys(environment.variables).length === 0
-        ) {
+        if (Object.keys(normalizedVariables).length === 0) {
           throw new Error("No variables defined in environment");
         }
-        const variable = environment.variables[name];
+        const variable = normalizedVariables[name];
         if (!variable) {
           throw new Error(`Variable '${name}' not found`);
         }
@@ -192,12 +190,10 @@ async function create(
         };
       },
       setVariable: (name: string, value: number) => {
-        if (environment.variables) {
-          const variable = environment.variables[name];
-          if (variable && variable.role !== "computed") {
-            computationStore.setValue(name, value);
-            return true;
-          }
+        const variable = normalizedVariables[name];
+        if (variable && variable.role !== "computed") {
+          computationStore.setValue(name, value);
+          return true;
         }
         return false;
       },

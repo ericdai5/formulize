@@ -1,6 +1,10 @@
 // Import all required styles - these will be bundled into the output CSS
-import "./index.css"; // Includes Tailwind CSS and custom styles
-import "@xyflow/react/dist/style.css"; // React Flow styles
+// Includes Tailwind CSS and custom styles
+import "@xyflow/react/dist/style.css";
+
+import "./index.css";
+
+// React Flow styles
 
 // Export main Formulize API
 export { default as Formulize } from "./formulize";
@@ -28,8 +32,14 @@ export {
 export type { IComputation } from "./types/computation";
 export type { IEnvironment } from "./types/environment";
 export type { IFormula } from "./types/formula";
-export type { IVariable, IValue } from "./types/variable";
+export type {
+  IVariable,
+  IValue,
+  IVariableInput,
+  IVariablesInput,
+} from "./types/variable";
 export type { IVisualization } from "./types/visualization";
 export type { IPlot2D } from "./types/plot2d";
 export type { IPlot3D } from "./types/plot3d";
 export type { ICustom, IContext } from "./types/custom";
+export type { IControls } from "./types/control";

@@ -480,6 +480,7 @@ class ComputationStore {
         svgMode: variableDefinition?.svgMode,
         defaultCSS: variableDefinition?.defaultCSS,
         hoverCSS: variableDefinition?.hoverCSS,
+        interaction: variableDefinition?.interaction,
       });
     }
   }
@@ -500,7 +501,13 @@ class ComputationStore {
     // Get the environment variable if it exists
     if (this.environment?.variables) {
       const envVar = this.environment.variables[id];
-      if (envVar && envVar.role === "input" && !variable.range) {
+      // Check if envVar is an object (not a number) before accessing properties
+      if (
+        envVar &&
+        typeof envVar !== "number" &&
+        envVar.role === "input" &&
+        !variable.range
+      ) {
         variable.range = envVar.range || [-10, 10];
       }
     } else if (role === "input" && !variable.range) {

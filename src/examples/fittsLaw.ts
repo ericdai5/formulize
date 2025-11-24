@@ -9,34 +9,14 @@ export const fittsLaw = `const config = {
   variables: {
     T: {
       role: "computed",
-      precision: 2,
-      name: "Time"
     },
-    a: {
-      role: "constant",
-      value: 0.1,
-      range: [0.1, 10],
-      step: 0.1,
-    },
-    b: {
-      role: "constant",
-      value: 0.3,
-      range: [0, 10],
-      step: 0.1,
-    },
+    a: 0.1,
+    b: 0.3,
     D: {
       role: "input",
-      value: 50,
-      range: [0, 200],
-      step: 1,
-      name: "Distance"
     },
     W: {
       role: "input",
-      value: 10,
-      step: 1,
-      range: [1, 500],
-      name: "Width"
     }
   },
   computation: {

@@ -1,3 +1,5 @@
+import React, { useCallback, useEffect, useState } from "react";
+
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
@@ -26,6 +28,111 @@ const HANDLE_STYLE = {
   height: 1,
 };
 
+// Default precision for inline inputs
+const DEFAULT_INLINE_PRECISION = 2;
+
+// Inline editable input component for variables with interaction: "inline"
+const InlineInput = observer(
+  ({
+    varId,
+    variable,
+    fontSize,
+  }: {
+    varId: string;
+    variable: {
+      value?: number | (string | number)[];
+      precision?: number;
+      step?: number;
+    };
+    fontSize?: number;
+  }) => {
+    const currentValue =
+      typeof variable.value === "number" ? variable.value : 0;
+    const displayPrecision = variable.precision ?? DEFAULT_INLINE_PRECISION;
+
+    // Format value with precision for display
+    const formatValue = useCallback(
+      (val: number) => {
+        // Use precision, but don't show trailing zeros for integers
+        if (Number.isInteger(val) && displayPrecision === 0) {
+          return String(val);
+        }
+        return val.toFixed(displayPrecision);
+      },
+      [displayPrecision]
+    );
+
+    const [localValue, setLocalValue] = useState<string>(
+      formatValue(currentValue)
+    );
+    const [isFocused, setIsFocused] = useState(false);
+
+    // Sync local value when variable value changes externally
+    useEffect(() => {
+      if (!isFocused && typeof variable.value === "number") {
+        setLocalValue(formatValue(variable.value));
+      }
+    }, [variable.value, isFocused, formatValue]);
+
+    const handleChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = event.target.value;
+        setLocalValue(newValue);
+        const parsed = parseFloat(newValue);
+        if (!isNaN(parsed)) {
+          computationStore.setValue(varId, parsed);
+        }
+      },
+      [varId]
+    );
+
+    const handleBlur = useCallback(() => {
+      setIsFocused(false);
+      if (typeof variable.value === "number") {
+        setLocalValue(formatValue(variable.value));
+      }
+    }, [variable.value, formatValue]);
+
+    const handleFocus = useCallback(() => {
+      setIsFocused(true);
+    }, []);
+
+    const handleKeyDown = useCallback(
+      (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+          (event.target as HTMLInputElement).blur();
+        }
+      },
+      []
+    );
+
+    return (
+      <input
+        type="text"
+        inputMode="decimal"
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        onKeyDown={handleKeyDown}
+        size={Math.max(localValue.length, 1)}
+        className="nodrag inline-input"
+        style={{
+          width: "auto",
+          fontSize: fontSize ? `${fontSize * 2}em` : "1.8em",
+          fontFamily: "KaTeX_Main, Times New Roman, serif",
+          border: "none",
+          background: "transparent",
+          textAlign: "center",
+          outline: "none",
+          padding: "0 0.1em",
+          margin: 0,
+        }}
+      />
+    );
+  }
+);
+
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId, environment } = data;
   const showHoverOutlines = computationStore.showHoverOutlines;
@@ -44,7 +151,8 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   if (!variable) return null;
   if (computationStore.isStepMode() && !isVariableActive) return null;
 
-  const { name, role, value, precision, labelDisplay, index } = variable;
+  const { name, role, value, precision, labelDisplay, index, interaction } =
+    variable;
 
   // Get index variable information
   const indexVariable = index;
@@ -63,11 +171,23 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     }
   }
 
-  // Determine what to display based on labelDisplay setting
+  // Determine what to display based on labelDisplay setting and interaction mode
   let mainDisplayText = varId; // default to name
   let displayComponent: React.ReactNode = null;
 
-  if (labelDisplay === "value") {
+  // Check if this is an inline input variable
+  const isInlineInput = role === "input" && interaction === "inline";
+
+  if (isInlineInput) {
+    // Render inline editable input for input variables with inline interaction
+    displayComponent = (
+      <InlineInput
+        varId={varId}
+        variable={variable}
+        fontSize={environment?.fontSize}
+      />
+    );
+  } else if (labelDisplay === "value") {
     if (Array.isArray(variable?.value)) {
       // Handle set values - convert all elements to strings for display
       const setElements = variable.value.map((el) => String(el));
@@ -147,12 +267,15 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   const interactiveClass = getInteractiveClass();
   const isSetVariable = Array.isArray(variable.value);
+  // Don't enable drag for inline input variables
   const isDraggable =
-    (role === "input" || role === "computed") && !isSetVariable;
+    (role === "input" || role === "computed") &&
+    !isSetVariable &&
+    !isInlineInput;
   const cursor = isDraggable ? "grab" : "default";
   const valueCursor = isSetVariable
     ? "pointer"
-    : role === "input" && !computationStore.isStepMode()
+    : role === "input" && !computationStore.isStepMode() && !isInlineInput
       ? "ns-resize"
       : "default";
 
@@ -180,7 +303,11 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         className={`flex flex-col items-center gap-1 ${showHoverOutlines ? "hover:outline hover:outline-1 hover:outline-blue-300" : ""}`}
       >
         <div
-          ref={role === "input" && !isSetVariable ? valueDragRef : null}
+          ref={
+            role === "input" && !isSetVariable && !isInlineInput
+              ? valueDragRef
+              : null
+          }
           className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
           style={{ cursor: valueCursor }}
         >
