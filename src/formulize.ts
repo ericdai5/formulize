@@ -6,6 +6,7 @@
  */
 import { computationStore } from "./store/computation";
 import { FormulaStore, formulaStoreManager } from "./store/formulas";
+import { IManual } from "./types/computation";
 import { IEnvironment } from "./types/environment";
 import { IVariable } from "./types/variable";
 import { getVariable } from "./util/computation-helpers";
@@ -44,11 +45,11 @@ function setupComputationEngine(environment: IEnvironment) {
   if (environment.computation?.engine) {
     engine = environment.computation.engine;
   } else {
-    // Auto-detect: if any formula has a manual function, use manual engine
-    const hasManualFunctions = environment.formulas?.some(
-      (f) => f.manual && typeof f.manual === "function"
-    );
-    if (hasManualFunctions) {
+    // Auto-detect: if computation.manual exists, use manual engine
+    const hasComputationManual =
+      environment.computation?.manual &&
+      typeof environment.computation.manual === "function";
+    if (hasComputationManual) {
       engine = "manual";
     }
   }
@@ -133,15 +134,17 @@ async function create(
     // Store the formulas from the environment in the computation store
     computationStore.setEnvironment(environment);
 
-    // Extract computation expressions from individual formulas
-    const symbolicFunctions = environment.formulas
-      .filter((f) => f.expression && f.id)
-      .map((f) => f.expression!);
+    // Extract computation expressions from computation.expressions
+    const symbolicFunctions: string[] = environment.computation?.expressions
+      ? Object.values(environment.computation.expressions)
+      : [];
 
-    // Extract manual functions from individual formulas
-    const manualFunctions = environment.formulas
-      .filter((f) => f.manual)
-      .map((f) => f.manual!);
+    // Extract manual function from computation.manual
+    const manualFunctions: IManual[] =
+      environment.computation?.manual &&
+      typeof environment.computation.manual === "function"
+        ? [environment.computation.manual]
+        : [];
 
     const formulaObjects = environment.formulas;
 
@@ -241,13 +244,7 @@ async function create(
       },
       // Formula expression access
       getFormulaExpression: (id: string) => {
-        if (environment.formulas) {
-          const formula = environment.formulas.find((f) => f.id === id);
-          if (formula) {
-            return formula.expression ?? null;
-          }
-        }
-        return null;
+        return environment.computation?.expressions?.[id] ?? null;
       },
     };
     return instance;
@@ -290,13 +287,7 @@ const Formulize = {
     environment: IEnvironment,
     id: string
   ): string | null => {
-    if (environment.formulas) {
-      const formula = environment.formulas.find((f) => f.id === id);
-      if (formula) {
-        return formula.expression ?? null;
-      }
-    }
-    return null;
+    return environment.computation?.expressions?.[id] ?? null;
   },
 };
 

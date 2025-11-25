@@ -2,8 +2,7 @@ export const vectorAddition = `const config = {
   formulas: [
     {
       id: "vector-addition",
-      latex: "{k_1} \\\\begin{bmatrix} {a_x} \\\\\\\\ {a_y} \\\\end{bmatrix} + {k_2} \\\\begin{bmatrix} {b_x} \\\\\\\\ {b_y} \\\\end{bmatrix} = \\\\begin{bmatrix} {c_x} \\\\\\\\ {c_y} \\\\end{bmatrix}",
-      expression: "[{c_x}, {c_y}] = {k_1} * [{a_x}, {a_y}] + {k_2} * [{b_x}, {b_y}]"
+      latex: "{k_1} \\\\begin{bmatrix} {a_x} \\\\\\\\ {a_y} \\\\end{bmatrix} + {k_2} \\\\begin{bmatrix} {b_x} \\\\\\\\ {b_y} \\\\end{bmatrix} = \\\\begin{bmatrix} {c_x} \\\\\\\\ {c_y} \\\\end{bmatrix}"
     }
   ],
   variables: {
@@ -71,7 +70,10 @@ export const vectorAddition = `const config = {
     },
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "vector-addition": "[{c_x}, {c_y}] = {k_1} * [{a_x}, {a_y}] + {k_2} * [{b_x}, {b_y}]"
+    }
   },
   fontSize: 0.6,
   
@@ -82,8 +84,7 @@ export const vectorAddition = `const config = {
       title: "Vector Addition Visualization",
       xRange: [-5, 5],
       yRange: [-5, 5],
-      width: 600,
-      height: 600,
+
       vectors: [
         {
           shape: "arrow",

@@ -2,23 +2,19 @@ export const parameterizedPlane = `const config = {
   formulas: [
     {
       id: "x-parameterization",
-      latex: "x = 1 - t - w",
-      expression: "{x} = 1 - {t} - {w}"
+      latex: "x = 1 - t - w"
     },
     {
       id: "y-parameterization",
-      latex: "y = t",
-      expression: "{y} = {t}"
+      latex: "y = t"
     },
     {
       id: "z-parameterization",
-      latex: "z = w",
-      expression: "{z} = {w}"
+      latex: "z = w"
     },
     {
       id: "plane-equation",
-      latex: "x + y + z = 1",
-      expression: "{x} + {y} + {z} = 1"
+      latex: "x + y + z = 1"
     }
   ],
   variables: {
@@ -53,7 +49,13 @@ export const parameterizedPlane = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "x-parameterization": "{x} = 1 - {t} - {w}",
+      "y-parameterization": "{y} = {t}",
+      "z-parameterization": "{z} = {w}",
+      "plane-equation": "{x} + {y} + {z} = 1"
+    }
   },
 
   controls: [
@@ -83,8 +85,7 @@ export const parameterizedPlane = `const config = {
       zVar: "z",
       zRange: [-15, 15],
       plotType: "surface",
-      width: 600,
-      height: 600,
+
       showColorbar: true,
       showCurrentPointInLegend: true,
       surfaces: [

@@ -2,8 +2,7 @@ export const kinetic3D = `const config = {
   formulas: [
     {
       id: "kinetic-energy-3d",
-      latex: "K = \\\\frac{1}{2}mv^2",
-      expression: "{K} = 0.5 * {m} * {v} * {v}"
+      latex: "K = \\\\frac{1}{2}mv^2"
     }
   ],
   variables: {
@@ -30,6 +29,9 @@ export const kinetic3D = `const config = {
   },
   computation: {
     engine: "symbolic-algebra",
+    expressions: {
+      "kinetic-energy-3d": "{K} = 0.5 * {m} * {v} * {v}"
+    }
   },
   
   visualizations: [
@@ -44,8 +46,7 @@ export const kinetic3D = `const config = {
       zVar: "K",
       zRange: [0, 250],
       plotType: "surface",
-      width: 600,
-      height: 600,
+
       surfaces: [
         {
           id: "kinetic-energy-3d",

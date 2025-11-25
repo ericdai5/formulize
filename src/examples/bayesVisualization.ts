@@ -2,28 +2,23 @@ export const bayesWithCustomVisualization = `const config = {
     formulas: [
       {
         id: "bayes-theorem",
-        latex: "P(B \\\\mid A) = \\\\frac{P(A \\\\mid B)P(B)}{P(A)}",
-        expression: "{P(B \\\\mid A)} = ({P(A \\\\mid B)} * {P(B)}) / {P(A)}"
+        latex: "P(B \\\\mid A) = \\\\frac{P(A \\\\mid B)P(B)}{P(A)}"
       },
       {
         id: "conditional-probability",
-        latex: "P(A \\\\mid B) = \\\\frac{P(A \\\\cap B)}{P(B)}",
-        expression: "{P(A \\\\mid B)} = {P(A \\\\cap B)} / {P(B)}"
+        latex: "P(A \\\\mid B) = \\\\frac{P(A \\\\cap B)}{P(B)}"
       },
       {
         id: "a-and-not-b",
-        latex: "P(A \\\\cap \\\\neg B) = P(A) - P(A \\\\cap B)",
-        expression: "{P(A \\\\cap \\\\neg B)} = {P(A)} - {P(A \\\\cap B)}"
+        latex: "P(A \\\\cap \\\\neg B) = P(A) - P(A \\\\cap B)"
       },
       {
         id: "b-and-not-a",
-        latex: "P(B \\\\cap \\\\neg A) = P(B) - P(A \\\\cap B)",
-        expression: "{P(B \\\\cap \\\\neg A)} = {P(B)} - {P(A \\\\cap B)}"
+        latex: "P(B \\\\cap \\\\neg A) = P(B) - P(A \\\\cap B)"
       },
       {
         id: "not-a-and-not-b",
-        latex: "P(\\\\neg A \\\\cap \\\\neg B) = 1 - P(A) - P(B) + P(A \\\\cap B)",
-        expression: "{P(\\\\neg A \\\\cap \\\\neg B)} = 1 - {P(A)} - {P(B)} + {P(A \\\\cap B)}"
+        latex: "P(\\\\neg A \\\\cap \\\\neg B) = 1 - P(A) - P(B) + P(A \\\\cap B)"
       },
     ],
     variables: {
@@ -68,7 +63,14 @@ export const bayesWithCustomVisualization = `const config = {
       }
     },
     computation: {
-      engine: "symbolic-algebra"
+      engine: "symbolic-algebra",
+      expressions: {
+        "bayes-theorem": "{P(B \\\\mid A)} = ({P(A \\\\mid B)} * {P(B)}) / {P(A)}",
+        "conditional-probability": "{P(A \\\\mid B)} = {P(A \\\\cap B)} / {P(B)}",
+        "a-and-not-b": "{P(A \\\\cap \\\\neg B)} = {P(A)} - {P(A \\\\cap B)}",
+        "b-and-not-a": "{P(B \\\\cap \\\\neg A)} = {P(B)} - {P(A \\\\cap B)}",
+        "not-a-and-not-b": "{P(\\\\neg A \\\\cap \\\\neg B)} = 1 - {P(A)} - {P(B)} + {P(A \\\\cap B)}"
+      }
     },
     visualizations: [
       {

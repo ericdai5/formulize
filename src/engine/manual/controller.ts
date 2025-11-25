@@ -88,9 +88,8 @@ export class Controller {
     );
     if (!interpreter) return;
 
-    // Initialize variable linkage tracker with configuration from environment
-    const variableLinkage =
-      ctx.environment?.formulas?.[0]?.variableLinkage || {};
+    // Initialize variable linkage tracker with configuration from computation
+    const variableLinkage = ctx.environment?.computation?.variableLinkage || {};
     ctx.setLinkageMap(variableLinkage);
     ctx.setInterpreter(interpreter);
 

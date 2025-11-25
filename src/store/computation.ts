@@ -9,7 +9,7 @@ import {
 import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
-import { IComputation } from "../types/computation";
+import { IComputation, IManual } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IRole, IValue, IVariable } from "../types/variable";
 
@@ -47,9 +47,7 @@ class ComputationStore {
   accessor symbolicFunctions: string[] = [];
 
   @observable
-  accessor manualFunctions: ((
-    vars: Record<string, IValue>
-  ) => IValue | void)[] = [];
+  accessor manualFunctions: IManual[] = [];
 
   @observable
   accessor environment: IEnvironment | null = null;
@@ -171,9 +169,7 @@ class ComputationStore {
   }
 
   @action
-  setManualFunctions(
-    manual: ((vars: Record<string, IValue>) => IValue | void)[]
-  ): void {
+  setManualFunctions(manual: IManual[]): void {
     this.manualFunctions = manual;
   }
 
@@ -436,9 +432,13 @@ class ComputationStore {
           value: variables[varName] ?? computationVar.value,
         };
       }
+
+      // Get computation-level manual function
+      const computationManual = this.computationConfig?.manual;
+
       const result = computeWithManualEngine(
-        this.environment.formulas,
-        updatedVariables
+        updatedVariables,
+        computationManual
       );
 
       // After manual execution, sync back any set changes from manual functions

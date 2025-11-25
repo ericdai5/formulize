@@ -2,11 +2,7 @@ export const svgIntegration = `const config = {
   formulas: [
     {
       id: "radioactive-decay",
-      latex: "{N} = {N_{0}} \\\\times e^{-{\\\\lambda} \\\\times {t}}",
-      expression: "{N} = {N_0} * exp(-{\\\\lambda} * {t})",
-      manual: function({ N_0, "\\\\lambda": lambda, t }) {
-        return N_0 * Math.exp(-lambda * t);
-      }
+      latex: "{N} = {N_{0}} \\\\times e^{-{\\\\lambda} \\\\times {t}}"
     }
   ],
   variables: {
@@ -101,7 +97,13 @@ export const svgIntegration = `const config = {
     }
   },
   computation: {
-    engine: "manual"
+    engine: "manual",
+    expressions: {
+      "radioactive-decay": "{N} = {N_0} * exp(-{\\\\lambda} * {t})"
+    },
+    manual: function({ N_0, "\\\\lambda": lambda, t }) {
+      return N_0 * Math.exp(-lambda * t);
+    }
   },
   visualizations: [
     {

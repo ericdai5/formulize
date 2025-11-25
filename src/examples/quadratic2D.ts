@@ -2,8 +2,7 @@ export const quadratic2D = `const config = {
   formulas: [
     {
       id: "quadratic-equation",
-      latex: "y = ax^2 + bx + c",
-      expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+      latex: "y = ax^2 + bx + c"
     }
   ],
   variables: {
@@ -42,7 +41,10 @@ export const quadratic2D = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "quadratic-equation": "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+    }
   },
   
   visualizations: [
@@ -54,8 +56,7 @@ export const quadratic2D = `const config = {
       xRange: [-5, 5],
       yAxis: "y",
       yRange: [-10, 10],
-      width: 600,
-      height: 600,
+
       lines: [
         {
           color: "#ef4444",

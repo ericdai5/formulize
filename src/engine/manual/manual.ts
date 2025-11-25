@@ -6,7 +6,7 @@
  *
  * @module engine/manual
  */
-import { IFormula } from "../../types/formula";
+import { IManual } from "../../types/computation";
 import { IValue, IVariable } from "../../types/variable";
 
 // ============================================================================
@@ -19,12 +19,6 @@ function getComputedVariableNames(
   return Object.entries(variables)
     .filter(([, varDef]) => varDef.role === "computed")
     .map(([varName]) => varName);
-}
-
-function getManualFormulas(formulas: IFormula[]): IFormula[] {
-  return formulas.filter(
-    (formula) => formula.manual && typeof formula.manual === "function"
-  );
 }
 
 function createValueAccessor(
@@ -50,17 +44,33 @@ function isValidNumericResult(value: unknown): value is number {
 }
 
 // ============================================================================
-// Execution
+// Result Collection
 // ============================================================================
 
-function executeManualFormula(
-  formula: IFormula,
+function collectResults(
+  variables: Record<string, IVariable>
+): Record<string, IValue> {
+  const result: Record<string, IValue> = {};
+  for (const [varName, variable] of Object.entries(variables)) {
+    if (variable.value !== undefined) {
+      result[varName] = variable.value;
+    }
+  }
+  return result;
+}
+
+// ============================================================================
+// Computation-level Manual Function Execution
+// ============================================================================
+
+function executeComputationManual(
+  manualFn: IManual,
   variables: Record<string, IVariable>
 ): void {
   // Create value accessor with all variable values
   const vars = createValueAccessor(variables);
   // Execute the manual function
-  const returnValue = formula.manual!(vars);
+  const returnValue = manualFn(vars);
   // Sync back all changed values from vars to variables
   for (const [varName, value] of Object.entries(vars)) {
     if (
@@ -80,38 +90,6 @@ function executeManualFormula(
   }
 }
 
-function executeManualFormulas(
-  formulas: IFormula[],
-  variables: Record<string, IVariable>
-): void {
-  for (const formula of formulas) {
-    try {
-      executeManualFormula(formula, variables);
-    } catch (error) {
-      console.error(
-        `Error executing manual function for formula "${formula.id}":`,
-        error
-      );
-    }
-  }
-}
-
-// ============================================================================
-// Result Collection
-// ============================================================================
-
-function collectResults(
-  variables: Record<string, IVariable>
-): Record<string, IValue> {
-  const result: Record<string, IValue> = {};
-  for (const [varName, variable] of Object.entries(variables)) {
-    if (variable.value !== undefined) {
-      result[varName] = variable.value;
-    }
-  }
-  return result;
-}
-
 // ============================================================================
 // Public API
 // ============================================================================
@@ -119,19 +97,17 @@ function collectResults(
 /**
  * Computes the formula with the given variable values using custom JavaScript functions.
  * Variables should already be normalized (typically from the computation store).
+ *
+ * @param variables - Record of variable definitions with current values
+ * @param computationManual - The computation-level manual function
  */
 export function computeWithManualEngine(
-  formulas: IFormula[],
-  variables: Record<string, IVariable>
+  variables: Record<string, IVariable>,
+  computationManual?: IManual
 ): Record<string, IValue> {
   try {
     if (!variables || Object.keys(variables).length === 0) {
       console.warn("⚠️ No variables provided");
-      return {};
-    }
-
-    if (!formulas || formulas.length === 0) {
-      console.warn("⚠️ No formulas provided");
       return {};
     }
 
@@ -142,16 +118,12 @@ export function computeWithManualEngine(
       return {};
     }
 
-    // Get formulas with manual functions
-    const manualFormulas = getManualFormulas(formulas);
-    if (manualFormulas.length === 0) {
-      console.warn("⚠️ No formulas with manual functions found");
+    if (!computationManual || typeof computationManual !== "function") {
+      console.warn("⚠️ No manual function provided in computation config");
       return {};
     }
 
-    // Execute all manual formulas
-    executeManualFormulas(manualFormulas, variables);
-    // Collect and return results
+    executeComputationManual(computationManual, variables);
     return collectResults(variables);
   } catch (error) {
     console.error("Error computing with manual engine:", error);

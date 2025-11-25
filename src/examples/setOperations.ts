@@ -2,21 +2,11 @@ export const setOperations = `const config = {
   formulas: [
     {
       id: "set-intersection",
-      latex: "P = M \\\\cap B",
-      manual: (vars) => {
-        const M = vars.M;
-        const B = vars.B;
-        vars.P = M.filter(item => B.includes(item));
-      }
+      latex: "P = M \\\\cap B"
     },
     {
       id: "set-union",
-      latex: "U = M \\\\cup B",
-      manual: (vars) => {
-        const M = vars.M;
-        const B = vars.B;
-        vars.U = [...new Set([...M, ...B])];
-      }
+      latex: "U = M \\\\cup B"
     }
   ],
   variables: {
@@ -76,7 +66,15 @@ export const setOperations = `const config = {
     }
   ],
   computation: {
-    engine: "manual"
+    engine: "manual",
+    manual: (vars) => {
+      // Set intersection: P = M ∩ B
+      const M = vars.M;
+      const B = vars.B;
+      vars.P = M.filter(item => B.includes(item));
+      // Set union: U = M ∪ B
+      vars.U = [...new Set([...M, ...B])];
+    }
   },
   fontSize: 0.6
 };`;
