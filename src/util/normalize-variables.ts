@@ -30,14 +30,18 @@ export function normalizeVariable(input: IVariableInput): IVariable {
 
   // Apply smart defaults based on role
   if (normalized.role === "input") {
-    // Set default value if not provided
+    // Set default value if not provided (only for scalar inputs, not sets)
     if (normalized.value === undefined) {
       normalized.value = INPUT_VARIABLE_DEFAULT.VALUE;
     }
     // Set default interaction mode if not provided
     // - If range is specified, use drag interaction
-    // - If no range, use inline typable input
-    if (normalized.interaction === undefined) {
+    // - If no range and value is a scalar, use inline typable input
+    // - If value is an array (set), don't set any interaction (use controls)
+    if (
+      normalized.interaction === undefined &&
+      !Array.isArray(normalized.value)
+    ) {
       normalized.interaction = normalized.range ? "drag" : "inline";
     }
   } else if (normalized.role === "constant") {

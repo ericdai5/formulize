@@ -7,13 +7,41 @@
 import * as math from "mathjs";
 
 /**
- * Processes a formula string to replace variable names with math.js symbols
- * Variable names in the formula should be wrapped in curly braces: {variableName}
- * @param formulaStr The formula string with variables in curly braces
- * @returns A processed formula ready for math.js parsing
+ * Translates a variable name to be compatible with Math.js by replacing
+ * invalid characters with underscores
+ */
+function translateVariableName(variableName: string): string {
+  let translated = variableName.replace(/[^a-zA-Z0-9_$]/g, "_");
+  if (!/^[a-zA-Z_$]/.test(translated)) {
+    translated = "_" + translated;
+  }
+  const reservedWords = ["mod", "to", "in", "and", "xor", "or", "not", "end"];
+  if (reservedWords.includes(translated.toLowerCase())) {
+    translated = "var_" + translated;
+  }
+  return translated;
+}
+
+/**
+ * Processes a formula string to replace {variableName} with translated names
  */
 function processFormulaString(formulaStr: string): string {
-  return formulaStr.replace(/\{([^}]+)\}/g, "$1");
+  return formulaStr.replace(/\{([^}]+)\}/g, (_, varName) =>
+    translateVariableName(varName)
+  );
+}
+
+/**
+ * Translates variable keys in a scope object to Math.js compatible names
+ */
+function translateScope(
+  variables: Record<string, number>
+): Record<string, number> {
+  const translated: Record<string, number> = {};
+  for (const [key, value] of Object.entries(variables)) {
+    translated[translateVariableName(key)] = value;
+  }
+  return translated;
 }
 
 /**
@@ -30,14 +58,25 @@ export function solveSingularFormula(
   solveFor: string
 ): number | null {
   try {
+    // Translate formula and variable names to Math.js compatible format
     const processedFormula = processFormulaString(formula);
+    const translatedScope = translateScope(variables);
+    const translatedSolveFor = translateVariableName(solveFor);
 
     // Handle different equation patterns with fast direct evaluation
     if (processedFormula.includes("=")) {
-      return solveEquationDirect(processedFormula, variables, solveFor);
+      return solveEquationDirect(
+        processedFormula,
+        translatedScope,
+        translatedSolveFor
+      );
     } else {
       // If no equals sign, assume it's an expression that should equal the solveFor variable
-      return evaluateExpressionDirect(processedFormula, variables, solveFor);
+      return evaluateExpressionDirect(
+        processedFormula,
+        translatedScope,
+        translatedSolveFor
+      );
     }
   } catch (error) {
     console.debug("Error solving singular formula:", error);

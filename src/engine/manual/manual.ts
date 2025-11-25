@@ -6,36 +6,8 @@
  *
  * @module engine/manual
  */
-import { IEnvironment } from "../../types/environment";
 import { IFormula } from "../../types/formula";
 import { IValue, IVariable } from "../../types/variable";
-
-// ============================================================================
-// Validation
-// ============================================================================
-
-interface ValidationResult {
-  isValid: boolean;
-  error?: string;
-}
-
-function validateEnvironment(environment: IEnvironment): ValidationResult {
-  if (!environment?.variables) {
-    return {
-      isValid: false,
-      error: "Invalid environment: missing variables",
-    };
-  }
-
-  if (!environment.formulas?.length) {
-    return {
-      isValid: false,
-      error: "⚠️ No formulas found in environment",
-    };
-  }
-
-  return { isValid: true };
-}
 
 // ============================================================================
 // Helpers
@@ -145,46 +117,42 @@ function collectResults(
 // ============================================================================
 
 /**
- * Computes the formula with the given variable values using custom JavaScript functions
- *
- * @param environment - The Formulize environment containing formulas and variables
- * @returns An object mapping variable names to their computed values
- *
- * @example
- * ```ts
- * const result = computeWithManualEngine(environment);
- * console.log(result.K); // Computed kinetic energy value
- * ```
+ * Computes the formula with the given variable values using custom JavaScript functions.
+ * Variables should already be normalized (typically from the computation store).
  */
 export function computeWithManualEngine(
-  environment: IEnvironment
+  formulas: IFormula[],
+  variables: Record<string, IVariable>
 ): Record<string, IValue> {
   try {
-    // Validate environment
-    const validation = validateEnvironment(environment);
-    if (!validation.isValid) {
-      console.warn(validation.error);
+    if (!variables || Object.keys(variables).length === 0) {
+      console.warn("⚠️ No variables provided");
+      return {};
+    }
+
+    if (!formulas || formulas.length === 0) {
+      console.warn("⚠️ No formulas provided");
       return {};
     }
 
     // Extract computed variables
-    const computedVars = getComputedVariableNames(environment.variables);
+    const computedVars = getComputedVariableNames(variables);
     if (computedVars.length === 0) {
       console.warn("⚠️ No computed variables found");
       return {};
     }
 
     // Get formulas with manual functions
-    const manualFormulas = getManualFormulas(environment.formulas);
+    const manualFormulas = getManualFormulas(formulas);
     if (manualFormulas.length === 0) {
       console.warn("⚠️ No formulas with manual functions found");
       return {};
     }
 
     // Execute all manual formulas
-    executeManualFormulas(manualFormulas, environment.variables);
+    executeManualFormulas(manualFormulas, variables);
     // Collect and return results
-    return collectResults(environment.variables);
+    return collectResults(variables);
   } catch (error) {
     console.error("Error computing with manual engine:", error);
     return {};

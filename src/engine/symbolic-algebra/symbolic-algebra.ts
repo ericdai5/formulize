@@ -6,8 +6,7 @@
  */
 import * as math from "mathjs";
 
-import { IComputation } from "../../types/computation";
-import { IEnvironment } from "../../types/environment";
+import { IVariable } from "../../types/variable";
 
 /**
  * Translates a variable name to be compatible with Math.js by replacing
@@ -282,60 +281,39 @@ export function deriveSymbolicFunction(
 }
 
 /**
- * Computes the formula with the given variable values
- *
- * @param environment The Formulize environment
- * @param computation The computation settings
- * @param variables Current variable values
- * @returns An object with updated computed variable values
+ * Computes the formula with the given variable values.
+ * Variables should already be normalized (typically from the computation store).
  */
 export function computeWithSymbolicEngine(
-  environment: IEnvironment,
-  _computation: IComputation,
-  variables: Record<string, number>
+  expressions: string[],
+  storeVariables: Record<string, IVariable>,
+  inputValues: Record<string, number>
 ): Record<string, number> {
   try {
-    // Validate environment has proper structure
-    if (!environment || !environment.variables) {
-      console.warn("⚠️ Invalid environment: missing variables");
+    if (!storeVariables || Object.keys(storeVariables).length === 0) {
+      console.warn("⚠️ No variables provided");
       return {};
     }
 
-    // Check if formulas exist and are properly configured
-    if (!environment.formulas || !Array.isArray(environment.formulas)) {
-      console.warn("⚠️ No formulas array found in environment");
+    if (!expressions || expressions.length === 0) {
+      console.warn("⚠️ No expressions provided");
       return {};
     }
 
     // Get all variable names for translation map
-    const allVariableNames = Object.keys(environment.variables);
+    const allVariableNames = Object.keys(storeVariables);
 
     // Create translation map for all variables
     const translationMap = createVariableTranslationMap(allVariableNames);
 
     // Get all computed variables
-    const computedVars = Object.entries(environment.variables)
+    const computedVars = Object.entries(storeVariables)
       .filter(([, varDef]) => varDef.role === "computed")
       .map(([varName]) => varName);
 
     // No computed variables, nothing to compute
     if (computedVars.length === 0) {
       console.warn("⚠️ No computed variables found");
-      return {};
-    }
-
-    // Extract expressions from individual formulas only
-    const expressions = environment.formulas
-      .map((f) => f?.expression)
-      .filter(
-        (expression): expression is string =>
-          expression !== undefined &&
-          expression !== null &&
-          typeof expression === "string"
-      );
-
-    if (expressions.length === 0) {
-      console.warn("⚠️ No valid expressions found in formulas");
       return {};
     }
 
@@ -347,7 +325,7 @@ export function computeWithSymbolicEngine(
     );
 
     // Execute the function with the current variable values
-    const result = evaluationFunction(variables);
+    const result = evaluationFunction(inputValues);
 
     return result;
   } catch (error) {

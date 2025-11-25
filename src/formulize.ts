@@ -11,6 +11,9 @@ import { IVariable } from "./types/variable";
 import { getVariable } from "./util/computation-helpers";
 import { normalizeVariables } from "./util/normalize-variables";
 
+/**
+ * User-facing configuration type.
+ */
 export type FormulizeConfig = IEnvironment;
 
 /**

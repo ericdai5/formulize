@@ -3,7 +3,7 @@ export const svgIntegration = `const config = {
     {
       id: "radioactive-decay",
       latex: "{N} = {N_{0}} \\\\times e^{-{\\\\lambda} \\\\times {t}}",
-      expression: "{N} = {N_0} * Math.exp(-{lambda} * {t})",
+      expression: "{N} = {N_0} * exp(-{\\\\lambda} * {t})",
       manual: function({ N_0, "\\\\lambda": lambda, t }) {
         return N_0 * Math.exp(-lambda * t);
       }
