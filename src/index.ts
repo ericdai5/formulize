@@ -12,6 +12,8 @@ export type { FormulizeConfig, FormulizeInstance } from "./formulize";
 
 // Export new component-based API
 export { FormulaComponent } from "./components/FormulaComponent";
+export { InlineFormula } from "./components/InlineFormula";
+export { InlineVariable } from "./components/InlineVariable";
 export { VisualizationComponent } from "./components/VisualizationComponent";
 export { FormulizeProvider } from "./components/FormulizeProvider";
 export { useFormulize } from "./components/useFormulize";

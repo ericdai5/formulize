@@ -51,7 +51,11 @@ export const MathJaxLoader: React.FC<{ children: React.ReactNode }> = ({
       // This must happen before the script loads
       if (!window.MathJax) {
         window.MathJax = {
+          loader: {
+            load: ["[tex]/html"], // Load html extension for \class and \cssId
+          },
           tex: {
+            packages: { "[+]": ["html"] }, // Enable \class and \cssId commands
             inlineMath: [
               ["$", "$"],
               ["\\(", "\\)"],
@@ -62,8 +66,8 @@ export const MathJaxLoader: React.FC<{ children: React.ReactNode }> = ({
             ],
           },
           chtml: {
-            scale: 2.0, // Double the size like in main.tsx
-            matchFontHeight: false, // Don't shrink to match surrounding text
+            scale: 1.0, // Base scale - components control their own sizing
+            matchFontHeight: true, // Match surrounding text for inline use
             mtextInheritFont: false, // Use MathJax fonts
             merrorInheritFont: false, // Use MathJax fonts for errors
           },
