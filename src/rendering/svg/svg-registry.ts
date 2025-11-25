@@ -1,9 +1,8 @@
 /**
  * SVG Registry for managing and creating SVG elements to embed in formulas
  */
-
-import type { IVariable, IValue } from "../../types/variable";
 import type { IEnvironment } from "../../types/environment";
+import type { IValue, IVariable } from "../../types/variable";
 
 export interface SVGConfig {
   width?: number;
