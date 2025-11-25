@@ -14,6 +14,9 @@ interface AxisLabelsProps {
 
 export const AxisLabels: React.FC<AxisLabelsProps> = observer(
   ({ labelInfo, xAxisHovered = false, yAxisHovered = false }) => {
+    // Get fontSize from environment, with default and scaling for MathJax scale=1.0
+    const fontSize = computationStore.environment?.fontSize ?? 1;
+
     const handleXLabelMouseEnter = () => {
       if (labelInfo.xLabel?.xAxis) {
         computationStore.setVariableHover(labelInfo.xLabel.xAxis, true);
@@ -68,7 +71,7 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
             onMouseEnter={handleXLabelMouseEnter}
             onMouseLeave={handleXLabelMouseLeave}
           >
-            <LatexLabel latex={labelInfo.xLabel.text} fontSize={0.65} />
+            <LatexLabel latex={labelInfo.xLabel.text} fontSize={fontSize} />
           </div>
         )}
         {labelInfo.yLabel && (
@@ -87,7 +90,7 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
             onMouseEnter={handleYLabelMouseEnter}
             onMouseLeave={handleYLabelMouseLeave}
           >
-            <LatexLabel latex={labelInfo.yLabel.text} fontSize={0.65} />
+            <LatexLabel latex={labelInfo.yLabel.text} fontSize={fontSize} />
           </div>
         )}
       </>

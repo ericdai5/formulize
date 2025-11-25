@@ -4,6 +4,7 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { getInputVariableState } from "../parse/variable";
+import { VAR_CLASSES } from "../rendering/css-classes";
 import { computationStore } from "../store/computation";
 import { useFormulize } from "./useFormulize";
 import { useMathJax } from "./useMathJax";
@@ -24,11 +25,33 @@ interface InlineVariableProps {
 }
 
 /**
+ * Get the appropriate CSS class for variable styling based on role
+ */
+const getVariableClass = (role?: string): string => {
+  switch (role) {
+    case "input":
+      return VAR_CLASSES.INPUT;
+    case "computed":
+      return VAR_CLASSES.COMPUTED;
+    default:
+      return VAR_CLASSES.BASE;
+  }
+};
+
+/**
  * Inline variable component that renders a single variable within text.
  * Supports hover highlighting and drag-to-change for input variables.
  */
 const InlineVariableInner = observer(
-  ({ id, display = "value", scale = 1 }: { id: string; display: DisplayMode; scale: number }) => {
+  ({
+    id,
+    display = "value",
+    scale = 1,
+  }: {
+    id: string;
+    display: DisplayMode;
+    scale: number;
+  }) => {
     const containerRef = useRef<HTMLSpanElement>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
 
@@ -36,6 +59,11 @@ const InlineVariableInner = observer(
     const getVariable = useCallback(() => {
       return computationStore.variables.get(id);
     }, [id]);
+
+    // Get hover state for this variable
+    const isHovered = computationStore.hoverStates.get(id) ?? false;
+    const variable = getVariable();
+    const variableClass = getVariableClass(variable?.role);
 
     // Build LaTeX string based on display mode
     const buildLatex = useCallback((): string | null => {
@@ -49,7 +77,9 @@ const InlineVariableInner = observer(
       // Format value
       let formattedValue = "";
       if (typeof value === "number") {
-        formattedValue = Number.isInteger(value) ? value.toString() : value.toFixed(precision);
+        formattedValue = Number.isInteger(value)
+          ? value.toString()
+          : value.toFixed(precision);
       } else if (Array.isArray(value)) {
         formattedValue = `\\{${value.join(", ")}\\}`;
       } else {
@@ -64,7 +94,9 @@ const InlineVariableInner = observer(
         case "both":
           return `${id} = ${formattedValue}`;
         case "withUnits":
-          return units ? `${formattedValue} \\, \\text{${units}}` : formattedValue;
+          return units
+            ? `${formattedValue} \\, \\text{${units}}`
+            : formattedValue;
         default:
           return formattedValue;
       }
@@ -104,72 +136,78 @@ const InlineVariableInner = observer(
     }, [id, buildLatex, mathJaxLoaded, scale]);
 
     // Attach hover and drag listeners
-    const attachInteractionListeners = useCallback((container: HTMLElement) => {
-      const variable = computationStore.variables.get(id);
-      if (!variable) return;
+    const attachInteractionListeners = useCallback(
+      (container: HTMLElement) => {
+        const variable = computationStore.variables.get(id);
+        if (!variable) return;
 
-      const isInput = variable.role === "input";
+        const isInput = variable.role === "input";
 
-      // Make the whole container interactive
-      container.style.cursor = isInput ? "ns-resize" : "default";
+        // Make the whole container interactive
+        container.style.cursor = isInput ? "ns-resize" : "default";
 
-      // Mouse enter - set hover state
-      container.addEventListener("mouseenter", () => {
-        computationStore.setVariableHover(id, true);
-      });
-      // Mouse leave - clear hover state
-      container.addEventListener("mouseleave", () => {
-        computationStore.setVariableHover(id, false);
-      });
+        // Mouse enter - set hover state
+        container.addEventListener("mouseenter", () => {
+          computationStore.setVariableHover(id, true);
+        });
+        // Mouse leave - clear hover state
+        container.addEventListener("mouseleave", () => {
+          computationStore.setVariableHover(id, false);
+        });
 
-      // Add drag-to-change for input variables
-      if (isInput) {
-        let isDragging = false;
-        let startY = 0;
-        let startValue = 0;
+        // Add drag-to-change for input variables
+        if (isInput) {
+          let isDragging = false;
+          let startY = 0;
+          let startValue = 0;
 
-        const variableState = getInputVariableState(id);
-        if (!variableState) return;
+          const variableState = getInputVariableState(id);
+          if (!variableState) return;
 
-        const { stepSize, minValue, maxValue } = variableState;
+          const { stepSize, minValue, maxValue } = variableState;
 
-        const handleMouseMove = (e: MouseEvent) => {
-          if (!isDragging) return;
-          e.preventDefault();
-          e.stopPropagation();
-          const deltaY = startY - e.clientY;
-          const newValue = startValue + deltaY * stepSize;
-          computationStore.setValue(
-            id,
-            Math.max(minValue, Math.min(maxValue, newValue))
-          );
-        };
-
-        const handleMouseUp = (e: MouseEvent) => {
-          if (isDragging) {
-            isDragging = false;
+          const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging) return;
             e.preventDefault();
             e.stopPropagation();
-            document.removeEventListener("mousemove", handleMouseMove, true);
-            document.removeEventListener("mouseup", handleMouseUp, true);
-          }
-        };
+            const deltaY = startY - e.clientY;
+            const newValue = startValue + deltaY * stepSize;
+            computationStore.setValue(
+              id,
+              Math.max(minValue, Math.min(maxValue, newValue))
+            );
+          };
 
-        const handleMouseDown = (e: MouseEvent) => {
-          isDragging = true;
-          startY = e.clientY;
-          const currentVariable = computationStore.variables.get(id);
-          startValue = typeof currentVariable?.value === "number" ? currentVariable.value : 0;
-          e.preventDefault();
-          e.stopPropagation();
+          const handleMouseUp = (e: MouseEvent) => {
+            if (isDragging) {
+              isDragging = false;
+              e.preventDefault();
+              e.stopPropagation();
+              document.removeEventListener("mousemove", handleMouseMove, true);
+              document.removeEventListener("mouseup", handleMouseUp, true);
+            }
+          };
 
-          document.addEventListener("mousemove", handleMouseMove, true);
-          document.addEventListener("mouseup", handleMouseUp, true);
-        };
+          const handleMouseDown = (e: MouseEvent) => {
+            isDragging = true;
+            startY = e.clientY;
+            const currentVariable = computationStore.variables.get(id);
+            startValue =
+              typeof currentVariable?.value === "number"
+                ? currentVariable.value
+                : 0;
+            e.preventDefault();
+            e.stopPropagation();
 
-        container.addEventListener("mousedown", handleMouseDown);
-      }
-    }, [id]);
+            document.addEventListener("mousemove", handleMouseMove, true);
+            document.addEventListener("mouseup", handleMouseUp, true);
+          };
+
+          container.addEventListener("mousedown", handleMouseDown);
+        }
+      },
+      [id]
+    );
 
     // Initial render when MathJax is ready
     useEffect(() => {
@@ -185,7 +223,9 @@ const InlineVariableInner = observer(
       const disposer = reaction(
         () => {
           const variable = computationStore.variables.get(id);
-          return variable ? { value: variable.value, role: variable.role } : null;
+          return variable
+            ? { value: variable.value, role: variable.role }
+            : null;
         },
         () => {
           renderVariable();
@@ -195,26 +235,10 @@ const InlineVariableInner = observer(
       return () => disposer();
     }, [id, mathJaxLoaded, renderVariable]);
 
-    // React to hover state changes
-    useEffect(() => {
-      const disposer = reaction(
-        () => computationStore.hoverStates.get(id),
-        (isHovered) => {
-          if (!containerRef.current) return;
-          if (isHovered) {
-            containerRef.current.classList.add("hovered");
-          } else {
-            containerRef.current.classList.remove("hovered");
-          }
-        }
-      );
-      return () => disposer();
-    }, [id]);
-
     return (
       <span
         ref={containerRef}
-        className="inline-variable"
+        className={`inline-variable ${variableClass} ${isHovered ? "hovered" : ""}`}
         style={{ display: "inline", verticalAlign: "baseline" }}
       />
     );
