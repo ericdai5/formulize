@@ -82,7 +82,7 @@ const config = {
       yGrid: "show",
     }
   ],
-  fontSize: 1.3
+  fontSize: 1.5
 };
 
 // SVG content generator functions
