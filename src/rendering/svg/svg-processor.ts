@@ -7,6 +7,7 @@ import {
   SVGConfig,
   SVGGeneratorContext,
   createSVGElement,
+  parseSVGString,
 } from "./svg-registry";
 
 export interface SVGPlaceholder {
@@ -76,11 +77,16 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
               variable: variable,
               environment: computationStore.environment || undefined,
             };
-            svgElement = variable.svgContent(context);
-            if (!svgElement || !(svgElement instanceof SVGElement)) {
+            const result = variable.svgContent(context);
+            // Handle both string and SVGElement returns
+            if (typeof result === "string") {
+              svgElement = parseSVGString(result);
+            } else if (result instanceof SVGElement) {
+              svgElement = result;
+            } else {
               console.error(
-                `SVG generator function for ${varId} did not return a valid SVGElement`,
-                svgElement
+                `SVG generator function for ${varId} must return a string or SVGElement`,
+                result
               );
               return;
             }
@@ -89,7 +95,7 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
             if (svgElement.ownerDocument !== document) {
               svgElement = document.importNode(svgElement, true) as SVGElement;
             }
-            
+
             // Apply dimensions and styling similar to createSVGElement
             const width = config.width;
             const height = config.height;
@@ -103,7 +109,7 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
               svgElement.setAttribute("height", height?.toString() || "24");
             }
             svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
-            
+
             if (config.className) {
               svgElement.classList.add(...config.className.split(" "));
             }

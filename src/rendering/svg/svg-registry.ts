@@ -28,9 +28,24 @@ export interface SVGGeneratorContext extends SVGConfig {
 type SVGContent = string | ((config: SVGConfig) => SVGElement);
 
 // Type for variable SVG content, including context for generators
+// Generator functions can return either an SVGElement or a string (which will be auto-parsed)
 export type VariableSVGContent =
   | string
-  | ((ctx: SVGGeneratorContext) => SVGElement);
+  | ((ctx: SVGGeneratorContext) => SVGElement | string);
+
+/**
+ * Parse an SVG string into an SVGElement
+ * This is a helper to avoid boilerplate DOMParser code in svgContent functions
+ */
+export const parseSVGString = (svgString: string): SVGElement => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, "image/svg+xml");
+  const svg = doc.querySelector("svg");
+  if (!svg) {
+    throw new Error("Failed to parse SVG string");
+  }
+  return svg;
+};
 
 // Registry to store SVG definitions
 const svgRegistry = new Map<string, SVGContent>();
