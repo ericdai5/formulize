@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import DOMPurify from "dompurify";
-
 import type {
   SVGGeneratorContext,
   VariableSVGContent,
 } from "../rendering/svg/svg-registry";
+import { sanitizeSVG } from "../rendering/svg/svg-registry";
 import { computationStore } from "../store/computation";
 import type { IVariable } from "../types/variable";
 
@@ -132,26 +131,7 @@ const SVGLabel = observer(
 
     // Sanitize SVG using DOMPurify with strict SVG-only profile
     // Allow animation tags and attributes for dynamic SVG content
-    const sanitizedSvg = DOMPurify.sanitize(svgData, {
-      USE_PROFILES: { svg: true },
-      ADD_TAGS: ["animate", "animateTransform", "animateMotion"],
-      ADD_ATTR: [
-        "attributeName",
-        "values",
-        "dur",
-        "repeatCount",
-        "fill",
-        "from",
-        "to",
-        "by",
-        "begin",
-        "end",
-        "calcMode",
-        "keyTimes",
-        "keySplines",
-        "type",
-      ],
-    });
+    const sanitizedSvg = sanitizeSVG(svgData);
 
     const finalSvg = sanitizedSvg.replace(
       /<svg([^>]*)>/,

@@ -1,6 +1,8 @@
 /**
  * SVG Registry for managing and creating SVG elements to embed in formulas
  */
+import DOMPurify from "dompurify";
+
 import type { IEnvironment } from "../../types/environment";
 import type { IValue, IVariable } from "../../types/variable";
 
@@ -31,6 +33,33 @@ type SVGContent = string | ((config: SVGConfig) => SVGElement);
 export type VariableSVGContent =
   | string
   | ((ctx: SVGGeneratorContext) => SVGElement | string);
+
+/**
+ * Sanitize an SVG string using DOMPurify with strict SVG-only profile
+ * This ensures only safe SVG markup is allowed while preserving animation support
+ */
+export const sanitizeSVG = (svgString: string): string => {
+  return DOMPurify.sanitize(svgString, {
+    USE_PROFILES: { svg: true },
+    ADD_TAGS: ["animate", "animateTransform", "animateMotion"],
+    ADD_ATTR: [
+      "attributeName",
+      "values",
+      "dur",
+      "repeatCount",
+      "fill",
+      "from",
+      "to",
+      "by",
+      "begin",
+      "end",
+      "calcMode",
+      "keyTimes",
+      "keySplines",
+      "type",
+    ],
+  });
+};
 
 /**
  * Parse an SVG string into an SVGElement

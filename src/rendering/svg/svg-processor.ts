@@ -8,6 +8,7 @@ import {
   SVGGeneratorContext,
   createSVGElement,
   parseSVGString,
+  sanitizeSVG,
 } from "./svg-registry";
 
 export interface SVGPlaceholder {
@@ -80,7 +81,9 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
             const result = variable.svgContent(context);
             // Handle both string and SVGElement returns
             if (typeof result === "string") {
-              svgElement = parseSVGString(result);
+              // Sanitize SVG string before parsing to prevent XSS attacks
+              const sanitizedResult = sanitizeSVG(result);
+              svgElement = parseSVGString(sanitizedResult);
             } else if (result instanceof SVGElement) {
               svgElement = result;
             } else {
@@ -121,7 +124,9 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
             return;
           }
         } else {
-          svgElement = createSVGElement(variable.svgContent, config);
+          // Sanitize SVG string before creating element to prevent XSS attacks
+          const sanitizedContent = sanitizeSVG(variable.svgContent);
+          svgElement = createSVGElement(sanitizedContent, config);
         }
       } else {
         return;
