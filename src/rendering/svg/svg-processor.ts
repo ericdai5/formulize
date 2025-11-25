@@ -3,7 +3,11 @@
  */
 import { computationStore } from "../../store/computation";
 import { VAR_SELECTORS } from "../css-classes";
-import { SVGConfig, createSVGElement } from "./svg-registry";
+import {
+  SVGConfig,
+  SVGGeneratorContext,
+  createSVGElement,
+} from "./svg-registry";
 
 export interface SVGPlaceholder {
   type: "icon" | "inline" | "custom";
@@ -63,7 +67,56 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
       if (variable.svgPath) {
         svgElement = createSVGElement(variable.svgPath, config);
       } else if (variable.svgContent) {
-        svgElement = createSVGElement(variable.svgContent, config);
+        if (typeof variable.svgContent === "function") {
+          try {
+            // Create context with variable data for generator function
+            const context: SVGGeneratorContext = {
+              ...config,
+              value: variable.value,
+              variable: variable,
+              environment: computationStore.environment || undefined,
+            };
+            svgElement = variable.svgContent(context);
+            if (!svgElement || !(svgElement instanceof SVGElement)) {
+              console.error(
+                `SVG generator function for ${varId} did not return a valid SVGElement`,
+                svgElement
+              );
+              return;
+            }
+            // If the SVG element is from a different document (e.g., from DOMParser),
+            // we need to import it into the current document
+            if (svgElement.ownerDocument !== document) {
+              svgElement = document.importNode(svgElement, true) as SVGElement;
+            }
+            
+            // Apply dimensions and styling similar to createSVGElement
+            const width = config.width;
+            const height = config.height;
+            if (height === undefined) {
+              svgElement.style.height = "0.8em";
+              svgElement.style.width = "auto";
+              svgElement.removeAttribute("height");
+              svgElement.removeAttribute("width");
+            } else {
+              svgElement.setAttribute("width", width?.toString() || "24");
+              svgElement.setAttribute("height", height?.toString() || "24");
+            }
+            svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
+            
+            if (config.className) {
+              svgElement.classList.add(...config.className.split(" "));
+            }
+          } catch (error) {
+            console.error(
+              `Error executing SVG generator function for ${varId}:`,
+              error
+            );
+            return;
+          }
+        } else {
+          svgElement = createSVGElement(variable.svgContent, config);
+        }
       } else {
         return;
       }
