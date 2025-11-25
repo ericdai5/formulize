@@ -2,6 +2,9 @@
  * SVG Registry for managing and creating SVG elements to embed in formulas
  */
 
+import type { IVariable, IValue } from "../../types/variable";
+import type { IEnvironment } from "../../types/environment";
+
 export interface SVGConfig {
   width?: number;
   height?: number;
@@ -12,8 +15,22 @@ export interface SVGConfig {
   preserveAspectRatio?: string;
 }
 
+/**
+ * Context passed to SVG generator functions when used in variables
+ */
+export interface SVGGeneratorContext extends SVGConfig {
+  value?: IValue;
+  variable?: IVariable;
+  environment?: IEnvironment;
+}
+
 // Type for SVG content - can be a string or a function that returns an SVG element
 type SVGContent = string | ((config: SVGConfig) => SVGElement);
+
+// Type for variable SVG content, including context for generators
+export type VariableSVGContent =
+  | string
+  | ((ctx: SVGGeneratorContext) => SVGElement);
 
 // Registry to store SVG definitions
 const svgRegistry = new Map<string, SVGContent>();

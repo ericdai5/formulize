@@ -73,8 +73,14 @@ function calculateLineDataPoints(
   const epsilon = (xMax - xMin) * 0.001;
   const effectiveXMin = xMin === 0 ? epsilon : xMin;
 
-  for (let i = 0; i <= 100; i++) {
-    const x = effectiveXMin + i * ((xMax - effectiveXMin) / 100);
+  // Adaptive scaling: more points for wider ranges, capped at 700
+  const range = xMax - effectiveXMin;
+  const basePoints = 100; // Start with 100 points for small ranges
+  const adaptivePoints = Math.min(700, Math.max(basePoints, Math.ceil(range * 30)));
+  const step = range / adaptivePoints;
+
+  for (let i = 0; i <= adaptivePoints; i++) {
+    const x = effectiveXMin + i * step;
     try {
       const vars = { ...allVariables, [xAxis]: x };
       let y: number | null = null;

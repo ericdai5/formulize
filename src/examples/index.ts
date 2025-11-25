@@ -15,6 +15,7 @@ import { summationBasic } from "./summationBasic";
 import { svgIntegration } from "./svg-integration";
 import { svgKineticEnergy2D } from "./svgLabels";
 import { vectorAddition } from "./vectorAddition";
+import { waveEquationSVG } from "./jsGeneratedSVG";
 
 export const examples = {
   kinetic2D,
@@ -29,6 +30,7 @@ export const examples = {
   summationBasic,
   svgIntegration,
   svgKineticEnergy2D,
+  waveEquationSVG,
   vectorAddition,
   matrixMultiplication,
   lossFunction,
@@ -49,6 +51,7 @@ export const exampleDisplayNames = {
   summationBasic: "Summation Basic",
   svgIntegration: "SVG Icons in Formulas",
   svgKineticEnergy2D: "Kinetic Energy 2D with SVG",
+  waveEquationSVG: "Wave Equation with JS-Generated SVG",
   vectorAddition: "Vector Addition",
   matrixMultiplication: "Matrix Multiplication 3x3",
   lossFunction: "Loss Function with Regularization",
