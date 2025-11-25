@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -44,7 +44,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     yLabelPos,
     yGrid = "show",
     vectors,
-    lines,
     width = PLOT2D_DEFAULTS.width,
     height = PLOT2D_DEFAULTS.height,
     interaction,
@@ -55,6 +54,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const yAxis = config.yAxis || autoDetected.yAxis;
   const xRange = config.xRange || autoDetected.xRange;
   const yRange = config.yRange || autoDetected.yRange;
+
+  // If lines is not provided, default to a single line
+  // This allows users to just specify xAxis/yAxis without explicitly defining lines
+  const lines = useMemo(() => config.lines || [{}], [config.lines]);
 
   // Calculate plot dimensions using helper function
   const { plotWidth, plotHeight, margin } = calculatePlotDimensions(
@@ -76,7 +79,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // Check if we have vectors or lines
     const hasVectors = vectors && vectors.length > 0;
-    const hasLines = lines && lines.length > 0 && xAxis && yAxis;
+    const hasLines = xAxis && yAxis && lines.length > 0;
 
     if (!hasVectors && !hasLines) return;
 

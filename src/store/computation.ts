@@ -401,21 +401,20 @@ class ComputationStore {
   private createMultiExpressionEvaluator(
     expressions: string[]
   ): EvaluationFunction {
-    return (variables: Record<string, number>) => {
-      if (!this.computationConfig || !this.environment) return {};
-
+    return (inputValues: Record<string, number>) => {
       // Use expressions if available
       if (!expressions || expressions.length === 0) {
         console.warn("No expressions available for symbolic algebra engine");
         return {};
       }
 
-      // Evaluate using the symbolic algebra engine with the stored environment directly
+      // Evaluate using the symbolic algebra engine with the computation store variables
       try {
+        const storeVariables = this.getVariables();
         const symbolResult = computeWithSymbolicEngine(
-          this.environment,
-          this.computationConfig,
-          variables
+          expressions,
+          storeVariables,
+          inputValues
         );
         return symbolResult;
       } catch (error) {
@@ -429,7 +428,7 @@ class ComputationStore {
   private createManualEvaluator(): EvaluationFunction {
     return (variables) => {
       if (!this.environment) return {};
-      // Create environment with updated variables from computation store
+      // Create variables with updated values from computation store
       const updatedVariables: Record<string, IVariable> = {};
       for (const [varName, computationVar] of this.variables.entries()) {
         updatedVariables[varName] = {
@@ -437,10 +436,10 @@ class ComputationStore {
           value: variables[varName] ?? computationVar.value,
         };
       }
-      const result = computeWithManualEngine({
-        ...this.environment,
-        variables: updatedVariables,
-      });
+      const result = computeWithManualEngine(
+        this.environment.formulas,
+        updatedVariables
+      );
 
       // After manual execution, sync back any set changes from manual functions
       for (const [varName, variable] of Object.entries(updatedVariables)) {

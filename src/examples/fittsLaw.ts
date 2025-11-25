@@ -4,6 +4,11 @@ export const fittsLaw = `const config = {
       id: "fitts-law",
       latex: "T = a + b \\\\log \\\\left( \\\\frac{2D}{W} \\\\right)",
       expression: "{T} = {a} + {b} * log((2 * {D}) / {W})"
+    },
+    {
+      id: "fitts-law-two",
+      latex: "T = a + c \\\\log \\\\left( \\\\frac{2D}{W} \\\\right)",
+      expression: "{T} = {a} + {c} * log((2 * {D}) / {W})"
     }
   ],
   variables: {
@@ -12,6 +17,7 @@ export const fittsLaw = `const config = {
     },
     a: 0.1,
     b: 0.3,
+    c: 0.5,
     D: {
       role: "input",
     },
@@ -24,17 +30,17 @@ export const fittsLaw = `const config = {
   },
   visualizations: [{
     type: "plot2d",
-    xAxis: "D",
-    xRange: [0, 200],
+    xAxis: "W",
     yAxis: "T",
-    yRange: [0, 2],
-    lines: [{ name: "line" }],
+    lines: [
+      { 
+        name: "fitts-law" 
+      },
+      {
+        name: "fitts-law-two"
+      }
+    ],
   }, {
     type: "plot2d",
-    xAxis: "W",
-    xRange: [0, 200],
-    yAxis: "T",
-    yRange: [0, 2],
-    lines: [{ name: "line" }],
   }]
 };`;

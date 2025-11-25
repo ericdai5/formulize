@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 
+import { solveSingularFormula } from "../../engine/singular-formula-solver";
 import { computationStore } from "../../store/computation";
 import { type ILine } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
@@ -11,6 +12,26 @@ export interface DataPoint {
 }
 
 /**
+ * Get the formula expression for a given line name/formula id
+ */
+function getFormulaExpression(lineName?: string): string | null {
+  const environment = computationStore.environment;
+  if (!environment?.formulas) return null;
+
+  // If lineName (formula id) is provided, find matching formula
+  if (lineName) {
+    const formula = environment.formulas.find((f) => f.id === lineName);
+    if (formula?.expression) {
+      return formula.expression;
+    }
+  }
+
+  // Default to first formula when no specific id is provided
+  const firstFormula = environment.formulas[0];
+  return firstFormula?.expression || null;
+}
+
+/**
  * Function to calculate data points for a specific line
  */
 function calculateLineDataPoints(
@@ -19,7 +40,8 @@ function calculateLineDataPoints(
   xMin: number,
   xMax: number,
   yMin: number,
-  yMax: number
+  yMax: number,
+  lineName?: string
 ): DataPoint[] {
   const points: DataPoint[] = [];
 
@@ -30,11 +52,15 @@ function calculateLineDataPoints(
     allVariables[id] = typeof value === "number" ? value : 0;
   }
 
-  // Try to get evaluation function from store
-  const debugState = computationStore.getDebugState();
-  if (!debugState.hasFunction) return [];
+  // Get the specific formula expression for this line
+  const expression = getFormulaExpression(lineName);
+
+  // Fallback to global evaluation function if no specific expression
   const evalFunction = computationStore.evaluateFormula;
-  if (!evalFunction) return [];
+  if (!expression) {
+    const debugState = computationStore.getDebugState();
+    if (!debugState.hasFunction || !evalFunction) return [];
+  }
 
   // Allow points slightly outside the visible range for smooth clipping
   // This prevents huge coordinate values while maintaining visual continuity
@@ -51,8 +77,16 @@ function calculateLineDataPoints(
     const x = effectiveXMin + i * ((xMax - effectiveXMin) / 100);
     try {
       const vars = { ...allVariables, [xAxis]: x };
-      const result = evalFunction(vars);
-      let y = result[yAxis];
+      let y: number | null = null;
+
+      if (expression) {
+        // Use the singular formula solver from the engine
+        y = solveSingularFormula(expression, vars, yAxis);
+      } else if (evalFunction) {
+        // Fallback to global evaluation
+        const result = evalFunction(vars);
+        y = result[yAxis] as number | null;
+      }
 
       if (typeof y === "number") {
         // Handle infinity by clamping to extended range (for asymptotes)
@@ -134,7 +168,8 @@ export function renderLines(
       xMin,
       xMax,
       yMin,
-      yMax
+      yMax,
+      lineConfig.name // Pass the line name to select the specific formula
     );
 
     if (points.length > 0) {

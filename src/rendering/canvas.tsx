@@ -23,6 +23,7 @@ import { executionStore } from "../store/execution";
 import { FormulaStore } from "../store/formulas";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
+import { IVisualization } from "../types/visualization";
 import { CanvasControls } from "./canvas-controls";
 import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 import { computeLabelVariableEdges } from "./util/edges";
@@ -198,17 +199,19 @@ const CanvasFlow = observer(
         environment.visualizations.length > 0
       ) {
         let vizY = 0; // Start visualizations at the same Y as formulas
-        environment.visualizations.forEach((visualization, index) => {
-          nodes.push({
-            id: `visualization-${index}`,
-            type: "visualization",
-            position: { x: 800, y: vizY }, // Position to the right of formulas
-            data: { visualization, environment },
-            draggable: true,
-            dragHandle: ".visualization-drag-handle",
-          });
-          vizY += 300; // Vertical spacing between visualization nodes (larger spacing)
-        });
+        environment.visualizations.forEach(
+          (visualization: IVisualization, index: number) => {
+            nodes.push({
+              id: `visualization-${index}`,
+              type: "visualization",
+              position: { x: 800, y: vizY }, // Position to the right of formulas
+              data: { visualization, environment },
+              draggable: true,
+              dragHandle: ".visualization-drag-handle",
+            });
+            vizY += 300; // Vertical spacing between visualization nodes (larger spacing)
+          }
+        );
       }
 
       return nodes;

@@ -268,7 +268,7 @@ export class Controller {
     if (environment?.variables) {
       for (const [varId, varDef] of Object.entries(environment.variables)) {
         const computationVar = computationStore.variables.get(varId);
-        if (computationVar) {
+        if (computationVar && typeof varDef === "object") {
           // Reset the value if defined in environment
           if (varDef.value !== undefined) {
             computationVar.value = varDef.value;
