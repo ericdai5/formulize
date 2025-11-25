@@ -2,41 +2,7 @@ export const matrixMultiplication = `const config = {
   formulas: [
     {
       id: "matrix-multiplication",
-      latex: "\\\\begin{bmatrix} {a_{11}} & {a_{12}} & {a_{13}} \\\\\\\\ {a_{21}} & {a_{22}} & {a_{23}} \\\\\\\\ {a_{31}} & {a_{32}} & {a_{33}} \\\\end{bmatrix} \\\\begin{bmatrix} {b_{11}} & {b_{12}} & {b_{13}} \\\\\\\\ {b_{21}} & {b_{22}} & {b_{23}} \\\\\\\\ {b_{31}} & {b_{32}} & {b_{33}} \\\\end{bmatrix} = \\\\begin{bmatrix} {c_{11}} & {c_{12}} & {c_{13}} \\\\\\\\ {c_{21}} & {c_{22}} & {c_{23}} \\\\\\\\ {c_{31}} & {c_{32}} & {c_{33}} \\\\end{bmatrix}",
-      manual: (vars) => {
-        // Matrix A
-        const a11 = vars["a_{11}"] || 0;
-        const a12 = vars["a_{12}"] || 0;
-        const a13 = vars["a_{13}"] || 0;
-        const a21 = vars["a_{21}"] || 0;
-        const a22 = vars["a_{22}"] || 0;
-        const a23 = vars["a_{23}"] || 0;
-        const a31 = vars["a_{31}"] || 0;
-        const a32 = vars["a_{32}"] || 0;
-        const a33 = vars["a_{33}"] || 0;
-
-        // Matrix B
-        const b11 = vars["b_{11}"] || 0;
-        const b12 = vars["b_{12}"] || 0;
-        const b13 = vars["b_{13}"] || 0;
-        const b21 = vars["b_{21}"] || 0;
-        const b22 = vars["b_{22}"] || 0;
-        const b23 = vars["b_{23}"] || 0;
-        const b31 = vars["b_{31}"] || 0;
-        const b32 = vars["b_{32}"] || 0;
-        const b33 = vars["b_{33}"] || 0;
-
-        // Matrix multiplication C = A * B
-        vars["c_{11}"] = a11 * b11 + a12 * b21 + a13 * b31;
-        vars["c_{12}"] = a11 * b12 + a12 * b22 + a13 * b32;
-        vars["c_{13}"] = a11 * b13 + a12 * b23 + a13 * b33;
-        vars["c_{21}"] = a21 * b11 + a22 * b21 + a23 * b31;
-        vars["c_{22}"] = a21 * b12 + a22 * b22 + a23 * b32;
-        vars["c_{23}"] = a21 * b13 + a22 * b23 + a23 * b33;
-        vars["c_{31}"] = a31 * b11 + a32 * b21 + a33 * b31;
-        vars["c_{32}"] = a31 * b12 + a32 * b22 + a33 * b32;
-        vars["c_{33}"] = a31 * b13 + a32 * b23 + a33 * b33;
-      }
+      latex: "\\\\begin{bmatrix} {a_{11}} & {a_{12}} & {a_{13}} \\\\\\\\ {a_{21}} & {a_{22}} & {a_{23}} \\\\\\\\ {a_{31}} & {a_{32}} & {a_{33}} \\\\end{bmatrix} \\\\begin{bmatrix} {b_{11}} & {b_{12}} & {b_{13}} \\\\\\\\ {b_{21}} & {b_{22}} & {b_{23}} \\\\\\\\ {b_{31}} & {b_{32}} & {b_{33}} \\\\end{bmatrix} = \\\\begin{bmatrix} {c_{11}} & {c_{12}} & {c_{13}} \\\\\\\\ {c_{21}} & {c_{22}} & {c_{23}} \\\\\\\\ {c_{31}} & {c_{32}} & {c_{33}} \\\\end{bmatrix}"
     }
   ],
   variables: {
@@ -130,7 +96,41 @@ export const matrixMultiplication = `const config = {
     }
   ],
   computation: {
-    engine: "manual"
+    engine: "manual",
+    manual: (vars) => {
+      // Matrix A
+      const a11 = vars["a_{11}"] || 0;
+      const a12 = vars["a_{12}"] || 0;
+      const a13 = vars["a_{13}"] || 0;
+      const a21 = vars["a_{21}"] || 0;
+      const a22 = vars["a_{22}"] || 0;
+      const a23 = vars["a_{23}"] || 0;
+      const a31 = vars["a_{31}"] || 0;
+      const a32 = vars["a_{32}"] || 0;
+      const a33 = vars["a_{33}"] || 0;
+
+      // Matrix B
+      const b11 = vars["b_{11}"] || 0;
+      const b12 = vars["b_{12}"] || 0;
+      const b13 = vars["b_{13}"] || 0;
+      const b21 = vars["b_{21}"] || 0;
+      const b22 = vars["b_{22}"] || 0;
+      const b23 = vars["b_{23}"] || 0;
+      const b31 = vars["b_{31}"] || 0;
+      const b32 = vars["b_{32}"] || 0;
+      const b33 = vars["b_{33}"] || 0;
+
+      // Matrix multiplication C = A * B
+      vars["c_{11}"] = a11 * b11 + a12 * b21 + a13 * b31;
+      vars["c_{12}"] = a11 * b12 + a12 * b22 + a13 * b32;
+      vars["c_{13}"] = a11 * b13 + a12 * b23 + a13 * b33;
+      vars["c_{21}"] = a21 * b11 + a22 * b21 + a23 * b31;
+      vars["c_{22}"] = a21 * b12 + a22 * b22 + a23 * b32;
+      vars["c_{23}"] = a21 * b13 + a22 * b23 + a23 * b33;
+      vars["c_{31}"] = a31 * b11 + a32 * b21 + a33 * b31;
+      vars["c_{32}"] = a31 * b12 + a32 * b22 + a33 * b32;
+      vars["c_{33}"] = a31 * b13 + a32 * b23 + a33 * b33;
+    }
   },
   fontSize: 0.5,
   labelFontSize: 0.6

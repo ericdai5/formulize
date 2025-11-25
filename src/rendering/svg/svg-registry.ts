@@ -1,6 +1,10 @@
 /**
  * SVG Registry for managing and creating SVG elements to embed in formulas
  */
+import DOMPurify from "dompurify";
+
+import type { IEnvironment } from "../../types/environment";
+import type { IValue, IVariable } from "../../types/variable";
 
 export interface SVGConfig {
   width?: number;
@@ -12,8 +16,64 @@ export interface SVGConfig {
   preserveAspectRatio?: string;
 }
 
+/**
+ * Context passed to SVG generator functions when used in variables
+ */
+export interface SVGGeneratorContext extends SVGConfig {
+  value?: IValue;
+  variable?: IVariable;
+  environment?: IEnvironment;
+}
+
 // Type for SVG content - can be a string or a function that returns an SVG element
 type SVGContent = string | ((config: SVGConfig) => SVGElement);
+
+// Type for variable SVG content, including context for generators
+// Generator functions can return either an SVGElement or a string (which will be auto-parsed)
+export type VariableSVGContent =
+  | string
+  | ((ctx: SVGGeneratorContext) => SVGElement | string);
+
+/**
+ * Sanitize an SVG string using DOMPurify with strict SVG-only profile
+ * This ensures only safe SVG markup is allowed while preserving animation support
+ */
+export const sanitizeSVG = (svgString: string): string => {
+  return DOMPurify.sanitize(svgString, {
+    USE_PROFILES: { svg: true },
+    ADD_TAGS: ["animate", "animateTransform", "animateMotion"],
+    ADD_ATTR: [
+      "attributeName",
+      "values",
+      "dur",
+      "repeatCount",
+      "fill",
+      "from",
+      "to",
+      "by",
+      "begin",
+      "end",
+      "calcMode",
+      "keyTimes",
+      "keySplines",
+      "type",
+    ],
+  });
+};
+
+/**
+ * Parse an SVG string into an SVGElement
+ * This is a helper to avoid boilerplate DOMParser code in svgContent functions
+ */
+export const parseSVGString = (svgString: string): SVGElement => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, "image/svg+xml");
+  const svg = doc.querySelector("svg");
+  if (!svg) {
+    throw new Error("Failed to parse SVG string");
+  }
+  return svg;
+};
 
 // Registry to store SVG definitions
 const svgRegistry = new Map<string, SVGContent>();

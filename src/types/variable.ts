@@ -1,3 +1,5 @@
+import type { VariableSVGContent } from "../rendering/svg/svg-registry";
+
 export const INPUT_VARIABLE_DEFAULT = {
   MIN_VALUE: -10 as number,
   MAX_VALUE: 10 as number,
@@ -27,7 +29,7 @@ export interface IVariable {
   labelDisplay?: "name" | "value" | "svg" | "none";
   index?: string;
   svgPath?: string;
-  svgContent?: string;
+  svgContent?: VariableSVGContent;
   svgSize?: { width: number; height: number };
   svgMode?: "replace" | "append";
   defaultCSS?: string;

@@ -10,7 +10,7 @@ interface ExtractResult {
 
 /**
  * Replace `// @view` comments with `view()` function calls for breakpoint debugging
- * Supports formats: 
+ * Supports formats:
  * - // @view variableName->"description"
  * - // @view variableName->"description"->"variableName"
  * @param code - The JavaScript code containing `// @view` comments
@@ -81,15 +81,15 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
     };
   }
 
-  // Environment loaded but no manual formula found
-  if (!environment.formulas?.[0]?.manual) {
+  // Environment loaded but no manual function found in computation config
+  if (!environment.computation?.manual) {
     return {
       code: null,
-      error: "No manual formula found in environment",
+      error: "No manual function found in computation config",
     };
   }
 
-  const func = environment.formulas[0].manual;
+  const func = environment.computation.manual;
   const functionString = func.toString();
 
   // Extract function body without any transformations

@@ -2,8 +2,7 @@ export const quadratic3D = `const config = {
   formulas: [
     {
       id: "quadratic-equation-3d",
-      latex: "y = ax^2 + bx + c",
-      expression: "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+      latex: "y = ax^2 + bx + c"
     }
   ],
   variables: {
@@ -42,7 +41,10 @@ export const quadratic3D = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "quadratic-equation-3d": "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+    }
   },
 
   visualizations: [
@@ -57,8 +59,7 @@ export const quadratic3D = `const config = {
       zVar: "y",
       zRange: [-20, 40],
       plotType: "surface",
-      width: 600,
-      height: 600,
+
       surfaces: [
         {
           id: "quadratic-equation-3d",

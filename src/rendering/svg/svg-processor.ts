@@ -3,7 +3,13 @@
  */
 import { computationStore } from "../../store/computation";
 import { VAR_SELECTORS } from "../css-classes";
-import { SVGConfig, createSVGElement } from "./svg-registry";
+import {
+  SVGConfig,
+  SVGGeneratorContext,
+  createSVGElement,
+  parseSVGString,
+  sanitizeSVG,
+} from "./svg-registry";
 
 export interface SVGPlaceholder {
   type: "icon" | "inline" | "custom";
@@ -63,7 +69,65 @@ export const injectVariableSVGs = (container: HTMLElement): void => {
       if (variable.svgPath) {
         svgElement = createSVGElement(variable.svgPath, config);
       } else if (variable.svgContent) {
-        svgElement = createSVGElement(variable.svgContent, config);
+        if (typeof variable.svgContent === "function") {
+          try {
+            // Create context with variable data for generator function
+            const context: SVGGeneratorContext = {
+              ...config,
+              value: variable.value,
+              variable: variable,
+              environment: computationStore.environment || undefined,
+            };
+            const result = variable.svgContent(context);
+            // Handle both string and SVGElement returns
+            if (typeof result === "string") {
+              // Sanitize SVG string before parsing to prevent XSS attacks
+              const sanitizedResult = sanitizeSVG(result);
+              svgElement = parseSVGString(sanitizedResult);
+            } else if (result instanceof SVGElement) {
+              svgElement = result;
+            } else {
+              console.error(
+                `SVG generator function for ${varId} must return a string or SVGElement`,
+                result
+              );
+              return;
+            }
+            // If the SVG element is from a different document (e.g., from DOMParser),
+            // we need to import it into the current document
+            if (svgElement.ownerDocument !== document) {
+              svgElement = document.importNode(svgElement, true) as SVGElement;
+            }
+
+            // Apply dimensions and styling similar to createSVGElement
+            const width = config.width;
+            const height = config.height;
+            if (height === undefined) {
+              svgElement.style.height = "0.8em";
+              svgElement.style.width = "auto";
+              svgElement.removeAttribute("height");
+              svgElement.removeAttribute("width");
+            } else {
+              svgElement.setAttribute("width", width?.toString() || "24");
+              svgElement.setAttribute("height", height?.toString() || "24");
+            }
+            svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+            if (config.className) {
+              svgElement.classList.add(...config.className.split(" "));
+            }
+          } catch (error) {
+            console.error(
+              `Error executing SVG generator function for ${varId}:`,
+              error
+            );
+            return;
+          }
+        } else {
+          // Sanitize SVG string before creating element to prevent XSS attacks
+          const sanitizedContent = sanitizeSVG(variable.svgContent);
+          svgElement = createSVGElement(sanitizedContent, config);
+        }
       } else {
         return;
       }

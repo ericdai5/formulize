@@ -1,6 +1,7 @@
 import { bayesWithCustomVisualization } from "./bayesVisualization";
 import { fittsLaw } from "./fittsLaw";
 import { gravitationalPotential } from "./gravitationalPotential";
+import { waveEquationSVG } from "./jsGeneratedSVG";
 import { kinetic2D } from "./kinetic2D";
 import { kinetic3D } from "./kinetic3D";
 import { lossFunction } from "./lossFunction";
@@ -29,6 +30,7 @@ export const examples = {
   summationBasic,
   svgIntegration,
   svgKineticEnergy2D,
+  waveEquationSVG,
   vectorAddition,
   matrixMultiplication,
   lossFunction,
@@ -49,6 +51,7 @@ export const exampleDisplayNames = {
   summationBasic: "Summation Basic",
   svgIntegration: "SVG Icons in Formulas",
   svgKineticEnergy2D: "Kinetic Energy 2D with SVG",
+  waveEquationSVG: "Wave Equation",
   vectorAddition: "Vector Addition",
   matrixMultiplication: "Matrix Multiplication 3x3",
   lossFunction: "Loss Function with Regularization",

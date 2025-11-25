@@ -2,28 +2,23 @@ export const parametric3D = `const config = {
   formulas: [
     {
       id: "x-and-t",
-      latex: "x = t",
-      expression: "{x} = {t}"
+      latex: "x = t"
     },
     {
       id: "y-and-t",
-      latex: "y = 1 - 2t",
-      expression: "{y} = 1 - 2 * {t}"
+      latex: "y = 1 - 2t"
     },
     {
       id: "z-and-t",
-      latex: "z = t",
-      expression: "{z} = {t}"
+      latex: "z = t"
     },
     {
       id: "x-plus-y-plus-z-equals-1",
-      latex: "1 = x + y + z",
-      expression: "{x} + {y} + {z} = 1"
+      latex: "1 = x + y + z"
     },
     {
       id: "x-and-z",
-      latex: "x - z = 0",
-      expression: "{x} - {z} = 0"
+      latex: "x - z = 0"
     }
   ],
   variables: {
@@ -51,7 +46,14 @@ export const parametric3D = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "x-and-t": "{x} = {t}",
+      "y-and-t": "{y} = 1 - 2 * {t}",
+      "z-and-t": "{z} = {t}",
+      "x-plus-y-plus-z-equals-1": "{x} + {y} + {z} = 1",
+      "x-and-z": "{x} - {z} = 0"
+    }
   },
 
   visualizations: [
@@ -66,8 +68,7 @@ export const parametric3D = `const config = {
       zVar: "z",
       zRange: [-10, 10],
       plotType: "surface",
-      width: 600,
-      height: 600,
+
       showColorbar: true,
       showCurrentPointInLegend: true,
       surfaces: [

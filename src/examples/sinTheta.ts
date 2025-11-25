@@ -2,8 +2,7 @@ export const sinTheta = `const config = {
   formulas: [
     {
       id: "sin-theta",
-      latex: "y = c \\\\sin(\\\\theta)",
-      expression: "{y} = {c} * sin({\\\\theta})"
+      latex: "y = c \\\\sin(\\\\theta)"
     }
   ],
   variables: {
@@ -34,7 +33,10 @@ export const sinTheta = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "sin-theta": "{y} = {c} * sin({\\\\theta})"
+    }
   },
 
   visualizations: [

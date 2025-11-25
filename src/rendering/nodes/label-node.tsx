@@ -235,6 +235,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         svgPath={variable?.svgPath}
         svgContent={variable?.svgContent}
         svgSize={variable?.svgSize}
+        variable={variable}
       />
     );
   } else {

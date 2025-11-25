@@ -16,19 +16,22 @@ export interface DataPoint {
  */
 function getFormulaExpression(lineName?: string): string | null {
   const environment = computationStore.environment;
-  if (!environment?.formulas) return null;
+  if (!environment?.computation?.expressions) return null;
 
-  // If lineName (formula id) is provided, find matching formula
-  if (lineName) {
-    const formula = environment.formulas.find((f) => f.id === lineName);
-    if (formula?.expression) {
-      return formula.expression;
-    }
+  const expressions = environment.computation.expressions;
+
+  // If lineName (formula id) is provided, find matching expression
+  if (lineName && expressions[lineName]) {
+    return expressions[lineName];
   }
 
-  // Default to first formula when no specific id is provided
-  const firstFormula = environment.formulas[0];
-  return firstFormula?.expression || null;
+  // Default to first expression when no specific id is provided
+  const expressionKeys = Object.keys(expressions);
+  if (expressionKeys.length > 0) {
+    return expressions[expressionKeys[0]];
+  }
+
+  return null;
 }
 
 /**
@@ -73,8 +76,17 @@ function calculateLineDataPoints(
   const epsilon = (xMax - xMin) * 0.001;
   const effectiveXMin = xMin === 0 ? epsilon : xMin;
 
-  for (let i = 0; i <= 100; i++) {
-    const x = effectiveXMin + i * ((xMax - effectiveXMin) / 100);
+  // Adaptive scaling: more points for wider ranges, capped at 700
+  const range = xMax - effectiveXMin;
+  const basePoints = 100; // Start with 100 points for small ranges
+  const adaptivePoints = Math.min(
+    700,
+    Math.max(basePoints, Math.ceil(range * 30))
+  );
+  const step = range / adaptivePoints;
+
+  for (let i = 0; i <= adaptivePoints; i++) {
+    const x = effectiveXMin + i * step;
     try {
       const vars = { ...allVariables, [xAxis]: x };
       let y: number | null = null;

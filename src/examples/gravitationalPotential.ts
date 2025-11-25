@@ -2,8 +2,7 @@ export const gravitationalPotential = `const config = {
   formulas: [
     {
       id: "gravitational-potential",
-      latex: "U = mgh",
-      expression: "{U} = {m} * {g} * {h}"
+      latex: "U = mgh"
     }
   ],
   variables: {
@@ -36,7 +35,10 @@ export const gravitationalPotential = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "gravitational-potential": "{U} = {m} * {g} * {h}"
+    }
   },
   
   visualizations: [
@@ -48,8 +50,7 @@ export const gravitationalPotential = `const config = {
       xRange: [0, 100],
       yAxis: "U",
       yRange: [0, 10000],
-      width: 600,
-      height: 600,
+
       lines: [
         {
           color: "#10b981",

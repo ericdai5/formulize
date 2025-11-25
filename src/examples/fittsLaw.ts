@@ -2,13 +2,11 @@ export const fittsLaw = `const config = {
   formulas: [
     {
       id: "fitts-law",
-      latex: "T = a + b \\\\log \\\\left( \\\\frac{2D}{W} \\\\right)",
-      expression: "{T} = {a} + {b} * log((2 * {D}) / {W})"
+      latex: "T = a + b \\\\log \\\\left( \\\\frac{2D}{W} \\\\right)"
     },
     {
       id: "fitts-law-two",
-      latex: "T = a + c \\\\log \\\\left( \\\\frac{2D}{W} \\\\right)",
-      expression: "{T} = {a} + {c} * log((2 * {D}) / {W})"
+      latex: "T = a + c \\\\log \\\\left( \\\\frac{2D}{W} \\\\right)"
     }
   ],
   variables: {
@@ -26,7 +24,11 @@ export const fittsLaw = `const config = {
     }
   },
   computation: {
-    engine: "symbolic-algebra"
+    engine: "symbolic-algebra",
+    expressions: {
+      "fitts-law": "{T} = {a} + {b} * log((2 * {D}) / {W})",
+      "fitts-law-two": "{T} = {a} + {c} * log((2 * {D}) / {W})"
+    }
   },
   visualizations: [{
     type: "plot2d",

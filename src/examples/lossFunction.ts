@@ -2,41 +2,7 @@ export const lossFunction = `const config = {
   formulas: [
     {
       id: "loss-function-regularization",
-      latex: "J(\\\\theta) = \\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} ||\\\\theta_j||^2",
-      manual: function(vars) {
-        var m = vars.m;
-        var y = vars.y;
-        var yHat = vars["\\\\hat{y}"];
-        var lambda = vars["\\\\lambda"];
-        var theta = vars["\\\\theta"];
-        var mse = 0;
-        for (var i = 0; i < m; i++) {
-          var index = i + 1;
-          var yi = y[i];
-          var yHati = yHat[i];
-          var error = yi - yHati;
-          mse += error * error;
-        }
-        mse = mse / m;
-        var regularization = 0;
-        for (var j = 0; j < theta.length; j++) {
-          var indexj = j + 1;
-          var thetaj = theta[j];
-          regularization += thetaj * thetaj;
-        }
-        regularization = lambda * regularization;
-        var loss = mse + regularization;
-        return loss;
-      },
-      variableLinkage: {
-        "index": "i",
-        "yi": "y^{(i)}",
-        "yHati": "\\\\hat{y}^{(i)}",
-        "lambda": "\\\\lambda",
-        "indexj": "j",
-        "thetaj": "\\\\theta_j",
-        "loss": "J(\\\\theta)"
-      },
+      latex: "J(\\\\theta) = \\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} ||\\\\theta_j||^2"
     },
   ],
   variables: {
@@ -113,7 +79,41 @@ export const lossFunction = `const config = {
   },
   computation: {
     engine: "manual",
-    mode: "step"
+    mode: "step",
+    manual: function(vars) {
+      var m = vars.m;
+      var y = vars.y;
+      var yHat = vars["\\\\hat{y}"];
+      var lambda = vars["\\\\lambda"];
+      var theta = vars["\\\\theta"];
+      var mse = 0;
+      for (var i = 0; i < m; i++) {
+        var index = i + 1;
+        var yi = y[i];
+        var yHati = yHat[i];
+        var error = yi - yHati;
+        mse += error * error;
+      }
+      mse = mse / m;
+      var regularization = 0;
+      for (var j = 0; j < theta.length; j++) {
+        var indexj = j + 1;
+        var thetaj = theta[j];
+        regularization += thetaj * thetaj;
+      }
+      regularization = lambda * regularization;
+      var loss = mse + regularization;
+      return loss;
+    },
+    variableLinkage: {
+      "index": "i",
+      "yi": "y^{(i)}",
+      "yHati": "\\\\hat{y}^{(i)}",
+      "lambda": "\\\\lambda",
+      "indexj": "j",
+      "thetaj": "\\\\theta_j",
+      "loss": "J(\\\\theta)"
+    },
   },
   fontSize: 0.7
 };`;

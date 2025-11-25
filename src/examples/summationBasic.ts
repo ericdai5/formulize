@@ -2,27 +2,7 @@ export const summationBasic = `const config = {
   formulas: [
     {
       id: "summation-basic",
-      latex: "E = \\\\sum_{x \\\\in X} x P(x)",
-      manual: function(vars) {
-        var xValues = vars.X;
-        var pxValues = vars["P(x)"];
-        var expectedValue = 0;
-        for (var i = 0; i < xValues.length; i++) {
-          var xi = xValues[i];
-          var probability = pxValues[i];
-          var currExpected = xi * probability;
-          // @view "x P(x)"->"The expected value for x should be:"->"currExpected"
-          expectedValue += currExpected;
-          // @view "E"->"Expected value E is updated"->"expectedValue"
-        }
-        return expectedValue;
-      },
-      variableLinkage: {
-        "xi": "x",
-        "probability": "P(x)",
-        "expectedValue": "E",
-        "currExpected": "c"
-      },
+      latex: "E = \\\\sum_{x \\\\in X} x P(x)"
     },
   ],
   variables: {
@@ -65,7 +45,27 @@ export const summationBasic = `const config = {
   },
   computation: {
     engine: "manual",
-    mode: "step"
+    mode: "step",
+    manual: function(vars) {
+      var xValues = vars.X;
+      var pxValues = vars["P(x)"];
+      var expectedValue = 0;
+      for (var i = 0; i < xValues.length; i++) {
+        var xi = xValues[i];
+        var probability = pxValues[i];
+        var currExpected = xi * probability;
+        // @view "x P(x)"->"The expected value for x should be:"->"currExpected"
+        expectedValue += currExpected;
+        // @view "E"->"Expected value E is updated"->"expectedValue"
+      }
+      return expectedValue;
+    },
+    variableLinkage: {
+      "xi": "x",
+      "probability": "P(x)",
+      "expectedValue": "E",
+      "currExpected": "c"
+    },
   },
   fontSize: 0.7
 };`;
