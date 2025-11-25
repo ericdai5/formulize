@@ -76,5 +76,5 @@ export const setOperations = `const config = {
       vars.U = [...new Set([...M, ...B])];
     }
   },
-  fontSize: 0.6
+  fontSize: 1.5
 };`;

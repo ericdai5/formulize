@@ -42,8 +42,8 @@ export const kinetic2D = `const config = {
       yAxis: "K",
     }
   ],
-  fontSize: 0.8,
-  labelFontSize: 0.6,
+  fontSize: 1.5,
+  labelFontSize:  1.0,
   labelNodeStyle: { outline: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', backgroundColor: '#ffffff' },
   formulaNodeStyle: { outline: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', backgroundColor: '#ffffff' }
 };`;

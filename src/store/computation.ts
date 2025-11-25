@@ -182,8 +182,8 @@ class ComputationStore {
           environment.fontSize >= 0.5 &&
           environment.fontSize <= 1
           ? environment.fontSize
-          : 0.8
-        : 0.8; // Default fontSize when not defined
+          : 1
+        : 1; // Default fontSize when not defined
 
     // Always set environment with validated fontSize
     this.environment = {

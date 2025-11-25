@@ -56,5 +56,5 @@ export const svgKineticEnergy2D = `const config = {
       ]
     }
   ],
-  fontSize: 0.8
+  fontSize: 1.5
 };`;

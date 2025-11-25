@@ -47,7 +47,7 @@ const loadMathJax = () => {
         packages: { "[+]": ["html", "color", "cancel"] },
       },
       chtml: {
-        scale: 2.0,
+        scale: 1.0,
       },
       startup: {
         pageReady: () => {

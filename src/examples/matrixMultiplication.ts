@@ -132,6 +132,6 @@ export const matrixMultiplication = `const config = {
       vars["c_{33}"] = a31 * b13 + a32 * b23 + a33 * b33;
     }
   },
-  fontSize: 0.5,
-  labelFontSize: 0.6
+  fontSize: 1.5,
+  labelFontSize:  1.0
 };`;

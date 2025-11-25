@@ -75,7 +75,7 @@ export const vectorAddition = `const config = {
       "vector-addition": "[{c_x}, {c_y}] = {k_1} * [{a_x}, {a_y}] + {k_2} * [{b_x}, {b_y}]"
     }
   },
-  fontSize: 0.6,
+  fontSize: 1.5,
   
   visualizations: [
     {

@@ -115,5 +115,5 @@ export const lossFunction = `const config = {
       "loss": "J(\\\\theta)"
     },
   },
-  fontSize: 0.7
+  fontSize: 1.5
 };`;

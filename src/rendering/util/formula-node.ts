@@ -49,7 +49,8 @@ export async function renderFormulaWithMathJax(
       processedLatex = latex; // Fallback to original latex
     }
 
-    const fontSize = environment?.fontSize || 1;
+    // Default to 2em for canvas formulas (was previously handled by MathJax scale: 2.0)
+    const fontSize = environment?.fontSize || 2;
 
     // Create div element via DOM APIs to avoid XSS risk
     const formulaDiv = document.createElement("div");
