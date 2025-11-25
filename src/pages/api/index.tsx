@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Info, PanelRightClose, PanelRightOpen } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
 
 import Editor from "../../components/api-code-editor";
 import ExampleSwitcher from "../../components/example-switcher";
@@ -22,6 +28,35 @@ export default function APIPage() {
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<FormulizeConfig | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  // Get example keys for navigation
+  const exampleKeys = useMemo(
+    () => Object.keys(formulaExamples) as (keyof typeof formulaExamples)[],
+    []
+  );
+
+  const currentIndex = useMemo(
+    () => (selectedTemplate ? exampleKeys.indexOf(selectedTemplate) : -1),
+    [selectedTemplate, exampleKeys]
+  );
+
+  const goToPrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      setSelectedTemplate(exampleKeys[currentIndex - 1]);
+    } else if (currentIndex === 0) {
+      // Wrap to last
+      setSelectedTemplate(exampleKeys[exampleKeys.length - 1]);
+    }
+  }, [currentIndex, exampleKeys]);
+
+  const goToNext = useCallback(() => {
+    if (currentIndex < exampleKeys.length - 1) {
+      setSelectedTemplate(exampleKeys[currentIndex + 1]);
+    } else if (currentIndex === exampleKeys.length - 1) {
+      // Wrap to first
+      setSelectedTemplate(exampleKeys[0]);
+    }
+  }, [currentIndex, exampleKeys]);
 
   // Execute code and extract config
   const executeCode = useCallback(async (codeToExecute: string) => {
@@ -60,7 +95,6 @@ export default function APIPage() {
     executeCode(code);
   }, [code, executeCode]);
 
-
   // Save code changes for the current template
   const handleCodeChange = useCallback(
     (newCode: string) => {
@@ -85,10 +119,28 @@ export default function APIPage() {
       >
         <div className="min-w-[400px] h-full flex flex-col">
           <div className="p-4 border-b border-slate-200 flex-shrink-0">
-            <ExampleSwitcher
-              onConfigSelect={setSelectedTemplate}
-              activeConfigKey={selectedTemplate}
-            />
+            <div className="flex items-center justify-between">
+              <ExampleSwitcher
+                onConfigSelect={setSelectedTemplate}
+                activeConfigKey={selectedTemplate}
+              />
+              <div className="flex items-center border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <button
+                  onClick={goToPrevious}
+                  className="p-2.5 hover:bg-slate-50 transition-colors border-r border-slate-200"
+                  title="Previous Example"
+                >
+                  <ChevronLeft className="w-4 h-4 text-slate-600" />
+                </button>
+                <button
+                  onClick={goToNext}
+                  className="p-2.5 hover:bg-slate-50 transition-colors"
+                  title="Next Example"
+                >
+                  <ChevronRight className="w-4 h-4 text-slate-600" />
+                </button>
+              </div>
+            </div>
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             <Editor
