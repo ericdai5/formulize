@@ -65,7 +65,7 @@ export const setOperations = `const config = {
       color: "#ef4444"
     }
   ],
-  computation: {
+  semantics: {
     engine: "manual",
     manual: (vars) => {
       // Set intersection: P = M ∩ B

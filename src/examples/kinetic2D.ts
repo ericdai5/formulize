@@ -26,7 +26,7 @@ export const kinetic2D = `const config = {
       name: "Velocity"
     }
   },
-  computation: {
+  semantics: {
     engine: "manual",
     expressions: {
       "kinetic-energy": "{K} = 0.5 * {m} * {v} * {v}"

@@ -95,7 +95,7 @@ export const matrixMultiplication = `const config = {
       }
     }
   ],
-  computation: {
+  semantics: {
     engine: "manual",
     manual: (vars) => {
       // Matrix A

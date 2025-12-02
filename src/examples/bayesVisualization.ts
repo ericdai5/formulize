@@ -62,7 +62,7 @@ export const bayesWithCustomVisualization = `const config = {
         name: "P(A)"
       }
     },
-    computation: {
+    semantics: {
       engine: "symbolic-algebra",
       expressions: {
         "bayes-theorem": "{P(B \\\\mid A)} = ({P(A \\\\mid B)} * {P(B)}) / {P(A)}",

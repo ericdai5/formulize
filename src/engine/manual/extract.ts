@@ -82,14 +82,14 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
   }
 
   // Environment loaded but no manual function found in computation config
-  if (!environment.computation?.manual) {
+  if (!environment.semantics?.manual) {
     return {
       code: null,
       error: "No manual function found in computation config",
     };
   }
 
-  const func = environment.computation.manual;
+  const func = environment.semantics.manual;
   const functionString = func.toString();
 
   // Extract function body without any transformations

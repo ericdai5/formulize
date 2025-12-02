@@ -41,21 +41,19 @@ export interface FormulizeInstance {
 function setupComputationEngine(environment: IEnvironment) {
   // Auto-detect engine if not specified
   let engine: "llm" | "symbolic-algebra" | "manual" = "llm"; // default
-
-  if (environment.computation?.engine) {
-    engine = environment.computation.engine;
+  if (environment.semantics?.engine) {
+    engine = environment.semantics.engine;
   } else {
     // Auto-detect: if computation.manual exists, use manual engine
     const hasComputationManual =
-      environment.computation?.manual &&
-      typeof environment.computation.manual === "function";
+      environment.semantics?.manual &&
+      typeof environment.semantics.manual === "function";
     if (hasComputationManual) {
       engine = "manual";
     }
   }
-
-  computationStore.setComputationEngine(engine);
-  computationStore.setComputationConfig(environment.computation || { engine });
+  computationStore.setEngine(engine);
+  computationStore.setSemantics(environment.semantics || { engine });
 }
 
 // Validate environment configuration
@@ -82,7 +80,7 @@ async function create(
     const environment: IEnvironment = {
       formulas: config.formulas,
       variables: normalizedVariables,
-      computation: config.computation,
+      semantics: config.semantics,
       visualizations: config.visualizations,
       controls: config.controls,
       fontSize: config.fontSize,
@@ -135,15 +133,15 @@ async function create(
     computationStore.setEnvironment(environment);
 
     // Extract computation expressions from computation.expressions
-    const symbolicFunctions: string[] = environment.computation?.expressions
-      ? Object.values(environment.computation.expressions)
+    const symbolicFunctions: string[] = environment.semantics?.expressions
+      ? Object.values(environment.semantics.expressions)
       : [];
 
     // Extract manual function from computation.manual
     const manualFunctions: IManual[] =
-      environment.computation?.manual &&
-      typeof environment.computation.manual === "function"
-        ? [environment.computation.manual]
+      environment.semantics?.manual &&
+      typeof environment.semantics.manual === "function"
+        ? [environment.semantics.manual]
         : [];
 
     const formulaObjects = environment.formulas;
@@ -244,7 +242,7 @@ async function create(
       },
       // Formula expression access
       getFormulaExpression: (id: string) => {
-        return environment.computation?.expressions?.[id] ?? null;
+        return environment.semantics?.expressions?.[id] ?? null;
       },
     };
     return instance;
@@ -287,7 +285,7 @@ const Formulize = {
     environment: IEnvironment,
     id: string
   ): string | null => {
-    return environment.computation?.expressions?.[id] ?? null;
+    return environment.semantics?.expressions?.[id] ?? null;
   },
 };
 

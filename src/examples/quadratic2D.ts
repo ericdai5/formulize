@@ -40,7 +40,7 @@ export const quadratic2D = `const config = {
       name: "Coefficient c"
     }
   },
-  computation: {
+  semantics: {
     engine: "symbolic-algebra",
     expressions: {
       "quadratic-equation": "{y} = {a} * {x} * {x} + {b} * {x} + {c}"

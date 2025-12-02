@@ -5,7 +5,7 @@ export interface FormulaNodeData {
   latex: string;
   environment?: {
     fontSize?: number;
-    computation?: {
+    semantics?: {
       mode?: string;
     };
   };

@@ -43,8 +43,8 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
       ctx.setViews(foundViews);
 
       // Set the user view code to the original manual function
-      if (environment?.computation?.manual) {
-        const manualFunction = environment.computation.manual;
+      if (environment?.semantics?.manual) {
+        const manualFunction = environment.semantics.manual;
         const functionString = manualFunction.toString();
         const formattedCode = beautify.js(functionString, {
           indent_size: 2,

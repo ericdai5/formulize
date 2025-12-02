@@ -4,7 +4,7 @@
  */
 export type IManual = (vars: Record<string, any>) => any;
 
-export interface IComputation {
+export interface ISemantics {
   engine: "symbolic-algebra" | "llm" | "manual";
   expressions?: Record<string, string>;
   manual?: IManual;
