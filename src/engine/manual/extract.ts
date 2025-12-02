@@ -81,11 +81,11 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
     };
   }
 
-  // Environment loaded but no manual function found in computation config
+  // Environment loaded but no manual function found in semantics config
   if (!environment.semantics?.manual) {
     return {
       code: null,
-      error: "No manual function found in computation config",
+      error: "No manual function found in semantics config",
     };
   }
 

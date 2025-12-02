@@ -23,13 +23,13 @@ export const summationBasic = `const config = {
     },
     X: {
       role: "input",
-      value: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       precision: 0,
     },
     "P(x)": {
       role: "input",
       key: "x",
-      value: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
+      default: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
       precision: 2,
       name: "Probability of x",
       latexDisplay: "name",

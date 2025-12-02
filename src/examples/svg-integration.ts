@@ -44,7 +44,7 @@ export const svgIntegration = `const config = {
     },
     N_0: {
       role: "input",
-      value: 1000,
+      default: 1000,
       name: "Substance Initial",
       range: [100, 10000],
       step: 100,
@@ -57,7 +57,7 @@ export const svgIntegration = `const config = {
     },
     "\\\\lambda": {
       role: "input",
-      value: 0.1,
+      default: 0.1,
       name: "Decay Constant",
       range: [0.01, 0.5],
       step: 0.01,
@@ -67,7 +67,7 @@ export const svgIntegration = `const config = {
     },
     t: {
       role: "input",
-      value: 5,
+      default: 5,
       name: "time",
       range: [0, 50],
       step: 0.5,

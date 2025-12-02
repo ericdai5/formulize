@@ -33,7 +33,7 @@ export const bayesWithCustomVisualization = `const config = {
       },
       "P(A \\\\cap B)": {
         role: "input",
-        value: 0.1,
+        default: 0.1,
         range: [0, 1],
         name: "P(A and B)"
       },
@@ -51,13 +51,13 @@ export const bayesWithCustomVisualization = `const config = {
       },
       "P(B)": {
         role: "input",
-        value: 0.2,
+        default: 0.2,
         range: [0, 1],
         name: "P(B)"
       },
       "P(A)": {
         role: "input",
-        value: 0.2,
+        default: 0.2,
         range: [0, 1],
         name: "P(A)"
       }

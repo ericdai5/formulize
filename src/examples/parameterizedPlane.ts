@@ -35,14 +35,14 @@ export const parameterizedPlane = `const config = {
     },
     t: {
       role: "input",
-      value: 0,
+      default: 0,
       range: [-10, 10],
       step: 0.1,
       name: "Parameter t"
     },
     w: {
       role: "input",
-      value: 0,
+      default: 0,
       range: [-10, 10],
       step: 0.1,
       name: "Parameter w"

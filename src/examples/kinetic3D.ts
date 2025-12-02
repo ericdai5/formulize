@@ -14,14 +14,14 @@ export const kinetic3D = `const config = {
     },
     m: {
       role: "input",
-      value: 2,
+      default: 2,
       range: [0.5, 5],
       units: "kg",
       name: "Mass"
     },
     v: {
       role: "input",
-      value: 3,
+      default: 3,
       range: [0.5, 10],
       units: "m/s",
       name: "Velocity"

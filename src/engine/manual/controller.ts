@@ -268,9 +268,9 @@ export class Controller {
       for (const [varId, varDef] of Object.entries(environment.variables)) {
         const computationVar = computationStore.variables.get(varId);
         if (computationVar && typeof varDef === "object") {
-          // Reset the value if defined in environment
-          if (varDef.value !== undefined) {
-            computationVar.value = varDef.value;
+          // Reset the value if defined in environment (using "default" property)
+          if (varDef.default !== undefined) {
+            computationVar.value = varDef.default;
           } else if (varDef.memberOf) {
             // For memberOf variables, clear the value (it will be set during execution)
             computationVar.value = undefined;

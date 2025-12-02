@@ -14,7 +14,7 @@ export const svgKineticEnergy2D = `const config = {
     },
     m: {
       role: "input",
-      value: 1,
+      default: 1,
       range: [0.1, 10],
       step: 1,
       units: "kg",
@@ -25,7 +25,7 @@ export const svgKineticEnergy2D = `const config = {
     },
     v: {
       role: "input",
-      value: 2,
+      default: 2,
       range: [0.1, 100],
       step: 1,
       units: "m/s",
