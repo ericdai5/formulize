@@ -121,5 +121,5 @@ export const svgIntegration = `const config = {
       ]
     }
   ],
-  fontSize: 1.3
+  fontSize: 1.5
 };`;

@@ -67,5 +67,5 @@ export const summationBasic = `const config = {
       "currExpected": "c"
     },
   },
-  fontSize: 0.7
+  fontSize: 1.5
 };`;
