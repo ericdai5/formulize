@@ -9,7 +9,7 @@ import {
 import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
-import { IComputation, IManual } from "../types/computation";
+import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IRole, IValue, IVariable } from "../types/variable";
 
@@ -35,10 +35,10 @@ class ComputationStore {
   accessor lastGeneratedCode: string | null = null;
 
   @observable
-  accessor computationEngine: "llm" | "symbolic-algebra" | "manual" = "llm";
+  accessor engine: "llm" | "symbolic-algebra" | "manual" = "llm";
 
   @observable
-  accessor computationConfig: IComputation | null = null;
+  accessor semantics: ISemantics | null = null;
 
   @observable
   accessor displayedFormulas: string[] = [];
@@ -100,7 +100,7 @@ class ComputationStore {
 
   private getDisplayCodeGeneratorContext(): DisplayCodeGeneratorContext {
     return {
-      computationConfig: this.computationConfig,
+      semantics: this.semantics,
       variables: this.variables,
       getComputedVariableSymbols: () => this.getComputedVarSymbols(),
       getInputVariableSymbols: () => this.getInputVarSymbols(),
@@ -108,7 +108,7 @@ class ComputationStore {
   }
 
   isStepMode(): boolean {
-    return this.computationConfig?.mode === "step";
+    return this.semantics?.mode === "step";
   }
 
   get evaluateFormula(): EvaluationFunction | null {
@@ -121,13 +121,13 @@ class ComputationStore {
   }
 
   @action
-  setComputationConfig(config: IComputation | null) {
-    this.computationConfig = config;
+  setSemantics(config: ISemantics | null) {
+    this.semantics = config;
   }
 
   @action
-  setComputationEngine(engine: "llm" | "symbolic-algebra" | "manual") {
-    this.computationEngine = engine;
+  setEngine(engine: "llm" | "symbolic-algebra" | "manual") {
+    this.engine = engine;
   }
 
   @action
@@ -364,10 +364,7 @@ class ComputationStore {
     this.setManualFunctions(manual);
 
     // Set up the evaluation function to handle all expressions
-    if (
-      this.computationEngine === "symbolic-algebra" &&
-      this.computationConfig
-    ) {
+    if (this.engine === "symbolic-algebra" && this.semantics) {
       this.evaluationFunction =
         this.createMultiExpressionEvaluator(expressions);
       const displayCode = generateSymbolicAlgebraDisplayCode(
@@ -375,10 +372,10 @@ class ComputationStore {
         this.getDisplayCodeGeneratorContext()
       );
       this.setLastGeneratedCode(displayCode);
-    } else if (this.computationEngine === "llm") {
+    } else if (this.engine === "llm") {
       // For LLM engine, create a multi-expression evaluator using the LLM approach
       await this.createLLMMultiExpressionEvaluator(expressions);
-    } else if (this.computationEngine === "manual" && this.computationConfig) {
+    } else if (this.engine === "manual" && this.semantics) {
       // For manual engine, create an evaluator using manual functions
       this.evaluationFunction = this.createManualEvaluator();
       const displayCode = generateManualDisplayCode(
@@ -426,15 +423,15 @@ class ComputationStore {
       if (!this.environment) return {};
       // Create variables with updated values from computation store
       const updatedVariables: Record<string, IVariable> = {};
-      for (const [varName, computationVar] of this.variables.entries()) {
+      for (const [varName, variable] of this.variables.entries()) {
         updatedVariables[varName] = {
-          ...computationVar,
-          value: variables[varName] ?? computationVar.value,
+          ...variable,
+          value: variables[varName] ?? variable.value,
         };
       }
 
       // Get computation-level manual function
-      const computationManual = this.computationConfig?.manual;
+      const computationManual = this.semantics?.manual;
 
       const result = computeWithManualEngine(
         updatedVariables,
@@ -571,9 +568,9 @@ class ComputationStore {
       })),
       lastGeneratedCode: this.lastGeneratedCode,
       hasFunction: !!this.evaluationFunction,
-      computationEngine: this.computationEngine,
+      engine: this.engine,
       displayedFormulas: this.displayedFormulas,
-      computationFunctions: this.symbolicFunctions,
+      symbolicFunctions: this.symbolicFunctions,
     };
   }
 

@@ -31,7 +31,7 @@ export {
 } from "./visualizations/custom/registry";
 
 // Export types
-export type { IComputation } from "./types/computation";
+export type { ISemantics } from "./types/computation";
 export type { IEnvironment } from "./types/environment";
 export type { IFormula } from "./types/formula";
 export type {

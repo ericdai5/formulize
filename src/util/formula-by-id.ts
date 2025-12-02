@@ -1,4 +1,4 @@
-import { IComputation } from "../types/computation";
+import { ISemantics } from "../types/computation";
 
 /**
  * Get formula expression by id from a provided configuration
@@ -8,15 +8,15 @@ import { IComputation } from "../types/computation";
  */
 export const getFormulaById = (
   id: string,
-  config?: { computation?: IComputation }
+  config?: { semantics?: ISemantics }
 ): string | null => {
   try {
-    if (!config || !config.computation || !config.computation.expressions) {
+    if (!config || !config.semantics || !config.semantics.expressions) {
       console.warn("No computation expressions provided to getFormulaById");
       return null;
     }
 
-    return config.computation.expressions[id] || null;
+    return config.semantics.expressions[id] || null;
   } catch (error) {
     console.error("Error getting formula by ID:", error);
     return null;

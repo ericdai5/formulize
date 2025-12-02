@@ -1,8 +1,8 @@
-import { IComputation } from "../types/computation";
+import { ISemantics } from "../types/computation";
 import { IVariable } from "../types/variable";
 
 export interface DisplayCodeGeneratorContext {
-  computationConfig: IComputation | null;
+  semantics: ISemantics | null;
   variables: Map<string, IVariable>;
   getComputedVariableSymbols: () => string[];
   getInputVariableSymbols: () => string[];
@@ -47,8 +47,8 @@ export function generateSymbolicAlgebraDisplayCode(
 
     // Check if there's an explicit mapping function in the config
     if (
-      context.computationConfig?.mappings &&
-      typeof context.computationConfig.mappings[varName] === "function"
+      context.semantics?.mappings &&
+      typeof context.semantics.mappings[varName] === "function"
     ) {
       // Use the mapping function if available
       functionCode += `

@@ -77,7 +77,7 @@ export const lossFunction = `const config = {
       precision: 0,
     }
   },
-  computation: {
+  semantics: {
     engine: "manual",
     mode: "step",
     manual: function(vars) {

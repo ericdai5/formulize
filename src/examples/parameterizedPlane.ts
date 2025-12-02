@@ -48,7 +48,7 @@ export const parameterizedPlane = `const config = {
       name: "Parameter w"
     }
   },
-  computation: {
+  semantics: {
     engine: "symbolic-algebra",
     expressions: {
       "x-parameterization": "{x} = 1 - {t} - {w}",

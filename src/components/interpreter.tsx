@@ -87,8 +87,8 @@ const DebugModal: React.FC<DebugModalProps> = observer(
         ctx.setViews(foundViews);
         ctx.setError(null);
         // Set the user view code to the original manual function
-        if (environment?.computation?.manual) {
-          const manualFunction = environment.computation.manual;
+        if (environment?.semantics?.manual) {
+          const manualFunction = environment.semantics.manual;
           const functionString = manualFunction.toString();
           // Use js-beautify to format the code with proper indentation
           const formattedCode = beautify.js(functionString, {

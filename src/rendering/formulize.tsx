@@ -54,9 +54,8 @@ const FormulaCanvas = observer(
             setError(null);
 
             // Update computation engine if specified
-            if (currentConfig.computation?.engine) {
-              computationStore.computationEngine =
-                currentConfig.computation.engine;
+            if (currentConfig.semantics?.engine) {
+              computationStore.engine = currentConfig.semantics.engine;
             }
 
             // Create the formula with the config

@@ -35,7 +35,7 @@ export const svgKineticEnergy2D = `const config = {
       svgSize: { width: 24, height: 24 }
     }
   },
-  computation: {
+  semantics: {
     engine: "manual",
     expressions: {
       "kinetic-energy": "{K} = 0.5 * {m} * {v} * {v}"

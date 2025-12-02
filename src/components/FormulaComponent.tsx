@@ -242,8 +242,8 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
           id: id,
           environment: {
             fontSize: computationStore.environment?.fontSize || 1,
-            computation: {
-              mode: computationStore.computationEngine,
+            semantics: {
+              mode: computationStore.engine,
             },
           },
         },

@@ -16,9 +16,9 @@ export interface DataPoint {
  */
 function getFormulaExpression(lineName?: string): string | null {
   const environment = computationStore.environment;
-  if (!environment?.computation?.expressions) return null;
+  if (!environment?.semantics?.expressions) return null;
 
-  const expressions = environment.computation.expressions;
+  const expressions = environment.semantics.expressions;
 
   // If lineName (formula id) is provided, find matching expression
   if (lineName && expressions[lineName]) {

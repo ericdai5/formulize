@@ -27,7 +27,7 @@ const engineDescriptions = {
 const EvaluationFunctionPane = observer(
   ({ className = "" }: EvaluationFunctionPaneProps) => {
     const code = computationStore.lastGeneratedCode;
-    const engineType = computationStore.computationEngine;
+    const engineType = computationStore.engine;
 
     const getDisplayCode = () => {
       // For both engine types, use the generated code from the computation store
