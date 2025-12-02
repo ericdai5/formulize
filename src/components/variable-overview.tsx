@@ -9,7 +9,7 @@ interface StorePaneProps {
 const StorePane = observer(({ className = "" }: StorePaneProps) => {
   const getVariableData = () => {
     const formulas = computationStore.displayedFormulas;
-    const computationFunctions = computationStore.symbolicFunctions;
+    const symbolicFunctions = computationStore.symbolicFunctions;
 
     return {
       variables: Array.from(computationStore.variables.entries()).map(
@@ -24,7 +24,7 @@ const StorePane = observer(({ className = "" }: StorePaneProps) => {
       formulas: formulas.map((latex, index) => ({
         index,
         latex,
-        expression: computationFunctions[index] || "N/A",
+        expression: symbolicFunctions[index] || "N/A",
       })),
     };
   };

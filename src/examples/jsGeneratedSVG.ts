@@ -62,7 +62,7 @@ const config = {
       units: "s",
     }
   },
-  computation: {
+  semantics: {
     engine: "manual",
     expressions: {
       "wave-equation": "{w} = {A} * sin(2 * pi * {f} * {t} + {phi})"

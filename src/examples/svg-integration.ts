@@ -96,7 +96,7 @@ export const svgIntegration = `const config = {
       svgMode: "replace"
     }
   },
-  computation: {
+  semantics: {
     engine: "manual",
     expressions: {
       "radioactive-decay": "{N} = {N_0} * exp(-{\\\\lambda} * {t})"

@@ -43,7 +43,7 @@ export const summationBasic = `const config = {
       labelDisplay: "value",
     }
   },
-  computation: {
+  semantics: {
     engine: "manual",
     mode: "step",
     manual: function(vars) {

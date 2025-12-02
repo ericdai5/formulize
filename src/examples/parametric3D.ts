@@ -45,7 +45,7 @@ export const parametric3D = `const config = {
       name: "Parameter t"
     }
   },
-  computation: {
+  semantics: {
     engine: "symbolic-algebra",
     expressions: {
       "x-and-t": "{x} = {t}",

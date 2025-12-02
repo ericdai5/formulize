@@ -27,7 +27,7 @@ export const kinetic3D = `const config = {
       name: "Velocity"
     }
   },
-  computation: {
+  semantics: {
     engine: "symbolic-algebra",
     expressions: {
       "kinetic-energy-3d": "{K} = 0.5 * {m} * {v} * {v}"

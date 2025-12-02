@@ -32,7 +32,7 @@ export const sinTheta = `const config = {
       labelDisplay: "none"
     }
   },
-  computation: {
+  semantics: {
     engine: "symbolic-algebra",
     expressions: {
       "sin-theta": "{y} = {c} * sin({\\\\theta})"

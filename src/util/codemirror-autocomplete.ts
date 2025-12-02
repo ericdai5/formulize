@@ -100,9 +100,9 @@ const environmentCompletions: CompletionOption[] = [
     info: "Variables record (Record<string, IVariable>)",
   },
   {
-    label: "computation",
+    label: "semantics",
     type: "property",
-    info: "Computation configuration (IComputation)",
+    info: "Semantics configuration (ISemantics)",
   },
   {
     label: "visualizations",
@@ -121,9 +121,12 @@ const environmentCompletions: CompletionOption[] = [
   },
 ];
 
-// Computation completions
-const computationCompletions: CompletionOption[] = [
-  { label: "engine", type: "property", info: "Computation engine type" },
+// Semantics completions
+const semanticsCompletions: CompletionOption[] = [
+  { label: "engine", type: "property", info: "Semantics engine type" },
+  { label: "expressions", type: "property", info: "Expressions mapping (optional)" },
+  { label: "manual", type: "property", info: "Manual function (optional)" },
+  { label: "variableLinkage", type: "property", info: "Variable linkage (optional)" },
   { label: "mappings", type: "property", info: "Function mappings (optional)" },
   { label: "apiKey", type: "property", info: "API key (optional)" },
   { label: "model", type: "property", info: "Model name (optional)" },
@@ -235,10 +238,10 @@ function getCompletionContext(context: CompletionContext): string {
       return "environment";
     }
     if (
-      beforeBrace.includes("IComputation") ||
-      beforeBrace.includes("computation")
+      beforeBrace.includes("ISemantics") ||
+      beforeBrace.includes("semantics")
     ) {
-      return "computation";
+      return "semantics";
     }
 
     return "object";
@@ -287,15 +290,15 @@ export function editorCompletions(
     case "environment":
       options = [...environmentCompletions, ...jsCompletions];
       break;
-    case "computation":
-      options = [...computationCompletions, ...jsCompletions];
+    case "semantics":
+      options = [...semanticsCompletions, ...jsCompletions];
       break;
     case "object":
       options = [
         ...variableCompletions,
         ...formulaCompletions,
         ...environmentCompletions,
-        ...computationCompletions,
+        ...semanticsCompletions,
         ...jsCompletions,
       ];
       break;
@@ -306,7 +309,7 @@ export function editorCompletions(
         ...variableCompletions,
         ...formulaCompletions,
         ...environmentCompletions,
-        ...computationCompletions,
+        ...semanticsCompletions,
       ];
       break;
   }
@@ -347,12 +350,12 @@ export function jsPatternCompletions(
       label: "IEnvironment",
       type: "interface",
       info: "Environment interface",
-      apply: "{\n  formulas: [],\n  variables: {},\n  computation: {}\n}",
+      apply: "{\n  formulas: [],\n  variables: {},\n  semantics: {}\n}",
     },
     {
-      label: "IComputation",
+      label: "ISemantics",
       type: "interface",
-      info: "Computation interface",
+      info: "Semantics interface",
       apply: '{\n  engine: ""\n}',
     },
   ];
