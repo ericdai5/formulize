@@ -12,7 +12,7 @@ export const lossFunction = `const config = {
     },
     m: {
       role: "input",
-      value: 3,
+      default: 3,
       latexDisplay: "value",
       precision: 0,
     },
@@ -32,17 +32,17 @@ export const lossFunction = `const config = {
     },
     y: {
       role: "input",
-      value: [2.5, 3.0, 7.0],
+      default: [2.5, 3.0, 7.0],
       name: "Actual value of the i-th example"
     },
     "\\\\hat{y}": {
       role: "input",
-      value: [2.0, 4.0, 5.0],
+      default: [2.0, 4.0, 5.0],
       name: "Predicted value of the i-th example"
     },
     "\\\\lambda": {
       role: "input",
-      value: 0.1,
+      default: 0.1,
       name: "Regularization parameter",
       latexDisplay: "value",
     },
@@ -54,13 +54,13 @@ export const lossFunction = `const config = {
     },
     "\\\\theta": {
       role: "input",
-      value: [0.5, -1.0],
+      default: [0.5, -1.0],
       name: "Parameters of the model",
     },
     K: {
       role: "input",
       name: "Number of features",
-      value: 2,
+      default: 2,
       latexDisplay: "value",
       precision: 0,
     },

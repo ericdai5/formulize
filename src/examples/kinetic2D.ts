@@ -13,14 +13,14 @@ export const kinetic2D = `const config = {
     },
     m: {
       role: "input",
-      value: 1,
+      default: 1,
       range: [0.1, 10],
       step: 1,
       name: "Mass"
     },
     v: {
       role: "input",
-      value: 2,
+      default: 2,
       range: [0.1, 100],
       step: 1,
       name: "Velocity"

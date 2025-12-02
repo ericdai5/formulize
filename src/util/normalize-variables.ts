@@ -3,21 +3,27 @@
  *
  * Supports the following input formats:
  * - Number: `a: 0.1` → constant with that value
- * - Minimal object: `W: { role: "input" }` → input with default value 0
+ * - User-facing object with "default": `W: { role: "input", default: 5 }` → input with value 5
+ * - Minimal object: `W: { role: "input" }` → input with default value 1
  * - Minimal computed: `T: { role: "computed" }` → computed variable
- * - Full IVariable: used as-is
+ * - Full IVariable (internal): used as-is
+ *
+ * Note: User-facing API uses "default" property, which is converted to internal "value" property
  */
 import {
   INPUT_VARIABLE_DEFAULT,
   IVariable,
-  IVariableInput,
-  IVariablesInput,
+  IVariableUserInput,
+  IVariablesUserInput,
 } from "../types/variable";
 
 /**
- * Normalize a single variable input to a full IVariable object
+ * Normalize a single variable input to a full IVariable object.
+ * Converts from user-facing format (with "default") to internal format (with "value").
  */
-export function normalizeVariable(input: IVariableInput): IVariable {
+export function normalizeVariable(
+  input: IVariableUserInput | number
+): IVariable {
   // Case 1: Input is just a number - becomes a constant
   if (typeof input === "number") {
     return {
@@ -25,9 +31,28 @@ export function normalizeVariable(input: IVariableInput): IVariable {
       value: input,
     };
   }
-  // Case 2: Input is an IVariable object - apply smart defaults
-  const normalized: IVariable = { ...input };
 
+  // Case 2: Input is a user-facing IVariableUserInput - convert "default" to "value"
+  // Strict check: reject if "value" property is used
+  if ('value' in input) {
+    throw new Error(
+      'Variable configuration uses "value" property which is not allowed. ' +
+      'Use "default" instead. For example: { role: "input", default: 5 }'
+    );
+  }
+
+  const { default: defaultValue, ...rest } = input;
+  const normalized: IVariable = {
+    ...rest,
+    value: defaultValue,
+  };
+  return applySmartDefaults(normalized);
+}
+
+/**
+ * Apply smart defaults to a variable based on its role
+ */
+function applySmartDefaults(normalized: IVariable): IVariable {
   // Apply smart defaults based on role
   if (normalized.role === "input") {
     // Set default value if not provided (only for scalar inputs, not sets)
@@ -56,17 +81,18 @@ export function normalizeVariable(input: IVariableInput): IVariable {
 }
 
 /**
- * Normalize all variables in a config object
+ * Normalize all variables in a config object.
+ * Converts from user-facing environment format to internal IVariable format.
  */
 export function normalizeVariables(
-  variables: IVariablesInput | Record<string, IVariable> | undefined
+  variables: IVariablesUserInput | undefined
 ): Record<string, IVariable> {
   if (!variables) {
     return {};
   }
   const normalized: Record<string, IVariable> = {};
   for (const [varId, input] of Object.entries(variables)) {
-    normalized[varId] = normalizeVariable(input as IVariableInput);
+    normalized[varId] = normalizeVariable(input);
   }
   return normalized;
 }

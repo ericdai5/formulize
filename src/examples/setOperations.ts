@@ -12,28 +12,28 @@ export const setOperations = `const config = {
   variables: {
     M: {
       role: "input",
-      value: ["elephant", "platypus", "kangaroo", "dog", "giraffe"],
+      default: ["elephant", "platypus", "kangaroo", "dog", "giraffe"],
       name: "Mammals",
       description: "Set of mammals",
       labelDisplay: "value"
     },
     B: {
       role: "input",
-      value: ["platypus", "duck", "goose", "parrot", "flamingo"],
+      default: ["platypus", "duck", "goose", "parrot", "flamingo"],
       name: "Billed Animals",
       description: "Set of animals with bills",
       labelDisplay: "value"
     },
     P: {
       role: "computed",
-      value: [],
+      default: [],
       name: "Platypus",
       description: "Intersection of mammals and billed animals",
       labelDisplay: "value"
     },
     U: {
       role: "computed",
-      value: [],
+      default: [],
       name: "All Animals",
       description: "Union of mammals and billed animals",
       labelDisplay: "value"

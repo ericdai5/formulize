@@ -1,12 +1,12 @@
 import { ISemantics } from "./computation";
 import { IControls } from "./control";
 import { IFormula } from "./formula";
-import { IVariablesInput } from "./variable";
+import { IVariablesUserInput } from "./variable";
 import { IVisualization } from "./visualization";
 
 export interface IEnvironment {
   formulas: IFormula[];
-  variables: IVariablesInput;
+  variables: IVariablesUserInput;
   semantics: ISemantics;
   visualizations?: IVisualization[];
   controls?: IControls[];

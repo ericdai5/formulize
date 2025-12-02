@@ -38,6 +38,13 @@ export interface IVariable {
 }
 
 /**
+ * User-facing variable definition that uses "default" instead of "value"
+ */
+export type IVariableUserInput = Omit<IVariable, "value"> & {
+  default?: IValue;
+};
+
+/**
  * Variable input format. Users can specify variables as:
  * - A number: `a: 0.1` (becomes a constant with that value)
  * - An IVariable object: `W: { role: "input" }` (role is required)
@@ -45,9 +52,10 @@ export interface IVariable {
 export type IVariableInput = number | IVariable;
 
 /**
- * User-facing variables config.
+ * User-facing variables config (for environment).
+ * Uses "default" instead of "value" for better clarity in user-facing API.
  */
-export type IVariablesInput = Record<string, IVariableInput>;
+export type IVariablesUserInput = Record<string, number | IVariableUserInput>;
 
 /**
  * Internal type for variable drag handler state

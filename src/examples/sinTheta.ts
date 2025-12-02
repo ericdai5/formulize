@@ -14,7 +14,7 @@ export const sinTheta = `const config = {
     },
     c: {
       role: "input",
-      value: 1,
+      default: 1,
       range: [-3, 3],
       step: 0.1,
       precision: 1,
@@ -24,7 +24,7 @@ export const sinTheta = `const config = {
     },
     "\\\\theta": {
       role: "constant",
-      value: 0,
+      default: 0,
       range: [-2 * Math.PI, 2 * Math.PI],
       step: 0.01,
       name: "x",

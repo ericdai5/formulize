@@ -14,21 +14,21 @@ export const gravitationalPotential = `const config = {
     },
     m: {
       role: "input",
-      value: 1,
+      default: 1,
       range: [0.1, 100],
       units: "kg",
       name: "Mass"
     },
     g: {
       role: "input",
-      value: 9.8,
+      default: 9.8,
       range: [1, 20],
       units: "m/s²",
       name: "Gravity"
     },
     h: {
       role: "input",
-      value: 10,
+      default: 10,
       range: [0, 1000],
       units: "m",
       name: "Height"

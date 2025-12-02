@@ -9,7 +9,7 @@ const config = {
   variables: {
     A: {
       role: "input",
-      value: 2,
+      default: 2,
       name: "Amplitude",
       range: [0.5, 5],
       step: 0.1,
@@ -22,7 +22,7 @@ const config = {
     },
     f: {
       role: "input",
-      value: 1,
+      default: 1,
       name: "Frequency",
       range: [-3, 3],
       step: 0.1,
@@ -35,7 +35,7 @@ const config = {
     },
     phi: {
       role: "input",
-      value: 0,
+      default: 0,
       name: "Phase",
       range: [-6.28, 6.28],
       step: 0.1,
@@ -54,7 +54,7 @@ const config = {
     },
     t: {
       role: "input",
-      value: 0,
+      default: 0,
       name: "Time",
       range: [0, 10],
       step: 0.1,

@@ -39,7 +39,7 @@ export const parametric3D = `const config = {
     },
     t: {
       role: "input",
-      value: 0,
+      default: 0,
       range: [-2, 2],
       step: 0.1,
       name: "Parameter t"

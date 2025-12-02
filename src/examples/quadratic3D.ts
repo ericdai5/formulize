@@ -13,28 +13,28 @@ export const quadratic3D = `const config = {
     },
     x: {
       role: "input",
-      value: 0,
+      default: 0,
       range: [-5, 5],
       step: 0.1,
       name: "x"
     },
     a: {
       role: "input",
-      value: 1,
+      default: 1,
       range: [-2, 2],
       step: 0.1,
       name: "Coefficient a"
     },
     b: {
       role: "input",
-      value: 0,
+      default: 0,
       range: [-5, 5],
       step: 0.1,
       name: "Coefficient b"
     },
     c: {
       role: "input",
-      value: 0,
+      default: 0,
       range: [-10, 10],
       step: 0.1,
       name: "Coefficient c"

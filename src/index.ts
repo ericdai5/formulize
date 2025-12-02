@@ -38,7 +38,8 @@ export type {
   IVariable,
   IValue,
   IVariableInput,
-  IVariablesInput,
+  IVariableUserInput,
+  IVariablesUserInput,
 } from "./types/variable";
 export type { IVisualization } from "./types/visualization";
 export type { IPlot2D } from "./types/plot2d";
