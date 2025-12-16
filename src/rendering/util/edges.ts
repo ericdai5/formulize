@@ -39,6 +39,11 @@ export function computeEdgesForFormula(
     const varId = labelNodeData?.varId;
     if (!varId || !shouldLabelBeVisible(varId)) return;
 
+    // Skip labels that are not yet visible (opacity 0 or 0.01)
+    if (labelNode.style && (labelNode.style.opacity === 0 || labelNode.style.opacity === 0.01)) {
+      return;
+    }
+
     // Find matching variable nodes for this formula using the helper
     const matchingVariableNodes = findVariableNodesByVarId(allNodes, id, varId);
 
