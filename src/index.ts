@@ -18,8 +18,15 @@ export { VisualizationComponent } from "./components/VisualizationComponent";
 export { FormulizeProvider } from "./components/FormulizeProvider";
 export { useFormulize } from "./components/useFormulize";
 
+// Export interpreter controls for step-through debugging
+export { InterpreterControl } from "./components/InterpreterControl";
+export type { InterpreterControlProps } from "./components/InterpreterControl";
+
 // Export computation API
 export { computationStore } from "./store/computation";
+
+// Export execution store for interpreter state management
+export { executionStore } from "./store/execution";
 
 // Export custom visualization registration functions
 export {

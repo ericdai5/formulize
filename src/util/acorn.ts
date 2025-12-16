@@ -1,45 +1,4 @@
-// Acorn parser types based on documentation
-interface AcornOptions {
-  ecmaVersion?: number | "latest";
-  sourceType?: "script" | "module" | "commonjs";
-  allowReturnOutsideFunction?: boolean;
-  allowImportExportEverywhere?: boolean;
-  allowAwaitOutsideFunction?: boolean;
-  allowSuperOutsideMethod?: boolean;
-  allowHashBang?: boolean;
-  checkPrivateFields?: boolean;
-  locations?: boolean;
-  ranges?: boolean;
-  preserveParens?: boolean;
-  strictSemicolons?: boolean;
-  allowTrailingCommas?: boolean;
-  allowReserved?: boolean | "never";
-  onInsertedSemicolon?: (offset: number) => void;
-  onTrailingComma?: (offset: number) => void;
-  onToken?: ((token: object) => void) | object[];
-  onComment?:
-    | ((block: boolean, text: string, start: number, end: number) => void)
-    | object[];
-  program?: object;
-  sourceFile?: string;
-  directSourceFile?: string;
-}
-
-interface AcornNode {
-  type: string;
-  start?: number;
-  end?: number;
-  [key: string]: unknown;
-}
-
-// Extend Window interface to include acorn parser
-declare global {
-  interface Window {
-    acorn?: {
-      parse: (code: string, options?: AcornOptions) => AcornNode;
-    };
-  }
-}
+import * as acorn from "acorn";
 
 /**
  * Helper function to extract all declared variable names from JavaScript code.
@@ -55,18 +14,11 @@ declare global {
  */
 export const extractVariableNames = (code: string): string[] => {
   try {
-    // Use acorn parser from the JS-Interpreter to parse the code
-    if (!window.acorn || !window.acorn.parse) {
-      console.warn("Acorn parser not available");
-      return [];
-    }
-
-    const ast = window.acorn.parse(code, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ast = acorn.parse(code, {
       ecmaVersion: 2020,
       allowReturnOutsideFunction: true,
-      strictSemicolons: false,
-      allowTrailingCommas: true,
-    });
+    }) as any;
 
     const variableNames: string[] = [];
 
@@ -90,6 +42,9 @@ export const extractVariableNames = (code: string): string[] => {
                 for (const prop of declaration.id.properties) {
                   if (prop.value && prop.value.name) {
                     variableNames.push(prop.value.name);
+                  } else if (prop.key && prop.key.name) {
+                    // Handle shorthand property { x } = obj
+                    variableNames.push(prop.key.name);
                   }
                 }
               }
@@ -172,12 +127,6 @@ export const extractViews = (
   column?: number;
 }> => {
   try {
-    // Use acorn parser from the JS-Interpreter to parse the code
-    if (!window.acorn || !window.acorn.parse) {
-      console.warn("Acorn parser not available");
-      return [];
-    }
-
     const breakpoints: Array<{
       start: number;
       end: number;
@@ -186,13 +135,12 @@ export const extractViews = (
     }> = [];
 
     // Parse the code to get the AST
-    const ast = window.acorn.parse(code, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ast = acorn.parse(code, {
       ecmaVersion: 2020,
       allowReturnOutsideFunction: true,
-      strictSemicolons: false,
-      allowTrailingCommas: true,
       locations: true, // Enable line/column tracking
-    });
+    }) as any;
 
     // Walk through the AST to find view() function calls
     const walkAst = (node: any) => {

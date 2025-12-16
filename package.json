@@ -1,7 +1,7 @@
 {
   "name": "formulize-math",
   "private": false,
-  "version": "0.1.21",
+  "version": "0.1.25",
   "description": "A powerful formula editor and visualization library for mathematical expressions",
   "type": "module",
   "main": "./dist/formulize.cjs.js",
@@ -12,6 +12,11 @@
       "import": "./dist/formulize.es.js",
       "require": "./dist/formulize.cjs.js",
       "types": "./dist/types/index.d.ts"
+    },
+    "./vite-plugin": {
+      "import": "./dist/vite-plugin.es.js",
+      "require": "./dist/vite-plugin.cjs.js",
+      "types": "./dist/types/vite-plugin.d.ts"
     },
     "./style.css": "./dist/style.css"
   },
@@ -59,7 +64,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode production",
+    "build": "vite build --mode production && vite build --config vite.config.plugin.ts --mode production",
     "deploy": "rm -rf docs/forge/* && cp -r dist/* docs/forge/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",

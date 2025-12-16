@@ -90,7 +90,8 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
   }
 
   const func = environment.semantics.manual;
-  const functionString = func.toString();
+  // Use manualSource if available (preserves comments), otherwise fall back to toString()
+  const functionString = environment.semantics.manualSource || func.toString();
 
   // Extract function body without any transformations
   let functionBody = "";

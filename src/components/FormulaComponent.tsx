@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 
+import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import {
@@ -109,6 +110,73 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
     },
     [onNodesChange, getNodes]
   );
+
+  // Function to update only label nodes when activeVariables change
+  const updateLabelNodes = useCallback(() => {
+    const currentNodes = getNodes();
+    const viewport = getViewport();
+
+    // Find the formula element in this component's DOM
+    const formulaElement = containerRef.current?.querySelector(".formula-node");
+    if (!formulaElement) {
+      console.log("FormulaComponent: No formula element found");
+      return;
+    }
+
+    // Find formula node by its id
+    const formulaNode = findFormulaNodeById(currentNodes, id);
+    if (!formulaNode || !formulaNode.measured) {
+      console.log("FormulaComponent: Formula node not measured yet");
+      return;
+    }
+
+    // Get existing variable nodes for this formula
+    const existingVariableNodes = currentNodes.filter(
+      (node) =>
+        node.type === NODE_TYPES.VARIABLE && node.parentId === formulaNode.id
+    );
+
+    if (existingVariableNodes.length === 0) {
+      console.log("FormulaComponent: No variable nodes to update labels for");
+      return;
+    }
+
+    setNodes((currentNodes) => {
+      // Remove existing label nodes only
+      const nonLabelNodes = currentNodes.filter(
+        (node) => node.type !== NODE_TYPES.LABEL
+      );
+
+      // Use helper to create label nodes based on current activeVariables
+      const { labelNodes, variableNodeUpdates } =
+        processVariableElementsForLabels(
+          formulaElement,
+          formulaNode,
+          id,
+          nonLabelNodes,
+          viewport
+        );
+
+      // Apply variable node updates (labelPlacement)
+      const updatedNodes = nonLabelNodes.map((node) => {
+        if (node.type === NODE_TYPES.VARIABLE) {
+          const update = variableNodeUpdates.find((u) => u.nodeId === node.id);
+          if (update) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                labelPlacement: update.labelPlacement,
+              },
+            };
+          }
+        }
+        return node;
+      });
+
+      return [...updatedNodes, ...labelNodes];
+    });
+  }, [getNodes, getViewport, id, setNodes]);
 
   // Function to add variable nodes by finding them in the rendered MathJax formula
   const addVariableNodes = useCallback(() => {
@@ -349,7 +417,7 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
         adjustLabelPositions();
         // Fit view after labels are positioned and visible to avoid flashing
         setTimeout(() => {
-          fitView({ padding: 0.2 });
+          fitView({ padding: 0.2, duration: 300 });
           initialFitViewCalledRef.current = true;
           // Make canvas visible after fitView
           setTimeout(() => setCanvasVisible(true), 50);
@@ -359,6 +427,64 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
       return () => clearTimeout(timeoutId);
     }
   }, [nodes, nodesInitialized, adjustLabelPositions, fitView]);
+
+  // Update labels when step mode or active variables change
+  useEffect(() => {
+    let timeoutId: number | null = null;
+
+    const disposer = reaction(
+      () => ({
+        isStepMode: computationStore.isStepMode(),
+        activeVariables: Array.from(executionStore.activeVariables),
+      }),
+      () => {
+        if (nodesInitialized && variableNodesAddedRef.current) {
+          // Clear any pending timeout to prevent multiple rapid updates
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+
+          // Debounce the label update to prevent rapid recreation
+          timeoutId = window.setTimeout(() => {
+            // Clear manually positioned labels when regenerating
+            manuallyPositionedLabelsRef.current.clear();
+
+            // Clear edges to prevent stale edge references
+            setEdges([]);
+
+            // Update labels with current activeVariables
+            updateLabelNodes();
+
+            // Re-adjust positions and fitView after a delay
+            setTimeout(() => {
+              adjustLabelPositions();
+              // Fit view to include all nodes including new labels with smooth animation
+              setTimeout(() => {
+                fitView({
+                  padding: 0.2,
+                  includeHiddenNodes: false,
+                  duration: 300, // Smooth 300ms animation
+                });
+              }, 50);
+            }, 100);
+          }, 50); // Shorter debounce for more responsive updates
+        }
+      }
+    );
+
+    return () => {
+      disposer();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    nodesInitialized,
+    updateLabelNodes,
+    setEdges,
+    adjustLabelPositions,
+    fitView,
+  ]);
 
   // Create edges after labels are visible and positioned
   useEffect(() => {
