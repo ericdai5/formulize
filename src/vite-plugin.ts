@@ -99,5 +99,3 @@ export function formulizePlugin() {
     },
   };
 }
-
-export default formulizePlugin;
