@@ -9,9 +9,9 @@ import "./index.css";
 // Make acorn globally available for JS-Interpreter with proper default options
 const acornWithDefaults = {
   ...acorn,
-  defaultOptions: { ecmaVersion: 2020 },
+  defaultOptions: { ecmaVersion: 5 },
   parse: (code: string, options = {}) => {
-    return acorn.parse(code, { ecmaVersion: 2020, ...options });
+    return acorn.parse(code, { ecmaVersion: 5, ...options });
   },
 };
 

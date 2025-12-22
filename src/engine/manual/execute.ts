@@ -17,6 +17,10 @@ export function stepToView(): void {
   Controller.stepToView();
 }
 
+export function stepToPrevView(): void {
+  Controller.stepToPrevView();
+}
+
 export function stepToNextBlock(): void {
   Controller.stepToNextBlock();
 }

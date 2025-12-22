@@ -83,8 +83,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       if (result.code) {
         ctx.setCode(result.code);
         ctx.setEnvironment(environment);
-        const foundViews = extractViews(result.code);
-        ctx.setViews(foundViews);
         ctx.setError(null);
         // Set the user view code to the original manual function
         if (environment?.semantics?.manual) {
@@ -141,10 +139,9 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       }
     };
 
-    /*
-     * Helper function to convert character position from interpreter code to user code
-     * This builds a line mapping between interpreter and user code accounting for:
-     * - Multi-line view([...]) calls in interpreter becoming single // @view comments in user code
+    /**
+     * Helper function to convert character position from interpreter code to user code.
+     * The interpreter code has a wrapper function, but both now use direct view() calls.
      */
     const convertCharPos = useCallback(
       (interpreterCharPos: number): number => {
@@ -164,41 +161,13 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           currentPos += lineLength;
         }
 
-        // Build line mapping from interpreter to user code
-        let userLine = 0;
-        let extraLinesFromViews = 0;
-
-        for (
-          let i = 0;
-          i < interpreterLine && i < interpreterLines.length;
-          i++
-        ) {
-          const line = interpreterLines[i].trim();
-
-          if (line.includes("view([")) {
-            // This is the start of a multi-line view call
-            // Find where it ends
-            let j = i;
-            while (
-              j < interpreterLines.length &&
-              !interpreterLines[j].includes("]);")
-            ) {
-              j++;
-            }
-            // The view call spans from line i to line j
-            // In user code, this becomes a single comment line
-            // So we need to subtract (j - i) extra lines
-            extraLinesFromViews += j - i;
-            i = j; // Skip to the end of the view call
-          }
-        }
-
-        // Map interpreter line to user line
-        userLine = interpreterLine - extraLinesFromViews;
-
-        // Ensure we're within bounds
-        if (userLine >= userLines.length) userLine = userLines.length - 1;
-        if (userLine < 0) userLine = 0;
+        // The interpreter code has a wrapper: "function executeManualFunction() {"
+        // which adds 1 line offset compared to user code "function(vars) {"
+        // Both now have the same view() calls, so no view-related adjustment needed
+        const userLine = Math.max(
+          0,
+          Math.min(interpreterLine, userLines.length - 1)
+        );
 
         // Convert user line back to character position
         let userCharPos = 0;

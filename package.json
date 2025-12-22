@@ -13,11 +13,6 @@
       "require": "./dist/formulize.cjs.js",
       "types": "./dist/types/index.d.ts"
     },
-    "./vite-plugin": {
-      "import": "./dist/vite-plugin.es.js",
-      "require": "./dist/vite-plugin.cjs.js",
-      "types": "./dist/types/vite-plugin.d.ts"
-    },
     "./style.css": "./dist/style.css"
   },
   "files": [

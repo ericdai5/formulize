@@ -1,15 +1,10 @@
 /**
  * JS-Interpreter utility functions for manual computation debugging
  */
+import Interpreter from "js-interpreter";
+
 import { IStep } from "../../types/step";
 import { IValue } from "../../types/variable";
-
-// Window interface extension for JS-Interpreter
-declare global {
-  interface Window {
-    Interpreter: InterpreterConstructor;
-  }
-}
 
 // Comprehensive interface for JS-Interpreter
 interface JSInterpreter {
@@ -27,13 +22,6 @@ interface JSInterpreter {
   _currentViewParams?: {
     pairs?: Array<[string, string]>;
   };
-}
-
-interface InterpreterConstructor {
-  new (
-    code: string,
-    initFunc?: (interpreter: JSInterpreter, globalObject: unknown) => void
-  ): JSInterpreter;
 }
 
 interface StackFrame {
@@ -144,12 +132,12 @@ const collectVariablesFromStack = (
 };
 
 /**
- * Check if the current history index represents a block or return statement after a target position
- * This function identifies when we're at the beginning of a block statement (like if, for, while, function body)
- * or a return statement that follows a meaningful target statement - matches the logic from interpreter.tsx
+ * Check if the current history index represents a block, switch, or return statement after a target position
+ * This function identifies when we're at the beginning of a block statement (like if, for, while, function body),
+ * switch statement, or a return statement that follows a meaningful target statement - matches the logic from interpreter.tsx
  * @param history - Array of debug states
  * @param currentIndex - Current index in the history
- * @returns boolean indicating if we're at a block or return statement after target
+ * @returns boolean indicating if we're at a block, switch, or return statement after target
  */
 const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
   if (currentIndex === 0 || !history || history.length === 0) {
@@ -161,19 +149,23 @@ const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
     if (!current || !prev) {
       return false;
     }
-    // Check if current state's last stack frame is BlockStatement or ReturnStatement
+    // Check if current state's last stack frame is BlockStatement, SwitchStatement, or ReturnStatement
     const currentLastFrame = current.stackTrace[current.stackTrace.length - 1];
-    const isCurrentBlock = currentLastFrame?.includes("BlockStatement") ||
-                          currentLastFrame?.includes("ReturnStatement");
-    // Check if previous state's last stack frame was NOT a BlockStatement or ReturnStatement
+    const isCurrentBlock =
+      currentLastFrame?.includes("BlockStatement") ||
+      currentLastFrame?.includes("SwitchStatement") ||
+      currentLastFrame?.includes("ReturnStatement");
+    // Check if previous state's last stack frame was NOT a BlockStatement, SwitchStatement, or ReturnStatement
     const prevLastFrame = prev.stackTrace[prev.stackTrace.length - 1];
-    const isPreviousNotBlock = !prevLastFrame?.includes("BlockStatement") &&
-                               !prevLastFrame?.includes("ReturnStatement");
-    // We're at a block when we enter a BlockStatement/ReturnStatement from a non-BlockStatement/ReturnStatement
+    const isPreviousNotBlock =
+      !prevLastFrame?.includes("BlockStatement") &&
+      !prevLastFrame?.includes("SwitchStatement") &&
+      !prevLastFrame?.includes("ReturnStatement");
+    // We're at a block when we enter a BlockStatement/SwitchStatement/ReturnStatement from a non-BlockStatement/SwitchStatement/ReturnStatement
     // This ensures we highlight the statement itself, not the statement after it
     return isCurrentBlock && isPreviousNotBlock;
   } catch (error) {
-    console.error("Error checking for block/return statement:", error);
+    console.error("Error checking for block/switch/return statement:", error);
     return false;
   }
 };
@@ -190,10 +182,6 @@ export const initializeInterpreter = (
   setError: (error: string) => void,
   values: Record<string, IValue>
 ): JSInterpreter | null => {
-  if (!window.Interpreter) {
-    setError("JS-Interpreter not loaded.");
-    return null;
-  }
   if (!currentCode.trim()) {
     setError("No code available to execute");
     return null;
@@ -231,7 +219,7 @@ export const initializeInterpreter = (
     };
 
     // Create interpreter with the code and proper variable setup
-    return new window.Interpreter(currentCode, initFunc);
+    return new Interpreter(currentCode, initFunc) as JSInterpreter;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     setError(`Code error: ${errorMessage}`);

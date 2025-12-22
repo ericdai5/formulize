@@ -21,6 +21,9 @@ class ExecutionStore {
   historyIndex: number = 0;
   isComplete: boolean = false;
 
+  // Stepping modes
+  steppingMode: "line" | "view" = "view";
+
   // Stepping states
   isSteppingToView: boolean = false;
   isSteppingToIndex: boolean = false;
@@ -35,8 +38,8 @@ class ExecutionStore {
   autoPlaySpeed: number = 1000; // Default 1 second
   views: any[] = []; // Type can be refined based on actual usage
 
-  // Variable linkage tracking
-  linkageMap: Record<string, string> = {};
+  // Variable linkage tracking - supports multi-linkages (string | string[])
+  linkageMap: Record<string, string | string[]> = {};
 
   // Track which step indices are view points (ordered array for efficient navigation)
   viewPoints: number[] = [];
@@ -89,6 +92,10 @@ class ExecutionStore {
     this.isComplete = complete;
   }
 
+  setSteppingMode(mode: "line" | "view") {
+    this.steppingMode = mode;
+  }
+
   setIsSteppingToView(stepping: boolean) {
     this.isSteppingToView = stepping;
   }
@@ -117,11 +124,7 @@ class ExecutionStore {
     this.autoPlaySpeed = speed;
   }
 
-  setViews(views: any[]) {
-    this.views = views;
-  }
-
-  setLinkageMap(linkageMap: Record<string, string>) {
+  setLinkageMap(linkageMap: Record<string, string | string[]>) {
     this.linkageMap = linkageMap;
   }
 
@@ -240,9 +243,14 @@ class ExecutionStore {
    */
   getLinkedVar(varId: string): string | null {
     return (
-      Object.keys(this.linkageMap).find(
-        (key) => this.linkageMap[key] === varId
-      ) || null
+      Object.keys(this.linkageMap).find((key) => {
+        const linkage = this.linkageMap[key];
+        // Handle both single string and array of strings (multi-linkage)
+        if (Array.isArray(linkage)) {
+          return linkage.includes(varId);
+        }
+        return linkage === varId;
+      }) || null
     );
   }
 }
