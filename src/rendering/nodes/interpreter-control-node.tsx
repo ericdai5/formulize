@@ -174,15 +174,33 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
     handleUserViewHighlighting,
   ]);
 
+  // Calculate progress based on stepping mode
+  const points = ctx.steppingMode === "view" ? ctx.viewPoints : ctx.blockPoints;
+  const currentStepNumber = points.filter((p) => p <= ctx.historyIndex).length;
+  const totalSteps = points.length;
+  const progress = totalSteps > 0 ? (currentStepNumber / totalSteps) * 100 : 0;
+
   return (
-    <div className="interpreter-control-node border bg-white border-slate-200 rounded-2xl shadow-sm w-full relative group">
+    <div className="interpreter-control-node border bg-white border-slate-200 rounded-2xl shadow-sm w-full relative group overflow-hidden">
       <SimplifiedInterpreterControls
         onToggleCode={() => setIsUserViewCollapsed(!isUserViewCollapsed)}
         showCode={!isUserViewCollapsed}
       />
+
+      {/* Progress Bar and Step Counter */}
+      <div className="h-0.5 w-full bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-blue-500 transition-all duration-300 ease-out rounded-full"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
       {/* User View */}
       {!isUserViewCollapsed && (
-        <div style={{ textAlign: "left", cursor: "default" }} className="nodrag">
+        <div
+          style={{ textAlign: "left", cursor: "default" }}
+          className="nodrag"
+        >
           <CodeMirror
             value={userCode}
             onChange={(value) => setUserCode(value)}
