@@ -46,7 +46,8 @@ declare module 'js-interpreter' {
   enum Status {
     DONE = 0,
     STEP = 1,
-    ASYNC = 2
+    TASK = 2,
+    ASYNC = 3
   }
 
   // Main Interpreter class
@@ -131,6 +132,7 @@ declare module 'js-interpreter' {
     };
   }
 
-  // Re-export Status enum
+  // Re-export Status enum and types
   export { Status };
+  export type { InterpreterObject, StackFrame, InterpreterValue };
 }

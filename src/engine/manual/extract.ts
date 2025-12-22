@@ -269,15 +269,25 @@ export function extractIdentifiers(lineCode: string): Set<string> {
     ? `function _wrapper() { ${lineCode} {} }`
     : `function _wrapper() { ${lineCode} }`;
 
-  const ast = acorn.parse(wrappedCode, {
-    ecmaVersion: 5,
-  }) as unknown as ASTNode;
+  try {
+    const ast = acorn.parse(wrappedCode, {
+      ecmaVersion: 5,
+    }) as unknown as ASTNode;
 
-  walkAst(ast, (node) => {
-    if (node.type === "Identifier" && node.name && node.name !== "_wrapper") {
-      identifiers.add(node.name);
-    }
-  });
+    walkAst(ast, (node) => {
+      if (node.type === "Identifier" && node.name && node.name !== "_wrapper") {
+        identifiers.add(node.name);
+      }
+    });
+  } catch (error) {
+    // Log parse error at debug/trace level and return empty set
+    // This prevents the step handler from crashing on malformed code
+    console.debug(
+      "Failed to parse code for identifier extraction:",
+      error instanceof Error ? error.message : String(error)
+    );
+    return new Set<string>();
+  }
 
   // Filter out JavaScript keywords
   JS_KEYWORDS.forEach((kw) => identifiers.delete(kw));

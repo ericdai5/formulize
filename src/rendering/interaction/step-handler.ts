@@ -67,48 +67,48 @@ export const updateAllVariables = (
     const isMultiLinkage = Array.isArray(varId) && varId.length > 1;
     // Handle array values (e.g., xValues = vars.X where X is an array)
     if (Array.isArray(value)) {
-      for (const varId of varIds) {
+      for (const iterVarId of varIds) {
         // Check if this array is being accessed with an index (e.g., xValues[i])
         if (arrayAccesses.has(varName)) {
-          const memberVar = findMemberOfVariable(varId);
+          const memberVar = findMemberOfVariable(iterVarId);
           if (memberVar) {
             updatedVarIds.add(memberVar);
             continue;
           }
-          updatedVarIds.add(varId);
+          updatedVarIds.add(iterVarId);
           continue;
         }
         // If not indexed, activate the array itself
-        updatedVarIds.add(varId);
+        updatedVarIds.add(iterVarId);
       }
       return;
     }
 
     // Handle numeric values
     if (typeof value === "number") {
-      for (const varId of varIds) {
+      for (const iterVarId of varIds) {
         if (isMultiLinkage) {
           // For multi-linkage (expression variables like currExpected = xi * probability):
           // Add all linked variables to activeVariables for highlighting
-          updatedVarIds.add(varId);
+          updatedVarIds.add(iterVarId);
 
           // Also find and update the source local variables that link to this varId
           // e.g., if currExpected links to ['x', 'P(x)'], find xi→x and probability→P(x)
           for (const [sourceVar, sourceVarId] of Object.entries(linkageMap)) {
             // Skip multi-linkages and the current variable
             if (Array.isArray(sourceVarId) || sourceVar === varName) continue;
-            // If this source variable links to the same varId
-            if (sourceVarId === varId) {
+            // If this source variable links to the same iterVarId
+            if (sourceVarId === iterVarId) {
               const sourceValue = variables[sourceVar];
               if (typeof sourceValue === "number") {
-                computationStore.setValueInStepMode(varId, sourceValue);
+                computationStore.setValueInStepMode(iterVarId, sourceValue);
               }
             }
           }
         } else {
           // For single linkage: update value and add to active
-          computationStore.setValueInStepMode(varId, value);
-          updatedVarIds.add(varId);
+          computationStore.setValueInStepMode(iterVarId, value);
+          updatedVarIds.add(iterVarId);
         }
       }
     }

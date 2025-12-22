@@ -53,10 +53,26 @@ export const summationBasic = `const config = {
       for (var i = 0; i < xValues.length; i++) {
         var xi = xValues[i];
         var probability = pxValues[i];
-        var currExpected = xi * probability;
-        view("The expected value for x should be:", currExpected);
-        expectedValue += currExpected;
-        view("Expected value E is updated:", expectedValue);
+        if (i === 0) {
+          view("Get a value x from X:", xi);
+          view("Get a value P(x) from P(x):", probability);
+        }
+        var currExpected = Math.round(xi * probability * 100) / 100;
+        if (i === 0) {
+          view("This evaluates to:", currExpected);
+        }
+        expectedValue = Math.round((expectedValue + currExpected) * 100) / 100;
+        switch (i) {
+          case 0:
+            view("add up term into E:", expectedValue);
+            break;
+          case 1:
+            view("add next term...", expectedValue);
+            break;
+          case xValues.length - 1:
+            view("finish accumulating weighted sum:", expectedValue);
+            break;
+        }
       }
       return expectedValue;
     },
