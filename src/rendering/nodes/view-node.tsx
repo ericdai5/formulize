@@ -15,7 +15,7 @@ const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
 
   return (
     <div
-      className="view-flow-node text-base text-black font-regular text-center rounded-xl hover:scale-105 transition-all duration-100"
+      className="view-flow-node text-base text-black font-regular text-center rounded-xl"
       style={{
         pointerEvents: "auto",
         width: "auto",

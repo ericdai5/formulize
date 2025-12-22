@@ -11,7 +11,6 @@ import { extractManual } from "../engine/manual/extract";
 import { isAtBlock } from "../engine/manual/interpreter";
 import { executionStore as ctx } from "../store/execution";
 import { IEnvironment } from "../types/environment";
-import { extractViews } from "../util/acorn";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
   addArrowMarker,
@@ -20,7 +19,6 @@ import {
   clearLineMarkers,
   debugExtensions,
 } from "../util/codemirror-extension";
-import CollapsibleSection from "./collapsible-section";
 import { SimplifiedInterpreterControls } from "./interpreter-controls";
 import { useFormulize } from "./useFormulize";
 
@@ -95,9 +93,6 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
         setError(null);
         ctx.setCode(result.code);
         ctx.setEnvironment(environment);
-        const foundViews = extractViews(result.code);
-        ctx.setViews(foundViews);
-
         // Set the user view code to the original manual function
         if (environment?.semantics?.manual) {
           const manualFunction = environment.semantics.manual;
@@ -234,13 +229,6 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
       handleUserViewHighlighting,
     ]);
 
-    const handleRefresh = useCallback(() => {
-      clearUserViewLine();
-      setIsInitialized(false);
-      refresh(ctx.code, environment);
-      setIsInitialized(true);
-    }, [clearUserViewLine, environment]);
-
     const containerStyle: React.CSSProperties = {
       width: width || "100%",
     };
@@ -257,18 +245,16 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
     }
 
     return (
-      <div
-        className={`border bg-white border-slate-200 rounded-lg shadow-sm ${className}`}
-        style={containerStyle}
-      >
-        <SimplifiedInterpreterControls onRefresh={handleRefresh} />
-        <CollapsibleSection
-          title="Code Step-through"
-          isCollapsed={isUserViewCollapsed}
-          onToggleCollapse={() => setIsUserViewCollapsed(!isUserViewCollapsed)}
-          contentClassName="p-0"
-        >
-          <div style={{ textAlign: "left" }}>
+            <div
+              className={`border bg-white border-slate-200 rounded-lg shadow-sm ${className}`}
+              style={containerStyle}
+            >
+        <SimplifiedInterpreterControls
+          onToggleCode={() => setIsUserViewCollapsed(!isUserViewCollapsed)}
+          showCode={!isUserViewCollapsed}
+        />
+        {!isUserViewCollapsed && (
+          <div style={{ textAlign: "left", cursor: "default" }}>
             <CodeMirror
               value={userCode}
               onChange={(value) => setUserCode(value)}
@@ -278,7 +264,7 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
               ref={userViewCodeMirrorRef}
             />
           </div>
-        </CollapsibleSection>
+        )}
       </div>
     );
   }

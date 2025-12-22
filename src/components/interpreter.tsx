@@ -83,8 +83,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       if (result.code) {
         ctx.setCode(result.code);
         ctx.setEnvironment(environment);
-        const foundViews = extractViews(result.code);
-        ctx.setViews(foundViews);
         ctx.setError(null);
         // Set the user view code to the original manual function
         if (environment?.semantics?.manual) {

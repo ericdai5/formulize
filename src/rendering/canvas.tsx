@@ -150,7 +150,6 @@ const CanvasFlow = observer(
           position: { x: 600, y: currentY },
           data: { environment },
           draggable: true,
-          dragHandle: ".interpreter-drag-handle",
         });
         currentY += 80; // Add space after interpreter controls
       }

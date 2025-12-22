@@ -5,15 +5,12 @@ import { observer } from "mobx-react-lite";
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import beautify from "js-beautify";
-import { GripHorizontal, GripVertical } from "lucide-react";
 
-import CollapsibleSection from "../../components/collapsible-section";
 import { SimplifiedInterpreterControls } from "../../components/interpreter-controls";
 import { refresh } from "../../engine/manual/execute";
 import { extractManual } from "../../engine/manual/extract";
 import { isAtBlock } from "../../engine/manual/interpreter";
 import { executionStore as ctx } from "../../store/execution";
-import { extractViews } from "../../util/acorn";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../../util/codemirror";
 import {
   addArrowMarker,
@@ -29,6 +26,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
   const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
   const [userCode, setUserCode] = useState<string>("");
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize user code when environment changes
   useEffect(() => {
@@ -36,12 +34,14 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
     if (result.isLoading || result.error) {
       return;
     }
+
+    if (isInitialized) {
+      return;
+    }
+
     if (result.code) {
       ctx.setCode(result.code);
       ctx.setEnvironment(environment);
-      const foundViews = extractViews(result.code);
-      ctx.setViews(foundViews);
-
       // Set the user view code to the original manual function
       if (environment?.semantics?.manual) {
         const manualFunction = environment.semantics.manual;
@@ -56,8 +56,12 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
         });
         setUserCode(formattedCode);
       }
+
+      // Automatically initialize the interpreter so stepping works immediately
+      refresh(result.code, environment);
+      setIsInitialized(true);
     }
-  }, [environment]);
+  }, [environment, isInitialized]);
 
   const clearUserViewLine = useCallback(() => {
     if (userViewCodeMirrorRef.current?.view) {
@@ -170,48 +174,25 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
     handleUserViewHighlighting,
   ]);
 
-  const handleRefresh = useCallback(() => {
-    clearUserViewLine();
-    refresh(ctx.code, environment);
-  }, [clearUserViewLine, environment]);
-
   return (
-    <div className="interpreter-control-node border bg-white border-slate-200 rounded-lg shadow-sm w-full relative group">
-      {/* Drag handles */}
-      <div className="interpreter-drag-handle absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md px-1 py-0.5 cursor-move z-20 opacity-0 group-hover:opacity-100">
-        <GripHorizontal className="w-4 h-4 text-slate-400" />
-      </div>
-      <div className="interpreter-drag-handle absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md px-1 py-0.5 cursor-move z-20 opacity-0 group-hover:opacity-100">
-        <GripHorizontal className="w-4 h-4 text-slate-400" />
-      </div>
-      <div className="interpreter-drag-handle absolute top-1/2 -left-3 transform -translate-y-1/2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md px-0.5 py-1 cursor-move z-20 opacity-0 group-hover:opacity-100">
-        <GripVertical className="w-4 h-4 text-slate-400" />
-      </div>
-      <div className="interpreter-drag-handle absolute top-1/2 -right-3 transform -translate-y-1/2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md px-0.5 py-1 cursor-move z-20 opacity-0 group-hover:opacity-100">
-        <GripVertical className="w-4 h-4 text-slate-400" />
-      </div>
-
-      <div className="nodrag">
-        <SimplifiedInterpreterControls onRefresh={handleRefresh} />
-        {/* User View */}
-        <CollapsibleSection
-          title="Code Step-through"
-          isCollapsed={isUserViewCollapsed}
-          onToggleCollapse={() => setIsUserViewCollapsed(!isUserViewCollapsed)}
-          contentClassName="p-0"
-        >
-          <div style={{ textAlign: "left" }}>
-            <CodeMirror
-              value={userCode}
-              onChange={(value) => setUserCode(value)}
-              extensions={[javascript(), ...debugExtensions]}
-              style={CodeMirrorStyle}
-              basicSetup={CodeMirrorSetup}
-              ref={userViewCodeMirrorRef}
-            />
-          </div>
-        </CollapsibleSection>
-      </div>
+    <div className="interpreter-control-node border bg-white border-slate-200 rounded-2xl shadow-sm w-full relative group">
+      <SimplifiedInterpreterControls
+        onToggleCode={() => setIsUserViewCollapsed(!isUserViewCollapsed)}
+        showCode={!isUserViewCollapsed}
+      />
+      {/* User View */}
+      {!isUserViewCollapsed && (
+        <div style={{ textAlign: "left", cursor: "default" }} className="nodrag">
+          <CodeMirror
+            value={userCode}
+            onChange={(value) => setUserCode(value)}
+            extensions={[javascript(), ...debugExtensions]}
+            style={CodeMirrorStyle}
+            basicSetup={CodeMirrorSetup}
+            ref={userViewCodeMirrorRef}
+          />
+        </div>
+      )}
     </div>
   );
 });

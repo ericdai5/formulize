@@ -54,10 +54,6 @@ export class Controller {
     ctx.setInterpreter(interpreter);
     // Clear active variables at the start of execution
     ctx.setActiveVariables(new Set());
-    // Extract views from the code in the beginning of the execution to always have them available
-    // This is because if refresh is called, then views are no longer available
-    const views = extractViews(ctx.code);
-    ctx.setViews(views);
     // Execute all steps and build complete history
     this.executeAllSteps(interpreter);
   }
@@ -160,7 +156,6 @@ export class Controller {
             // Check if the previous statement was a view call
             if (codeAtPrevious.startsWith("view(")) {
               viewPoints.push(stepNumber);
-
               // Process the view call immediately with the current step's variables
               state.viewDescriptions = this.extractViewDescriptions(
                 codeAtPrevious,
@@ -259,6 +254,14 @@ export class Controller {
     const nextView = ctx.getNextView(ctx.historyIndex);
     if (nextView !== null) {
       this.step(nextView);
+    }
+  }
+
+  static stepToPrevView(): void {
+    if (ctx.historyIndex <= 0) return;
+    const prevView = ctx.getPrevView(ctx.historyIndex);
+    if (prevView !== null) {
+      this.step(prevView);
     }
   }
 

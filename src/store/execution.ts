@@ -21,6 +21,9 @@ class ExecutionStore {
   historyIndex: number = 0;
   isComplete: boolean = false;
 
+  // Stepping modes
+  steppingMode: "line" | "view" = "view";
+
   // Stepping states
   isSteppingToView: boolean = false;
   isSteppingToIndex: boolean = false;
@@ -89,6 +92,10 @@ class ExecutionStore {
     this.isComplete = complete;
   }
 
+  setSteppingMode(mode: "line" | "view") {
+    this.steppingMode = mode;
+  }
+
   setIsSteppingToView(stepping: boolean) {
     this.isSteppingToView = stepping;
   }
@@ -115,10 +122,6 @@ class ExecutionStore {
 
   setAutoPlaySpeed(speed: number) {
     this.autoPlaySpeed = speed;
-  }
-
-  setViews(views: any[]) {
-    this.views = views;
   }
 
   setLinkageMap(linkageMap: Record<string, string | string[]>) {
