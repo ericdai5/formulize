@@ -1,6 +1,31 @@
+import * as acorn from "acorn";
 import beautify from "js-beautify";
 
+import { computationStore } from "../../store/computation";
 import { IEnvironment } from "../../types/environment";
+
+// ============================================================================
+// Types and Interfaces
+// ============================================================================
+
+/**
+ * Extended AST node type that includes common properties we access.
+ * Acorn's Node type is minimal, so we extend it with properties from specific node types.
+ */
+type ASTNode = acorn.Node & {
+  name?: string; // Identifier
+  value?: unknown; // Literal
+  object?: ASTNode; // MemberExpression
+  property?: ASTNode; // MemberExpression
+  computed?: boolean; // MemberExpression
+  declarations?: ASTNode[]; // VariableDeclaration
+  id?: ASTNode; // VariableDeclarator
+  init?: ASTNode; // VariableDeclarator
+  left?: ASTNode; // AssignmentExpression
+  right?: ASTNode; // AssignmentExpression
+  // Index signature for dynamic property access in walkAst
+  [key: string]: unknown;
+};
 
 interface ExtractResult {
   code: string | null;
@@ -9,67 +34,48 @@ interface ExtractResult {
 }
 
 /**
- * Replace `// @view` comments with `view()` function calls for breakpoint debugging
- * Supports formats:
- * - // @view variableName->"description"
- * - // @view variableName->"description"->"variableName"
- * @param code - The JavaScript code containing `// @view` comments
- * @returns Code with comments replaced by function calls
+ * Result of variable linkage extraction from manual function AST
  */
-export function addViewFunctions(code: string): string {
-  // Replace `// @view` comments (case insensitive) with `view()` function calls
-  // This regex matches:
-  // - Optional whitespace at start of line
-  // - // followed by optional whitespace
-  // - @view (case insensitive)
-  // - Optional additional text after @view
-  // - End of line
-  const viewCommentRegex = /^(\s*)\/\/\s*@view(.*)$/gim;
-  return code.replace(viewCommentRegex, (_match, leadingWhitespace, params) => {
-    // Parse parameters from the comment
-    const trimmedParams = params.trim();
-
-    if (trimmedParams) {
-      // Parse the format: expression->"description"->"variableName"
-      // Support both quoted and unquoted expressions
-      // Try 3-argument format with quoted expression first: "expression"->"description"->"variableName"
-      let paramMatch = trimmedParams.match(/^"([^"]+)"->"([^"]+)"->"([^"]+)"$/);
-      if (paramMatch) {
-        const [, expression, description, variableName] = paramMatch;
-        const escapedDescription = description.replace(/"/g, '\\"');
-        return `${leadingWhitespace}view([["${expression}", "${escapedDescription}", "${variableName}"]]);`;
-      }
-      // Try 3-argument format with unquoted expression: expression->"description"->"variableName"
-      paramMatch = trimmedParams.match(/^([^"]+?)->"([^"]+)"->"([^"]+)"$/);
-      if (paramMatch) {
-        const [, expression, description, variableName] = paramMatch;
-        const escapedExpression = expression.trim().replace(/"/g, '\\"');
-        const escapedDescription = description.replace(/"/g, '\\"');
-        return `${leadingWhitespace}view([["${escapedExpression}", "${escapedDescription}", "${variableName}"]]);`;
-      }
-      // Try quoted expression 2-argument format: "expression"->"description"
-      paramMatch = trimmedParams.match(/^"([^"]+)"->"([^"]+)"$/);
-      if (paramMatch) {
-        const [, expression, description] = paramMatch;
-        // Expression is already properly quoted in the comment, use it directly
-        const escapedDescription = description.replace(/"/g, '\\"');
-        return `${leadingWhitespace}view([["${expression}", "${escapedDescription}"]]);`;
-      }
-      // Try unquoted expression 2-argument format: expression->"description"
-      paramMatch = trimmedParams.match(/^([^"]+?)->"([^"]+)"$/);
-      if (paramMatch) {
-        const [, expression, description] = paramMatch;
-        // Escape quotes in unquoted expression
-        const escapedExpression = expression.trim().replace(/"/g, '\\"');
-        const escapedDescription = description.replace(/"/g, '\\"');
-        return `${leadingWhitespace}view([["${escapedExpression}", "${escapedDescription}"]]);`;
-      }
-    }
-
-    // No parameters or invalid format, use default view() call with empty array
-    return `${leadingWhitespace}view([]);`;
-  });
+export interface Linkages {
+  // Map of local variable names to computation store variable IDs
+  // e.g., { "xi": "x", "probability": "P(x)", "expectedValue": "E" }
+  // Can also be an array for expressions involving multiple variables:
+  // e.g., { "currExpected": ["x", "P(x)"] } for `currExpected = xi * probability`
+  variableLinkage: Record<string, string | string[]>;
+  // Map of local variable names to their source computation store arrays
+  // e.g., { "xValues": "X", "pxValues": "P(x)" }
+  arrayBindings: Record<string, string>;
 }
+
+/** Source information for a variable assignment */
+interface AssignmentSource {
+  type: "vars_access" | "array_index" | "other";
+  computationVar?: string;
+  arrayVar?: string;
+  indexVar?: string;
+}
+
+/** A tracked variable assignment from the AST */
+interface Assignment {
+  localVar: string;
+  source: AssignmentSource;
+}
+
+/** A tracked expression assignment for multi-linkage detection */
+interface ExpressionAssignment {
+  localVar: string;
+  expression: ASTNode;
+}
+
+/** Result of collecting assignments from the AST */
+interface CollectedAssignments {
+  assignments: Assignment[];
+  expressionAssignments: ExpressionAssignment[];
+}
+
+// ============================================================================
+// Manual Function Extraction
+// ============================================================================
 
 export function extractManual(environment: IEnvironment | null): ExtractResult {
   // Environment not loaded yet
@@ -90,25 +96,21 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
   }
 
   const func = environment.semantics.manual;
-  // Use manualSource if available (preserves comments), otherwise fall back to toString()
-  const functionString = environment.semantics.manualSource || func.toString();
-
-  // Extract function body without any transformations
+  const functionString = func.toString();
   let functionBody = "";
   try {
-    const bodyStart = functionString.indexOf("{");
+    // Find the function body opening brace by looking for { after the closing )
+    // This handles destructuring parameters like function({ m, v }) correctly
+    const parenCloseIndex = functionString.indexOf(")");
+    const bodyStart = functionString.indexOf("{", parenCloseIndex);
     const bodyEnd = functionString.lastIndexOf("}");
     if (bodyStart !== -1 && bodyEnd !== -1) {
       functionBody = functionString.substring(bodyStart + 1, bodyEnd).trim();
     }
-
-    // Replace @view comments with view() function calls
-    const processedFunctionBody = addViewFunctions(functionBody);
-
     // Wrap the function body in a proper function declaration
     const wrappedCode = [
       "function executeManualFunction() {",
-      processedFunctionBody,
+      functionBody,
       "}",
       "",
       "// Parse Formulize variables",
@@ -116,7 +118,6 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
       "",
       "var result = executeManualFunction();",
     ].join("\n");
-
     // Use js-beautify to properly format the code with correct indentation
     const processedCode = beautify.js(wrappedCode, {
       indent_size: 2,
@@ -126,7 +127,6 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
       brace_style: "collapse",
       keep_array_indentation: false,
     });
-
     return {
       code: processedCode,
       error: null,
@@ -137,4 +137,486 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
       error: `Failed to extract function body: ${err}`,
     };
   }
+}
+
+// ============================================================================
+// AST Walking Utilities
+// ============================================================================
+
+/**
+ * Generic AST walker that calls a visitor function on each node.
+ */
+function walkAst(
+  node: ASTNode | null | undefined,
+  visitor: (node: ASTNode) => void
+): void {
+  // 1. Base case: stop if node is null/undefined or not an object
+  if (!node || typeof node !== "object") return;
+  // 2. Call the visitor function on the current node
+  visitor(node);
+  // 3. Recursively walk through all child properties
+  for (const key in node) {
+    if (key === "parent") continue; // Skip parent refs to avoid infinite loops
+    const child = node[key];
+    if (Array.isArray(child)) {
+      // If child is an array (e.g., function arguments, block statements)
+      for (const item of child) {
+        walkAst(item as ASTNode, visitor);
+      }
+    } else if (child && typeof child === "object") {
+      // If child is a single object node
+      walkAst(child as ASTNode, visitor);
+    }
+  }
+}
+
+/**
+ * Check if an AST node is an expression that contains identifiers
+ * (e.g., BinaryExpression, CallExpression, etc.)
+ */
+function isExpressionWithIdentifiers(
+  node: ASTNode | null | undefined
+): boolean {
+  if (!node) return false;
+  // Include binary expressions (a * b, a + b), unary expressions, call expressions, etc.
+  return [
+    "BinaryExpression",
+    "UnaryExpression",
+    "CallExpression",
+    "ConditionalExpression",
+    "LogicalExpression",
+  ].includes(node.type);
+}
+
+/**
+ * Recursively extract all identifier names from an expression AST node
+ */
+function extractIdentifiersFromExpression(node: ASTNode): string[] {
+  const identifiers: string[] = [];
+  walkAst(node, (n) => {
+    if (n.type === "Identifier" && n.name) {
+      identifiers.push(n.name);
+    }
+  });
+  return identifiers;
+}
+
+/** JavaScript keywords to filter out from identifier extraction */
+const JS_KEYWORDS = new Set([
+  "var",
+  "let",
+  "const",
+  "function",
+  "return",
+  "if",
+  "else",
+  "for",
+  "while",
+  "do",
+  "switch",
+  "case",
+  "break",
+  "continue",
+  "new",
+  "this",
+  "true",
+  "false",
+  "null",
+  "undefined",
+]);
+
+/**
+ * Extract identifiers from a view() call - only the variable argument
+ * @param lineCode - The line of code (a view call)
+ * @returns Set containing only the variable argument, or empty if not a view call
+ */
+function extractViewIdentifier(lineCode: string): Set<string> | null {
+  const trimmed = lineCode.trim();
+  if (!trimmed.startsWith("view(")) {
+    return null;
+  }
+  // Parse format: view("description", variableName)
+  const match = trimmed.match(
+    /^view\s*\(\s*"[^"]*"\s*,\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)/
+  );
+  if (match) {
+    return new Set([match[1]]);
+  }
+  return new Set(); // It's a view call but couldn't parse the variable
+}
+
+/**
+ * Extract all identifiers from a line of JavaScript code
+ * For view() calls, only extracts the variable argument (not all identifiers)
+ * @param lineCode - The line of code to parse
+ * @returns Set of identifier names found in the line
+ */
+export function extractIdentifiers(lineCode: string): Set<string> {
+  // Special handling for view() calls - only extract the variable argument
+  const viewIdentifier = extractViewIdentifier(lineCode);
+  if (viewIdentifier !== null) {
+    return viewIdentifier;
+  }
+
+  const identifiers = new Set<string>();
+  const trimmed = lineCode.trim();
+
+  // Check if this is a block statement header that needs an empty body to be valid
+  const needsBody = /^(for|while|if|else\s+if|switch)\s*\(/.test(trimmed);
+
+  // Wrap in a function body, adding {} for block statements without bodies
+  const wrappedCode = needsBody
+    ? `function _wrapper() { ${lineCode} {} }`
+    : `function _wrapper() { ${lineCode} }`;
+
+  const ast = acorn.parse(wrappedCode, {
+    ecmaVersion: 5,
+  }) as unknown as ASTNode;
+
+  walkAst(ast, (node) => {
+    if (node.type === "Identifier" && node.name && node.name !== "_wrapper") {
+      identifiers.add(node.name);
+    }
+  });
+
+  // Filter out JavaScript keywords
+  JS_KEYWORDS.forEach((kw) => identifiers.delete(kw));
+  return identifiers;
+}
+
+/**
+ * Extract just the line from code, for statements excluding the body.
+ * For example, for `for (var i = 0; i < n; i++) { ... }`, returns just `for (var i = 0; i < n; i++)`.
+ * For `var x = 1;`, returns the full statement.
+ *
+ * @param code - The code to extract from
+ * @returns Just the line without body
+ */
+export function extractLine(code: string): string {
+  const trimmed = code.trim();
+  // Check if this is a block statement (starts with for, while, if, function, etc.)
+  const blockKeywords =
+    /^(for|while|if|else|function|switch|try|catch|finally)\s*\(/;
+  if (blockKeywords.test(trimmed)) {
+    // Find the matching closing parenthesis for the statement header
+    let parenDepth = 0;
+    let headerEnd = 0;
+    let foundOpenParen = false;
+    for (let i = 0; i < trimmed.length; i++) {
+      const char = trimmed[i];
+      if (char === "(") {
+        parenDepth++;
+        foundOpenParen = true;
+      } else if (char === ")") {
+        parenDepth--;
+        if (foundOpenParen && parenDepth === 0) {
+          headerEnd = i + 1;
+          break;
+        }
+      }
+    }
+    if (headerEnd > 0) {
+      return trimmed.substring(0, headerEnd);
+    }
+  }
+  // For other statements, just take the first line
+  const firstLineEnd = trimmed.indexOf("\n");
+  if (firstLineEnd !== -1) {
+    // If the first line ends with '{', strip it
+    let firstLine = trimmed.substring(0, firstLineEnd).trim();
+    if (firstLine.endsWith("{")) {
+      firstLine = firstLine.substring(0, firstLine.length - 1).trim();
+    }
+    return firstLine;
+  }
+  return trimmed;
+}
+
+/**
+ * Extract array access patterns from code (e.g., "xValues[i]" returns ["xValues"])
+ * Match patterns like varName[something]
+ * @param code - The code to extract from
+ * @returns Set of array accesses
+ */
+export function extractArrayAccess(code: string): Set<string> {
+  const arrayAccesses = new Set<string>();
+  const arrayAccessRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\[/g;
+  let match;
+  while ((match = arrayAccessRegex.exec(code)) !== null) {
+    arrayAccesses.add(match[1]);
+  }
+  return arrayAccesses;
+}
+
+/**
+ * Analyze a MemberExpression AST node to determine the source
+ */
+function analyzeMemberExpression(node: ASTNode): AssignmentSource | null {
+  if (node.type !== "MemberExpression") {
+    return null;
+  }
+
+  const object = node.object;
+  const property = node.property;
+
+  // Pattern: vars.X or vars["X"]
+  if (object?.type === "Identifier" && object.name === "vars") {
+    let computationVar: string | undefined;
+    if (!node.computed && property?.type === "Identifier" && property.name) {
+      // vars.X
+      computationVar = property.name;
+    } else if (
+      node.computed &&
+      property?.type === "Literal" &&
+      property.value !== undefined
+    ) {
+      // vars["X"] or vars['X']
+      computationVar = String(property.value);
+    }
+    if (computationVar) {
+      return { type: "vars_access", computationVar };
+    }
+  }
+
+  // Pattern: arrayVar[index] (e.g., xValues[i])
+  if (object?.type === "Identifier" && object.name && node.computed) {
+    const arrayVar = object.name;
+    let indexVar: string | undefined;
+    if (property?.type === "Identifier" && property.name) {
+      indexVar = property.name;
+    }
+    return { type: "array_index", arrayVar, indexVar };
+  }
+  return null;
+}
+
+// ============================================================================
+// Linkage Extraction - Assignment Collection
+// ============================================================================
+
+/**
+ * Process an initialization expression and categorize it as an assignment or expression.
+ */
+function processInitExpression(
+  localVar: string,
+  init: ASTNode | null | undefined,
+  assignments: Assignment[],
+  expressionAssignments: ExpressionAssignment[]
+): void {
+  if (!init) return;
+  if (init.type === "MemberExpression") {
+    const source = analyzeMemberExpression(init);
+    if (source) {
+      assignments.push({ localVar, source });
+    }
+  } else if (isExpressionWithIdentifiers(init)) {
+    expressionAssignments.push({ localVar, expression: init });
+  }
+}
+
+/**
+ * Walk the AST and collect all variable assignments and expression assignments.
+ */
+function collectAssignments(ast: ASTNode): CollectedAssignments {
+  const assignments: Assignment[] = [];
+  const expressionAssignments: ExpressionAssignment[] = [];
+
+  walkAst(ast, (node) => {
+    // Handle VariableDeclaration nodes (var only in ES5)
+    if (node.type === "VariableDeclaration") {
+      if (node.declarations && Array.isArray(node.declarations)) {
+        for (const declaration of node.declarations) {
+          if (declaration.id?.name && declaration.init) {
+            processInitExpression(
+              declaration.id.name,
+              declaration.init,
+              assignments,
+              expressionAssignments
+            );
+          }
+        }
+      }
+    }
+
+    // Handle AssignmentExpression (for reassignments like xi = xValues[i])
+    if (
+      node.type === "AssignmentExpression" &&
+      node.left?.type === "Identifier" &&
+      node.left.name
+    ) {
+      processInitExpression(
+        node.left.name,
+        node.right,
+        assignments,
+        expressionAssignments
+      );
+    }
+  });
+
+  return { assignments, expressionAssignments };
+}
+
+// ============================================================================
+// Linkage Extraction - Resolution
+// ============================================================================
+
+/**
+ * Find a variable in the computation store that has memberOf matching the given parent variable
+ */
+export function findMemberOfVariable(parentVarId: string): string | null {
+  for (const [varId, variable] of computationStore.variables.entries()) {
+    if (variable.memberOf === parentVarId) {
+      return varId;
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve direct linkages and array aliases from collected assignments.
+ */
+function resolveDirectLinkages(
+  assignments: Assignment[],
+  variableLinkage: Record<string, string | string[]>,
+  arrayBindings: Record<string, string>
+): void {
+  for (const { localVar, source } of assignments) {
+    if (source.type === "vars_access" && source.computationVar) {
+      // Direct access to vars.X
+      const computationVar = source.computationVar;
+      const variable = computationStore.variables.get(computationVar);
+      if (variable) {
+        if (Array.isArray(variable.value)) {
+          // Array/set creates an alias
+          arrayBindings[localVar] = computationVar;
+          variableLinkage[localVar] = computationVar;
+        } else {
+          // Scalar is a direct linkage
+          variableLinkage[localVar] = computationVar;
+        }
+      }
+    } else if (source.type === "array_index" && source.arrayVar) {
+      // Array index access like xValues[i]
+      const parentComputationVar = arrayBindings[source.arrayVar];
+      if (parentComputationVar) {
+        // Try to find a variable with memberOf matching the parent
+        const memberVar = findMemberOfVariable(parentComputationVar);
+        if (memberVar) {
+          variableLinkage[localVar] = memberVar;
+        } else {
+          // Link directly to the parent computation var if no memberOf
+          const variable = computationStore.variables.get(parentComputationVar);
+          if (variable && Array.isArray(variable.value)) {
+            variableLinkage[localVar] = parentComputationVar;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Collect all linked computation variables for a set of identifiers.
+ * Flattens array linkages into a single array.
+ */
+function collectLinkedVars(
+  identifiers: string[],
+  variableLinkage: Record<string, string | string[]>
+): string[] {
+  const linkedVars: string[] = [];
+  for (const id of identifiers) {
+    const linked = variableLinkage[id];
+    if (linked) {
+      if (Array.isArray(linked)) {
+        linkedVars.push(...linked);
+      } else {
+        linkedVars.push(linked);
+      }
+    }
+  }
+  return linkedVars;
+}
+
+/**
+ * Normalize a multi-linkage: deduplicate and convert single-item arrays to strings.
+ */
+function normalizeMultiLinkage(linkedVars: string[]): string | string[] | null {
+  if (linkedVars.length === 0) return null;
+  const unique = [...new Set(linkedVars)];
+  return unique.length === 1 ? unique[0] : unique;
+}
+
+/**
+ * Resolve expression linkages for multi-variable expressions (e.g., xi * probability).
+ */
+function resolveExpressionLinkages(
+  expressionAssignments: ExpressionAssignment[],
+  variableLinkage: Record<string, string | string[]>
+): void {
+  for (const { localVar, expression } of expressionAssignments) {
+    // Skip if already has a direct linkage
+    if (variableLinkage[localVar]) continue;
+    const identifiers = extractIdentifiersFromExpression(expression);
+    const linkedVars = collectLinkedVars(identifiers, variableLinkage);
+    const normalized = normalizeMultiLinkage(linkedVars);
+    if (normalized) {
+      variableLinkage[localVar] = normalized;
+    }
+  }
+}
+
+// ============================================================================
+// Linkage Extraction - Main Entry Points
+// ============================================================================
+
+/**
+ * Extract variable linkages by analyzing the AST of a manual function.
+ *
+ * This function detects three types of patterns:
+ * 1. Direct assignments from vars: `var xValues = vars.X` or `var xValues = vars["X"]`
+ *    → Creates an array alias mapping (xValues → X)
+ *
+ * 2. Array index access: `var xi = xValues[i]`
+ *    → If xValues is an alias for X, finds a variable with memberOf: "X"
+ *    → Links xi to that member variable
+ *
+ * 3. Expression assignments: `var currExpected = xi * probability`
+ *    → Creates multi-linkage to all referenced computation variables
+ *
+ * @param code - The JavaScript code of the manual function body
+ * @returns Object containing variableLinkage and arrayBindings
+ */
+export function extractLinkages(code: string): Linkages {
+  const variableLinkage: Record<string, string | string[]> = {};
+  const arrayBindings: Record<string, string> = {};
+  try {
+    const ast = acorn.parse(code, {
+      ecmaVersion: 5,
+      allowReturnOutsideFunction: true,
+    }) as unknown as ASTNode;
+    // First pass: collect all variable assignments
+    const { assignments, expressionAssignments } = collectAssignments(ast);
+    // Second pass: resolve direct linkages and array aliases
+    resolveDirectLinkages(assignments, variableLinkage, arrayBindings);
+    // Third pass: resolve expression linkages
+    resolveExpressionLinkages(expressionAssignments, variableLinkage);
+  } catch (error) {
+    console.warn("Error extracting variable linkages:", error);
+  }
+
+  return { variableLinkage, arrayBindings };
+}
+
+/**
+ * Merge auto-detected linkages with user-specified linkages.
+ * User-specified linkages take precedence.
+ */
+export function mergeLinkages(
+  autoDetected: Record<string, string | string[]>,
+  userSpecified: Record<string, string | string[]> | undefined
+): Record<string, string | string[]> {
+  return {
+    ...autoDetected,
+    ...(userSpecified || {}),
+  };
 }

@@ -54,17 +54,14 @@ export const summationBasic = `const config = {
         var xi = xValues[i];
         var probability = pxValues[i];
         var currExpected = xi * probability;
-        // @view "x P(x)"->"The expected value for x should be:"->"currExpected"
+        view("The expected value for x should be:", currExpected);
         expectedValue += currExpected;
-        // @view "E"->"Expected value E is updated"->"expectedValue"
+        view("Expected value E is updated:", expectedValue);
       }
       return expectedValue;
     },
     variableLinkage: {
-      "xi": "x",
-      "probability": "P(x)",
       "expectedValue": "E",
-      "currExpected": "c"
     },
   },
   fontSize: 1.5

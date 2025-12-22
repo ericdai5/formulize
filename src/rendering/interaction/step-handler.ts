@@ -1,3 +1,9 @@
+import {
+  extractArrayAccess,
+  extractIdentifiers,
+  extractLine,
+  findMemberOfVariable,
+} from "../../engine/manual/extract";
 import { findVariableByElement } from "../../parse/variable";
 import { computationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";
@@ -8,7 +14,6 @@ export const stepHandler = (container: HTMLElement) => {
   const interactiveElements = container.querySelectorAll(
     VAR_SELECTORS.INPUT_AND_COMPUTED
   );
-
   interactiveElements.forEach((element) => {
     // Find the variable using the improved matching function
     const variableMatch = findVariableByElement(element as HTMLElement);
@@ -33,48 +38,82 @@ export const stepHandler = (container: HTMLElement) => {
 };
 
 /**
- * Function to update variables using view variable values from interpreter.tsx
- * @param viewVariables - The view variables already extracted by interpreter.tsx
- * @param pairs - The pairs from view() call: [localVarName, linkedVarId, indexVar?]
- * @returns Set of variable IDs that were updated
- */
-export const updateVariables = (
-  viewVariables: Record<string, unknown>,
-  pairs: Array<[string, string, string?]>
-): Set<string> => {
-  const updatedVarIds = new Set<string>();
-  pairs.forEach(([name, varId]) => {
-    const value = viewVariables[name];
-    if (value !== undefined && typeof value === "number") {
-      computationStore.setValueInStepMode(varId, value);
-      updatedVarIds.add(varId);
-    }
-  });
-  return updatedVarIds;
-};
-
-/**
- * Function to update all variables using all extracted variables
+ * Function to update all variables based on the current line being executed
+ * Only activates variables that are REFERENCED on the current line
+ *
  * @param variables - All variables extracted from interpreter state
- * @param linkageMap - Map of local variable names to variable IDs
- * @returns Set of variable IDs that were updated
+ * @param linkageMap - Map of local variable names to variable IDs (can be string or string[] for multi-linkages)
+ * @param currentLineCode - The current line of code being executed
+ * @returns Set of variable IDs that should be active/highlighted
  */
 export const updateAllVariables = (
   variables: Record<string, unknown>,
-  linkageMap: Record<string, string>
+  linkageMap: Record<string, string | string[]>,
+  currentLineCode: string
 ): Set<string> => {
   const updatedVarIds = new Set<string>();
-  Object.entries(linkageMap).forEach(([localVarName, varId]) => {
-    const value = variables[localVarName];
-    if (value !== undefined && typeof value === "number") {
-      const variable = computationStore.variables.get(varId);
-      const currentValue = variable?.value;
-      if (currentValue !== value) {
-        computationStore.setValueInStepMode(varId, value);
+  const line = extractLine(currentLineCode);
+  const identifiers = extractIdentifiers(line);
+  const arrayAccesses = extractArrayAccess(line);
+  Object.entries(linkageMap).forEach(([varName, varId]) => {
+    // Skip if this variable is not referenced on the current line
+    if (!identifiers.has(varName)) {
+      return;
+    }
+    const value = variables[varName];
+    if (value === undefined) return;
+    // Handle both single varId and array of varIds (multi-linkage)
+    const varIds = Array.isArray(varId) ? varId : [varId];
+    const isMultiLinkage = Array.isArray(varId) && varId.length > 1;
+    // Handle array values (e.g., xValues = vars.X where X is an array)
+    if (Array.isArray(value)) {
+      for (const varId of varIds) {
+        // Check if this array is being accessed with an index (e.g., xValues[i])
+        if (arrayAccesses.has(varName)) {
+          const memberVar = findMemberOfVariable(varId);
+          if (memberVar) {
+            updatedVarIds.add(memberVar);
+            continue;
+          }
+          updatedVarIds.add(varId);
+          continue;
+        }
+        // If not indexed, activate the array itself
         updatedVarIds.add(varId);
+      }
+      return;
+    }
+
+    // Handle numeric values
+    if (typeof value === "number") {
+      for (const varId of varIds) {
+        if (isMultiLinkage) {
+          // For multi-linkage (expression variables like currExpected = xi * probability):
+          // Add all linked variables to activeVariables for highlighting
+          updatedVarIds.add(varId);
+
+          // Also find and update the source local variables that link to this varId
+          // e.g., if currExpected links to ['x', 'P(x)'], find xi→x and probability→P(x)
+          for (const [sourceVar, sourceVarId] of Object.entries(linkageMap)) {
+            // Skip multi-linkages and the current variable
+            if (Array.isArray(sourceVarId) || sourceVar === varName) continue;
+            // If this source variable links to the same varId
+            if (sourceVarId === varId) {
+              const sourceValue = variables[sourceVar];
+              if (typeof sourceValue === "number") {
+                computationStore.setValueInStepMode(varId, sourceValue);
+              }
+            }
+          }
+        } else {
+          // For single linkage: update value and add to active
+          computationStore.setValueInStepMode(varId, value);
+          updatedVarIds.add(varId);
+        }
       }
     }
   });
+
   return updatedVarIds;
 };
 

@@ -1,15 +1,10 @@
 /**
  * JS-Interpreter utility functions for manual computation debugging
  */
+import Interpreter from "js-interpreter";
+
 import { IStep } from "../../types/step";
 import { IValue } from "../../types/variable";
-
-// Window interface extension for JS-Interpreter
-declare global {
-  interface Window {
-    Interpreter: InterpreterConstructor;
-  }
-}
 
 // Comprehensive interface for JS-Interpreter
 interface JSInterpreter {
@@ -27,13 +22,6 @@ interface JSInterpreter {
   _currentViewParams?: {
     pairs?: Array<[string, string]>;
   };
-}
-
-interface InterpreterConstructor {
-  new (
-    code: string,
-    initFunc?: (interpreter: JSInterpreter, globalObject: unknown) => void
-  ): JSInterpreter;
 }
 
 interface StackFrame {
@@ -163,12 +151,14 @@ const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
     }
     // Check if current state's last stack frame is BlockStatement or ReturnStatement
     const currentLastFrame = current.stackTrace[current.stackTrace.length - 1];
-    const isCurrentBlock = currentLastFrame?.includes("BlockStatement") ||
-                          currentLastFrame?.includes("ReturnStatement");
+    const isCurrentBlock =
+      currentLastFrame?.includes("BlockStatement") ||
+      currentLastFrame?.includes("ReturnStatement");
     // Check if previous state's last stack frame was NOT a BlockStatement or ReturnStatement
     const prevLastFrame = prev.stackTrace[prev.stackTrace.length - 1];
-    const isPreviousNotBlock = !prevLastFrame?.includes("BlockStatement") &&
-                               !prevLastFrame?.includes("ReturnStatement");
+    const isPreviousNotBlock =
+      !prevLastFrame?.includes("BlockStatement") &&
+      !prevLastFrame?.includes("ReturnStatement");
     // We're at a block when we enter a BlockStatement/ReturnStatement from a non-BlockStatement/ReturnStatement
     // This ensures we highlight the statement itself, not the statement after it
     return isCurrentBlock && isPreviousNotBlock;
@@ -190,10 +180,6 @@ export const initializeInterpreter = (
   setError: (error: string) => void,
   values: Record<string, IValue>
 ): JSInterpreter | null => {
-  if (!window.Interpreter) {
-    setError("JS-Interpreter not loaded.");
-    return null;
-  }
   if (!currentCode.trim()) {
     setError("No code available to execute");
     return null;
@@ -231,7 +217,7 @@ export const initializeInterpreter = (
     };
 
     // Create interpreter with the code and proper variable setup
-    return new window.Interpreter(currentCode, initFunc);
+    return new Interpreter(currentCode, initFunc) as JSInterpreter;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     setError(`Code error: ${errorMessage}`);

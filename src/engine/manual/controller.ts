@@ -1,12 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
 import {
-  AugmentedFormulaNode,
-  Variable,
-  deriveTreeWithVars,
-  parseVariableStrings,
-} from "../../parse/formula-tree";
-import {
   applyCue,
   clearAllCues,
   updateAllVariables,
@@ -18,6 +12,7 @@ import { IEnvironment } from "../../types/environment";
 import { IStep } from "../../types/step";
 import { extractViews } from "../../util/acorn";
 import { ERROR_MESSAGES } from "./constants";
+import { extractLinkages, mergeLinkages } from "./extract";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
 import { Step } from "./step";
 
@@ -28,42 +23,6 @@ export const getArrayControl = (
   const controls = environment?.controls || [];
   const config = controls.find((control) => control.variable === varId);
   return config?.type === "array" ? (config as IArrayControl) : null;
-};
-
-/**
- * Extract variable names from an expression string by parsing it with formula tree
- * This properly handles complex variables like P(x) instead of splitting them into tokens
- */
-const extractVariablesFromExpression = (
-  expressionString: string
-): Set<string> => {
-  const variableNames = new Set<string>();
-  try {
-    // Get all known variables to help with parsing
-    const allVariables = Array.from(computationStore.variables.keys());
-    const variableTrees = parseVariableStrings(allVariables);
-    // Parse the expression using the same method as formula processing
-    const expressionTree = deriveTreeWithVars(
-      expressionString,
-      variableTrees,
-      allVariables
-    );
-    // Recursively extract Variable nodes from the tree
-    const extractVariableNodes = (node: AugmentedFormulaNode) => {
-      if (node.type === "variable") {
-        const variableNode = node as Variable;
-        variableNames.add(variableNode.originalSymbol);
-      }
-      // Recursively check children
-      const children = node.children || [];
-      children.forEach((child) => extractVariableNodes(child));
-    };
-    // Extract variables from all children of the expression tree
-    expressionTree.children.forEach((child) => extractVariableNodes(child));
-  } catch (error) {
-    console.warn(`Failed to parse expression "${expressionString}":`, error);
-  }
-  return variableNames;
 };
 
 export class Controller {
@@ -80,50 +39,61 @@ export class Controller {
         values[key] = variable.value;
       }
     }
-
     const interpreter = initializeInterpreter(
       ctx.code,
       ctx.setError.bind(ctx),
       values
     );
     if (!interpreter) return;
-
-    // Initialize variable linkage tracker with configuration from computation
-    const variableLinkage = ctx.environment?.semantics?.variableLinkage || {};
+    // Auto-detect variable linkages from the code AST
+    const { variableLinkage: detectedLinkage } = extractLinkages(ctx.code);
+    // Merge with user-specified linkages (user-specified takes precedence)
+    const specifiedLinkage = ctx.environment?.semantics?.variableLinkage;
+    const variableLinkage = mergeLinkages(detectedLinkage, specifiedLinkage);
     ctx.setLinkageMap(variableLinkage);
     ctx.setInterpreter(interpreter);
-
     // Clear active variables at the start of execution
     ctx.setActiveVariables(new Set());
-
     // Extract views from the code in the beginning of the execution to always have them available
     // This is because if refresh is called, then views are no longer available
-    const foundViews = extractViews(ctx.code);
-    ctx.setViews(foundViews);
-
+    const views = extractViews(ctx.code);
+    ctx.setViews(views);
     // Execute all steps and build complete history
     this.executeAllSteps(interpreter);
   }
 
   /**
    * Helper function to restore variables from a historical state and apply visual cues.
+   * @param state - The current step state
+   * @param stepIndex - The current step index
    */
-  private static updateVariables(state: IStep): void {
+  private static updateVariables(state: IStep, stepIndex: number): void {
     // Always clear all visual cues first to ensure clean state
     requestAnimationFrame(() => {
       clearAllCues();
     });
-
-    if (state.variables && ctx.linkageMap) {
-      const updatedVarIds = updateAllVariables(state.variables, ctx.linkageMap);
-
+    if (state.variables && ctx.linkageMap && ctx.code) {
+      // When at a block statement, use previous state's highlight to get user-visible code that was just executed
+      let highlight = state.highlight;
+      if (isAtBlock(ctx.history, stepIndex) && stepIndex > 0) {
+        const prevState = ctx.history[stepIndex - 1];
+        if (prevState?.highlight) {
+          highlight = prevState.highlight;
+        }
+      }
+      // Get the current line of code from the highlight positions
+      const currLine = ctx.code.substring(highlight.start, highlight.end);
+      const updatedVars = updateAllVariables(
+        state.variables,
+        ctx.linkageMap,
+        currLine
+      );
       // Always store the active variables in the execution store (even if empty set)
-      // This ensures labels only show for variables that changed in THIS step
-      ctx.setActiveVariables(updatedVarIds);
-
-      if (updatedVarIds.size > 0) {
+      // This ensures labels only show for variables referenced on this line
+      ctx.setActiveVariables(updatedVars);
+      if (updatedVars.size > 0) {
         requestAnimationFrame(() => {
-          applyCue(updatedVarIds);
+          applyCue(updatedVars);
         });
       }
     } else {
@@ -139,38 +109,11 @@ export class Controller {
     ctx.setHistoryIndex(index);
     const state = ctx.history[index];
     Step.highlight(ctx.codeMirrorRef, state.highlight);
-    this.updateVariables(state);
+    this.updateVariables(state, index);
     // Set view descriptions if this step has them (i.e., it's a view point)
     if (state.viewDescriptions) {
-      const viewDescriptions = state.viewDescriptions;
-      if (viewDescriptions) {
-        // Extract variables from view expressions and add them to activeVariables
-        // This will trigger the step-cue highlighting system for expression variables
-        const expressionVariables = new Set<string>();
-        Object.entries(viewDescriptions).forEach(([expressionString]) => {
-          const variables = extractVariablesFromExpression(expressionString);
-          variables.forEach((variable) => {
-            expressionVariables.add(variable);
-          });
-        });
-
-        // Set the view descriptions directly (expression -> description mapping)
-        ctx.setCurrentViewDescriptions(viewDescriptions);
-
-        // Merge expression variables with existing active variables
-        const currentActiveVariables = new Set(ctx.activeVariables);
-        expressionVariables.forEach((variable) => {
-          currentActiveVariables.add(variable);
-        });
-        // Update activeVariables to include expression variables
-        ctx.setActiveVariables(currentActiveVariables);
-        // Apply visual cues to expression variables
-        if (expressionVariables.size > 0) {
-          requestAnimationFrame(() => {
-            applyCue(expressionVariables);
-          });
-        }
-      }
+      // Set the view descriptions directly (localVarName -> description mapping)
+      ctx.setCurrentViewDescriptions(state.viewDescriptions);
     } else {
       // Clear view descriptions if not at a view point
       ctx.setCurrentViewDescriptions({});
@@ -215,7 +158,7 @@ export class Controller {
               .trim();
 
             // Check if the previous statement was a view call
-            if (codeAtPrevious.startsWith("view([")) {
+            if (codeAtPrevious.startsWith("view(")) {
               viewPoints.push(stepNumber);
 
               // Process the view call immediately with the current step's variables
@@ -446,10 +389,10 @@ export class Controller {
 
   /**
    * Extract view descriptions from a view() call string
-   * Parses view([["varName", "description"]]) or view([["varName", "description", "variableName"]]) formats
+   * Parses view("description", variableName) format
    * @param viewCode - The view call code string
    * @param stepVariables - Optional step variables to extract variable values from
-   * @returns Record of variable names to descriptions (with optional variable values)
+   * @returns Record of variable names to descriptions (with variable values appended)
    */
   private static extractViewDescriptions(
     viewCode: string,
@@ -457,30 +400,23 @@ export class Controller {
   ): Record<string, string> {
     const descriptions: Record<string, string> = {};
     try {
-      // Extract the array content from view([...])
-      const match = viewCode.match(/view\(\[(.*)\]\)/s);
+      // Parse format: view("description", variableName)
+      const match = viewCode.match(
+        /view\("([^"]+)",\s*([a-zA-Z_][a-zA-Z0-9_]*)\)/
+      );
       if (!match) return descriptions;
-      const arrayContent = match[1];
 
-      // Parse individual variable-description pairs with optional third argument
-      // Look for patterns like ["varName", "description"] or ["varName", "description", "variableName"]
-      const pairRegex = /\["([^"]+)",\s*"([^"]+)"(?:,\s*"([^"]+)")?\]/g;
-      let pairMatch;
-      while ((pairMatch = pairRegex.exec(arrayContent)) !== null) {
-        const [, varName, description, variableName] = pairMatch;
-        let finalDescription = description;
+      const [, description, variableName] = match;
+      let finalDescription = description;
 
-        // If a third argument (variable name) is provided, extract its value from step variables
-        if (variableName && stepVariables) {
-          const variableValue = this.getValueString(
-            variableName,
-            stepVariables
-          );
-          finalDescription = `${description} ${variableValue}`;
-        }
-
-        descriptions[varName] = finalDescription;
+      // Get the variable value from step variables
+      if (variableName && stepVariables) {
+        const variableValue = this.getValueString(variableName, stepVariables);
+        finalDescription = `${description} ${variableValue}`;
       }
+
+      // Use the variable name as the key for linkage lookup
+      descriptions[variableName] = finalDescription;
     } catch (error) {
       console.error("Error extracting view descriptions:", error);
     }

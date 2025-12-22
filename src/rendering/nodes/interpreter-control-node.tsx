@@ -73,6 +73,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
       const interpreterLines = ctx.code.split("\n");
       const userLines = userCode.split("\n");
 
+      // Find which line in interpreter code the character position corresponds to
       let currentPos = 0;
       let interpreterLine = 0;
 
@@ -85,28 +86,15 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
         currentPos += lineLength;
       }
 
-      let userLine = 0;
-      let extraLinesFromViews = 0;
+      // The interpreter code has a wrapper: "function executeManualFunction() {"
+      // which adds 1 line offset compared to user code "function(vars) {"
+      // Both now have the same view() calls, so no view-related adjustment needed
+      const userLine = Math.max(
+        0,
+        Math.min(interpreterLine, userLines.length - 1)
+      );
 
-      for (let i = 0; i < interpreterLine && i < interpreterLines.length; i++) {
-        const line = interpreterLines[i].trim();
-        if (line.includes("view([")) {
-          let j = i;
-          while (
-            j < interpreterLines.length &&
-            !interpreterLines[j].includes("]);")
-          ) {
-            j++;
-          }
-          extraLinesFromViews += j - i;
-          i = j;
-        }
-      }
-
-      userLine = interpreterLine - extraLinesFromViews;
-      if (userLine >= userLines.length) userLine = userLines.length - 1;
-      if (userLine < 0) userLine = 0;
-
+      // Convert user line back to character position
       let userCharPos = 0;
       for (let i = 0; i < userLine; i++) {
         userCharPos += userLines[i].length + 1;
