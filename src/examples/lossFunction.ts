@@ -2,7 +2,7 @@ export const lossFunction = `const config = {
   formulas: [
     {
       id: "loss-function-regularization",
-      latex: "J(\\\\theta) = \\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} ||\\\\theta_j||^2"
+      latex: "J(\\\\theta) = \\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2"
     },
   ],
   variables: {
@@ -14,31 +14,34 @@ export const lossFunction = `const config = {
       role: "input",
       default: 3,
       latexDisplay: "value",
+      labelDisplay: "none",
       precision: 0,
     },
     "y^{(i)}": {
       role: "input",
       memberOf: "y",
-      name: "Actual value of the i-th example",
-      latexDisplay: "value",
+      name: "i-th actual value",
+      latexDisplay: "name",
+      labelDisplay: "value",
       index: "i"
     },
     "\\\\hat{y}^{(i)}": {
       role: "input",
       memberOf: "\\\\hat{y}",
-      name: "Predicted value of the i-th example",
-      latexDisplay: "value",
+      name: "i-th predicted value",
+      latexDisplay: "name",
+      labelDisplay: "value",
       index: "i"
     },
     y: {
       role: "input",
       default: [2.5, 3.0, 7.0],
-      name: "Actual value of the i-th example"
+      name: "Actual values"
     },
     "\\\\hat{y}": {
       role: "input",
       default: [2.0, 4.0, 5.0],
-      name: "Predicted value of the i-th example"
+      name: "Predicted values"
     },
     "\\\\lambda": {
       role: "input",
@@ -65,14 +68,16 @@ export const lossFunction = `const config = {
       precision: 0,
     },
     i: {
-      role: "input",
-      name: "Index",
+      role: "index",
+      name: "Index i",
+      default: 1,
       latexDisplay: "value",
       precision: 0,
     },
     j: {
-      role: "input",
-      name: "Index",
+      role: "index",
+      name: "Index j",
+      default: 1,
       latexDisplay: "value",
       precision: 0,
     }
@@ -82,37 +87,43 @@ export const lossFunction = `const config = {
     mode: "step",
     manual: function(vars) {
       var m = vars.m;
-      var y = vars.y;
-      var yHat = vars["\\\\hat{y}"];
+      var y_data = vars.y;
+      var yHat_data = vars["\\\\hat{y}"];
       var lambda = vars["\\\\lambda"];
-      var theta = vars["\\\\theta"];
+      var theta_params = vars["\\\\theta"];
       var mse = 0;
+      view("Starting MSE calculation for m examples", m, "\\\\frac{1}{m} \\\\sum_{i=1}^{m}");
       for (var i = 0; i < m; i++) {
         var index = i + 1;
-        var yi = y[i];
-        var yHati = yHat[i];
-        var error = yi - yHati;
+        var y_i = y_data[i];
+        var yHat_i = yHat_data[i];
+        if (i === 0) {
+          view("Get value y:", y_i);
+          view("Get value $\\\\hat{y}$:", yHat_i);
+        }
+        var error = y_i - yHat_i;
+        view("Calculating individual error for example:", error);
         mse += error * error;
       }
       mse = mse / m;
+      view("Computed Mean Squared Error", mse, "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2");
       var regularization = 0;
-      for (var j = 0; j < theta.length; j++) {
-        var indexj = j + 1;
-        var thetaj = theta[j];
-        regularization += thetaj * thetaj;
+      view("Starting Regularization calculation", lambda);
+      for (var j = 0; j < theta_params.length; j++) {
+        var index_j = j + 1;
+        var theta_j = theta_params[j];
+        view("Adding squared parameter to penalty", theta_j);
+        regularization += theta_j * theta_j;
       }
-      regularization = lambda * regularization;
-      var loss = mse + regularization;
+      var reg_term = lambda * regularization;
+      view("Total Regularization Penalty", reg_term, "\\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2");
+      var loss = mse + reg_term;
+      view("Final Total Loss $J(\\\\theta)$:", loss, "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2");
       return loss;
     },
     variableLinkage: {
       "index": "i",
-      "yi": "y^{(i)}",
-      "yHati": "\\\\hat{y}^{(i)}",
-      "lambda": "\\\\lambda",
-      "indexj": "j",
-      "thetaj": "\\\\theta_j",
-      "loss": "J(\\\\theta)"
+      "index_j": "j",
     },
   },
   fontSize: 1.5

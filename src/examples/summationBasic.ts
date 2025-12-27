@@ -9,6 +9,7 @@ export const summationBasic = `const config = {
     E: {
       role: "computed",
       precision: 2,
+      default: 0,
       name: "Expected Value",
       latexDisplay: "name",
       labelDisplay: "value",
@@ -49,7 +50,7 @@ export const summationBasic = `const config = {
     manual: function(vars) {
       var xValues = vars.X;
       var pxValues = vars["P(x)"];
-      var expectedValue = 0;
+      var expectedValue = vars.E;
       for (var i = 0; i < xValues.length; i++) {
         var xi = xValues[i];
         var probability = pxValues[i];
@@ -75,9 +76,6 @@ export const summationBasic = `const config = {
         }
       }
       return expectedValue;
-    },
-    variableLinkage: {
-      "expectedValue": "E",
     },
   },
   fontSize: 1.5
