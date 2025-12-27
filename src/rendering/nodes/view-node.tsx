@@ -1,10 +1,14 @@
 import { observer } from "mobx-react-lite";
 
+import { Handle, Position } from "@xyflow/react";
+
 import LatexLabel from "../../components/latex";
+import { HANDLE_STYLE } from "../css-classes";
 
 export interface ViewNodeData {
   expression: string;
   description: string;
+  activeVarIds?: string[];
 }
 
 const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
@@ -25,6 +29,13 @@ const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
       }}
       title={`View comment for expression: ${expression} (draggable)`}
     >
+      {/* Handle at the center top for connecting edges */}
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="view-handle-top"
+        style={HANDLE_STYLE}
+      />
       <LatexLabel latex={latexDescription} />
     </div>
   );
