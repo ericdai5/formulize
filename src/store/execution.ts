@@ -6,7 +6,7 @@ import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
 import { JSInterpreter } from "../engine/manual/interpreter";
 import { IEnvironment } from "../types/environment";
-import { IStep } from "../types/step";
+import { IStep, IView } from "../types/step";
 
 /**
  * MobX store for execution state that provides immediate updates
@@ -128,10 +128,6 @@ class ExecutionStore {
     this.linkageMap = linkageMap;
   }
 
-  setCurrentViewDescriptions(descriptions: Record<string, string>) {
-    this.currentViewDescriptions = descriptions;
-  }
-
   setActiveVariables(variables: Set<string>) {
     this.activeVariables = variables;
   }
@@ -187,6 +183,10 @@ class ExecutionStore {
     return this.history[this.historyIndex];
   }
 
+  get currentView(): IView | undefined {
+    return this.history[this.historyIndex]?.view;
+  }
+
   get isAtEndOfHistory(): boolean {
     return this.historyIndex >= this.history.length - 1;
   }
@@ -214,7 +214,6 @@ class ExecutionStore {
     this.linkageMap = {};
     this.viewPoints = [];
     this.blockPoints = [];
-    this.currentViewDescriptions = {};
     this.activeVariables = new Set();
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
