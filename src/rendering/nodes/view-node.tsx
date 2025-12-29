@@ -1,16 +1,25 @@
 import { observer } from "mobx-react-lite";
 
+import { Handle, Position } from "@xyflow/react";
+
+import LatexLabel from "../../components/latex";
+import { HANDLE_STYLE } from "../css-classes";
+
 export interface ViewNodeData {
   expression: string;
   description: string;
+  activeVarIds?: string[];
 }
 
 const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
   const { expression, description } = data;
 
+  // Wrap text in \text{} for proper LaTeX text rendering
+  const latexDescription = `\\text{${description}}`;
+
   return (
     <div
-      className="view-flow-node text-base text-black font-regular text-center bg-white border border-slate-200 rounded-xl px-4 py-2 hover:scale-105 transition-all duration-100"
+      className="view-flow-node text-base text-black font-regular text-center rounded-xl"
       style={{
         pointerEvents: "auto",
         width: "auto",
@@ -20,7 +29,14 @@ const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
       }}
       title={`View comment for expression: ${expression} (draggable)`}
     >
-      {description}
+      {/* Handle at the center top for connecting edges */}
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="view-handle-top"
+        style={HANDLE_STYLE}
+      />
+      <LatexLabel latex={latexDescription} />
     </div>
   );
 });

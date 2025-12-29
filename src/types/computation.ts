@@ -8,9 +8,8 @@ export interface ISemantics {
   engine: "symbolic-algebra" | "llm" | "manual";
   expressions?: Record<string, string>;
   manual?: IManual;
-  /** Source code of the manual function (preserves comments). Injected by formulizePlugin. */
-  manualSource?: string;
-  variableLinkage?: Record<string, string>;
+  /** Map of local variable names to computation store variable IDs (supports multi-linkage with string[]) */
+  variableLinkage?: Record<string, string | string[]>;
   mappings?: Record<string, (...args: unknown[]) => unknown>;
   apiKey?: string;
   model?: string;

@@ -3,7 +3,8 @@ import React from "react";
 import { LucideIcon } from "lucide-react";
 
 interface IconButtonProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  svgIcon?: string;
   alt: string;
   onClick: () => void;
   title?: string;
@@ -15,6 +16,7 @@ interface IconButtonProps {
 
 const IconButton: React.FC<IconButtonProps> = ({
   icon: Icon,
+  svgIcon,
   alt,
   onClick,
   title,
@@ -42,10 +44,18 @@ const IconButton: React.FC<IconButtonProps> = ({
       title={title}
       aria-label={alt}
     >
-      <Icon
-        className={`${iconSizeClasses[size]} ${isActive ? "text-white" : "text-slate-700 hover:text-slate-950"} transition-colors duration-100`}
-        strokeWidth={strokeWidth}
-      />
+      {Icon ? (
+        <Icon
+          className={`${iconSizeClasses[size]} ${isActive ? "text-white" : "text-slate-700 hover:text-slate-950"} transition-colors duration-100`}
+          strokeWidth={strokeWidth}
+        />
+      ) : svgIcon ? (
+        <img
+          src={svgIcon}
+          alt={alt}
+          className={`${iconSizeClasses[size]} ${isActive ? "brightness-0 invert" : ""} transition-all duration-100`}
+        />
+      ) : null}
     </button>
   );
 };

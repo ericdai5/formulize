@@ -18,6 +18,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
+import { unescapeLatex } from "../engine/manual/controller";
+import { getVariablesFromLatexString } from "../parse/variable";
 import { computationStore } from "../store/computation";
 import { executionStore } from "../store/execution";
 import { FormulaStore } from "../store/formulas";
@@ -61,6 +63,9 @@ const CanvasFlow = observer(
 
     // Track which labels have been manually positioned by the user
     const manuallyPositionedLabelsRef = useRef<Set<string>>(new Set());
+
+    // Track pending label update timeout (outside useEffect for persistence)
+    const labelUpdateTimeoutRef = useRef<number | null>(null);
 
     // React Flow hooks for accessing measured node data
     const { getNodes, getViewport, fitView } = useReactFlow();
@@ -150,7 +155,6 @@ const CanvasFlow = observer(
           position: { x: 600, y: currentY },
           data: { environment },
           draggable: true,
-          dragHandle: ".interpreter-drag-handle",
         });
         currentY += 80; // Add space after interpreter controls
       }
@@ -220,58 +224,241 @@ const CanvasFlow = observer(
     // Function to add view nodes for variables with view descriptions
     const addViewNodes = useCallback(() => {
       const currentNodes = getNodes();
+      const viewport = getViewport();
       const viewNodes: Node[] = [];
-      let viewNodeIndex = 0; // Counter for positioning multiple view nodes
+      const expressionNodes: Node[] = [];
+      let viewNodeIndex = 0;
 
-      // Iterate through view descriptions to create view nodes
-      Object.entries(executionStore.currentViewDescriptions).forEach(
-        ([expression, description]) => {
-          if (!description) return;
+      // Get active variable IDs
+      const activeVarIds = Array.from(executionStore.activeVariables);
 
-          // Find the first formula node (typically formula-0)
-          const formulaNodes = getFormulaNodes(currentNodes);
-          const formulaNode = formulaNodes[0];
+      // Get current view description from the current step
+      const viewDesc = executionStore.currentView;
+      if (!viewDesc) return;
 
-          if (!formulaNode) return;
+      // Extract view info
+      const { varId, description: descriptionText, expression } = viewDesc;
 
-          // Position view node directly below the formula node
-          const viewNodePosition = {
-            x: formulaNode.position.x,
-            y:
-              formulaNode.position.y +
-              (formulaNode.measured?.height || formulaNode.height || 200) +
-              100 +
-              viewNodeIndex * 60,
-          };
+      // Find the first formula node
+      const formulaNodes = getFormulaNodes(currentNodes);
+      const formulaNode = formulaNodes[0];
 
-          // Create the view node
-          viewNodes.push({
-            id: `view-${viewNodeIndex}`,
-            type: "view",
-            position: viewNodePosition,
-            data: {
-              expression,
-              description,
-            },
-            draggable: true,
-            selectable: true,
-          });
+      if (!formulaNode) return;
 
-          viewNodeIndex++;
-        }
-      );
+      // Calculate bounding box - either from expression scope or from variable nodes
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      let boundingBoxFound = false;
 
-      // Add view nodes to the canvas
-      if (viewNodes.length > 0) {
-        setNodes((currentNodes) => {
-          // Remove existing view nodes first
-          const nonViewNodes = currentNodes.filter(
-            (node) => node.type !== NODE_TYPES.VIEW
+      // Try to use expression scope if provided (expressionScope is a LaTeX expression string)
+      if (expression) {
+        // Look up ALL matching scopeIds from the computation store
+        const scopeIds = computationStore.getScopeIdsForExpression(expression);
+
+        // Look up ALL variables contained in the expression string
+        const variableIds = getVariablesFromLatexString(
+          unescapeLatex(expression)
+        );
+        if (scopeIds.length > 0 || variableIds.length > 0) {
+          // Query for the expression elements and combine their bounding boxes
+          const formulaElement = document.querySelector(
+            `[data-id="${formulaNode.id}"] .formula-node`
           );
-          return [...nonViewNodes, ...viewNodes];
+          if (formulaElement) {
+            const formulaRect = formulaElement.getBoundingClientRect();
+
+            // Helper to add element to bounding box
+            const addToBoundingBox = (element: Element | null) => {
+              if (element) {
+                const exprRect = element.getBoundingClientRect();
+                // Expand the bounding box to include this element
+                const elemMinX =
+                  (exprRect.left - formulaRect.left) / viewport.zoom;
+                const elemMaxX =
+                  (exprRect.right - formulaRect.left) / viewport.zoom;
+                const elemMinY =
+                  (exprRect.top - formulaRect.top) / viewport.zoom;
+                const elemMaxY =
+                  (exprRect.bottom - formulaRect.top) / viewport.zoom;
+                minX = Math.min(minX, elemMinX);
+                maxX = Math.max(maxX, elemMaxX);
+                minY = Math.min(minY, elemMinY);
+                maxY = Math.max(maxY, elemMaxY);
+                boundingBoxFound = true;
+              }
+            };
+
+            // 1. Process structural scopes
+            for (const scopeId of scopeIds) {
+              const exprElement = formulaElement.querySelector(`#${scopeId}`);
+              addToBoundingBox(exprElement);
+            }
+
+            // 2. Process individual variables
+            for (const varId of variableIds) {
+              const varElement = formulaElement.querySelector(
+                `[id="${CSS.escape(varId)}"]`
+              );
+              const fallbackElement = !varElement
+                ? formulaElement.querySelector(`[id="${varId}"]`)
+                : null;
+              const targetElement = varElement || fallbackElement;
+              addToBoundingBox(targetElement);
+            }
+          }
+        }
+      }
+
+      // Fall back to variable nodes if no expression scope or element not found
+      if (!boundingBoxFound) {
+        const activeVariableNodes = currentNodes.filter(
+          (node) =>
+            node.type === NODE_TYPES.VARIABLE &&
+            activeVarIds.includes(
+              (node.data as { varId?: string })?.varId || ""
+            )
+        );
+
+        if (activeVariableNodes.length === 0) return;
+
+        activeVariableNodes.forEach((node) => {
+          const width =
+            node.measured?.width ||
+            (node.data as { width?: number })?.width ||
+            20;
+          const height =
+            node.measured?.height ||
+            (node.data as { height?: number })?.height ||
+            20;
+          minX = Math.min(minX, node.position.x);
+          maxX = Math.max(maxX, node.position.x + width);
+          minY = Math.min(minY, node.position.y);
+          maxY = Math.max(maxY, node.position.y + height);
         });
       }
-    }, [getNodes, setNodes]);
+
+      // Skip if we couldn't find a valid bounding box
+      if (minX === Infinity || maxX === -Infinity) return;
+
+      // Add padding around the bounding box
+      const padding = 4;
+      const expressionWidth = maxX - minX + padding * 2;
+      const expressionHeight = maxY - minY + padding * 2;
+
+      const expressionNodeId = `expression-${viewNodeIndex}`;
+
+      // Create expression node as child of formula node (same coordinate system as variables)
+      expressionNodes.push({
+        id: expressionNodeId,
+        type: NODE_TYPES.EXPRESSION,
+        position: {
+          x: minX - padding,
+          y: minY - padding,
+        },
+        parentId: formulaNode.id,
+        extent: "parent",
+        data: {
+          width: expressionWidth,
+          height: expressionHeight,
+          varIds: activeVarIds,
+        },
+        draggable: false,
+        selectable: false,
+      });
+
+      // Position view node below the formula, centered under expression
+      const expressionCenterX = minX - padding + expressionWidth / 2;
+      const formulaHeight =
+        formulaNode.measured?.height || formulaNode.height || 200;
+
+      const viewNodePosition = {
+        x: expressionCenterX,
+        y: formulaHeight + 40 + viewNodeIndex * 60,
+      };
+
+      const viewNodeId = `view-${viewNodeIndex}`;
+
+      // Create the view node as a child of the formula node
+      viewNodes.push({
+        id: viewNodeId,
+        type: "view",
+        position: viewNodePosition,
+        parentId: formulaNode.id,
+        origin: [0.5, 0] as [number, number],
+        data: {
+          varId,
+          description: descriptionText,
+          activeVarIds,
+          expressionNodeId,
+        },
+        draggable: true,
+        selectable: true,
+      });
+
+      viewNodeIndex++;
+
+      // Add view nodes and expression nodes to the canvas
+      if (viewNodes.length > 0) {
+        setNodes((currentNodes) => {
+          // Remove existing view and expression nodes first
+          const filteredNodes = currentNodes.filter(
+            (node) =>
+              node.type !== NODE_TYPES.VIEW &&
+              node.type !== NODE_TYPES.EXPRESSION
+          );
+          return [...filteredNodes, ...expressionNodes, ...viewNodes];
+        });
+
+        // Add edges after nodes are rendered
+        setTimeout(() => {
+          const viewEdges: Edge[] = [];
+
+          // Create edge from each view node to its corresponding expression node
+          viewNodes.forEach((viewNode, index) => {
+            const expressionNodeId = `expression-${index}`;
+            const edgeId = `edge-view-${viewNode.id}-${expressionNodeId}`;
+
+            viewEdges.push({
+              id: edgeId,
+              source: viewNode.id,
+              target: expressionNodeId,
+              sourceHandle: "view-handle-top",
+              targetHandle: "expression-handle-bottom",
+              type: "straight",
+              style: {
+                stroke: "#3b82f6",
+                strokeWidth: 1.5,
+                strokeDasharray: "4 2",
+              },
+              animated: true,
+              selectable: false,
+              deletable: false,
+            });
+          });
+
+          setEdges((currentEdges) => {
+            const nonViewEdges = currentEdges.filter(
+              (edge) => !edge.id.startsWith("edge-view-")
+            );
+            return [...nonViewEdges, ...viewEdges];
+          });
+        }, 100);
+      } else {
+        // Remove view nodes, expression nodes, and view edges
+        setNodes((currentNodes) =>
+          currentNodes.filter(
+            (node) =>
+              node.type !== NODE_TYPES.VIEW &&
+              node.type !== NODE_TYPES.EXPRESSION
+          )
+        );
+        setEdges((currentEdges) =>
+          currentEdges.filter((edge) => !edge.id.startsWith("edge-view-"))
+        );
+      }
+    }, [getNodes, getViewport, setNodes, setEdges]);
 
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {
@@ -424,8 +611,13 @@ const CanvasFlow = observer(
         ) {
           const computedEdges = createLabelVariableEdges(nodes);
 
+          // Preserve existing view edges (they are managed separately by addViewNodes)
+          const existingViewEdges = edges.filter((edge) =>
+            edge.id.startsWith("edge-view-")
+          );
+
           // Preserve object identity for unchanged edges to avoid re-renders
-          const nextEdges = computedEdges
+          const nextLabelEdges = computedEdges
             .map((edge) => {
               const prev = edges.find((e) => e.id === edge.id);
               if (
@@ -442,6 +634,9 @@ const CanvasFlow = observer(
             })
             .sort((a, b) => a.id.localeCompare(b.id));
 
+          // Combine label edges with preserved view edges
+          const nextEdges = [...nextLabelEdges, ...existingViewEdges];
+
           // Shallow reference equality check to skip unnecessary setEdges
           const sameByRef =
             nextEdges.length === edges.length &&
@@ -450,8 +645,13 @@ const CanvasFlow = observer(
             setEdges(nextEdges);
           }
         } else {
-          // Keep edges empty while labels are being positioned
-          setEdges([]);
+          // Keep only view edges while labels are being positioned
+          const viewEdges = edges.filter((edge) =>
+            edge.id.startsWith("edge-view-")
+          );
+          if (viewEdges.length !== edges.length) {
+            setEdges(viewEdges);
+          }
         }
       } else {
         setEdges([]);
@@ -460,54 +660,49 @@ const CanvasFlow = observer(
 
     // Update labels when step mode or active variables change
     useEffect(() => {
-      let timeoutId: number | null = null;
-
       const disposer = reaction(
         () => ({
           isStepMode: computationStore.isStepMode(),
           activeVariables: Array.from(executionStore.activeVariables),
-          viewDescriptions: Object.keys(executionStore.currentViewDescriptions),
+          currentView: executionStore.currentView,
         }),
         () => {
           if (nodesInitialized && variableNodesAddedRef.current) {
-            // Clear any pending timeout to prevent multiple rapid updates
-            if (timeoutId) {
-              clearTimeout(timeoutId);
+            // Debounce using a ref that persists outside this effect
+            if (labelUpdateTimeoutRef.current) {
+              clearTimeout(labelUpdateTimeoutRef.current);
             }
 
-            // Debounce the label update to prevent rapid recreation
-            timeoutId = window.setTimeout(() => {
+            labelUpdateTimeoutRef.current = window.setTimeout(() => {
               // Clear manually positioned labels when regenerating
               manuallyPositionedLabelsRef.current.clear();
 
-              // Remove existing label nodes, view nodes, and edges, then re-add with updated visibility
+              // Remove existing label nodes, view nodes, expression nodes
               setNodes((currentNodes) => {
-                const nonLabelViewNodes = currentNodes.filter(
+                const nonLabelViewExpressionNodes = currentNodes.filter(
                   (node) =>
                     node.type !== NODE_TYPES.LABEL &&
-                    node.type !== NODE_TYPES.VIEW
+                    node.type !== NODE_TYPES.VIEW &&
+                    node.type !== NODE_TYPES.EXPRESSION
                 );
-                return nonLabelViewNodes;
+                return nonLabelViewExpressionNodes;
               });
 
               // Clear edges to prevent stale edge references
               setEdges([]);
 
-              // Re-add labels and view nodes with updated visibility after state has settled
-              setTimeout(() => {
+              // Re-add labels and view nodes after state has settled
+              window.setTimeout(() => {
                 addLabelNodes();
                 addViewNodes();
               }, 100);
-            }, 100); // Debounce for 100ms
+            }, 100);
           }
         }
       );
 
       return () => {
         disposer();
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
       };
     }, [nodesInitialized, addLabelNodes, addViewNodes, setNodes, setEdges]);
 

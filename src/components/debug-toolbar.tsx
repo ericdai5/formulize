@@ -1,8 +1,8 @@
 import {
+  Code2,
   Footprints,
   ListTree,
   ScanEye,
-  SquareDashed,
   SquareFunction,
   Variable,
   Vault,
@@ -18,9 +18,12 @@ interface ToolbarProps {
   onOpenStoreModal: () => void;
   onToggleVariableBorders: () => void;
   onToggleHoverOutlines: () => void;
+  onToggleExpressionNodes: () => void;
+  onInspectMathJax: () => void;
   showDebugButton?: boolean;
   showHoverOutlines?: boolean;
   showVariableBorders?: boolean;
+  showExpressionNodes?: boolean;
 }
 
 const Toolbar = ({
@@ -31,9 +34,12 @@ const Toolbar = ({
   onOpenStoreModal,
   onToggleVariableBorders,
   onToggleHoverOutlines,
+  onToggleExpressionNodes,
+  onInspectMathJax,
   showDebugButton = false,
   showHoverOutlines = false,
   showVariableBorders = false,
+  showExpressionNodes = false,
 }: ToolbarProps) => {
   return (
     <div className="absolute right-4 top-4 gap-3 flex flex-row z-20">
@@ -66,11 +72,18 @@ const Toolbar = ({
       )}
       <IconButton icon={Vault} alt="Store" onClick={onOpenStoreModal} />
       <IconButton
-        icon={SquareDashed}
+        svgIcon="/show-var-node.svg"
         alt="Toggle Variable Borders"
         onClick={onToggleVariableBorders}
         title="Toggle Variable Borders"
         isActive={showVariableBorders}
+      />
+      <IconButton
+        svgIcon="/show-expression-node.svg"
+        alt="Toggle Expression Nodes"
+        onClick={onToggleExpressionNodes}
+        title="Toggle Expression Nodes"
+        isActive={showExpressionNodes}
       />
       <IconButton
         icon={ScanEye}
@@ -78,6 +91,12 @@ const Toolbar = ({
         onClick={onToggleHoverOutlines}
         title="Toggle Hover Outlines"
         isActive={showHoverOutlines}
+      />
+      <IconButton
+        icon={Code2}
+        alt="Inspect MathJax HTML"
+        onClick={onInspectMathJax}
+        title="Inspect MathJax HTML Structure"
       />
     </div>
   );
