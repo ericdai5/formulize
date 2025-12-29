@@ -47,11 +47,12 @@ class ExecutionStore {
   // Track which step indices are block points (ordered array for efficient navigation)
   blockPoints: number[] = [];
 
-  // Current view descriptions for variables (set when at view points)
-  currentViewDescriptions: Record<string, string> = {};
-
   // Currently active (changed) variables in the current step
   activeVariables: Set<string> = new Set();
+
+  // First values seen for each linked variable during initial execution
+  // Used to reset variables when stepping backward to before their declaration
+  firstSeenValues: Map<string, number> = new Map();
 
   // Refs for UI components
   autoPlayIntervalRef: React.MutableRefObject<number | null> =
@@ -130,6 +131,20 @@ class ExecutionStore {
 
   setActiveVariables(variables: Set<string>) {
     this.activeVariables = variables;
+  }
+
+  setFirstSeenValue(varId: string, value: number) {
+    if (!this.firstSeenValues.has(varId)) {
+      this.firstSeenValues.set(varId, value);
+    }
+  }
+
+  getFirstSeenValue(varId: string): number | undefined {
+    return this.firstSeenValues.get(varId);
+  }
+
+  clearFirstSeenValues() {
+    this.firstSeenValues.clear();
   }
 
   setView(viewPoints: number[]) {
@@ -215,6 +230,7 @@ class ExecutionStore {
     this.viewPoints = [];
     this.blockPoints = [];
     this.activeVariables = new Set();
+    this.firstSeenValues = new Map();
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
       number | null

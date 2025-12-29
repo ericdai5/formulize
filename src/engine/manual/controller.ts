@@ -1,5 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
+import { getVariablesFromLatexString } from "../../parse/variable";
 import {
   applyCue,
   clearAllCues,
@@ -9,8 +10,7 @@ import { computationStore } from "../../store/computation";
 import { executionStore as ctx } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
-import { IStep } from "../../types/step";
-import { extractViews } from "../../util/acorn";
+import { IStep, IView } from "../../types/step";
 import { ERROR_MESSAGES } from "./constants";
 import { extractLinkages, mergeLinkages } from "./extract";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
@@ -126,13 +126,50 @@ export class Controller {
 
   /**
    * Enrich activeVariables with variables contained in the expression string.
-   * Parses the LaTeX expression to extract variable IDs for highlighting.
+   * Filters out nested variables (memberOf parents and index variables) to only
+   * highlight complete member variables, not their component parts.
    */
   private static activateVarsFromExpression(expression: string): void {
     const unescaped = unescapeLatex(expression);
     const varIds = getVariablesFromLatexString(unescaped);
     if (varIds.length === 0) return;
-    const allActive = new Set([...ctx.activeVariables, ...varIds]);
+
+    // Filter out nested variables:
+    // - Variables that are memberOf another variable (e.g., 'y' is memberOf 'y^{(i)}')
+    // - Index variables that are used by member variables (e.g., 'i' in 'y^{(i)}')
+    const filteredVarIds = varIds.filter((varId) => {
+      const variable = computationStore.variables.get(varId);
+      if (!variable) return false;
+
+      // Skip if this variable is a memberOf parent (it's a component of a larger variable)
+      // Check if any other variable in the expression has this as its memberOf
+      for (const otherVarId of varIds) {
+        const otherVar = computationStore.variables.get(otherVarId);
+        if (otherVar?.memberOf === varId) {
+          // This varId is the parent of another variable in the expression
+          // Skip it - we want the complete member variable, not the parent part
+          return false;
+        }
+      }
+
+      // Skip if this is an index variable used by another variable in the expression
+      if (variable.role === "index") {
+        for (const otherVarId of varIds) {
+          const otherVar = computationStore.variables.get(otherVarId);
+          if (otherVar?.index === varId) {
+            // This varId is used as an index by another variable
+            // Skip it - we want the complete member variable, not the index
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    if (filteredVarIds.length === 0) return;
+
+    const allActive = new Set([...ctx.activeVariables, ...filteredVarIds]);
     ctx.setActiveVariables(allActive);
     requestAnimationFrame(() => {
       applyCue(allActive);
@@ -151,6 +188,9 @@ export class Controller {
     let stepNumber = 0;
     let canContinue = true;
 
+    // Clear previous first-seen values
+    ctx.clearFirstSeenValues();
+
     // Add initial state
     const initialState = Step.getState(interpreter, stepNumber, ctx.code);
     history.push(initialState);
@@ -163,6 +203,19 @@ export class Controller {
         const state = Step.getState(interpreter, stepNumber, ctx.code);
 
         history.push(state);
+
+        // Capture first-seen values for linked variables
+        if (state.variables && ctx.linkageMap) {
+          for (const [localVar, varId] of Object.entries(ctx.linkageMap)) {
+            // Skip multi-linkages
+            if (Array.isArray(varId)) continue;
+            const value = state.variables[localVar];
+            if (typeof value === "number") {
+              // setFirstSeenValue only sets if not already seen
+              ctx.setFirstSeenValue(varId, value);
+            }
+          }
+        }
 
         // Mark block statements that come after view calls as view points
         // This way we highlight meaningful block execution points after views are evaluated
