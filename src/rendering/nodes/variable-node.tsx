@@ -4,7 +4,7 @@ import { Handle, Position } from "@xyflow/react";
 
 import { useVariableDrag } from "../../rendering/useVariableDrag";
 import { computationStore } from "../../store/computation";
-import { VAR_CLASSES } from "../css-classes";
+import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
 
 export interface VariableNodeData {
   varId: string;
@@ -65,12 +65,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
         type="target"
         position={Position.Top}
         id="variable-handle-top"
-        style={{
-          opacity: 0,
-          pointerEvents: "none",
-          width: 1,
-          height: 1,
-        }}
+        style={HANDLE_STYLE}
       />
 
       {/* Handle for incoming edges from label nodes positioned below - hidden */}
@@ -78,12 +73,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
         type="target"
         position={Position.Bottom}
         id="variable-handle-bottom"
-        style={{
-          opacity: 0,
-          pointerEvents: "none",
-          width: 1,
-          height: 1,
-        }}
+        style={HANDLE_STYLE}
       />
     </div>
   );

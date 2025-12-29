@@ -6,6 +6,7 @@ import { observer } from "mobx-react-lite";
 import { GripVertical } from "lucide-react";
 
 import { computationStore } from "../../store/computation";
+import { executionStore } from "../../store/execution";
 import {
   FormulaNodeData,
   renderFormulaWithMathJax,
@@ -52,6 +53,8 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
           })
         ),
         variableRolesChanged: computationStore.variableRolesChanged,
+        // Re-render when active variables change (for index variable display)
+        activeVariables: Array.from(executionStore.activeVariables),
       }),
       () => {
         if (isInitialized) {

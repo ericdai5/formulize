@@ -1,5 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
+import { getVariablesFromLatexString } from "../../parse/variable";
 import {
   applyCue,
   clearAllCues,
@@ -9,12 +10,23 @@ import { computationStore } from "../../store/computation";
 import { executionStore as ctx } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
-import { IStep } from "../../types/step";
-import { extractViews } from "../../util/acorn";
+import { IStep, IView } from "../../types/step";
 import { ERROR_MESSAGES } from "./constants";
 import { extractLinkages, mergeLinkages } from "./extract";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
 import { Step } from "./step";
+
+/**
+ * Unescape a JSON-escaped string (e.g. "\\theta" -> "\theta")
+ * Returns the original string if unescaping fails
+ */
+export const unescapeLatex = (str: string): string => {
+  try {
+    return JSON.parse(`"${str}"`);
+  } catch {
+    return str;
+  }
+};
 
 export const getArrayControl = (
   varId: string,
@@ -106,19 +118,68 @@ export class Controller {
     const state = ctx.history[index];
     Step.highlight(ctx.codeMirrorRef, state.highlight);
     this.updateVariables(state, index);
-    // Set view descriptions if this step has them (i.e., it's a view point)
-    if (state.viewDescriptions) {
-      // Set the view descriptions directly (localVarName -> description mapping)
-      ctx.setCurrentViewDescriptions(state.viewDescriptions);
-    } else {
-      // Clear view descriptions if not at a view point
-      ctx.setCurrentViewDescriptions({});
+    // Enrich active variables with expression scope variables if this step has a view
+    if (state.view?.expression) {
+      this.activateVarsFromExpression(state.view.expression);
     }
+  }
+
+  /**
+   * Enrich activeVariables with variables contained in the expression string.
+   * Filters out nested variables (memberOf parents and index variables) to only
+   * highlight complete member variables, not their component parts.
+   */
+  private static activateVarsFromExpression(expression: string): void {
+    const unescaped = unescapeLatex(expression);
+    const varIds = getVariablesFromLatexString(unescaped);
+    if (varIds.length === 0) return;
+
+    // Filter out nested variables:
+    // - Variables that are memberOf another variable (e.g., 'y' is memberOf 'y^{(i)}')
+    // - Index variables that are used by member variables (e.g., 'i' in 'y^{(i)}')
+    const filteredVarIds = varIds.filter((varId) => {
+      const variable = computationStore.variables.get(varId);
+      if (!variable) return false;
+
+      // Skip if this variable is a memberOf parent (it's a component of a larger variable)
+      // Check if any other variable in the expression has this as its memberOf
+      for (const otherVarId of varIds) {
+        const otherVar = computationStore.variables.get(otherVarId);
+        if (otherVar?.memberOf === varId) {
+          // This varId is the parent of another variable in the expression
+          // Skip it - we want the complete member variable, not the parent part
+          return false;
+        }
+      }
+
+      // Skip if this is an index variable used by another variable in the expression
+      if (variable.role === "index") {
+        for (const otherVarId of varIds) {
+          const otherVar = computationStore.variables.get(otherVarId);
+          if (otherVar?.index === varId) {
+            // This varId is used as an index by another variable
+            // Skip it - we want the complete member variable, not the index
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    if (filteredVarIds.length === 0) return;
+
+    const allActive = new Set([...ctx.activeVariables, ...filteredVarIds]);
+    ctx.setActiveVariables(allActive);
+    requestAnimationFrame(() => {
+      applyCue(allActive);
+    });
   }
 
   /**
    * Execute the entire program and build complete execution history.
    * This simplifies navigation logic by pre-computing all states.
+   * Also captures variable snapshots at block points for proper state restoration.
    */
   private static executeAllSteps(interpreter: JSInterpreter): void {
     const history = [];
@@ -126,6 +187,9 @@ export class Controller {
     const blockPoints: number[] = []; // Track which step numbers are at block points
     let stepNumber = 0;
     let canContinue = true;
+
+    // Clear previous first-seen values
+    ctx.clearFirstSeenValues();
 
     // Add initial state
     const initialState = Step.getState(interpreter, stepNumber, ctx.code);
@@ -139,6 +203,19 @@ export class Controller {
         const state = Step.getState(interpreter, stepNumber, ctx.code);
 
         history.push(state);
+
+        // Capture first-seen values for linked variables
+        if (state.variables && ctx.linkageMap) {
+          for (const [localVar, varId] of Object.entries(ctx.linkageMap)) {
+            // Skip multi-linkages
+            if (Array.isArray(varId)) continue;
+            const value = state.variables[localVar];
+            if (typeof value === "number") {
+              // setFirstSeenValue only sets if not already seen
+              ctx.setFirstSeenValue(varId, value);
+            }
+          }
+        }
 
         // Mark block statements that come after view calls as view points
         // This way we highlight meaningful block execution points after views are evaluated
@@ -157,10 +234,10 @@ export class Controller {
             if (codeAtPrevious.startsWith("view(")) {
               viewPoints.push(stepNumber);
               // Process the view call immediately with the current step's variables
-              state.viewDescriptions = this.extractViewDescriptions(
-                codeAtPrevious,
-                state.variables
-              );
+              const view = this.extractView(codeAtPrevious, state.variables);
+              if (view) {
+                state.view = view;
+              }
             }
           }
         }
@@ -311,60 +388,6 @@ export class Controller {
     }
   }
 
-  // private static atIndexInState(
-  //   varId: string,
-  //   targetIndex: number,
-  //   state: IStep
-  // ): boolean {
-  //   const variables = state.variables;
-
-  //   // Get the array control configuration
-  //   const array = getArrayControl(varId, ctx.environment);
-  //   if (!array?.index) {
-  //     return false;
-  //   }
-
-  //   // Check if the index variable has reached the target value
-  //   const indexValue = variables[array.index];
-  //   if (typeof indexValue !== "number" || indexValue !== targetIndex) {
-  //     return false;
-  //   }
-
-  //   // Check if linked variable has expected value
-  //   const linkedVar = ctx.getLinkedVar(varId);
-  //   if (linkedVar && variables[linkedVar] !== undefined) {
-  //     const variable = computationStore.variables.get(varId);
-  //     const actualValue = variables[linkedVar];
-  //     if (
-  //       variable &&
-  //       !this.isExpectedValue(variable, targetIndex, actualValue)
-  //     ) {
-  //       return false;
-  //     }
-  //   }
-  //   return true;
-  // }
-
-  /**
-   * Validates that the current value matches what's expected at a specific array index
-   * Ensures data consistency during execution
-   * @param variable - The variable to check
-   * @param indexValue - The index value to check
-   * @param actualValue - The actual value to check
-   * @returns True if the expected value matches the actual value, false otherwise
-   */
-  // private static isExpectedValue(
-  //   variable: { set?: unknown[] },
-  //   indexValue: number,
-  //   actualValue: unknown
-  // ): boolean {
-  //   if (!variable?.set || !Array.isArray(variable.set)) {
-  //     return false;
-  //   }
-  //   const expectedValue = variable.set[indexValue];
-  //   return expectedValue === actualValue;
-  // }
-
   /**
    * Get variable value from step variables with error handling
    * @param variableName - Name of the variable to look up
@@ -391,38 +414,42 @@ export class Controller {
   }
 
   /**
-   * Extract view descriptions from a view() call string
-   * Parses view("description", variableName) format
+   * Extract view from a view() call string
+   * Parses formats:
+   *   view("description", variableName)
+   *   view("description", variableName, "expression")
    * @param viewCode - The view call code string
    * @param stepVariables - Optional step variables to extract variable values from
-   * @returns Record of variable names to descriptions (with variable values appended)
+   * @returns IView or null if parsing fails
    */
-  private static extractViewDescriptions(
+  private static extractView(
     viewCode: string,
     stepVariables?: Record<string, unknown>
-  ): Record<string, string> {
-    const descriptions: Record<string, string> = {};
+  ): IView | null {
     try {
-      // Parse format: view("description", variableName)
-      const match = viewCode.match(
-        /view\("([^"]+)",\s*([a-zA-Z_][a-zA-Z0-9_]*)\)/
+      // Parse format: view("description", variableName) or view("description", variableName, "scope")
+      const matchWithScope = viewCode.match(
+        /view\("([^"]+)",\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:,\s*"([^"]+)")?\)/
       );
-      if (!match) return descriptions;
+      if (!matchWithScope) return null;
+      const [, rawDescription, variableName, expressionScope] = matchWithScope;
+      const description = unescapeLatex(rawDescription);
 
-      const [, description, variableName] = match;
+      // Build final description with variable value if available
       let finalDescription = description;
-
-      // Get the variable value from step variables
       if (variableName && stepVariables) {
         const variableValue = this.getValueString(variableName, stepVariables);
         finalDescription = `${description} ${variableValue}`;
       }
 
-      // Use the variable name as the key for linkage lookup
-      descriptions[variableName] = finalDescription;
+      return {
+        varId: variableName,
+        description: finalDescription,
+        expression: expressionScope || undefined,
+      };
     } catch (error) {
-      console.error("Error extracting view descriptions:", error);
+      console.error("Error extracting view description:", error);
+      return null;
     }
-    return descriptions;
   }
 }

@@ -6,7 +6,7 @@ import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
 import { JSInterpreter } from "../engine/manual/interpreter";
 import { IEnvironment } from "../types/environment";
-import { IStep } from "../types/step";
+import { IStep, IView } from "../types/step";
 
 /**
  * MobX store for execution state that provides immediate updates
@@ -47,11 +47,12 @@ class ExecutionStore {
   // Track which step indices are block points (ordered array for efficient navigation)
   blockPoints: number[] = [];
 
-  // Current view descriptions for variables (set when at view points)
-  currentViewDescriptions: Record<string, string> = {};
-
   // Currently active (changed) variables in the current step
   activeVariables: Set<string> = new Set();
+
+  // First values seen for each linked variable during initial execution
+  // Used to reset variables when stepping backward to before their declaration
+  firstSeenValues: Map<string, number> = new Map();
 
   // Refs for UI components
   autoPlayIntervalRef: React.MutableRefObject<number | null> =
@@ -128,12 +129,22 @@ class ExecutionStore {
     this.linkageMap = linkageMap;
   }
 
-  setCurrentViewDescriptions(descriptions: Record<string, string>) {
-    this.currentViewDescriptions = descriptions;
-  }
-
   setActiveVariables(variables: Set<string>) {
     this.activeVariables = variables;
+  }
+
+  setFirstSeenValue(varId: string, value: number) {
+    if (!this.firstSeenValues.has(varId)) {
+      this.firstSeenValues.set(varId, value);
+    }
+  }
+
+  getFirstSeenValue(varId: string): number | undefined {
+    return this.firstSeenValues.get(varId);
+  }
+
+  clearFirstSeenValues() {
+    this.firstSeenValues.clear();
   }
 
   setView(viewPoints: number[]) {
@@ -187,6 +198,10 @@ class ExecutionStore {
     return this.history[this.historyIndex];
   }
 
+  get currentView(): IView | undefined {
+    return this.history[this.historyIndex]?.view;
+  }
+
   get isAtEndOfHistory(): boolean {
     return this.historyIndex >= this.history.length - 1;
   }
@@ -214,8 +229,8 @@ class ExecutionStore {
     this.linkageMap = {};
     this.viewPoints = [];
     this.blockPoints = [];
-    this.currentViewDescriptions = {};
     this.activeVariables = new Set();
+    this.firstSeenValues = new Map();
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
       number | null

@@ -548,12 +548,12 @@ function collectLinkedVars(
 }
 
 /**
- * Normalize a multi-linkage: deduplicate and convert single-item arrays to strings.
+ * Normalize a multi-linkage: deduplicate but KEEP as array.
  */
-function normalizeMultiLinkage(linkedVars: string[]): string | string[] | null {
+function normalizeMultiLinkage(linkedVars: string[]): string[] | null {
   if (linkedVars.length === 0) return null;
   const unique = [...new Set(linkedVars)];
-  return unique.length === 1 ? unique[0] : unique;
+  return unique;
 }
 
 /**

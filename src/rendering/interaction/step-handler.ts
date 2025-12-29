@@ -6,6 +6,7 @@ import {
 } from "../../engine/manual/extract";
 import { findVariableByElement } from "../../parse/variable";
 import { computationStore } from "../../store/computation";
+import { executionStore } from "../../store/execution";
 import { getVariable } from "../../util/computation-helpers";
 import { VAR_SELECTORS } from "../css-classes";
 
@@ -38,83 +39,110 @@ export const stepHandler = (container: HTMLElement) => {
 };
 
 /**
- * Function to update all variables based on the current line being executed
- * Only activates variables that are REFERENCED on the current line
- *
- * @param variables - All variables extracted from interpreter state
+ * Function to update all variables based on the current step state.
+ * @param variables - All variables extracted from interpreter state (source of truth)
  * @param linkageMap - Map of local variable names to variable IDs (can be string or string[] for multi-linkages)
  * @param currentLineCode - The current line of code being executed
- * @returns Set of variable IDs that should be active/highlighted
+ * @returns Set of variable IDs that should be active/highlighted (only those on current line)
  */
 export const updateAllVariables = (
   variables: Record<string, unknown>,
   linkageMap: Record<string, string | string[]>,
   currentLineCode: string
 ): Set<string> => {
-  const updatedVarIds = new Set<string>();
   const line = extractLine(currentLineCode);
   const identifiers = extractIdentifiers(line);
   const arrayAccesses = extractArrayAccess(line);
+  updateSingleLinkageValues(variables, linkageMap);
+  return determineActiveVariables(
+    variables,
+    linkageMap,
+    identifiers,
+    arrayAccesses
+  );
+};
+
+const updateSingleLinkageValues = (
+  variables: Record<string, unknown>,
+  linkageMap: Record<string, string | string[]>
+) => {
+  Object.entries(linkageMap).forEach(([localVarName, varId]) => {
+    if (Array.isArray(varId)) {
+      return;
+    }
+    const value = variables[localVarName];
+    if (value === undefined) {
+      const variable = computationStore.variables.get(varId);
+      if (variable?.memberOf) {
+        return;
+      }
+      if (Array.isArray(variable?.value)) {
+        return;
+      }
+      const firstSeenValue = executionStore.getFirstSeenValue(varId);
+      if (firstSeenValue !== undefined) {
+        computationStore.setValueInStepMode(varId, firstSeenValue);
+      }
+      return;
+    }
+    if (typeof value === "number") {
+      computationStore.setValueInStepMode(varId, value);
+    }
+  });
+};
+
+const determineActiveVariables = (
+  variables: Record<string, unknown>,
+  linkageMap: Record<string, string | string[]>,
+  identifiers: Set<string>,
+  arrayAccesses: Set<string>
+): Set<string> => {
+  const activeVarIds = new Set<string>();
   Object.entries(linkageMap).forEach(([varName, varId]) => {
-    // Skip if this variable is not referenced on the current line
     if (!identifiers.has(varName)) {
       return;
     }
     const value = variables[varName];
-    if (value === undefined) return;
-    // Handle both single varId and array of varIds (multi-linkage)
+    if (value === undefined) {
+      return;
+    }
     const varIds = Array.isArray(varId) ? varId : [varId];
-    const isMultiLinkage = Array.isArray(varId) && varId.length > 1;
-    // Handle array values (e.g., xValues = vars.X where X is an array)
     if (Array.isArray(value)) {
       for (const iterVarId of varIds) {
-        // Check if this array is being accessed with an index (e.g., xValues[i])
         if (arrayAccesses.has(varName)) {
           const memberVar = findMemberOfVariable(iterVarId);
           if (memberVar) {
-            updatedVarIds.add(memberVar);
+            activeVarIds.add(memberVar);
             continue;
           }
-          updatedVarIds.add(iterVarId);
+          activeVarIds.add(iterVarId);
           continue;
         }
-        // If not indexed, activate the array itself
-        updatedVarIds.add(iterVarId);
+        activeVarIds.add(iterVarId);
       }
       return;
     }
-
-    // Handle numeric values
     if (typeof value === "number") {
       for (const iterVarId of varIds) {
-        if (isMultiLinkage) {
-          // For multi-linkage (expression variables like currExpected = xi * probability):
-          // Add all linked variables to activeVariables for highlighting
-          updatedVarIds.add(iterVarId);
-
-          // Also find and update the source local variables that link to this varId
-          // e.g., if currExpected links to ['x', 'P(x)'], find xi→x and probability→P(x)
-          for (const [sourceVar, sourceVarId] of Object.entries(linkageMap)) {
-            // Skip multi-linkages and the current variable
-            if (Array.isArray(sourceVarId) || sourceVar === varName) continue;
-            // If this source variable links to the same iterVarId
-            if (sourceVarId === iterVarId) {
-              const sourceValue = variables[sourceVar];
-              if (typeof sourceValue === "number") {
-                computationStore.setValueInStepMode(iterVarId, sourceValue);
-              }
-            }
-          }
-        } else {
-          // For single linkage: update value and add to active
-          computationStore.setValueInStepMode(iterVarId, value);
-          updatedVarIds.add(iterVarId);
-        }
+        activeVarIds.add(iterVarId);
       }
     }
   });
+  return activeVarIds;
+};
 
-  return updatedVarIds;
+/**
+ * Check if an element has an ancestor with the step-cue class
+ */
+const hasAncestorWithStepCue = (element: HTMLElement): boolean => {
+  let parent = element.parentElement;
+  while (parent) {
+    if (parent.classList.contains("step-cue")) {
+      return true;
+    }
+    parent = parent.parentElement;
+  }
+  return false;
 };
 
 /**
@@ -122,19 +150,23 @@ export const updateAllVariables = (
  * @param updatedVarIds - Set of variable IDs that were updated
  */
 export const applyCue = (updatedVarIds: Set<string>) => {
-  const interactiveElements = document.querySelectorAll(
-    VAR_SELECTORS.INPUT_AND_COMPUTED
-  );
+  // Use ANY selector to include all variable types (input, computed, index)
+  const interactiveElements = document.querySelectorAll(VAR_SELECTORS.ANY);
+  // First pass: remove all step-cue classes
   interactiveElements.forEach((element) => {
-    const variables = findVariableByElement(element as HTMLElement);
+    (element as HTMLElement).classList.remove("step-cue");
+  });
+  // Second pass: apply step-cue to matching elements
+  // Skip elements whose ancestors already have step-cue (nested variables)
+  interactiveElements.forEach((element) => {
+    const htmlEl = element as HTMLElement;
+    const variables = findVariableByElement(htmlEl);
     if (!variables) return;
     const { varId } = variables;
-    const target = element as HTMLElement;
-    // Always remove the step-cue class first to clear previous styling
-    target.classList.remove("step-cue");
     // Only add step-cue to variables that were actually updated in this step
-    if (updatedVarIds.has(varId)) {
-      target.classList.add("step-cue");
+    // Skip if an ancestor already has step-cue (e.g., y inside y^{(i)} when y^{(i)} is active)
+    if (updatedVarIds.has(varId) && !hasAncestorWithStepCue(htmlEl)) {
+      htmlEl.classList.add("step-cue");
     }
   });
 };

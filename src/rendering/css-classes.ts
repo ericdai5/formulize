@@ -20,3 +20,16 @@ export const VAR_SELECTORS = {
   INPUT_AND_COMPUTED: ".var-input, .var-computed",
   ANY: '[class*="var-"]',
 } as const;
+
+/**
+ * Static styles to prevent re-renders for react flow handles
+ * In React, when you pass an inline object (like style={{...}}), a new object
+ * reference is created each time, causing React to think the props changed and
+ * triggering a re-render.
+ */
+export const HANDLE_STYLE = {
+  opacity: 0,
+  pointerEvents: "none" as const,
+  width: 1,
+  height: 1,
+};
