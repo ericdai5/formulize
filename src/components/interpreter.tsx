@@ -11,7 +11,6 @@ import { extractManual } from "../engine/manual/extract";
 import { isAtBlock } from "../engine/manual/interpreter";
 import { executionStore as ctx } from "../store/execution";
 import { IEnvironment } from "../types/environment";
-import { extractViews } from "../util/acorn";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
   addArrowMarker,

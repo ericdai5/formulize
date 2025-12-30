@@ -45,7 +45,7 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
     const [isUserViewCollapsed, setIsUserViewCollapsed] =
       useState(defaultCollapsed);
     const [error, setError] = useState<string | null>(null);
-    const [isInitialized, setIsInitialized] = useState(false);
+    const [initializedEnvironment, setInitializedEnvironment] = useState<any>(null);
 
     // Get the Formulize context to know when the instance is ready
     // This ensures computationStore is populated before we initialize the interpreter
@@ -76,8 +76,8 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
         return;
       }
 
-      // Prevent double initialization
-      if (isInitialized) {
+      // Check if this environment has already been initialized
+      if (environment === initializedEnvironment) {
         return;
       }
 
@@ -110,14 +110,15 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
 
         // Automatically initialize the interpreter so stepping works immediately
         refresh(result.code, environment);
-        setIsInitialized(true);
+        // Track that this specific environment has been initialized
+        setInitializedEnvironment(environment);
       }
     }, [
       environment,
       formulizeInstance,
       formulizeIsLoading,
       hasFormulizeContext,
-      isInitialized,
+      initializedEnvironment,
     ]);
 
     const clearUserViewLine = useCallback(() => {

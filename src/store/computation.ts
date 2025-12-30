@@ -254,14 +254,15 @@ class ComputationStore {
   @action
   setEnvironment(environment: IEnvironment) {
     // Validate and normalize fontSize, setting default if not provided
+    // Valid range is 0.5 to 3.0 (em units for MathJax rendering)
     const validatedFontSize =
       environment.fontSize !== undefined
         ? typeof environment.fontSize === "number" &&
           environment.fontSize >= 0.5 &&
-          environment.fontSize <= 1
+          environment.fontSize <= 3.0
           ? environment.fontSize
-          : 1
-        : 1; // Default fontSize when not defined
+          : 1 // Invalid value, use default of 1em
+        : 1; // Default fontSize when not defined (1em for good visibility)
 
     // Always set environment with validated fontSize
     this.environment = {

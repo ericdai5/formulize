@@ -9,6 +9,7 @@ export interface FormulaNodeData {
       mode?: string;
     };
   };
+  showDragHandle?: boolean;
 }
 
 /**

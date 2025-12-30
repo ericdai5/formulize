@@ -22,6 +22,9 @@ export { useFormulize } from "./components/useFormulize";
 export { InterpreterControl } from "./components/InterpreterControl";
 export type { InterpreterControlProps } from "./components/InterpreterControl";
 
+// Export view function for manual computation breakpoints
+export { view } from "./engine/manual/controller";
+
 // Export computation API
 export { computationStore } from "./store/computation";
 
