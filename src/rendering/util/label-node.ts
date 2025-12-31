@@ -119,6 +119,14 @@ export interface AdjustLabelPositionsParams {
   manuallyPositionedLabels: Set<string>;
 }
 
+export interface UpdateLabelNodesParams {
+  getNodes: () => Node[];
+  getViewport: () => { zoom: number; x: number; y: number };
+  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
+  formulaId: string;
+  containerElement?: Element | null;
+}
+
 /**
  * Process variable elements for a single formula and create label nodes
  * @param formulaElement - The DOM element containing the formula
@@ -146,56 +154,43 @@ export const processVariableElementsForLabels = (
     nodeId: string;
     labelPlacement: "below" | "above";
   }> = [];
-
   // Track which variables already have labels to prevent duplicates
   const processedVariables = new Set<string>();
-
   // Find variable elements within this formula
   const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
-
   variableElements.forEach((varElement: Element) => {
     const htmlVarElement = varElement as HTMLElement;
     const cssId = htmlVarElement.id;
     if (!cssId) return;
-
     // Skip if we've already processed this variable
     if (processedVariables.has(cssId)) return;
     processedVariables.add(cssId);
-
     const variable = computationStore.variables.get(cssId);
-
     // Don't create label node if labelDisplay is "none"
     if (variable?.labelDisplay === "none") return;
-
     // Only create label node if there's either a label OR a value
     const hasValue =
       variable?.value !== undefined &&
       variable?.value !== null &&
       (typeof variable.value === "number" ? !isNaN(variable.value) : true);
     const hasName = variable?.name;
-
     // For labelDisplay === "value", we must have a valid value to show
     // For other displays, we can show just the name
     if (variable?.labelDisplay === "value" && !hasValue) return;
     if (!hasValue && !hasName) return;
-
     // Check if this label should be visible using the same logic as LabelNode component
     const isVariableActive = executionStore.activeVariables.has(cssId);
-
     // If in step mode and variable is not active, skip creating this label
     if (computationStore.isStepMode() && !isVariableActive) {
       return;
     }
-
     // Get the corresponding variable node to get its actual position
     // Find the first variable node for this cssId since we may have multiple instances
     // Use node properties instead of ID parsing to handle hyphens in cssId
     const variableNode = currentNodes.find((node) => {
       return node.parentId === formulaNode.id && node.data.varId === cssId;
     });
-
     if (!variableNode) return;
-
     // Use the variable node position directly (already in React Flow coordinates)
     // This avoids coordinate conversion issues and should be accurate
     const htmlElementPosition = variableNode.position;
@@ -203,7 +198,6 @@ export const processVariableElementsForLabels = (
       width: (variableNode.data.width as number) || 0,
       height: (variableNode.data.height as number) || 0,
     };
-
     const labelPos = getLabelNodePos(
       htmlElementPosition,
       htmlElementDimensions,
@@ -214,7 +208,6 @@ export const processVariableElementsForLabels = (
       },
       viewport
     );
-
     // Create the label node - initially nearly transparent until positioned correctly
     // Use 0.01 instead of 0 so React Flow measures it properly
     // Make label a child of the formula node so it automatically moves with the formula
@@ -223,7 +216,6 @@ export const processVariableElementsForLabels = (
       x: labelPos.x - formulaNode.position.x,
       y: labelPos.y - formulaNode.position.y,
     };
-
     labelNodes.push({
       id: `label-${id}-${cssId}`,
       type: "label",
@@ -241,15 +233,93 @@ export const processVariableElementsForLabels = (
         pointerEvents: "none" as const, // Disable interactions while hidden
       },
     });
-
     // Track variable node updates
     variableNodeUpdates.push({
       nodeId: variableNode.id,
       labelPlacement: labelPos.placement,
     });
   });
-
   return { labelNodes, variableNodeUpdates };
+};
+
+/**
+ * Update label nodes for a single formula.
+ * This is used by FormulaComponent when activeVariables change.
+ */
+export const updateLabelNodes = ({
+  getNodes,
+  getViewport,
+  setNodes,
+  formulaId,
+  containerElement,
+}: UpdateLabelNodesParams): void => {
+  const currentNodes = getNodes();
+  const viewport = getViewport();
+
+  // Find the formula element
+  let formulaElement: Element | null = null;
+  if (containerElement) {
+    formulaElement = containerElement.querySelector(".formula-node");
+  } else {
+    // Fall back to document query
+    const formulaNode = findFormulaNodeById(currentNodes, formulaId);
+    if (formulaNode) {
+      formulaElement = document.querySelector(
+        `[data-id="${formulaNode.id}"] .formula-node`
+      );
+    }
+  }
+
+  if (!formulaElement) {
+    return;
+  }
+
+  // Find formula node by its id
+  const formulaNode = findFormulaNodeById(currentNodes, formulaId);
+  if (!formulaNode || !formulaNode.measured) return;
+
+  // Get existing variable nodes for this formula
+  const existingVariableNodes = currentNodes.filter(
+    (node) =>
+      node.type === NODE_TYPES.VARIABLE && node.parentId === formulaNode.id
+  );
+
+  if (existingVariableNodes.length === 0) return;
+  setNodes((currentNodes) => {
+    // Remove existing label nodes only
+    const nonLabelNodes = currentNodes.filter(
+      (node) => node.type !== NODE_TYPES.LABEL
+    );
+
+    // Use helper to create label nodes based on current activeVariables
+    const { labelNodes, variableNodeUpdates } =
+      processVariableElementsForLabels(
+        formulaElement!,
+        formulaNode,
+        formulaId,
+        nonLabelNodes,
+        viewport
+      );
+
+    // Apply variable node updates (labelPlacement)
+    const updatedNodes = nonLabelNodes.map((node) => {
+      if (node.type === NODE_TYPES.VARIABLE) {
+        const update = variableNodeUpdates.find((u) => u.nodeId === node.id);
+        if (update) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              labelPlacement: update.labelPlacement,
+            },
+          };
+        }
+      }
+      return node;
+    });
+
+    return [...updatedNodes, ...labelNodes];
+  });
 };
 
 /**

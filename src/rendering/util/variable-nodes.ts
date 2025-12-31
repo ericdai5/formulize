@@ -4,7 +4,13 @@ import { Node, useReactFlow } from "@xyflow/react";
 
 import { computationStore } from "../../store/computation";
 import { VAR_SELECTORS } from "../css-classes";
-import { NODE_TYPES, getFormulaNodes, getVariableNodes } from "./node-helpers";
+import { processVariableElementsForLabels } from "./label-node";
+import {
+  NODE_TYPES,
+  findFormulaNodeById,
+  getFormulaNodes,
+  getVariableNodes,
+} from "./node-helpers";
 
 /*********** Helper Functions for Variable Nodes ***********/
 
@@ -183,6 +189,143 @@ export const createVariableNodesFromFormula = (
 
   return variableNodes;
 };
+
+/**
+ * Parameters for adding variable nodes for a single formula
+ */
+export interface AddVariableNodesForFormulaParams {
+  getNodes: () => Node[];
+  getViewport: () => { zoom: number; x: number; y: number };
+  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
+  nodesInitialized: boolean;
+  variableNodesAddedRef: MutableRefObject<boolean>;
+  formulaId: string;
+  containerElement?: Element | null; // Optional container to find formula element
+}
+
+/**
+ * Add variable nodes and label nodes for a single formula.
+ * This is used by FormulaComponent where we know the specific formula ID.
+ */
+export function addVariableNodesForFormula({
+  getNodes,
+  getViewport,
+  setNodes,
+  nodesInitialized,
+  variableNodesAddedRef,
+  formulaId,
+  containerElement,
+}: AddVariableNodesForFormulaParams): void {
+  requestAnimationFrame(() => {
+    const checkMathJaxAndProceed = () => {
+      const currentNodes = getNodes();
+      const viewport = getViewport();
+
+      if (!nodesInitialized) return;
+
+      // Find the formula element
+      let formulaElement: Element | null = null;
+      if (containerElement) {
+        formulaElement = containerElement.querySelector(".formula-node");
+      } else {
+        // Fall back to document query
+        const formulaNode = findFormulaNodeById(currentNodes, formulaId);
+        if (formulaNode) {
+          formulaElement = document.querySelector(
+            `[data-id="${formulaNode.id}"] .formula-node`
+          );
+        }
+      }
+
+      if (!formulaElement) {
+        console.log("addVariableNodesForFormula: No formula element found");
+        return;
+      }
+
+      // Find formula node by its id
+      const formulaNode = findFormulaNodeById(currentNodes, formulaId);
+      if (!formulaNode || !formulaNode.measured) {
+        console.log(
+          "addVariableNodesForFormula: Formula node not measured yet"
+        );
+        return;
+      }
+
+      // Use helper to create variable nodes for this formula
+      const variableNodes = createVariableNodesFromFormula(
+        formulaElement,
+        formulaNode,
+        formulaId,
+        viewport
+      );
+
+      // Add all nodes if we found any variables
+      if (variableNodes.length > 0) {
+        setNodes((currentNodes) => {
+          // Remove existing variable and label nodes
+          const nonVariableNodes = currentNodes.filter(
+            (node) =>
+              node.type !== NODE_TYPES.VARIABLE &&
+              node.type !== NODE_TYPES.LABEL
+          );
+
+          // Combine nodes for processing
+          const nodesWithVariables = [...nonVariableNodes, ...variableNodes];
+
+          // Use helper to create label nodes and get variable node updates
+          const { labelNodes, variableNodeUpdates } =
+            processVariableElementsForLabels(
+              formulaElement!,
+              formulaNode,
+              formulaId,
+              nodesWithVariables,
+              viewport
+            );
+
+          // Apply variable node updates (labelPlacement)
+          const updatedVariableNodes = variableNodes.map((node) => {
+            const update = variableNodeUpdates.find(
+              (u) => u.nodeId === node.id
+            );
+            if (update) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  labelPlacement: update.labelPlacement,
+                },
+              };
+            }
+            return node;
+          });
+
+          const allNodes = [
+            ...nonVariableNodes,
+            ...updatedVariableNodes,
+            ...labelNodes,
+          ];
+
+          return allNodes;
+        });
+
+        variableNodesAddedRef.current = true;
+
+        // Note: Labels will be made visible by adjustLabelPositions after they're measured
+      }
+    };
+
+    // Check if MathJax is ready
+    if (
+      window.MathJax &&
+      window.MathJax.startup &&
+      window.MathJax.startup.document
+    ) {
+      checkMathJaxAndProceed();
+    } else {
+      setTimeout(checkMathJaxAndProceed, 200);
+    }
+  });
+}
 
 interface BaseVariableNodesParams {
   nodesInitialized: boolean;

@@ -18,8 +18,6 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { unescapeLatex } from "../engine/manual/controller";
-import { getVariablesFromLatexString } from "../parse/variable";
 import { computationStore } from "../store/computation";
 import { executionStore } from "../store/execution";
 import { FormulaStore } from "../store/formulas";
@@ -35,14 +33,17 @@ import {
 } from "./util/label-node";
 import {
   NODE_TYPES,
+  checkAllNodesMeasuredForPositioning,
   getFormulaNodes,
   getLabelNodes,
   getVariableNodes,
+  positionAndShowViewNodes,
 } from "./util/node-helpers";
 import {
   useAddVariableNodes,
   useUpdateVariableNodes,
 } from "./util/variable-nodes";
+import { addViewNodes as addViewNodesUtil } from "./util/view-node";
 
 interface CanvasProps {
   formulaStore?: FormulaStore;
@@ -66,6 +67,9 @@ const CanvasFlow = observer(
 
     // Track pending label update timeout (outside useEffect for persistence)
     const labelUpdateTimeoutRef = useRef<number | null>(null);
+
+    // Track if view nodes have been repositioned after label adjustment
+    const viewNodeRepositionedRef = useRef(false);
 
     // React Flow hooks for accessing measured node data
     const { getNodes, getViewport, fitView } = useReactFlow();
@@ -223,241 +227,12 @@ const CanvasFlow = observer(
 
     // Function to add view nodes for variables with view descriptions
     const addViewNodes = useCallback(() => {
-      const currentNodes = getNodes();
-      const viewport = getViewport();
-      const viewNodes: Node[] = [];
-      const expressionNodes: Node[] = [];
-      let viewNodeIndex = 0;
-
-      // Get active variable IDs
-      const activeVarIds = Array.from(executionStore.activeVariables);
-
-      // Get current view description from the current step
-      const viewDesc = executionStore.currentView;
-      if (!viewDesc) return;
-
-      // Extract view info
-      const { varId, description: descriptionText, expression } = viewDesc;
-
-      // Find the first formula node
-      const formulaNodes = getFormulaNodes(currentNodes);
-      const formulaNode = formulaNodes[0];
-
-      if (!formulaNode) return;
-
-      // Calculate bounding box - either from expression scope or from variable nodes
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
-      let boundingBoxFound = false;
-
-      // Try to use expression scope if provided (expressionScope is a LaTeX expression string)
-      if (expression) {
-        // Look up ALL matching scopeIds from the computation store
-        const scopeIds = computationStore.getScopeIdsForExpression(expression);
-
-        // Look up ALL variables contained in the expression string
-        const variableIds = getVariablesFromLatexString(
-          unescapeLatex(expression)
-        );
-        if (scopeIds.length > 0 || variableIds.length > 0) {
-          // Query for the expression elements and combine their bounding boxes
-          const formulaElement = document.querySelector(
-            `[data-id="${formulaNode.id}"] .formula-node`
-          );
-          if (formulaElement) {
-            const formulaRect = formulaElement.getBoundingClientRect();
-
-            // Helper to add element to bounding box
-            const addToBoundingBox = (element: Element | null) => {
-              if (element) {
-                const exprRect = element.getBoundingClientRect();
-                // Expand the bounding box to include this element
-                const elemMinX =
-                  (exprRect.left - formulaRect.left) / viewport.zoom;
-                const elemMaxX =
-                  (exprRect.right - formulaRect.left) / viewport.zoom;
-                const elemMinY =
-                  (exprRect.top - formulaRect.top) / viewport.zoom;
-                const elemMaxY =
-                  (exprRect.bottom - formulaRect.top) / viewport.zoom;
-                minX = Math.min(minX, elemMinX);
-                maxX = Math.max(maxX, elemMaxX);
-                minY = Math.min(minY, elemMinY);
-                maxY = Math.max(maxY, elemMaxY);
-                boundingBoxFound = true;
-              }
-            };
-
-            // 1. Process structural scopes
-            for (const scopeId of scopeIds) {
-              const exprElement = formulaElement.querySelector(`#${scopeId}`);
-              addToBoundingBox(exprElement);
-            }
-
-            // 2. Process individual variables
-            for (const varId of variableIds) {
-              const varElement = formulaElement.querySelector(
-                `[id="${CSS.escape(varId)}"]`
-              );
-              const fallbackElement = !varElement
-                ? formulaElement.querySelector(`[id="${varId}"]`)
-                : null;
-              const targetElement = varElement || fallbackElement;
-              addToBoundingBox(targetElement);
-            }
-          }
-        }
-      }
-
-      // Fall back to variable nodes if no expression scope or element not found
-      if (!boundingBoxFound) {
-        const activeVariableNodes = currentNodes.filter(
-          (node) =>
-            node.type === NODE_TYPES.VARIABLE &&
-            activeVarIds.includes(
-              (node.data as { varId?: string })?.varId || ""
-            )
-        );
-
-        if (activeVariableNodes.length === 0) return;
-
-        activeVariableNodes.forEach((node) => {
-          const width =
-            node.measured?.width ||
-            (node.data as { width?: number })?.width ||
-            20;
-          const height =
-            node.measured?.height ||
-            (node.data as { height?: number })?.height ||
-            20;
-          minX = Math.min(minX, node.position.x);
-          maxX = Math.max(maxX, node.position.x + width);
-          minY = Math.min(minY, node.position.y);
-          maxY = Math.max(maxY, node.position.y + height);
-        });
-      }
-
-      // Skip if we couldn't find a valid bounding box
-      if (minX === Infinity || maxX === -Infinity) return;
-
-      // Add padding around the bounding box
-      const padding = 4;
-      const expressionWidth = maxX - minX + padding * 2;
-      const expressionHeight = maxY - minY + padding * 2;
-
-      const expressionNodeId = `expression-${viewNodeIndex}`;
-
-      // Create expression node as child of formula node (same coordinate system as variables)
-      expressionNodes.push({
-        id: expressionNodeId,
-        type: NODE_TYPES.EXPRESSION,
-        position: {
-          x: minX - padding,
-          y: minY - padding,
-        },
-        parentId: formulaNode.id,
-        extent: "parent",
-        data: {
-          width: expressionWidth,
-          height: expressionHeight,
-          varIds: activeVarIds,
-        },
-        draggable: false,
-        selectable: false,
+      addViewNodesUtil({
+        getNodes,
+        getViewport,
+        setNodes,
+        setEdges,
       });
-
-      // Position view node below the formula, centered under expression
-      const expressionCenterX = minX - padding + expressionWidth / 2;
-      const formulaHeight =
-        formulaNode.measured?.height || formulaNode.height || 200;
-
-      const viewNodePosition = {
-        x: expressionCenterX,
-        y: formulaHeight + 40 + viewNodeIndex * 60,
-      };
-
-      const viewNodeId = `view-${viewNodeIndex}`;
-
-      // Create the view node as a child of the formula node
-      viewNodes.push({
-        id: viewNodeId,
-        type: "view",
-        position: viewNodePosition,
-        parentId: formulaNode.id,
-        origin: [0.5, 0] as [number, number],
-        data: {
-          varId,
-          description: descriptionText,
-          activeVarIds,
-          expressionNodeId,
-        },
-        draggable: true,
-        selectable: true,
-      });
-
-      viewNodeIndex++;
-
-      // Add view nodes and expression nodes to the canvas
-      if (viewNodes.length > 0) {
-        setNodes((currentNodes) => {
-          // Remove existing view and expression nodes first
-          const filteredNodes = currentNodes.filter(
-            (node) =>
-              node.type !== NODE_TYPES.VIEW &&
-              node.type !== NODE_TYPES.EXPRESSION
-          );
-          return [...filteredNodes, ...expressionNodes, ...viewNodes];
-        });
-
-        // Add edges after nodes are rendered
-        setTimeout(() => {
-          const viewEdges: Edge[] = [];
-
-          // Create edge from each view node to its corresponding expression node
-          viewNodes.forEach((viewNode, index) => {
-            const expressionNodeId = `expression-${index}`;
-            const edgeId = `edge-view-${viewNode.id}-${expressionNodeId}`;
-
-            viewEdges.push({
-              id: edgeId,
-              source: viewNode.id,
-              target: expressionNodeId,
-              sourceHandle: "view-handle-top",
-              targetHandle: "expression-handle-bottom",
-              type: "straight",
-              style: {
-                stroke: "#3b82f6",
-                strokeWidth: 1.5,
-                strokeDasharray: "4 2",
-              },
-              animated: true,
-              selectable: false,
-              deletable: false,
-            });
-          });
-
-          setEdges((currentEdges) => {
-            const nonViewEdges = currentEdges.filter(
-              (edge) => !edge.id.startsWith("edge-view-")
-            );
-            return [...nonViewEdges, ...viewEdges];
-          });
-        }, 100);
-      } else {
-        // Remove view nodes, expression nodes, and view edges
-        setNodes((currentNodes) =>
-          currentNodes.filter(
-            (node) =>
-              node.type !== NODE_TYPES.VIEW &&
-              node.type !== NODE_TYPES.EXPRESSION
-          )
-        );
-        setEdges((currentEdges) =>
-          currentEdges.filter((edge) => !edge.id.startsWith("edge-view-"))
-        );
-      }
     }, [getNodes, getViewport, setNodes, setEdges]);
 
     // Separate function to add label nodes after variable nodes are positioned
@@ -487,9 +262,6 @@ const CanvasFlow = observer(
       variableNodesAddedRef,
     });
 
-    /**
-     * Function to update variable nodes or add new ones (hybrid approach)
-     */
     const updateVariableNodes = useUpdateVariableNodes({
       nodesInitialized,
       setNodes,
@@ -674,6 +446,11 @@ const CanvasFlow = observer(
             }
 
             labelUpdateTimeoutRef.current = window.setTimeout(() => {
+              // Reset view node repositioned flag so view nodes will be added
+              // after labels are positioned. This must be done here (inside the timeout)
+              // to ensure it happens AFTER any stale label adjustment effects have run.
+              viewNodeRepositionedRef.current = false;
+
               // Clear manually positioned labels when regenerating
               manuallyPositionedLabelsRef.current.clear();
 
@@ -692,6 +469,8 @@ const CanvasFlow = observer(
               setEdges([]);
 
               // Re-add labels and view nodes after state has settled
+              // Both are created with opacity 0.01 for measurement
+              // The label adjustment effect will position both and make them visible
               window.setTimeout(() => {
                 addLabelNodes();
                 addViewNodes();
@@ -706,49 +485,50 @@ const CanvasFlow = observer(
       };
     }, [nodesInitialized, addLabelNodes, addViewNodes, setNodes, setEdges]);
 
-    // Adjust label positions after they're rendered and measured
+    // Adjust label and view node positions after they're rendered and measured
     useEffect(() => {
       if (!nodesInitialized) return;
 
-      // Check if we have label nodes that are measured
-      const labelNodes = getLabelNodes(nodes);
-      const measuredLabelNodes = labelNodes.filter((node) => node.measured);
+      // Check if all nodes are ready for positioning
+      const { labelNodes, viewNodes, allReady } =
+        checkAllNodesMeasuredForPositioning(nodes);
 
-      // Also check that all corresponding variable nodes are measured for coordinate consistency
-      // Use node properties instead of ID parsing to handle hyphens in cssId
-      const variableNodes = getVariableNodes(nodes);
-      const allVariableNodesMeasured = labelNodes.every((labelNode) => {
-        const cssId = labelNode.data.varId;
-        const labelId = labelNode.data.id;
+      // If no labels and no view nodes exist, nothing to do
+      if (labelNodes.length === 0 && viewNodes.length === 0) {
+        return;
+      }
 
-        if (!cssId || !labelId || typeof labelId !== "string") return false;
-
-        const variableNode = variableNodes.find((vNode) => {
-          return (
-            vNode.data.varId === cssId &&
-            vNode.parentId &&
-            typeof vNode.parentId === "string" &&
-            vNode.parentId.includes(labelId)
-          );
-        });
-
-        return variableNode?.measured !== undefined;
-      });
-
-      // Only adjust if we have labels, they're all measured, AND their variable nodes are measured
-      if (
-        labelNodes.length > 0 &&
-        measuredLabelNodes.length === labelNodes.length &&
-        allVariableNodesMeasured
-      ) {
+      if (allReady) {
         // Small delay to ensure all rendering is complete
         const timeoutId = setTimeout(() => {
-          adjustLabelPositions();
+          // Adjust label positions first
+          if (labelNodes.length > 0) {
+            adjustLabelPositions();
+          }
+
+          // Position view nodes to avoid label collisions, then make them visible
+          if (
+            viewNodes.length > 0 &&
+            executionStore.currentView &&
+            !viewNodeRepositionedRef.current
+          ) {
+            viewNodeRepositionedRef.current = true;
+
+            // Find the first formula node
+            const formulaNodes = getFormulaNodes(nodes);
+            const formulaNode = formulaNodes[0];
+
+            if (formulaNode) {
+              setNodes((currentNodes) =>
+                positionAndShowViewNodes(currentNodes, formulaNode)
+              );
+            }
+          }
         }, 50);
 
         return () => clearTimeout(timeoutId);
       }
-    }, [nodes, nodesInitialized, adjustLabelPositions]);
+    }, [nodes, nodesInitialized, adjustLabelPositions, setNodes]);
 
     const fitViewOptions = useMemo(
       () => ({
