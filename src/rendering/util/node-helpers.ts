@@ -20,6 +20,26 @@ export const NODE_TYPES = {
 //--------------------------------------------------
 
 /**
+ * Iterate through all measured formula nodes with their DOM elements
+ * @param nodes - Array of all React Flow nodes
+ * @param callback - Function to call for each valid formula node
+ */
+export function forEachFormulaNode(
+  nodes: Node[],
+  callback: (formulaNode: Node, formulaElement: Element, id: string) => void
+): void {
+  const formulaNodes = nodes.filter((n) => n.type === NODE_TYPES.FORMULA);
+  formulaNodes.forEach((formulaNode) => {
+    if (!formulaNode.measured) return;
+    const id = formulaNode.data.id;
+    if (!id || typeof id !== "string") return;
+    const formulaElement = getFormulaElement(formulaNode);
+    if (!formulaElement) return;
+    callback(formulaNode, formulaElement, id);
+  });
+}
+
+/**
  * Find a formula node by its id
  * @param nodes - Array of all React Flow nodes
  * @param id - The id to search for
@@ -69,53 +89,93 @@ export function findVariableNodesByVarId(
 }
 
 //--------------------------------------------------
+// DOM Helpers
+//--------------------------------------------------
+
+/**
+ * Get the DOM element for a formula node by its React Flow node ID
+ * @param formulaNode - The React Flow formula node
+ * @returns The formula DOM element or null if not found
+ */
+export function getFormulaElement(formulaNode: Node): Element | null {
+  return document.querySelector(`[data-id="${formulaNode.id}"] .formula-node`);
+}
+
+/**
+ * Get the formula DOM element from a container or fallback to document query
+ * @param containerElement - Optional container element to search within
+ * @param nodes - Array of all React Flow nodes (needed for fallback)
+ * @param formulaId - The formula ID to find
+ * @returns The formula DOM element or null if not found
+ */
+export function getFormulaElementFromContainer(
+  containerElement: Element | null | undefined,
+  nodes: Node[],
+  formulaId: string
+): Element | null {
+  if (containerElement) {
+    return containerElement.querySelector(".formula-node");
+  }
+  // Fall back to document query
+  const formulaNode = findFormulaNodeById(nodes, formulaId);
+  if (formulaNode) {
+    return getFormulaElement(formulaNode);
+  }
+  return null;
+}
+
+/**
+ * Calculate position and dimensions of an element relative to a formula element
+ * @param elementRect - DOMRect of the element
+ * @param formulaRect - DOMRect of the formula element
+ * @param viewport - The React Flow viewport (for zoom adjustment)
+ * @returns Position and dimensions adjusted for zoom
+ */
+export function getRelativePositionAndDimensions(
+  elementRect: DOMRect,
+  formulaRect: DOMRect,
+  viewport: { zoom: number }
+): {
+  position: { x: number; y: number };
+  dimensions: { width: number; height: number };
+} {
+  return {
+    position: {
+      x: (elementRect.left - formulaRect.left) / viewport.zoom,
+      y: (elementRect.top - formulaRect.top) / viewport.zoom,
+    },
+    dimensions: {
+      width: elementRect.width / viewport.zoom,
+      height: elementRect.height / viewport.zoom,
+    },
+  };
+}
+
+//--------------------------------------------------
 // Node Getters
 //--------------------------------------------------
 
 /**
- * Get all formula nodes from the node array
+ * Get all nodes of a specific type from the node array
  * @param nodes - Array of all React Flow nodes
- * @returns Array of formula nodes
+ * @param type - The node type to filter by (from NODE_TYPES)
+ * @returns Array of nodes matching the specified type
  */
-export function getFormulaNodes(nodes: Node[]): Node[] {
-  return nodes.filter((node) => node.type === NODE_TYPES.FORMULA);
+export function getNodesByType(nodes: Node[], type: string): Node[] {
+  return nodes.filter((node) => node.type === type);
 }
 
-/**
- * Get all label nodes from the node array
- * @param nodes - Array of all React Flow nodes
- * @returns Array of label nodes
- */
-export function getLabelNodes(nodes: Node[]): Node[] {
-  return nodes.filter((node) => node.type === NODE_TYPES.LABEL);
-}
-
-/**
- * Get all variable nodes from the node array
- * @param nodes - Array of all React Flow nodes
- * @returns Array of variable nodes
- */
-export function getVariableNodes(nodes: Node[]): Node[] {
-  return nodes.filter((node) => node.type === NODE_TYPES.VARIABLE);
-}
-
-/**
- * Get all expression nodes from the node array
- * @param nodes - Array of all React Flow nodes
- * @returns Array of expression nodes
- */
-export function getExpressionNodes(nodes: Node[]): Node[] {
-  return nodes.filter((node) => node.type === NODE_TYPES.EXPRESSION);
-}
-
-/**
- * Get all view nodes from the node array
- * @param nodes - Array of all React Flow nodes
- * @returns Array of view nodes
- */
-export function getViewNodes(nodes: Node[]): Node[] {
-  return nodes.filter((node) => node.type === NODE_TYPES.VIEW);
-}
+// Convenience functions for common node types
+export const getFormulaNodes = (nodes: Node[]) =>
+  getNodesByType(nodes, NODE_TYPES.FORMULA);
+export const getLabelNodes = (nodes: Node[]) =>
+  getNodesByType(nodes, NODE_TYPES.LABEL);
+export const getVariableNodes = (nodes: Node[]) =>
+  getNodesByType(nodes, NODE_TYPES.VARIABLE);
+export const getExpressionNodes = (nodes: Node[]) =>
+  getNodesByType(nodes, NODE_TYPES.EXPRESSION);
+export const getViewNodes = (nodes: Node[]) =>
+  getNodesByType(nodes, NODE_TYPES.VIEW);
 
 /**
  * Extract unique formula IDs from an array of nodes
@@ -133,71 +193,18 @@ export function extractIds(nodes: Node[]): Set<string> {
   return ids;
 }
 
-/**
- * Check if all label nodes are measured
- * @param nodes - Array of all React Flow nodes
- * @returns Object with labelNodes array and whether all are measured
- */
-export function checkLabelNodesMeasured(nodes: Node[]): {
-  labelNodes: Node[];
-  allMeasured: boolean;
-} {
-  const labelNodes = getLabelNodes(nodes);
-  const measuredLabelNodes = labelNodes.filter((node) => node.measured);
-  return {
-    labelNodes,
-    allMeasured:
-      labelNodes.length === 0 ||
-      measuredLabelNodes.length === labelNodes.length,
-  };
-}
+//--------------------------------------------------
+// Node Measurement Checkers
+//--------------------------------------------------
 
 /**
- * Check if all view nodes are measured
- * @param nodes - Array of all React Flow nodes
- * @returns Object with viewNodes array and whether all are measured
+ * Check if all nodes in the given array are measured
+ * @param nodes - Array of nodes to check
+ * @returns Whether all nodes are measured (or true if array is empty)
  */
-export function checkViewNodesMeasured(nodes: Node[]): {
-  viewNodes: Node[];
-  allMeasured: boolean;
-} {
-  const viewNodes = getViewNodes(nodes);
-  const measuredViewNodes = viewNodes.filter((node) => node.measured);
-  return {
-    viewNodes,
-    allMeasured:
-      viewNodes.length === 0 || measuredViewNodes.length === viewNodes.length,
-  };
-}
-
-/**
- * Check if all variable nodes corresponding to label nodes are measured
- * @param nodes - Array of all React Flow nodes
- * @param labelNodes - Array of label nodes to check
- * @returns Whether all corresponding variable nodes are measured
- */
-export function checkVariableNodesForLabelsMeasured(
-  nodes: Node[],
-  labelNodes: Node[]
-): boolean {
-  const variableNodes = getVariableNodes(nodes);
-  return labelNodes.every((labelNode) => {
-    const cssId = labelNode.data.varId;
-    const labelId = labelNode.data.id;
-
-    if (!cssId || !labelId || typeof labelId !== "string") return false;
-
-    const variableNode = variableNodes.find((vNode) => {
-      return (
-        vNode.data.varId === cssId &&
-        vNode.parentId &&
-        typeof vNode.parentId === "string" &&
-        vNode.parentId.includes(labelId)
-      );
-    });
-
-    return variableNode?.measured !== undefined;
-  });
+export function checkNodesMeasured(nodes: Node[]): boolean {
+  if (nodes.length === 0) return true;
+  return nodes.every((node) => node.measured);
 }
 
 /**
@@ -205,25 +212,21 @@ export function checkVariableNodesForLabelsMeasured(
  * @param nodes - Array of all React Flow nodes
  * @returns Object containing node arrays and overall readiness status
  */
-export function checkAllNodesMeasuredForPositioning(nodes: Node[]): {
+export function checkAllNodesMeasured(nodes: Node[]): {
   labelNodes: Node[];
   viewNodes: Node[];
   allReady: boolean;
 } {
-  const { labelNodes, allMeasured: allLabelsMeasured } =
-    checkLabelNodesMeasured(nodes);
-  const { viewNodes, allMeasured: allViewNodesMeasured } =
-    checkViewNodesMeasured(nodes);
-  const allVariableNodesMeasured = checkVariableNodesForLabelsMeasured(
-    nodes,
-    labelNodes
-  );
-
+  const labelNodes = getLabelNodes(nodes);
+  const viewNodes = getViewNodes(nodes);
+  const variableNodes = getVariableNodes(nodes);
+  const labelNodesMeasured = checkNodesMeasured(labelNodes);
+  const viewNodesMeasured = checkNodesMeasured(viewNodes);
+  const variableNodesMeasured = checkNodesMeasured(variableNodes);
   return {
     labelNodes,
     viewNodes,
-    allReady:
-      allLabelsMeasured && allViewNodesMeasured && allVariableNodesMeasured,
+    allReady: labelNodesMeasured && viewNodesMeasured && variableNodesMeasured,
   };
 }
 

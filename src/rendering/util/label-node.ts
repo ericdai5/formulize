@@ -6,7 +6,8 @@ import { VAR_SELECTORS } from "../css-classes";
 import {
   NODE_TYPES,
   findFormulaNodeById,
-  getFormulaNodes,
+  forEachFormulaNode,
+  getFormulaElementFromContainer,
   getVariableNodes,
 } from "./node-helpers";
 
@@ -126,6 +127,31 @@ export interface UpdateLabelNodesParams {
   formulaId: string;
   containerElement?: Element | null;
 }
+
+/**
+ * Apply labelPlacement updates to variable nodes
+ * @param nodes - Array of nodes to update
+ * @param updates - Array of updates with nodeId and labelPlacement
+ * @returns Updated nodes array
+ */
+export const updateLabelPlacement = (
+  nodes: Node[],
+  updates: Array<{ nodeId: string; labelPlacement: "below" | "above" }>
+): Node[] => {
+  return nodes.map((node) => {
+    const update = updates.find((u) => u.nodeId === node.id);
+    if (update) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          labelPlacement: update.labelPlacement,
+        },
+      };
+    }
+    return node;
+  });
+};
 
 /**
  * Process variable elements for a single formula and create label nodes
@@ -255,29 +281,14 @@ export const updateLabelNodes = ({
 }: UpdateLabelNodesParams): void => {
   const currentNodes = getNodes();
   const viewport = getViewport();
-
-  // Find the formula element
-  let formulaElement: Element | null = null;
-  if (containerElement) {
-    formulaElement = containerElement.querySelector(".formula-node");
-  } else {
-    // Fall back to document query
-    const formulaNode = findFormulaNodeById(currentNodes, formulaId);
-    if (formulaNode) {
-      formulaElement = document.querySelector(
-        `[data-id="${formulaNode.id}"] .formula-node`
-      );
-    }
-  }
-
-  if (!formulaElement) {
-    return;
-  }
-
-  // Find formula node by its id
+  const formulaElement = getFormulaElementFromContainer(
+    containerElement,
+    currentNodes,
+    formulaId
+  );
+  if (!formulaElement) return;
   const formulaNode = findFormulaNodeById(currentNodes, formulaId);
   if (!formulaNode || !formulaNode.measured) return;
-
   // Get existing variable nodes for this formula
   const existingVariableNodes = currentNodes.filter(
     (node) =>
@@ -290,7 +301,6 @@ export const updateLabelNodes = ({
     const nonLabelNodes = currentNodes.filter(
       (node) => node.type !== NODE_TYPES.LABEL
     );
-
     // Use helper to create label nodes based on current activeVariables
     const { labelNodes, variableNodeUpdates } =
       processVariableElementsForLabels(
@@ -300,24 +310,11 @@ export const updateLabelNodes = ({
         nonLabelNodes,
         viewport
       );
-
     // Apply variable node updates (labelPlacement)
-    const updatedNodes = nonLabelNodes.map((node) => {
-      if (node.type === NODE_TYPES.VARIABLE) {
-        const update = variableNodeUpdates.find((u) => u.nodeId === node.id);
-        if (update) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              labelPlacement: update.labelPlacement,
-            },
-          };
-        }
-      }
-      return node;
-    });
-
+    const updatedNodes = updateLabelPlacement(
+      nonLabelNodes,
+      variableNodeUpdates
+    );
     return [...updatedNodes, ...labelNodes];
   });
 };
@@ -332,32 +329,13 @@ export const addLabelNodes = ({
 }: AddLabelNodesParams): void => {
   const currentNodes = getNodes();
   const viewport = getViewport();
-
   const labelNodes: Node[] = [];
   const variableNodeUpdates: Array<{
     nodeId: string;
     labelPlacement: "below" | "above";
   }> = [];
 
-  // Iterate through formula nodes instead of DOM elements
-  const formulaNodes = getFormulaNodes(currentNodes);
-  formulaNodes.forEach((formulaNode) => {
-    if (!formulaNode.measured) return;
-
-    // Extract id from node data - this is required
-    const id = formulaNode.data.id;
-    if (!id || typeof id !== "string") {
-      console.error(`Formula node ${formulaNode.id} missing required id`);
-      return;
-    }
-
-    // Find the corresponding DOM element for this formula node
-    const formulaElement = document.querySelector(
-      `[data-id="${formulaNode.id}"] .formula-node`
-    );
-    if (!formulaElement) return;
-
-    // Process variable elements for this formula using helper function
+  forEachFormulaNode(currentNodes, (formulaNode, formulaElement, id) => {
     const { labelNodes: formulaLabels, variableNodeUpdates: formulaUpdates } =
       processVariableElementsForLabels(
         formulaElement,
@@ -366,7 +344,6 @@ export const addLabelNodes = ({
         currentNodes,
         viewport
       );
-
     labelNodes.push(...formulaLabels);
     variableNodeUpdates.push(...formulaUpdates);
   });
@@ -374,23 +351,10 @@ export const addLabelNodes = ({
   // Add label nodes and update variable nodes with correct placement info
   if (labelNodes.length > 0 || variableNodeUpdates.length > 0) {
     setNodes((currentNodes) => {
-      const updatedNodes = currentNodes.map((node) => {
-        // Update variable nodes with correct label placement
-        const update = variableNodeUpdates.find(
-          (u: { nodeId: string; labelPlacement: "below" | "above" }) =>
-            u.nodeId === node.id
-        );
-        if (update) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              labelPlacement: update.labelPlacement,
-            },
-          };
-        }
-        return node;
-      });
+      const updatedNodes = updateLabelPlacement(
+        currentNodes,
+        variableNodeUpdates
+      );
       return [...updatedNodes, ...labelNodes];
     });
   }
@@ -443,13 +407,10 @@ export const adjustLabelPositions = ({
     // This handles cssId with hyphens correctly
     const cssId = node.data.varId;
     const id = node.data.id;
-
     if (!cssId || !id || typeof id !== "string") return node;
-
     // Find the formula node first
     const formulaNode = findFormulaNodeById(currentNodes, id);
     if (!formulaNode) return node;
-
     // Find the corresponding variable node using node properties
     const variableNodes = getVariableNodes(currentNodes);
     const variableNode = variableNodes.find((vNode) => {
@@ -461,18 +422,14 @@ export const adjustLabelPositions = ({
     });
 
     if (!variableNode) return node;
-
     // Only proceed if the variable node is also measured to ensure coordinate consistency
     if (!variableNode.measured) return node;
-
     // Calculate the perfect centered position using actual measured width
     const actualLabelWidth = node.measured.width || node.width || 40;
-
     // Since labels are now children of formula nodes (parentId set),
     // all positions are relative to the formula node, not absolute
     // Variable nodes are also children, so their positions are already relative
     let variableCenterX: number;
-
     if (variableNode.measured && variableNode.measured.width) {
       // Variable node is measured - use its center in relative coordinates
       variableCenterX =
@@ -487,13 +444,11 @@ export const adjustLabelPositions = ({
     }
 
     let finalLabelX = variableCenterX - actualLabelWidth / 2;
-
     // Calculate Y position based on placement and actual measured height
     // All relative to formula node (0,0 is formula node's top-left)
     const actualLabelHeight = node.measured.height || node.height || 24;
     const placement = node.data.placement as "below" | "above";
     const spacing = { vertical: 10, horizontal: 4 }; // Consistent spacing from formula and between labels
-
     const formulaNodeHeight =
       formulaNode.measured?.height || formulaNode.height || 200;
 
@@ -512,10 +467,8 @@ export const adjustLabelPositions = ({
       return positionedLabels.some((positioned) => {
         // Only check labels that belong to the same formula node (same coordinate system)
         if (positioned.parentId !== formulaNode.id) return false;
-
         // Only check labels at the same placement (above/below)
         if (positioned.placement !== placement) return false;
-
         // Check if Y ranges overlap (labels at similar vertical positions)
         const yOverlap = !(
           adjustedY + actualLabelHeight < positioned.y ||
@@ -523,7 +476,6 @@ export const adjustLabelPositions = ({
         );
 
         if (!yOverlap) return false;
-
         // Check if X ranges overlap
         const xOverlap = !(
           testX + actualLabelWidth < positioned.x ||

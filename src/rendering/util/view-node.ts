@@ -6,6 +6,7 @@ import { computationStore } from "../../store/computation";
 import { executionStore } from "../../store/execution";
 import {
   NODE_TYPES,
+  getFormulaElement,
   getFormulaNodes,
   getViewNodeYPositionAvoidingLabels,
 } from "./node-helpers";
@@ -104,9 +105,7 @@ export function calculateBoundingBoxFromExpression(
   }
 
   // Query for the expression elements and combine their bounding boxes
-  const formulaElement = document.querySelector(
-    `[data-id="${formulaNode.id}"] .formula-node`
-  );
+  const formulaElement = getFormulaElement(formulaNode);
 
   if (!formulaElement) {
     return null;

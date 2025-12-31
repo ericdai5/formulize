@@ -31,11 +31,17 @@ import {
 } from "../rendering/util/label-node";
 import {
   NODE_TYPES,
-  checkAllNodesMeasuredForPositioning,
+  checkAllNodesMeasured,
+  findFormulaNodeById,
+  getFormulaElementFromContainer,
   getLabelNodes,
+  getVariableNodes,
   positionAndShowViewNodes,
 } from "../rendering/util/node-helpers";
-import { addVariableNodesForFormula } from "../rendering/util/variable-nodes";
+import {
+  addVariableNodesForFormula,
+  updateVarNodes,
+} from "../rendering/util/variable-nodes";
 import { addViewNodes as addViewNodesUtil } from "../rendering/util/view-node";
 import { computationStore } from "../store/computation";
 import { executionStore } from "../store/execution";
@@ -138,11 +144,50 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
     });
   }, [getNodes, id, setNodes, setEdges]);
 
+  // Function to update variable node dimensions (e.g., after CSS class changes)
+  const updateVariableNodes = useCallback(() => {
+    const currentNodes = getNodes();
+    const viewport = getViewport();
+    const formulaElement = getFormulaElementFromContainer(
+      containerRef.current,
+      currentNodes,
+      id
+    );
+    if (!formulaElement) return;
+    const formulaNode = findFormulaNodeById(currentNodes, id);
+    if (!formulaNode || !formulaNode.measured) return;
+
+    // Build map of existing variable nodes
+    const existingVarNodes = new Map<string, Node>();
+    getVariableNodes(currentNodes).forEach((node) =>
+      existingVarNodes.set(node.id, node)
+    );
+
+    // Use the shared helper to get updated nodes
+    const foundNodeIds = new Set<string>();
+    const { updatedNodes } = updateVarNodes(
+      formulaElement,
+      formulaNode,
+      id,
+      viewport,
+      existingVarNodes,
+      foundNodeIds
+    );
+
+    if (updatedNodes.length > 0) {
+      setNodes((nds) =>
+        nds.map((node) => {
+          const update = updatedNodes.find((u) => u.id === node.id);
+          return update || node;
+        })
+      );
+    }
+  }, [getNodes, getViewport, id, setNodes]);
+
   // Function to add variable nodes by finding them in the rendered MathJax formula
   const addVariableNodes = useCallback(() => {
     const latex = getFormula();
     if (!latex) return;
-
     addVariableNodesForFormula({
       getNodes,
       getViewport,
@@ -208,7 +253,6 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
   // Update variable nodes when values change
   useEffect(() => {
     if (!variableNodesAddedRef.current) return;
-
     const updateVariables = () => {
       setNodes((nds) =>
         nds.map((node) => {
@@ -238,16 +282,12 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
   // Adjust label and view node positions after they're rendered and measured, then fitView
   useEffect(() => {
     if (!nodesInitialized || !variableNodesAddedRef.current) return;
-
     // Check if all nodes are ready for positioning
-    const { labelNodes, viewNodes, allReady } =
-      checkAllNodesMeasuredForPositioning(nodes);
-
+    const { labelNodes, viewNodes, allReady } = checkAllNodesMeasured(nodes);
     // Check if there are view nodes that need to be positioned (have low opacity)
     const viewNodesNeedPositioning = viewNodes.some(
       (node) => node.style?.opacity === 0.01
     );
-
     // Check if there are label nodes that need to be positioned (have low opacity)
     const labelNodesNeedPositioning = labelNodes.some(
       (node) => node.style?.opacity === 0.01
@@ -346,6 +386,9 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
               currentEdges.filter((edge) => edge.id.startsWith("edge-view-"))
             );
 
+            // Update variable node dimensions first (CSS classes may have changed)
+            updateVariableNodes();
+
             // Update labels and view nodes with current activeVariables
             // Both are created with opacity 0.01 for measurement
             updateLabelNodes();
@@ -369,6 +412,7 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
     };
   }, [
     nodesInitialized,
+    updateVariableNodes,
     updateLabelNodes,
     addViewNodes,
     setEdges,

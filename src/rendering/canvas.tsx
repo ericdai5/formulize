@@ -33,7 +33,7 @@ import {
 } from "./util/label-node";
 import {
   NODE_TYPES,
-  checkAllNodesMeasuredForPositioning,
+  checkAllNodesMeasured,
   getFormulaNodes,
   getLabelNodes,
   getVariableNodes,
@@ -468,9 +468,9 @@ const CanvasFlow = observer(
               // Clear edges to prevent stale edge references
               setEdges([]);
 
-              // Re-add labels and view nodes after state has settled
-              // Both are created with opacity 0.01 for measurement
-              // The label adjustment effect will position both and make them visible
+              // Update variable nodes first to ensure dimensions are correct
+              // after CSS class changes (e.g., step-cue), then re-add labels and view nodes
+              updateVariableNodes();
               window.setTimeout(() => {
                 addLabelNodes();
                 addViewNodes();
@@ -483,16 +483,20 @@ const CanvasFlow = observer(
       return () => {
         disposer();
       };
-    }, [nodesInitialized, addLabelNodes, addViewNodes, setNodes, setEdges]);
+    }, [
+      nodesInitialized,
+      addLabelNodes,
+      addViewNodes,
+      updateVariableNodes,
+      setNodes,
+      setEdges,
+    ]);
 
     // Adjust label and view node positions after they're rendered and measured
     useEffect(() => {
       if (!nodesInitialized) return;
-
       // Check if all nodes are ready for positioning
-      const { labelNodes, viewNodes, allReady } =
-        checkAllNodesMeasuredForPositioning(nodes);
-
+      const { labelNodes, viewNodes, allReady } = checkAllNodesMeasured(nodes);
       // If no labels and no view nodes exist, nothing to do
       if (labelNodes.length === 0 && viewNodes.length === 0) {
         return;
