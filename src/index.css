@@ -99,6 +99,11 @@
     transform: scale(1);
   }
 
+  /* Only apply color to descendants, not animation (to avoid compounding scale effect) */
+  .step-cue * {
+    @apply text-blue-500;
+  }
+
   @keyframes pulseUpdate {
     0% {
       transform: scale(1);

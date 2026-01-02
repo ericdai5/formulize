@@ -9,7 +9,16 @@ export const INPUT_VARIABLE_DEFAULT = {
 
 export type IValue = number | (string | number)[];
 
-export type IRole = "constant" | "input" | "computed";
+/**
+ * The role of a variable.
+ * - "constant" variables are constants that are not computed.
+ * - "input" variables are input variables that are user-defined.
+ *    - Normal mode: input variables allow users to interact and control the value of the variable.
+ *    - Step mode: input variables are non interactive.
+ * - "computed" variables are computed variables that are computed by the engine.
+ * - "index" variables are index variables that are used to index into other variables.
+ */
+export type IRole = "constant" | "input" | "computed" | "index";
 
 export interface IVariable {
   role: IRole;

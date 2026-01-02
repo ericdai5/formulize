@@ -8,6 +8,7 @@ export const NODE_TYPES = {
   VARIABLE: "variable",
   LABEL: "label",
   VIEW: "view",
+  EXPRESSION: "expression",
 } as const;
 
 /**

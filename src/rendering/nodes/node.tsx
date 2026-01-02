@@ -2,6 +2,7 @@ import { NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import ControlNode from "./control-node";
+import ExpressionNode from "./expression-node";
 import FormulaNode from "./formula-node";
 import InterpreterControlNode from "./interpreter-control-node";
 import LabelNode from "./label-node";
@@ -18,5 +19,6 @@ export const nodeTypes: NodeTypes = {
   variable: VariableNode,
   label: LabelNode,
   view: ViewNode,
+  expression: ExpressionNode,
   visualization: VisualizationNode,
 };

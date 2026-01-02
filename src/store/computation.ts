@@ -51,6 +51,20 @@ class ComputationStore {
   accessor showVariableBorders: boolean = false;
 
   @observable
+  accessor showExpressionNodes: boolean = false;
+
+  // Expression scopes for bounding box calculations
+  // Maps LaTeX expression strings to their generated scope IDs (e.g., "\\frac{1}{m}" -> "expr-0")
+  @observable
+  accessor expressionScopes = new Map<
+    string,
+    { scopeId: string; type: string; containsVars: string[] }
+  >();
+
+  // Counter for generating unique expression scope IDs
+  private expressionScopeCounter = 0;
+
+  @observable
   accessor lastGeneratedCode: string | null = null;
 
   @observable
@@ -165,6 +179,7 @@ class ComputationStore {
     this.formulaHoverCallbacks.clear();
     this.injectedDefaultCSS.clear();
     this.injectedHoverCSS.clear();
+    this.expressionScopes.clear();
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
@@ -175,6 +190,69 @@ class ComputationStore {
     if (styleElement) {
       styleElement.remove();
     }
+  }
+
+  /**
+   * Register an expression scope for bounding box calculations.
+   * Called during LaTeX processing to track structural elements.
+   * @param latexExpression - The LaTeX expression string (e.g., "\\frac{1}{m} \\sum_{i=1}^{m}")
+   * @param type - The type of structure (e.g., "sum", "frac", "delim")
+   * @param containsVars - Array of variable IDs contained within this scope
+   * @returns The generated scope ID that was assigned to this expression
+   */
+  @action
+  registerExpressionScope(
+    latexExpression: string,
+    type: string,
+    containsVars: string[]
+  ): string {
+    // Check if this expression is already registered
+    const existing = this.expressionScopes.get(latexExpression);
+    if (existing) {
+      return existing.scopeId;
+    }
+    const scopeId = `expr-${this.expressionScopeCounter++}`;
+    this.expressionScopes.set(latexExpression, { scopeId, type, containsVars });
+    return scopeId;
+  }
+
+  /**
+   * Normalize a LaTeX expression for comparison
+   * Removes \limits, extra spaces, normalizes braces, and normalizes backslashes
+   */
+  private normalizeLatex(latex: string): string {
+    return latex
+      .replace(/\\\\/g, "\\") // Normalize double backslashes to single
+      .replace(/\\limits/g, "") // Remove \limits
+      .replace(/\s+/g, "") // Remove all whitespace
+      .replace(/\{([a-zA-Z0-9])\}/g, "$1"); // Simplify single-char braces like {m} -> m
+  }
+
+  /**
+   * Get all scope IDs that match parts of the given LaTeX expression
+   * @param latexExpression - The LaTeX expression to look up
+   * @returns Array of scope IDs that are contained in the expression
+   */
+  getScopeIdsForExpression(latexExpression: string): string[] {
+    const normalizedInput = this.normalizeLatex(latexExpression);
+    const matchedScopeIds: string[] = [];
+    for (const [key, value] of this.expressionScopes.entries()) {
+      const normalizedKey = this.normalizeLatex(key);
+      // Check if the registered expression is contained in the user's input
+      if (normalizedInput.includes(normalizedKey)) {
+        matchedScopeIds.push(value.scopeId);
+      }
+    }
+    return matchedScopeIds;
+  }
+
+  /**
+   * Clear all expression scopes (called before re-processing LaTeX)
+   */
+  @action
+  clearExpressionScopes() {
+    this.expressionScopes.clear();
+    this.expressionScopeCounter = 0;
   }
 
   @action
@@ -246,12 +324,12 @@ class ComputationStore {
   }
 
   @action
-  setValueInStepMode(id: string, value: number): boolean {
+  setValueInStepMode(id: string, value: IValue): boolean {
     const variable = this.variables.get(id);
     if (!variable) {
       return false;
     }
-    variable.value = value;
+    variable.value = value as IValue;
     return true;
   }
 

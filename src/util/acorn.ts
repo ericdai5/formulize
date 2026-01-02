@@ -15,7 +15,7 @@ import * as acorn from "acorn";
 export const extractVariableNames = (code: string): string[] => {
   try {
     const ast = acorn.parse(code, {
-      ecmaVersion: 2020,
+      ecmaVersion: 5,
       allowReturnOutsideFunction: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
@@ -136,7 +136,7 @@ export const extractViews = (
 
     // Parse the code to get the AST
     const ast = acorn.parse(code, {
-      ecmaVersion: 2020,
+      ecmaVersion: 5,
       allowReturnOutsideFunction: true,
       locations: true, // Enable line/column tracking
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

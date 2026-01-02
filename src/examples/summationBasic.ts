@@ -9,6 +9,7 @@ export const summationBasic = `const config = {
     E: {
       role: "computed",
       precision: 2,
+      default: 0,
       name: "Expected Value",
       latexDisplay: "name",
       labelDisplay: "value",
@@ -49,22 +50,32 @@ export const summationBasic = `const config = {
     manual: function(vars) {
       var xValues = vars.X;
       var pxValues = vars["P(x)"];
-      var expectedValue = 0;
+      var expectedValue = vars.E;
       for (var i = 0; i < xValues.length; i++) {
         var xi = xValues[i];
         var probability = pxValues[i];
-        var currExpected = xi * probability;
-        // @view "x P(x)"->"The expected value for x should be:"->"currExpected"
-        expectedValue += currExpected;
-        // @view "E"->"Expected value E is updated"->"expectedValue"
+        if (i === 0) {
+          view("Get a value x from X:", xi);
+          view("Get a value P(x) from P(x):", probability);
+        }
+        var currExpected = Math.round(xi * probability * 100) / 100;
+        if (i === 0) {
+          view("This evaluates to:", currExpected);
+        }
+        expectedValue = Math.round((expectedValue + currExpected) * 100) / 100;
+        switch (i) {
+          case 0:
+            view("add up term into E:", expectedValue);
+            break;
+          case 1:
+            view("add next term...", expectedValue);
+            break;
+          case xValues.length - 1:
+            view("finish accumulating weighted sum:", expectedValue);
+            break;
+        }
       }
       return expectedValue;
-    },
-    variableLinkage: {
-      "xi": "x",
-      "probability": "P(x)",
-      "expectedValue": "E",
-      "currExpected": "c"
     },
   },
   fontSize: 1.5
