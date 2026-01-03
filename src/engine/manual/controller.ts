@@ -37,6 +37,30 @@ export const getArrayControl = (
   return config?.type === "array" ? (config as IArrayControl) : null;
 };
 
+/**
+ * The view function creates visualization breakpoints during manual computation.
+ *
+ * This is a stub export for TypeScript type checking purposes.
+ * The actual implementation is injected at runtime by the interpreter,
+ * which overrides this function within the execution context.
+ *
+ * @param description - Text description of what is being shown
+ * @param value - The value to display (optional)
+ * @param expression - LaTeX expression to highlight (optional)
+ *
+ * @example
+ * view("Current sum:", sum);
+ * view("Processing element", element, "x_{i}");
+ */
+export function view(
+  _description: string,
+  _value?: unknown,
+  _expression?: string
+): void {
+  // This is a stub - the actual implementation is injected by the interpreter at runtime.
+  // When called outside of the interpreter context, this is a no-op.
+}
+
 export class Controller {
   // ============================================================================
   // Execution Lifecycle Management

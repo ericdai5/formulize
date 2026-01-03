@@ -4,32 +4,95 @@ import { Node, useReactFlow } from "@xyflow/react";
 
 import { computationStore } from "../../store/computation";
 import { VAR_SELECTORS } from "../css-classes";
-import { NODE_TYPES, getFormulaNodes, getVariableNodes } from "./node-helpers";
+import {
+  processVariableElementsForLabels,
+  updateLabelPlacement,
+} from "./label-node";
+import {
+  NODE_TYPES,
+  findFormulaNodeById,
+  forEachFormulaNode,
+  getFormulaElementFromContainer,
+  getRelativePositionAndDimensions,
+  getVariableNodes,
+} from "./node-helpers";
 
 /*********** Helper Functions for Variable Nodes ***********/
 
 /**
- * Utility function for calculating relative position and dimensions
- * @param varRect - The DOMRect of the variable element
- * @param formulaRect - The DOMRect of the formula element
- * @param viewport - The viewport of the React Flow instance
- * @returns The relative position and dimensions of the variable element, adjusted for zoom level
+ * Check if MathJax is ready and execute callback, or wait and retry
+ * @param callback - Function to execute when MathJax is ready
+ * @param delay - Delay in ms to wait if MathJax isn't ready (default 200)
  */
-export const getPosAndDim = (
-  varRect: DOMRect,
-  formulaRect: DOMRect,
+export function whenMathJaxReady(
+  callback: () => void,
+  delay: number = 200
+): void {
+  if (
+    window.MathJax &&
+    window.MathJax.startup &&
+    window.MathJax.startup.document
+  ) {
+    callback();
+  } else {
+    setTimeout(callback, delay);
+  }
+}
+
+/**
+ * Calculate position and dimensions of a variable element relative to its formula
+ * @param varElement - The variable HTML element
+ * @param formulaElement - The formula container element
+ * @param viewport - The React Flow viewport
+ * @returns Position and dimensions for creating a variable node
+ */
+export function getVariablePositionAndDimensions(
+  varElement: HTMLElement,
+  formulaElement: Element,
   viewport: { zoom: number }
-) => {
-  const position = {
-    x: (varRect.left - formulaRect.left) / viewport.zoom,
-    y: (varRect.top - formulaRect.top) / viewport.zoom,
+): {
+  position: { x: number; y: number };
+  dimensions: { width: number; height: number };
+} {
+  const varRect = varElement.getBoundingClientRect();
+  const formulaRect = formulaElement.getBoundingClientRect();
+  return getRelativePositionAndDimensions(varRect, formulaRect, viewport);
+}
+
+/**
+ * Create a variable node object
+ * @param nodeId - The unique node ID
+ * @param cssId - The CSS ID (varId) of the variable
+ * @param position - Position relative to parent formula node
+ * @param dimensions - Width and height of the variable element
+ * @param parentId - The parent formula node ID
+ * @returns A React Flow node object for the variable
+ */
+export function createVariableNode(
+  nodeId: string,
+  cssId: string,
+  position: { x: number; y: number },
+  dimensions: { width: number; height: number },
+  parentId: string
+): Node {
+  return {
+    id: nodeId,
+    type: "variable",
+    position,
+    parentId,
+    extent: "parent",
+    data: {
+      varId: cssId,
+      symbol: cssId,
+      width: dimensions.width,
+      height: dimensions.height,
+      labelPlacement: "below",
+      showBorders: computationStore.showVariableBorders,
+    },
+    draggable: false,
+    selectable: true,
   };
-  const dimensions = {
-    width: varRect.width / viewport.zoom,
-    height: varRect.height / viewport.zoom,
-  };
-  return { position, dimensions };
-};
+}
 
 /**
  * Process variable elements within a formula and update/create variable nodes
@@ -41,7 +104,7 @@ export const getPosAndDim = (
  * @param foundNodeIds - Set to track which node IDs were found
  * @returns Object containing arrays of updated and new nodes
  */
-export const updateVariableNodesForFormula = (
+export const updateVarNodes = (
   formulaElement: Element,
   formulaNode: Node,
   id: string,
@@ -51,46 +114,33 @@ export const updateVariableNodesForFormula = (
 ): { updatedNodes: Node[]; newNodes: Node[] } => {
   const updatedNodes: Node[] = [];
   const newNodes: Node[] = [];
-
-  // Find variable elements within this formula
   const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
-
   variableElements.forEach((varElement: Element, elementIndex: number) => {
     const htmlVarElement = varElement as HTMLElement;
     const cssId = htmlVarElement.id;
     if (!cssId) return;
-
     if (!computationStore.variables.has(cssId)) return;
-
     const nodeId = `variable-${id}-${cssId}-${elementIndex}`;
     foundNodeIds.add(nodeId);
-
-    // Calculate new position and dimensions
-    const varRect = htmlVarElement.getBoundingClientRect();
-    const formulaRect = formulaElement.getBoundingClientRect();
-    const { position, dimensions } = getPosAndDim(
-      varRect,
-      formulaRect,
+    const { position, dimensions } = getVariablePositionAndDimensions(
+      htmlVarElement,
+      formulaElement,
       viewport
     );
-
-    const variableNode = variableNodes.get(nodeId);
-
-    if (variableNode) {
-      // Check if position or dimensions actually changed
-      const positionChanged =
-        variableNode.position.x !== position.x ||
-        variableNode.position.y !== position.y;
-      const dimensionsChanged =
-        variableNode.data.width !== dimensions.width ||
-        variableNode.data.height !== dimensions.height;
+    const varNode = variableNodes.get(nodeId);
+    if (varNode) {
+      const posChanged =
+        varNode.position.x !== position.x || varNode.position.y !== position.y;
+      const dimChanged =
+        varNode.data.width !== dimensions.width ||
+        varNode.data.height !== dimensions.height;
       // Only add to updated nodes if something actually changed
-      if (positionChanged || dimensionsChanged) {
+      if (posChanged || dimChanged) {
         updatedNodes.push({
-          ...variableNode,
+          ...varNode,
           position,
           data: {
-            ...variableNode.data,
+            ...varNode.data,
             width: dimensions.width,
             height: dimensions.height,
           },
@@ -98,107 +148,155 @@ export const updateVariableNodesForFormula = (
       }
     } else {
       // Create new node
-      newNodes.push({
-        id: nodeId,
-        type: "variable",
-        position,
-        parentId: formulaNode.id,
-        extent: "parent",
-        data: {
-          varId: cssId,
-          symbol: cssId,
-          width: dimensions.width,
-          height: dimensions.height,
-          labelPlacement: "below", // Default, will be updated when labels are recalculated
-          showBorders: computationStore.showVariableBorders,
-        },
-        draggable: false,
-        selectable: true,
-      });
+      newNodes.push(
+        createVariableNode(nodeId, cssId, position, dimensions, formulaNode.id)
+      );
     }
   });
-
   return { updatedNodes, newNodes };
 };
 
 /**
  * Create variable nodes from DOM elements for a single formula
- * @param formulaElement - The DOM element containing the formula
- * @param formulaNode - The React Flow formula node
- * @param id - The ID of the formula (e.g., "kinetic-energy" or index "0")
- * @param viewport - The React Flow viewport
- * @returns Array of variable nodes
  */
-export const createVariableNodesFromFormula = (
+export const createVarNodes = (
   formulaElement: Element,
   formulaNode: Node,
   id: string,
   viewport: { zoom: number }
 ): Node[] => {
-  const variableNodes: Node[] = [];
-  const formulaNodeId = formulaNode.id;
-
-  // Find variable elements within this formula
-  const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
-
-  variableElements.forEach((varElement: Element, elementIndex: number) => {
-    const htmlVarElement = varElement as HTMLElement;
-    const cssId = htmlVarElement.id;
-    if (!cssId) return;
-
-    // Verify this variable exists in the computation store
-    if (!computationStore.variables.has(cssId)) return;
-
-    // Calculate position relative to the formula node, accounting for React Flow's zoom
-    const varRect = htmlVarElement.getBoundingClientRect();
-    const formulaRect = formulaElement.getBoundingClientRect();
-    const { position, dimensions } = getPosAndDim(
-      varRect,
-      formulaRect,
-      viewport
-    );
-
-    const nodeId = `variable-${id}-${cssId}-${elementIndex}`;
-
-    // Create only the variable node - no labels yet
-    variableNodes.push({
-      id: nodeId,
-      type: "variable",
-      position,
-      parentId: formulaNodeId, // Make this a subnode of the formula
-      extent: "parent", // Constrain to parent bounds
-      data: {
-        varId: cssId,
-        symbol: cssId,
-        // VariableNode will get all variable data reactively from the store
-        width: dimensions.width,
-        height: dimensions.height,
-        labelPlacement: "below", // Default placement, will be updated in phase 2
-        showBorders: computationStore.showVariableBorders,
-      },
-      draggable: false, // Subnodes typically aren't independently draggable
-      selectable: true,
-    });
-  });
-
-  return variableNodes;
+  const { newNodes } = updateVarNodes(
+    formulaElement,
+    formulaNode,
+    id,
+    viewport,
+    new Map(),
+    new Set()
+  );
+  return newNodes;
 };
 
-interface BaseVariableNodesParams {
-  nodesInitialized: boolean;
-  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  variableNodesAddedRef: MutableRefObject<boolean>;
-}
+/**
+ * Process all formula nodes and create/update variable nodes
+ * @param currentNodes - All current React Flow nodes
+ * @param viewport - The React Flow viewport
+ * @param existingVarNodes - Optional map of existing variable nodes (for update mode)
+ * @param foundNodeIds - Optional set to track found node IDs (for update mode)
+ * @returns Combined results from all formulas
+ */
+export const processAllFormulaVarNodes = (
+  currentNodes: Node[],
+  viewport: { zoom: number },
+  existingVarNodes?: Map<string, Node>,
+  foundNodeIds?: Set<string>
+): { updatedNodes: Node[]; newNodes: Node[] } => {
+  const updatedNodes: Node[] = [];
+  const newNodes: Node[] = [];
+  const varMap = existingVarNodes ?? new Map();
+  const foundIds = foundNodeIds ?? new Set<string>();
+  forEachFormulaNode(currentNodes, (formulaNode, formulaElement, id) => {
+    const { updatedNodes: updated, newNodes: created } = updateVarNodes(
+      formulaElement,
+      formulaNode,
+      id,
+      viewport,
+      varMap,
+      foundIds
+    );
+    updatedNodes.push(...updated);
+    newNodes.push(...created);
+  });
+  return { updatedNodes, newNodes };
+};
 
-interface AddVariableNodesParams extends BaseVariableNodesParams {
-  addLabelNodes: () => void;
-  addViewNodes: () => void;
-}
-
-type UpdateVariableNodesParams = BaseVariableNodesParams;
+type Viewport = { zoom: number; x: number; y: number };
 
 /**
- * Hook to get a function that adds variable nodes as subnodes using React Flow's measurement system
+ * Common wrapper for variable node operations
+ * Handles requestAnimationFrame, MathJax readiness, and nodesInitialized check
+ */
+function withVarNodeContext(
+  getNodes: () => Node[],
+  getViewport: () => Viewport,
+  nodesInitialized: boolean,
+  callback: (nodes: Node[], viewport: Viewport) => void
+): void {
+  requestAnimationFrame(() => {
+    whenMathJaxReady(() => {
+      if (!nodesInitialized) return;
+      callback(getNodes(), getViewport());
+    });
+  });
+}
+
+/**
+ * Add variable nodes and label nodes for a single formula.
+ * This is used by FormulaComponent where we know the specific formula ID.
+ */
+export function addVariableNodesForFormula({
+  getNodes,
+  getViewport,
+  setNodes,
+  nodesInitialized,
+  variableNodesAddedRef,
+  formulaId,
+  containerElement,
+}: {
+  getNodes: () => Node[];
+  getViewport: () => { zoom: number; x: number; y: number };
+  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
+  nodesInitialized: boolean;
+  variableNodesAddedRef: MutableRefObject<boolean>;
+  formulaId: string;
+  containerElement?: Element | null;
+}): void {
+  withVarNodeContext(
+    getNodes,
+    getViewport,
+    nodesInitialized,
+    (currentNodes, viewport) => {
+      const formulaElement = getFormulaElementFromContainer(
+        containerElement,
+        currentNodes,
+        formulaId
+      );
+      if (!formulaElement) return;
+      const formulaNode = findFormulaNodeById(currentNodes, formulaId);
+      if (!formulaNode || !formulaNode.measured) return;
+      const varNodes = createVarNodes(
+        formulaElement,
+        formulaNode,
+        formulaId,
+        viewport
+      );
+      if (varNodes.length === 0) return;
+      setNodes((currentNodes) => {
+        const baseNodes = currentNodes.filter(
+          (node) =>
+            node.type !== NODE_TYPES.VARIABLE && node.type !== NODE_TYPES.LABEL
+        );
+        const nodesWithVariables = [...baseNodes, ...varNodes];
+        const { labelNodes, variableNodeUpdates } =
+          processVariableElementsForLabels(
+            formulaElement!,
+            formulaNode,
+            formulaId,
+            nodesWithVariables,
+            viewport
+          );
+        const updatedVarNodes = updateLabelPlacement(
+          varNodes,
+          variableNodeUpdates
+        );
+        return [...baseNodes, ...updatedVarNodes, ...labelNodes];
+      });
+      variableNodesAddedRef.current = true;
+    }
+  );
+}
+
+/**
+ * Hook to get a function that adds variable nodes for all formulas
  */
 export const useAddVariableNodes = ({
   nodesInitialized,
@@ -206,207 +304,92 @@ export const useAddVariableNodes = ({
   addLabelNodes,
   addViewNodes,
   variableNodesAddedRef,
-}: AddVariableNodesParams) => {
+}: {
+  nodesInitialized: boolean;
+  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
+  variableNodesAddedRef: MutableRefObject<boolean>;
+  addLabelNodes: () => void;
+  addViewNodes: () => void;
+}) => {
   const { getNodes, getViewport } = useReactFlow();
-
   return () => {
-    // Use requestAnimationFrame to ensure we're in a clean render cycle
-    requestAnimationFrame(() => {
-      const checkMathJaxAndProceed = () => {
-        // Get current values inside the function to avoid stale closures
-        const currentNodes = getNodes();
-        const viewport = getViewport();
-
-        // Only proceed if nodes are initialized and measured
-        if (!nodesInitialized) return;
-
-        const variableNodes: Node[] = [];
-
-        // PHASE 1: Create only variable nodes first
-        // Iterate through formula nodes instead of DOM elements
-        const formulaNodes = getFormulaNodes(currentNodes);
-        formulaNodes.forEach((formulaNode) => {
-          // Skip if the React Flow node is not measured yet
-          if (!formulaNode.measured) return;
-
-          // Extract id from node data - this is required
-          const id = formulaNode.data.id;
-          if (!id || typeof id !== "string") {
-            console.error(`Formula node ${formulaNode.id} missing required id`);
-            return;
-          }
-
-          // Find the corresponding DOM element for this formula node
-          const formulaElement = document.querySelector(
-            `[data-id="${formulaNode.id}"] .formula-node`
+    withVarNodeContext(
+      getNodes,
+      getViewport,
+      nodesInitialized,
+      (currentNodes, viewport) => {
+        const { newNodes: varNodes } = processAllFormulaVarNodes(
+          currentNodes,
+          viewport
+        );
+        if (varNodes.length === 0) return;
+        setNodes((currentNodes) => {
+          const nonVarNodes = currentNodes.filter(
+            (node) => node.type !== NODE_TYPES.VARIABLE
           );
-          if (!formulaElement) return;
-
-          // Use helper to create variable nodes for this formula
-          const nodesForFormula = createVariableNodesFromFormula(
-            formulaElement,
-            formulaNode,
-            id,
-            viewport
-          );
-          variableNodes.push(...nodesForFormula);
+          return [...nonVarNodes, ...varNodes];
         });
-
-        // Add variable nodes to existing nodes first
-        if (variableNodes.length > 0) {
-          setNodes((currentNodes) => {
-            // Remove existing variable nodes and add new variable nodes
-            const nonVariableNodes = currentNodes.filter(
-              (node) => node.type !== NODE_TYPES.VARIABLE
-            );
-            return [...nonVariableNodes, ...variableNodes];
-          });
-
-          // Mark that variable nodes have been added
-          variableNodesAddedRef.current = true;
-
-          // Add label nodes and view nodes after variable nodes are ready
-          setTimeout(() => {
-            addLabelNodes();
-            addViewNodes();
-          }, 100);
-        }
-      };
-
-      // Check if MathJax is ready, but don't wait for promises
-      if (
-        window.MathJax &&
-        window.MathJax.startup &&
-        window.MathJax.startup.document
-      ) {
-        // MathJax is ready, proceed immediately
-        checkMathJaxAndProceed();
-      } else {
-        // Fall back to setTimeout if MathJax isn't ready
-        setTimeout(checkMathJaxAndProceed, 200);
+        variableNodesAddedRef.current = true;
+        setTimeout(() => {
+          addLabelNodes();
+          addViewNodes();
+        }, 100);
       }
-    });
+    );
   };
 };
 
 /**
- * Hook to get a function that updates variable nodes or adds new ones (hybrid approach)
+ * Hook to get a function that updates variable nodes or adds new ones
  */
 export const useUpdateVariableNodes = ({
   nodesInitialized,
   setNodes,
   variableNodesAddedRef,
-}: UpdateVariableNodesParams) => {
+}: {
+  nodesInitialized: boolean;
+  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
+  variableNodesAddedRef: MutableRefObject<boolean>;
+}) => {
   const { getNodes, getViewport } = useReactFlow();
-
   return () => {
-    // Use requestAnimationFrame for cleaner timing
-    requestAnimationFrame(() => {
-      const processNodes = () => {
-        const currentNodes = getNodes();
-        const viewport = getViewport();
-
-        if (!nodesInitialized) return;
-
-        // Create a map of existing variable node IDs for quick lookup
-        const variableNodesArray = getVariableNodes(currentNodes);
-        const variableNodes = new Map<string, Node>();
-        variableNodesArray.forEach((node) => {
-          variableNodes.set(node.id, node);
-        });
-
-        const updatedNodes: Node[] = [];
-        const newNodes: Node[] = [];
+    withVarNodeContext(
+      getNodes,
+      getViewport,
+      nodesInitialized,
+      (currentNodes, viewport) => {
+        const varNodes = getVariableNodes(currentNodes);
+        const existingVarNodes = new Map<string, Node>();
+        varNodes.forEach((node) => existingVarNodes.set(node.id, node));
         const foundNodeIds = new Set<string>();
-
-        // Iterate through formula nodes instead of DOM elements
-        const formulaNodesArray = getFormulaNodes(currentNodes);
-        formulaNodesArray.forEach((formulaNode) => {
-          if (!formulaNode.measured) return;
-
-          // Extract id from node data - this is required
-          const id = formulaNode.data.id;
-          if (!id || typeof id !== "string") {
-            console.error(`Formula node ${formulaNode.id} missing required id`);
-            return;
-          }
-
-          // Find the corresponding DOM element for this formula node
-          const formulaElement = document.querySelector(
-            `[data-id="${formulaNode.id}"] .formula-node`
-          );
-          if (!formulaElement) return;
-
-          // Process variable elements for this formula using helper function
-          const { updatedNodes: formulaUpdated, newNodes: formulaNew } =
-            updateVariableNodesForFormula(
-              formulaElement,
-              formulaNode,
-              id,
-              viewport,
-              variableNodes,
-              foundNodeIds
-            );
-
-          updatedNodes.push(...formulaUpdated);
-          newNodes.push(...formulaNew);
-        });
-
-        // Check if there are actually any changes before updating
+        const { updatedNodes, newNodes } = processAllFormulaVarNodes(
+          currentNodes,
+          viewport,
+          existingVarNodes,
+          foundNodeIds
+        );
         const hasChanges =
           updatedNodes.length > 0 ||
           newNodes.length > 0 ||
-          variableNodesArray.some((node) => !foundNodeIds.has(node.id));
-
-        // Only update nodes if there are actual changes
+          varNodes.some((node) => !foundNodeIds.has(node.id));
         if (hasChanges) {
           setNodes((currentNodes) => {
-            // Keep non-variable nodes
-            const nonVariableNodes = currentNodes.filter(
+            const nonVarNodes = currentNodes.filter(
               (node) => node.type !== NODE_TYPES.VARIABLE
             );
-
-            // Keep variable nodes that are still found in the DOM
-            const variableNodesInCurrentNodes = getVariableNodes(currentNodes);
-            const keptVariableNodes = variableNodesInCurrentNodes.filter(
-              (node) => foundNodeIds.has(node.id)
+            const keptVarNodes = getVariableNodes(currentNodes).filter((node) =>
+              foundNodeIds.has(node.id)
             );
-
-            // Apply updates to kept variable nodes
-            const finalVariableNodes = keptVariableNodes.map((node) => {
-              const update = updatedNodes.find((u) => u.id === node.id);
-              return update || node;
-            });
-
-            // Combine all nodes
-            const finalNodeList = [
-              ...nonVariableNodes,
-              ...finalVariableNodes,
-              ...newNodes,
-            ];
-
-            return finalNodeList;
+            const finalVarNodes = keptVarNodes.map(
+              (node) => updatedNodes.find((u) => u.id === node.id) || node
+            );
+            return [...nonVarNodes, ...finalVarNodes, ...newNodes];
           });
         }
-
-        // Mark that variable nodes have been added if we have any
         if (foundNodeIds.size > 0) {
           variableNodesAddedRef.current = true;
         }
-      };
-
-      // Check if MathJax is ready, but don't wait for promises
-      if (
-        window.MathJax &&
-        window.MathJax.startup &&
-        window.MathJax.startup.document
-      ) {
-        // MathJax is ready, proceed immediately
-        processNodes();
-      } else {
-        // Fall back to setTimeout if MathJax isn't ready
-        setTimeout(processNodes, 200);
       }
-    });
+    );
   };
 };

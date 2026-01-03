@@ -26,7 +26,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
   const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
   const [userCode, setUserCode] = useState<string>("");
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [initializedEnvironment, setInitializedEnvironment] = useState<any>(null);
 
   // Initialize user code when environment changes
   useEffect(() => {
@@ -35,7 +35,8 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
       return;
     }
 
-    if (isInitialized) {
+    // Check if this environment has already been initialized
+    if (environment === initializedEnvironment) {
       return;
     }
 
@@ -59,9 +60,10 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
 
       // Automatically initialize the interpreter so stepping works immediately
       refresh(result.code, environment);
-      setIsInitialized(true);
+      // Track that this specific environment has been initialized
+      setInitializedEnvironment(environment);
     }
-  }, [environment, isInitialized]);
+  }, [environment, initializedEnvironment]);
 
   const clearUserViewLine = useCallback(() => {
     if (userViewCodeMirrorRef.current?.view) {

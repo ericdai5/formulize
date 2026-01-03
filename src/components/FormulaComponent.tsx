@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 
-import { reaction } from "mobx";
+import { reaction, toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import {
@@ -19,21 +19,30 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { SimpleCanvasControls } from "../rendering/canvas-controls";
+import ExpressionNode from "../rendering/nodes/expression-node";
 import FormulaNode from "../rendering/nodes/formula-node";
 import LabelNode from "../rendering/nodes/label-node";
 import VariableNode from "../rendering/nodes/variable-node";
+import ViewNode from "../rendering/nodes/view-node";
 import { computeEdgesForFormula } from "../rendering/util/edges";
 import {
   adjustLabelPositions as adjustLabelPositionsUtil,
-  processVariableElementsForLabels,
+  updateLabelNodes as updateLabelNodesUtil,
 } from "../rendering/util/label-node";
 import {
   NODE_TYPES,
+  checkAllNodesMeasured,
   findFormulaNodeById,
+  getFormulaElementFromContainer,
   getLabelNodes,
   getVariableNodes,
+  positionAndShowViewNodes,
 } from "../rendering/util/node-helpers";
-import { createVariableNodesFromFormula } from "../rendering/util/variable-nodes";
+import {
+  addVariableNodesForFormula,
+  updateVarNodes,
+} from "../rendering/util/variable-nodes";
+import { addViewNodes as addViewNodesUtil } from "../rendering/util/view-node";
 import { computationStore } from "../store/computation";
 import { executionStore } from "../store/execution";
 import { useFormulize } from "./useFormulize";
@@ -42,6 +51,8 @@ const nodeTypes = {
   formula: FormulaNode,
   variable: VariableNode,
   label: LabelNode,
+  view: ViewNode,
+  expression: ExpressionNode,
 };
 
 interface FormulaComponentProps {
@@ -58,6 +69,7 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
   const variableNodesAddedRef = useRef(false);
   const initialFitViewCalledRef = useRef(false);
   const manuallyPositionedLabelsRef = useRef<Set<string>>(new Set());
+  const viewNodeRepositionedRef = useRef(false);
   const { getNodes, getViewport, fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
 
@@ -113,171 +125,77 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
 
   // Function to update only label nodes when activeVariables change
   const updateLabelNodes = useCallback(() => {
+    updateLabelNodesUtil({
+      getNodes,
+      getViewport,
+      setNodes,
+      formulaId: id,
+      containerElement: containerRef.current,
+    });
+  }, [getNodes, getViewport, id, setNodes]);
+
+  // Function to add view nodes for step-through visualization
+  const addViewNodes = useCallback(() => {
+    addViewNodesUtil({
+      getNodes,
+      setNodes,
+      setEdges,
+      formulaId: id,
+    });
+  }, [getNodes, id, setNodes, setEdges]);
+
+  // Function to update variable node dimensions (e.g., after CSS class changes)
+  const updateVariableNodes = useCallback(() => {
     const currentNodes = getNodes();
     const viewport = getViewport();
-
-    // Find the formula element in this component's DOM
-    const formulaElement = containerRef.current?.querySelector(".formula-node");
-    if (!formulaElement) {
-      console.log("FormulaComponent: No formula element found");
-      return;
-    }
-
-    // Find formula node by its id
+    const formulaElement = getFormulaElementFromContainer(
+      containerRef.current,
+      currentNodes,
+      id
+    );
+    if (!formulaElement) return;
     const formulaNode = findFormulaNodeById(currentNodes, id);
-    if (!formulaNode || !formulaNode.measured) {
-      console.log("FormulaComponent: Formula node not measured yet");
-      return;
-    }
+    if (!formulaNode || !formulaNode.measured) return;
 
-    // Get existing variable nodes for this formula
-    const existingVariableNodes = currentNodes.filter(
-      (node) =>
-        node.type === NODE_TYPES.VARIABLE && node.parentId === formulaNode.id
+    // Build map of existing variable nodes
+    const existingVarNodes = new Map<string, Node>();
+    getVariableNodes(currentNodes).forEach((node) =>
+      existingVarNodes.set(node.id, node)
     );
 
-    if (existingVariableNodes.length === 0) {
-      console.log("FormulaComponent: No variable nodes to update labels for");
-      return;
-    }
+    // Use the shared helper to get updated nodes
+    const foundNodeIds = new Set<string>();
+    const { updatedNodes } = updateVarNodes(
+      formulaElement,
+      formulaNode,
+      id,
+      viewport,
+      existingVarNodes,
+      foundNodeIds
+    );
 
-    setNodes((currentNodes) => {
-      // Remove existing label nodes only
-      const nonLabelNodes = currentNodes.filter(
-        (node) => node.type !== NODE_TYPES.LABEL
+    if (updatedNodes.length > 0) {
+      setNodes((nds) =>
+        nds.map((node) => {
+          const update = updatedNodes.find((u) => u.id === node.id);
+          return update || node;
+        })
       );
-
-      // Use helper to create label nodes based on current activeVariables
-      const { labelNodes, variableNodeUpdates } =
-        processVariableElementsForLabels(
-          formulaElement,
-          formulaNode,
-          id,
-          nonLabelNodes,
-          viewport
-        );
-
-      // Apply variable node updates (labelPlacement)
-      const updatedNodes = nonLabelNodes.map((node) => {
-        if (node.type === NODE_TYPES.VARIABLE) {
-          const update = variableNodeUpdates.find((u) => u.nodeId === node.id);
-          if (update) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                labelPlacement: update.labelPlacement,
-              },
-            };
-          }
-        }
-        return node;
-      });
-
-      return [...updatedNodes, ...labelNodes];
-    });
+    }
   }, [getNodes, getViewport, id, setNodes]);
 
   // Function to add variable nodes by finding them in the rendered MathJax formula
   const addVariableNodes = useCallback(() => {
     const latex = getFormula();
     if (!latex) return;
-
-    requestAnimationFrame(() => {
-      const checkMathJaxAndProceed = () => {
-        const currentNodes = getNodes();
-        const viewport = getViewport();
-
-        if (!nodesInitialized) return;
-
-        // Find the formula element in this component's DOM
-        const formulaElement =
-          containerRef.current?.querySelector(".formula-node");
-        if (!formulaElement) {
-          console.log("FormulaComponent: No formula element found");
-          return;
-        }
-
-        // Find formula node by its id
-        const formulaNode = findFormulaNodeById(currentNodes, id);
-        if (!formulaNode || !formulaNode.measured) {
-          console.log("FormulaComponent: Formula node not measured yet");
-          return;
-        }
-
-        // Use helper to create variable nodes for this formula
-        const variableNodes = createVariableNodesFromFormula(
-          formulaElement,
-          formulaNode,
-          id,
-          viewport
-        );
-
-        // Add all nodes if we found any variables
-        if (variableNodes.length > 0) {
-          setNodes((currentNodes) => {
-            // Remove existing variable and label nodes
-            const nonVariableNodes = currentNodes.filter(
-              (node) =>
-                node.type !== NODE_TYPES.VARIABLE &&
-                node.type !== NODE_TYPES.LABEL
-            );
-
-            // Combine nodes for processing
-            const nodesWithVariables = [...nonVariableNodes, ...variableNodes];
-
-            // Use helper to create label nodes and get variable node updates
-            const { labelNodes, variableNodeUpdates } =
-              processVariableElementsForLabels(
-                formulaElement,
-                formulaNode,
-                id,
-                nodesWithVariables,
-                viewport
-              );
-
-            // Apply variable node updates (labelPlacement)
-            const updatedVariableNodes = variableNodes.map((node) => {
-              const update = variableNodeUpdates.find(
-                (u) => u.nodeId === node.id
-              );
-              if (update) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    labelPlacement: update.labelPlacement,
-                  },
-                };
-              }
-              return node;
-            });
-
-            const allNodes = [
-              ...nonVariableNodes,
-              ...updatedVariableNodes,
-              ...labelNodes,
-            ];
-
-            return allNodes;
-          });
-
-          variableNodesAddedRef.current = true;
-
-          // Note: Labels will be made visible by adjustLabelPositions after they're measured
-        }
-      };
-
-      // Check if MathJax is ready
-      if (
-        window.MathJax &&
-        window.MathJax.startup &&
-        window.MathJax.startup.document
-      ) {
-        checkMathJaxAndProceed();
-      } else {
-        setTimeout(checkMathJaxAndProceed, 200);
-      }
+    addVariableNodesForFormula({
+      getNodes,
+      getViewport,
+      setNodes,
+      nodesInitialized,
+      variableNodesAddedRef,
+      formulaId: id,
+      containerElement: containerRef.current,
     });
   }, [id, getFormula, getNodes, getViewport, nodesInitialized, setNodes]);
 
@@ -301,6 +219,11 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
       setCanvasVisible(false);
 
       // Create the main formula node
+      // Pass the environment as a plain object to ensure fontSize and other settings are applied
+      const environment = computationStore.environment
+        ? toJS(computationStore.environment)
+        : { fontSize: 1 };
+
       const formulaNode: Node = {
         id: `formula-${id}`,
         type: "formula",
@@ -308,12 +231,8 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
         data: {
           latex: latex,
           id: id,
-          environment: {
-            fontSize: computationStore.environment?.fontSize || 1,
-            semantics: {
-              mode: computationStore.engine,
-            },
-          },
+          environment: environment,
+          showDragHandle: false,
         },
       };
 
@@ -334,7 +253,6 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
   // Update variable nodes when values change
   useEffect(() => {
     if (!variableNodesAddedRef.current) return;
-
     const updateVariables = () => {
       setNodes((nds) =>
         nds.map((node) => {
@@ -361,72 +279,85 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
     return () => clearInterval(interval);
   }, [setNodes]);
 
-  // Adjust label positions after they're rendered and measured, then fitView
+  // Adjust label and view node positions after they're rendered and measured, then fitView
   useEffect(() => {
+    if (!nodesInitialized || !variableNodesAddedRef.current) return;
+    // Check if all nodes are ready for positioning
+    const { labelNodes, viewNodes, allReady } = checkAllNodesMeasured(nodes);
+    // Check if there are view nodes that need to be positioned (have low opacity)
+    const viewNodesNeedPositioning = viewNodes.some(
+      (node) => node.style?.opacity === 0.01
+    );
+    // Check if there are label nodes that need to be positioned (have low opacity)
+    const labelNodesNeedPositioning = labelNodes.some(
+      (node) => node.style?.opacity === 0.01
+    );
+
+    // Skip if initial fitView already done AND no nodes need positioning
     if (
-      !nodesInitialized ||
-      !variableNodesAddedRef.current ||
-      initialFitViewCalledRef.current
-    )
+      initialFitViewCalledRef.current &&
+      !viewNodesNeedPositioning &&
+      !labelNodesNeedPositioning
+    ) {
       return;
-
-    // Check if we have label nodes that are measured
-    const labelNodes = getLabelNodes(nodes);
-
-    // If no labels exist, just fitView once after variable nodes are added
-    if (labelNodes.length === 0) {
-      const timeoutId = setTimeout(() => {
-        fitView({ padding: 0.2 });
-        initialFitViewCalledRef.current = true;
-        // Make canvas visible after fitView
-        setTimeout(() => setCanvasVisible(true), 50);
-      }, 100);
-      return () => clearTimeout(timeoutId);
     }
 
-    const measuredLabelNodes = labelNodes.filter((node) => node.measured);
-
-    // Also check that all corresponding variable nodes are measured
-    // Use node properties instead of ID parsing to handle hyphens in cssId
-    const variableNodes = getVariableNodes(nodes);
-    const allVariableNodesMeasured = labelNodes.every((labelNode) => {
-      const cssId = labelNode.data.varId;
-      const labelId = labelNode.data.id;
-
-      if (!cssId || !labelId || typeof labelId !== "string") return false;
-
-      const variableNode = variableNodes.find((vNode) => {
-        return (
-          vNode.data.varId === cssId &&
-          vNode.parentId &&
-          typeof vNode.parentId === "string" &&
-          vNode.parentId.includes(labelId)
-        );
-      });
-
-      return variableNode?.measured !== undefined;
-    });
-
-    // Only adjust if we have labels, they're all measured, AND their variable nodes are measured
-    if (
-      measuredLabelNodes.length === labelNodes.length &&
-      allVariableNodesMeasured
-    ) {
-      // Small delay to ensure all rendering is complete
-      const timeoutId = setTimeout(() => {
-        adjustLabelPositions();
-        // Fit view after labels are positioned and visible to avoid flashing
-        setTimeout(() => {
-          fitView({ padding: 0.2, duration: 300 });
+    // If no labels and no view nodes exist, just fitView once after variable nodes are added
+    if (labelNodes.length === 0 && viewNodes.length === 0) {
+      if (!initialFitViewCalledRef.current) {
+        const timeoutId = setTimeout(() => {
+          fitView({ padding: 0.2 });
           initialFitViewCalledRef.current = true;
           // Make canvas visible after fitView
           setTimeout(() => setCanvasVisible(true), 50);
         }, 100);
+        return () => clearTimeout(timeoutId);
+      }
+      return;
+    }
+
+    if (allReady) {
+      // Small delay to ensure all rendering is complete
+      const timeoutId = setTimeout(() => {
+        // Adjust label positions first
+        if (labelNodes.length > 0) {
+          adjustLabelPositions();
+        }
+
+        // Position view nodes to avoid label collisions, then make them visible
+        if (
+          viewNodes.length > 0 &&
+          executionStore.currentView &&
+          !viewNodeRepositionedRef.current
+        ) {
+          viewNodeRepositionedRef.current = true;
+
+          // Find the formula node to calculate positions relative to it
+          const formulaNode = nodes.find(
+            (n) => n.type === NODE_TYPES.FORMULA && n.data.id === id
+          );
+
+          if (formulaNode) {
+            setNodes((currentNodes) =>
+              positionAndShowViewNodes(currentNodes, formulaNode)
+            );
+          }
+        }
+
+        // Fit view after all nodes are positioned and visible to avoid flashing
+        if (!initialFitViewCalledRef.current) {
+          setTimeout(() => {
+            fitView({ padding: 0.2, duration: 300 });
+            initialFitViewCalledRef.current = true;
+            // Make canvas visible after fitView
+            setTimeout(() => setCanvasVisible(true), 50);
+          }, 100);
+        }
       }, 50);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [nodes, nodesInitialized, adjustLabelPositions, fitView]);
+  }, [nodes, nodesInitialized, adjustLabelPositions, setNodes, id, fitView]);
 
   // Update labels when step mode or active variables change
   useEffect(() => {
@@ -436,6 +367,7 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
       () => ({
         isStepMode: computationStore.isStepMode(),
         activeVariables: Array.from(executionStore.activeVariables),
+        currentView: executionStore.currentView,
       }),
       () => {
         if (nodesInitialized && variableNodesAddedRef.current) {
@@ -449,24 +381,24 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
             // Clear manually positioned labels when regenerating
             manuallyPositionedLabelsRef.current.clear();
 
-            // Clear edges to prevent stale edge references
-            setEdges([]);
+            // Clear label edges but preserve view edges
+            setEdges((currentEdges) =>
+              currentEdges.filter((edge) => edge.id.startsWith("edge-view-"))
+            );
 
-            // Update labels with current activeVariables
+            // Update variable node dimensions first (CSS classes may have changed)
+            updateVariableNodes();
+
+            // Update labels and view nodes with current activeVariables
+            // Both are created with opacity 0.01 for measurement
             updateLabelNodes();
+            addViewNodes();
 
-            // Re-adjust positions and fitView after a delay
-            setTimeout(() => {
-              adjustLabelPositions();
-              // Fit view to include all nodes including new labels with smooth animation
-              setTimeout(() => {
-                fitView({
-                  padding: 0.2,
-                  includeHiddenNodes: false,
-                  duration: 300, // Smooth 300ms animation
-                });
-              }, 50);
-            }, 100);
+            // Reset the flag so nodes will be positioned by the label adjustment effect
+            viewNodeRepositionedRef.current = false;
+
+            // The label adjustment effect will position both labels AND view nodes
+            // after they're measured, then make them visible
           }, 50); // Shorter debounce for more responsive updates
         }
       }
@@ -480,7 +412,9 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
     };
   }, [
     nodesInitialized,
+    updateVariableNodes,
     updateLabelNodes,
+    addViewNodes,
     setEdges,
     adjustLabelPositions,
     fitView,
@@ -493,6 +427,11 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
       const labelNodes = getLabelNodes(nodes);
       const visibleLabelNodes = labelNodes.filter(
         (node) => !node.style || node.style.opacity !== 0
+      );
+
+      // Preserve view edges (managed separately by addViewNodes)
+      const existingViewEdges = edges.filter((edge) =>
+        edge.id.startsWith("edge-view-")
       );
 
       // Only create edges if all labels are visible or there are no labels
@@ -508,7 +447,7 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
         );
 
         // Preserve object identity for unchanged edges to avoid re-renders
-        const nextEdges = computedEdges
+        const nextLabelEdges = computedEdges
           .map((edge) => {
             const prev = edges.find((e) => e.id === edge.id);
             if (
@@ -525,6 +464,9 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
           })
           .sort((a, b) => a.id.localeCompare(b.id));
 
+        // Combine label edges with preserved view edges
+        const nextEdges = [...nextLabelEdges, ...existingViewEdges];
+
         // Shallow reference equality check to skip unnecessary setEdges
         const sameByRef =
           nextEdges.length === edges.length &&
@@ -533,11 +475,19 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
           setEdges(nextEdges);
         }
       } else {
-        // Keep edges empty while labels are being positioned
-        setEdges([]);
+        // Keep only view edges while labels are being positioned
+        if (existingViewEdges.length !== edges.length) {
+          setEdges(existingViewEdges);
+        }
       }
     } else {
-      setEdges([]);
+      // Preserve view edges even when no nodes
+      const existingViewEdges = edges.filter((edge) =>
+        edge.id.startsWith("edge-view-")
+      );
+      if (existingViewEdges.length !== edges.length) {
+        setEdges(existingViewEdges);
+      }
     }
   }, [nodes, edges, id, shouldLabelBeVisible, setEdges]);
 
@@ -552,6 +502,13 @@ const FormulaCanvasInner = observer(({ id }: { id: string }) => {
         fitView
         fitViewOptions={{ padding: 0.2 }}
         autoPanOnNodeDrag={false}
+        panOnDrag={false}
+        panOnScroll={false}
+        zoomOnScroll={false}
+        zoomOnPinch={false}
+        zoomOnDoubleClick={false}
+        minZoom={1}
+        maxZoom={1}
         proOptions={{ hideAttribution: true }}
         style={{
           opacity: canvasVisible ? 1 : 0,
