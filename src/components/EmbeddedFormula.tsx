@@ -23,6 +23,8 @@ interface EmbeddedFormulaProps {
   scale?: number;
   /** Whether to highlight when formula is hovered via hover system */
   highlightOnHover?: boolean;
+  /** Whether clicking can pin the formula open (default: true) */
+  allowPinning?: boolean;
   /** Callback when this formula is hovered */
   onHover?: (isHovered: boolean) => void;
   /** Optional class name */
@@ -67,6 +69,7 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
     abbreviation,
     scale = 0.7,
     highlightOnHover = true,
+    allowPinning = true,
     onHover,
     className = "",
     style = {}
@@ -74,6 +77,8 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
     const containerRef = useRef<HTMLDivElement>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isPinned, setIsPinned] = useState(false);
+    const isDraggingRef = useRef(false);
 
     // Get formula latex by ID or use direct latex
     const getFullLatex = useCallback((): string | null => {
@@ -84,15 +89,15 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
       return formula?.latex || null;
     }, [id, directLatex]);
 
-    // Determine which latex to display based on abbreviation and hover state
+    // Determine which latex to display based on abbreviation, hover state, and pinned state
     const getDisplayLatex = useCallback((): string | null => {
-      // If we have an abbreviation and we're not expanded, show abbreviated
-      if (abbreviation && !isExpanded) {
+      // If we have an abbreviation and we're not expanded or pinned, show abbreviated
+      if (abbreviation && !isExpanded && !isPinned) {
         return abbreviation;
       }
       // Otherwise show the full formula
       return getFullLatex();
-    }, [abbreviation, isExpanded, getFullLatex]);
+    }, [abbreviation, isExpanded, isPinned, getFullLatex]);
 
     // Attach hover and drag listeners to elements with variable IDs
     const attachVariableInteractionListeners = useCallback((container: HTMLElement) => {
@@ -144,6 +149,7 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
             const handleMouseUp = (e: MouseEvent) => {
               if (isDragging) {
                 isDragging = false;
+                isDraggingRef.current = false;
                 e.preventDefault();
                 e.stopPropagation();
                 document.removeEventListener("mousemove", handleMouseMove, true);
@@ -153,6 +159,7 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
 
             const handleMouseDown = (e: MouseEvent) => {
               isDragging = true;
+              isDraggingRef.current = true;
               startY = e.clientY;
               // Get current value at drag start
               const currentVariable = computationStore.variables.get(varId);
@@ -212,12 +219,12 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
       }
     }, [id, getDisplayLatex, mathJaxLoaded, scale, attachVariableInteractionListeners]);
 
-    // Initial render and re-render when expansion state changes
+    // Initial render and re-render when expansion or pinned state changes
     useEffect(() => {
       if (mathJaxLoaded) {
         renderFormula();
       }
-    }, [mathJaxLoaded, renderFormula, isExpanded]);
+    }, [mathJaxLoaded, renderFormula, isExpanded, isPinned]);
 
     // Re-render when variables change
     useEffect(() => {
@@ -289,16 +296,30 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
 
     const handleMouseLeave = useCallback(() => {
       computationStore.setFormulaHover(id, false);
-      if (abbreviation) {
+      // Only collapse if not pinned and not currently dragging
+      if (abbreviation && !isPinned && !isDraggingRef.current) {
         setIsExpanded(false);
       }
       onHover?.(false);
-    }, [id, abbreviation, onHover]);
+    }, [id, abbreviation, isPinned, onHover]);
+
+    // Handle click to toggle pinned state (only if allowPinning is true)
+    const handleClick = useCallback((e: React.MouseEvent) => {
+      if (!allowPinning) return;
+      // Don't toggle if clicking on a variable (they have their own interactions)
+      const target = e.target as HTMLElement;
+      if (target.closest('.var-input, .var-computed, .var-base')) {
+        return;
+      }
+      if (abbreviation) {
+        setIsPinned(prev => !prev);
+      }
+    }, [abbreviation, allowPinning]);
 
     return (
       <div
         ref={containerRef}
-        className={`embedded-formula rendered-latex ${className}`}
+        className={`embedded-formula rendered-latex ${className} ${isPinned ? 'formula-pinned' : ''}`}
         style={{
           display: "inline-block",
           padding: "2px 4px",
@@ -309,6 +330,7 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
       />
     );
   }
