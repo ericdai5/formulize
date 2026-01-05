@@ -26,17 +26,19 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
   const context = useFormulize();
   const computationStore = context?.computationStore;
   const executionStore = context?.executionStore;
-  // Guard: executionStore and computationStore must be provided
-  if (!executionStore || !computationStore) {
-    return null;
-  }
-
-  const ctx = executionStore;
   const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
   const [userCode, setUserCode] = useState<string>("");
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
   const [initializedEnvironment, setInitializedEnvironment] =
     useState<any>(null);
+
+  // Guard: executionStore and computationStore must be provided
+  if (!executionStore || !computationStore) {
+    return null;
+  }
+
+  // Use executionStore if available, otherwise create a fallback object for hooks
+  const ctx = executionStore;
 
   // Initialize user code when environment changes
   useEffect(() => {

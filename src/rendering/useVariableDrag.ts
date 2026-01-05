@@ -7,7 +7,7 @@ interface UseVariableDragProps {
   varId: string;
   role: "input" | "output";
   hasDropdownOptions?: boolean;
-  computationStore: ComputationStore;
+  computationStore?: ComputationStore | null;
 }
 
 export const useVariableDrag = ({
@@ -19,6 +19,8 @@ export const useVariableDrag = ({
   const nodeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = nodeRef.current;
+    // Early return if computationStore is not available
+    if (!computationStore) return;
     if (!element || role !== "input" || hasDropdownOptions) return;
     let isDragging = false;
     let startY = 0;

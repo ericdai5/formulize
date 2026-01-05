@@ -152,7 +152,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     varId,
     role: variable?.role === "input" ? "input" : "output",
     hasDropdownOptions: !!(Array.isArray(variable?.value) || variable?.options),
-    computationStore: computationStore!,
+    computationStore,
   });
 
   // All conditional returns must happen after all hooks are called

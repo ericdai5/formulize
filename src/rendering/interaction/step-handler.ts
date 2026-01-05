@@ -13,8 +13,8 @@ import { VAR_SELECTORS } from "../css-classes";
  * @param variables - All variables extracted from interpreter state (source of truth)
  * @param linkageMap - Map of local variable names to variable IDs (can be string or string[] for multi-linkages)
  * @param currentLineCode - The current line of code being executed
- * @param computationStore - Optional scoped computation store (defaults to global)
- * @param executionStore - Optional scoped execution store (defaults to global)
+ * @param computationStore - The computation store for this formulize instance
+ * @param executionStore - The execution store for this formulize instance
  * @returns Set of variable IDs that should be active/highlighted (only those on current line)
  */
 export const updateAllVariables = (

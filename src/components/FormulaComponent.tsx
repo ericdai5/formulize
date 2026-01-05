@@ -100,14 +100,17 @@ const FormulaCanvasInner = observer(
     }, [id, formulas]);
 
     // Check if a label node should be visible based on step mode
-    const shouldLabelBeVisible = useCallback((varId: string): boolean => {
-      // If not in step mode, always show labels
-      if (!computationStore.isStepMode()) {
-        return true;
-      }
-      // In step mode, only show labels for active variables
-      return executionStore.activeVariables.has(varId);
-    }, []);
+    const shouldLabelBeVisible = useCallback(
+      (varId: string): boolean => {
+        // If not in step mode, always show labels
+        if (!computationStore.isStepMode()) {
+          return true;
+        }
+        // In step mode, only show labels for active variables
+        return executionStore.activeVariables.has(varId);
+      },
+      [computationStore, executionStore]
+    );
 
     // Function to adjust label positions after they're rendered and measured
     const adjustLabelPositions = useCallback(() => {
@@ -202,7 +205,7 @@ const FormulaCanvasInner = observer(
           })
         );
       }
-    }, [getNodes, getViewport, id, setNodes]);
+    }, [getNodes, getViewport, id, setNodes, computationStore]);
 
     // Function to add variable nodes by finding them in the rendered MathJax formula
     const addVariableNodes = useCallback(() => {
@@ -314,7 +317,7 @@ const FormulaCanvasInner = observer(
       // Listen for variable changes
       const interval = setInterval(updateVariables, 100);
       return () => clearInterval(interval);
-    }, [setNodes]);
+    }, [setNodes, computationStore]);
 
     // Adjust label and view node positions after they're rendered and measured, then fitView
     useEffect(() => {
@@ -394,7 +397,15 @@ const FormulaCanvasInner = observer(
 
         return () => clearTimeout(timeoutId);
       }
-    }, [nodes, nodesInitialized, adjustLabelPositions, setNodes, id, fitView]);
+    }, [
+      nodes,
+      nodesInitialized,
+      adjustLabelPositions,
+      setNodes,
+      id,
+      fitView,
+      executionStore.currentView,
+    ]);
 
     // Update labels when step mode or active variables change
     useEffect(() => {
