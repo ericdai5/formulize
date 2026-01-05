@@ -314,7 +314,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         >
           {displayComponent}
         </div>
-        {name && (
+        {name && labelDisplay !== "value" && (
           <div className="text-xs text-slate-500 text-center">{name}</div>
         )}
       </div>
