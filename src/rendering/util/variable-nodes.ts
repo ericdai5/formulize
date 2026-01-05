@@ -2,7 +2,8 @@ import type { MutableRefObject } from "react";
 
 import { Node, useReactFlow } from "@xyflow/react";
 
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
+import { ExecutionStore } from "../../store/execution";
 import { VAR_SELECTORS } from "../css-classes";
 import {
   processVariableElementsForLabels,
@@ -66,6 +67,7 @@ export function getVariablePositionAndDimensions(
  * @param position - Position relative to parent formula node
  * @param dimensions - Width and height of the variable element
  * @param parentId - The parent formula node ID
+ * @param computationStore - The scoped computation store (optional, defaults to global)
  * @returns A React Flow node object for the variable
  */
 export function createVariableNode(
@@ -87,7 +89,6 @@ export function createVariableNode(
       width: dimensions.width,
       height: dimensions.height,
       labelPlacement: "below",
-      showBorders: computationStore.showVariableBorders,
     },
     draggable: false,
     selectable: true,
@@ -110,7 +111,8 @@ export const updateVarNodes = (
   id: string,
   viewport: { zoom: number },
   variableNodes: Map<string, Node>,
-  foundNodeIds: Set<string>
+  foundNodeIds: Set<string>,
+  computationStore: ComputationStore
 ): { updatedNodes: Node[]; newNodes: Node[] } => {
   const updatedNodes: Node[] = [];
   const newNodes: Node[] = [];
@@ -163,7 +165,8 @@ export const createVarNodes = (
   formulaElement: Element,
   formulaNode: Node,
   id: string,
-  viewport: { zoom: number }
+  viewport: { zoom: number },
+  computationStore: ComputationStore
 ): Node[] => {
   const { newNodes } = updateVarNodes(
     formulaElement,
@@ -171,7 +174,8 @@ export const createVarNodes = (
     id,
     viewport,
     new Map(),
-    new Set()
+    new Set(),
+    computationStore
   );
   return newNodes;
 };
@@ -180,6 +184,7 @@ export const createVarNodes = (
  * Process all formula nodes and create/update variable nodes
  * @param currentNodes - All current React Flow nodes
  * @param viewport - The React Flow viewport
+ * @param computationStore - Scoped computation store
  * @param existingVarNodes - Optional map of existing variable nodes (for update mode)
  * @param foundNodeIds - Optional set to track found node IDs (for update mode)
  * @returns Combined results from all formulas
@@ -187,6 +192,7 @@ export const createVarNodes = (
 export const processAllFormulaVarNodes = (
   currentNodes: Node[],
   viewport: { zoom: number },
+  computationStore: ComputationStore,
   existingVarNodes?: Map<string, Node>,
   foundNodeIds?: Set<string>
 ): { updatedNodes: Node[]; newNodes: Node[] } => {
@@ -201,7 +207,8 @@ export const processAllFormulaVarNodes = (
       id,
       viewport,
       varMap,
-      foundIds
+      foundIds,
+      computationStore
     );
     updatedNodes.push(...updated);
     newNodes.push(...created);
@@ -241,6 +248,8 @@ export function addVariableNodesForFormula({
   variableNodesAddedRef,
   formulaId,
   containerElement,
+  computationStore,
+  executionStore,
 }: {
   getNodes: () => Node[];
   getViewport: () => { zoom: number; x: number; y: number };
@@ -249,6 +258,8 @@ export function addVariableNodesForFormula({
   variableNodesAddedRef: MutableRefObject<boolean>;
   formulaId: string;
   containerElement?: Element | null;
+  computationStore: ComputationStore;
+  executionStore: ExecutionStore;
 }): void {
   withVarNodeContext(
     getNodes,
@@ -260,16 +271,23 @@ export function addVariableNodesForFormula({
         currentNodes,
         formulaId
       );
-      if (!formulaElement) return;
+      if (!formulaElement) {
+        return;
+      }
       const formulaNode = findFormulaNodeById(currentNodes, formulaId);
-      if (!formulaNode || !formulaNode.measured) return;
+      if (!formulaNode || !formulaNode.measured) {
+        return;
+      }
       const varNodes = createVarNodes(
         formulaElement,
         formulaNode,
         formulaId,
-        viewport
+        viewport,
+        computationStore
       );
-      if (varNodes.length === 0) return;
+      if (varNodes.length === 0) {
+        return;
+      }
       setNodes((currentNodes) => {
         const baseNodes = currentNodes.filter(
           (node) =>
@@ -282,7 +300,9 @@ export function addVariableNodesForFormula({
             formulaNode,
             formulaId,
             nodesWithVariables,
-            viewport
+            viewport,
+            computationStore,
+            executionStore
           );
         const updatedVarNodes = updateLabelPlacement(
           varNodes,
@@ -304,12 +324,14 @@ export const useAddVariableNodes = ({
   addLabelNodes,
   addViewNodes,
   variableNodesAddedRef,
+  computationStore,
 }: {
   nodesInitialized: boolean;
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   variableNodesAddedRef: MutableRefObject<boolean>;
   addLabelNodes: () => void;
   addViewNodes: () => void;
+  computationStore: ComputationStore;
 }) => {
   const { getNodes, getViewport } = useReactFlow();
   return () => {
@@ -320,7 +342,8 @@ export const useAddVariableNodes = ({
       (currentNodes, viewport) => {
         const { newNodes: varNodes } = processAllFormulaVarNodes(
           currentNodes,
-          viewport
+          viewport,
+          computationStore
         );
         if (varNodes.length === 0) return;
         setNodes((currentNodes) => {
@@ -346,10 +369,12 @@ export const useUpdateVariableNodes = ({
   nodesInitialized,
   setNodes,
   variableNodesAddedRef,
+  computationStore,
 }: {
   nodesInitialized: boolean;
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   variableNodesAddedRef: MutableRefObject<boolean>;
+  computationStore: ComputationStore;
 }) => {
   const { getNodes, getViewport } = useReactFlow();
   return () => {
@@ -365,6 +390,7 @@ export const useUpdateVariableNodes = ({
         const { updatedNodes, newNodes } = processAllFormulaVarNodes(
           currentNodes,
           viewport,
+          computationStore,
           existingVarNodes,
           foundNodeIds
         );

@@ -1,4 +1,4 @@
-import { computationStore } from "../store/computation";
+import { ComputationStore } from "../store/computation";
 
 /**
  * Get or create the shared style element for custom variable styles
@@ -23,7 +23,12 @@ const getOrCreateStyleElement = (): CSSStyleSheet | null => {
  * Inject default CSS for a specific variable ID
  * Supports {value} placeholder that gets replaced with the variable's computed value
  */
-export const injectDefaultCSS = (varId: string, defaultCSS: string, value?: number): void => {
+export const injectDefaultCSS = (
+  varId: string,
+  defaultCSS: string,
+  computationStore: ComputationStore,
+  value?: number
+): void => {
   const sheet = getOrCreateStyleElement();
   if (!sheet) return;
 
@@ -63,7 +68,12 @@ export const injectDefaultCSS = (varId: string, defaultCSS: string, value?: numb
  * Inject hover CSS for a specific variable ID
  * Supports {value} placeholder that gets replaced with the variable's computed value
  */
-export const injectHoverCSS = (varId: string, hoverCSS: string, value?: number): void => {
+export const injectHoverCSS = (
+  varId: string,
+  hoverCSS: string,
+  computationStore: ComputationStore,
+  value?: number
+): void => {
   const sheet = getOrCreateStyleElement();
   if (!sheet) return;
 

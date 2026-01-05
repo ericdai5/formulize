@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 
+import { ComputationStore } from "../../store/computation";
 import type { DataPoint } from "./Plot2D";
 import { formatVariableValue, getVariableLabel } from "./utils";
 
@@ -11,13 +12,14 @@ export function updateCurrentPointLabel(
   currentPoint: DataPoint,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
-  xAxis?: string,
-  yAxis?: string
+  xAxis: string | undefined,
+  yAxis: string | undefined,
+  computationStore: ComputationStore
 ): void {
   if (!xAxis || !yAxis) return;
 
   // Update existing current point label
-  const labelText = `${getVariableLabel(xAxis)}: ${formatVariableValue(Number(currentPoint.x), xAxis)}, ${getVariableLabel(yAxis)}: ${formatVariableValue(Number(currentPoint.y), yAxis)}`;
+  const labelText = `${getVariableLabel(xAxis, computationStore)}: ${formatVariableValue(Number(currentPoint.x), xAxis, computationStore)}, ${getVariableLabel(yAxis, computationStore)}: ${formatVariableValue(Number(currentPoint.y), yAxis, computationStore)}`;
   const labelX = xScale(currentPoint.x) + 10;
   const labelY = yScale(currentPoint.y) - 10;
 

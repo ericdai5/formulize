@@ -6,8 +6,8 @@ import {
   clearAllCues,
   updateAllVariables,
 } from "../../rendering/interaction/step-handler";
-import { computationStore } from "../../store/computation";
-import { executionStore as ctx } from "../../store/execution";
+import { ComputationStore } from "../../store/computation";
+import { ExecutionStore } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
 import { IStep, IView } from "../../types/step";
@@ -66,7 +66,10 @@ export class Controller {
   // Execution Lifecycle Management
   // ============================================================================
 
-  private static initializeExecution(): void {
+  private static initializeExecution(
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     // Extract just the values from variables for the interpreter
     const variables = computationStore.getVariables();
     const values: Record<string, number | (string | number)[]> = {};
@@ -81,8 +84,11 @@ export class Controller {
       values
     );
     if (!interpreter) return;
-    // Auto-detect variable linkages from the code AST
-    const { variableLinkage: detectedLinkage } = extractLinkages(ctx.code);
+    // Auto-detect variable linkages from the code AST (use scoped store)
+    const { variableLinkage: detectedLinkage } = extractLinkages(
+      ctx.code,
+      computationStore
+    );
     // Merge with user-specified linkages (user-specified takes precedence)
     const specifiedLinkage = ctx.environment?.semantics?.variableLinkage;
     const variableLinkage = mergeLinkages(detectedLinkage, specifiedLinkage);
@@ -91,7 +97,7 @@ export class Controller {
     // Clear active variables at the start of execution
     ctx.setActiveVariables(new Set());
     // Execute all steps and build complete history
-    this.executeAllSteps(interpreter);
+    this.executeAllSteps(interpreter, ctx);
   }
 
   /**
@@ -99,7 +105,12 @@ export class Controller {
    * @param state - The current step state
    * @param stepIndex - The current step index
    */
-  private static updateVariables(state: IStep, stepIndex: number): void {
+  private static updateVariables(
+    state: IStep,
+    stepIndex: number,
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     // Always clear all visual cues first to ensure clean state
     requestAnimationFrame(() => {
       clearAllCues();
@@ -118,7 +129,9 @@ export class Controller {
       const updatedVars = updateAllVariables(
         state.variables,
         ctx.linkageMap,
-        currLine
+        currLine,
+        computationStore,
+        ctx
       );
       // Always store the active variables in the execution store (even if empty set)
       // This ensures labels only show for variables referenced on this line
@@ -137,14 +150,22 @@ export class Controller {
   /**
    * Helper function to navigate to a step: set index, highlight, and update variables.
    */
-  private static step(index: number): void {
+  private static step(
+    index: number,
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     ctx.setHistoryIndex(index);
     const state = ctx.history[index];
     Step.highlight(ctx.codeMirrorRef, state.highlight);
-    this.updateVariables(state, index);
+    this.updateVariables(state, index, ctx, computationStore);
     // Enrich active variables with expression scope variables if this step has a view
     if (state.view?.expression) {
-      this.activateVarsFromExpression(state.view.expression);
+      this.activateVarsFromExpression(
+        state.view.expression,
+        ctx,
+        computationStore
+      );
     }
   }
 
@@ -153,9 +174,13 @@ export class Controller {
    * Filters out nested variables (memberOf parents and index variables) to only
    * highlight complete member variables, not their component parts.
    */
-  private static activateVarsFromExpression(expression: string): void {
+  private static activateVarsFromExpression(
+    expression: string,
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     const unescaped = unescapeLatex(expression);
-    const varIds = getVariablesFromLatexString(unescaped);
+    const varIds = getVariablesFromLatexString(unescaped, computationStore);
     if (varIds.length === 0) return;
 
     // Filter out nested variables:
@@ -205,7 +230,10 @@ export class Controller {
    * This simplifies navigation logic by pre-computing all states.
    * Also captures variable snapshots at block points for proper state restoration.
    */
-  private static executeAllSteps(interpreter: JSInterpreter): void {
+  private static executeAllSteps(
+    interpreter: JSInterpreter,
+    ctx: ExecutionStore
+  ): void {
     const history = [];
     const viewPoints: number[] = []; // Track which step numbers are at view points
     const blockPoints: number[] = []; // Track which step numbers are at block points
@@ -294,13 +322,18 @@ export class Controller {
     });
   }
 
-  static refresh(code: string, environment: IEnvironment | null): void {
+  static refresh(
+    code: string,
+    environment: IEnvironment | null,
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     ctx.reset();
     ctx.setCode(code);
     ctx.setEnvironment(environment);
-    this.clearProcessedIndices();
-    this.clearAutoPlay();
-    this.resetCodeMirror();
+    this.clearProcessedIndices(computationStore);
+    this.clearAutoPlay(ctx);
+    this.resetCodeMirror(ctx);
 
     // Reset variables in computation store to their original values from environment
     if (environment?.variables) {
@@ -322,47 +355,63 @@ export class Controller {
       ctx.setError(ERROR_MESSAGES.NO_CODE);
       return;
     }
-    this.initializeExecution();
+    this.initializeExecution(ctx, computationStore);
   }
 
   // ============================================================================
   // Singular Stepping
   // ============================================================================
 
-  static stepForward(): void {
+  static stepForward(
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     if (ctx.historyIndex >= ctx.history.length - 1) return;
     const nextIndex = ctx.historyIndex + 1;
-    this.step(nextIndex);
+    this.step(nextIndex, ctx, computationStore);
   }
 
-  static stepBackward(): void {
+  static stepBackward(
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     if (ctx.historyIndex <= 0) return;
     const prevIndex = ctx.historyIndex - 1;
-    this.step(prevIndex);
+    this.step(prevIndex, ctx, computationStore);
   }
 
-  static stepToIndex(index: number): void {
+  static stepToIndex(
+    index: number,
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     if (index < 0 || index >= ctx.history.length) return;
-    this.step(index);
+    this.step(index, ctx, computationStore);
   }
 
   // ============================================================================
   // Step to View
   // ============================================================================
 
-  static stepToView(): void {
+  static stepToView(
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     if (ctx.historyIndex >= ctx.history.length - 1) return;
     const nextView = ctx.getNextView(ctx.historyIndex);
     if (nextView !== null) {
-      this.step(nextView);
+      this.step(nextView, ctx, computationStore);
     }
   }
 
-  static stepToPrevView(): void {
+  static stepToPrevView(
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     if (ctx.historyIndex <= 0) return;
     const prevView = ctx.getPrevView(ctx.historyIndex);
     if (prevView !== null) {
-      this.step(prevView);
+      this.step(prevView, ctx, computationStore);
     }
   }
 
@@ -370,34 +419,42 @@ export class Controller {
   // Step to Block
   // ============================================================================
 
-  static stepToNextBlock(): void {
+  static stepToNextBlock(
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     if (ctx.historyIndex >= ctx.history.length - 1) return;
     const nextBlock = ctx.getNextBlock(ctx.historyIndex);
     if (nextBlock !== null) {
-      this.step(nextBlock);
+      this.step(nextBlock, ctx, computationStore);
     }
   }
 
-  static stepToPrevBlock(): void {
+  static stepToPrevBlock(
+    ctx: ExecutionStore,
+    computationStore: ComputationStore
+  ): void {
     if (ctx.historyIndex <= 0) return;
     const prevBlock = ctx.getPrevBlock(ctx.historyIndex);
     if (prevBlock !== null) {
-      this.step(prevBlock);
+      this.step(prevBlock, ctx, computationStore);
     }
   }
 
-  private static clearProcessedIndices(): void {
+  private static clearProcessedIndices(
+    computationStore: ComputationStore
+  ): void {
     computationStore.clearProcessedIndices();
   }
 
-  private static clearAutoPlay(): void {
+  private static clearAutoPlay(ctx: ExecutionStore): void {
     if (ctx.autoPlayIntervalRef.current) {
       clearInterval(ctx.autoPlayIntervalRef.current);
       ctx.autoPlayIntervalRef.current = null;
     }
   }
 
-  private static resetCodeMirror(): void {
+  private static resetCodeMirror(ctx: ExecutionStore): void {
     if (ctx.codeMirrorRef.current) {
       const codeMirrorInstance = ctx.codeMirrorRef.current as {
         view?: EditorView;

@@ -1,12 +1,18 @@
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../store/computation";
+import { useFormulize } from "./useFormulize";
 
 interface StorePaneProps {
   className?: string;
 }
 
 const StorePane = observer(({ className = "" }: StorePaneProps) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+
+  if (!computationStore) {
+    return <p className="text-gray-500 italic">Loading...</p>;
+  }
   const getVariableData = () => {
     const formulas = computationStore.displayedFormulas;
     const symbolicFunctions = computationStore.symbolicFunctions;

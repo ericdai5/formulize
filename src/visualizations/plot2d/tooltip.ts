@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 
+import { ComputationStore } from "../../store/computation";
 import { formatVariableValue, getVariableLabel } from "./utils";
 
 /**
@@ -29,13 +30,14 @@ export function updateTooltip(
   pageX: number,
   pageY: number,
   xAxis: string,
-  yAxis: string
+  yAxis: string,
+  computationStore: ComputationStore
 ): void {
   tooltip
     .style("left", `${pageX + 10}px`)
     .style("top", `${pageY - 30}px`)
     .html(
-      `${getVariableLabel(xAxis)}: ${formatVariableValue(Number(x), xAxis)}<br>${getVariableLabel(yAxis)}: ${formatVariableValue(Number(y), yAxis)}`
+      `${getVariableLabel(xAxis, computationStore)}: ${formatVariableValue(Number(x), xAxis, computationStore)}<br>${getVariableLabel(yAxis, computationStore)}: ${formatVariableValue(Number(y), yAxis, computationStore)}`
     );
 }
 

@@ -1,3 +1,4 @@
+import { ComputationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";
 
 export interface PlotDimensions {
@@ -26,8 +27,11 @@ export function calculatePlotDimensions(
 /**
  * Gets variable precision for formatting
  */
-export function getVariablePrecision(variableName: string): number {
-  const variable = getVariable(variableName);
+export function getVariablePrecision(
+  variableName: string,
+  computationStore: ComputationStore
+): number {
+  const variable = getVariable(variableName, computationStore);
   return variable?.precision ?? 2;
 }
 
@@ -36,17 +40,21 @@ export function getVariablePrecision(variableName: string): number {
  */
 export function formatVariableValue(
   value: number,
-  variableName: string
+  variableName: string,
+  computationStore: ComputationStore
 ): string {
-  const precision = getVariablePrecision(variableName);
+  const precision = getVariablePrecision(variableName, computationStore);
   return value.toFixed(precision);
 }
 
 /**
  * Gets variable label from computation store
  */
-export function getVariableLabel(variableName: string): string {
-  const variable = getVariable(variableName);
+export function getVariableLabel(
+  variableName: string,
+  computationStore: ComputationStore
+): string {
+  const variable = getVariable(variableName, computationStore);
   return variable?.name || variableName;
 }
 

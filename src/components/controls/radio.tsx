@@ -1,14 +1,21 @@
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
 import { IRadioControl } from "../../types/control";
 import Latex from "../latex";
+import { useFormulize } from "../useFormulize";
 
 interface RadioControlProps {
   control: IRadioControl;
 }
 
 export const RadioControl = observer<RadioControlProps>(({ control }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+
+  // Guard: computationStore must be available
+  if (!computationStore) {
+    return <div className="text-red-500">No computation store available</div>;
+  }
   const { variable, orientation = "vertical" } = control;
 
   const variableData = computationStore.variables.get(variable || "");

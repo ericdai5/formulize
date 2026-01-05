@@ -2,8 +2,8 @@ import { Edge, Node } from "@xyflow/react";
 
 import { unescapeLatex } from "../../engine/manual/controller";
 import { getVariablesFromLatexString } from "../../parse/variable";
-import { computationStore } from "../../store/computation";
-import { executionStore } from "../../store/execution";
+import { ComputationStore } from "../../store/computation";
+import { ExecutionStore } from "../../store/execution";
 import {
   NODE_TYPES,
   getFormulaElement,
@@ -87,18 +87,23 @@ export function calculateBoundingBoxFromVariableNodes(
  * @param expression - LaTeX expression string
  * @param formulaNode - The formula node
  * @param viewport - The React Flow viewport
+ * @param computationStore - The computation store to use (optional, defaults to global)
  * @returns Bounding box or null if not found
  */
 export function calculateBoundingBoxFromExpression(
   expression: string,
   formulaNode: Node,
-  viewport: { zoom: number }
+  viewport: { zoom: number },
+  computationStore: ComputationStore
 ): BoundingBox | null {
   // Look up ALL matching scopeIds from the computation store
   const scopeIds = computationStore.getScopeIdsForExpression(expression);
 
   // Look up ALL variables contained in the expression string
-  const variableIds = getVariablesFromLatexString(unescapeLatex(expression));
+  const variableIds = getVariablesFromLatexString(
+    unescapeLatex(expression),
+    computationStore
+  );
 
   if (scopeIds.length === 0 && variableIds.length === 0) {
     return null;
@@ -275,6 +280,7 @@ export interface CreateViewNodesParams {
   activeVarIds: string[];
   viewport?: { zoom: number };
   viewNodeIndex?: number;
+  computationStore: ComputationStore;
 }
 
 /**
@@ -292,6 +298,7 @@ export function createViewAndExpressionNodes(
     activeVarIds,
     viewport = { zoom: 1 },
     viewNodeIndex = 0,
+    computationStore,
   } = params;
 
   const viewNodes: Node[] = [];
@@ -305,7 +312,8 @@ export function createViewAndExpressionNodes(
     boundingBox = calculateBoundingBoxFromExpression(
       viewDesc.expression,
       formulaNode,
-      viewport
+      viewport,
+      computationStore
     );
   }
 
@@ -391,6 +399,8 @@ export interface AddViewNodesParams {
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   setEdges: (edges: Edge[] | ((edges: Edge[]) => Edge[])) => void;
   formulaId?: string; // Optional: specific formula ID (for FormulaComponent)
+  executionStore: ExecutionStore;
+  computationStore: ComputationStore;
 }
 
 /**
@@ -403,11 +413,13 @@ export function addViewNodes({
   setNodes,
   setEdges,
   formulaId,
+  executionStore,
+  computationStore,
 }: AddViewNodesParams): void {
   const currentNodes = getNodes();
   const viewport = getViewport?.() || { zoom: 1, x: 0, y: 0 };
 
-  // Get current view description from the current step
+  // Get current view description from the scoped execution store
   const viewDesc = executionStore.currentView;
   if (!viewDesc) {
     // Remove view and expression nodes if no current view
@@ -423,7 +435,7 @@ export function addViewNodes({
     return;
   }
 
-  // Get active variable IDs
+  // Get active variable IDs from the scoped execution store
   const activeVarIds = Array.from(executionStore.activeVariables);
 
   // Find the formula node
@@ -451,6 +463,7 @@ export function addViewNodes({
       viewDesc,
       activeVarIds,
       viewport,
+      computationStore,
     });
 
   // Add nodes to the canvas

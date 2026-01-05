@@ -18,8 +18,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { computationStore } from "../store/computation";
-import { executionStore } from "../store/execution";
+import { ComputationStore } from "../store/computation";
+import { ExecutionStore } from "../store/execution";
 import { FormulaStore } from "../store/formulas";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
@@ -49,10 +49,18 @@ interface CanvasProps {
   formulaStore?: FormulaStore;
   controls?: IControls[];
   environment?: IEnvironment;
+  computationStore: ComputationStore;
+  executionStore: ExecutionStore;
 }
 
 const CanvasFlow = observer(
-  ({ formulaStore, controls, environment }: CanvasProps = {}) => {
+  ({
+    formulaStore,
+    controls,
+    environment,
+    computationStore,
+    executionStore,
+  }: CanvasProps) => {
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -194,6 +202,8 @@ const CanvasFlow = observer(
             latex,
             environment,
             id,
+            computationStore,
+            executionStore,
           },
           draggable: true,
           dragHandle: ".formula-drag-handle",
@@ -232,8 +242,17 @@ const CanvasFlow = observer(
         getViewport,
         setNodes,
         setEdges,
+        executionStore,
+        computationStore,
       });
-    }, [getNodes, getViewport, setNodes, setEdges]);
+    }, [
+      getNodes,
+      getViewport,
+      setNodes,
+      setEdges,
+      executionStore,
+      computationStore,
+    ]);
 
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {
@@ -241,8 +260,10 @@ const CanvasFlow = observer(
         getNodes,
         getViewport,
         setNodes,
+        computationStore,
+        executionStore,
       });
-    }, [getNodes, getViewport, setNodes]);
+    }, [getNodes, getViewport, setNodes, computationStore, executionStore]);
 
     // Function to adjust label positions after they're rendered and measured
     const adjustLabelPositions = useCallback(() => {
@@ -260,12 +281,14 @@ const CanvasFlow = observer(
       addLabelNodes,
       addViewNodes,
       variableNodesAddedRef,
+      computationStore,
     });
 
     const updateVariableNodes = useUpdateVariableNodes({
       nodesInitialized,
       setNodes,
       variableNodesAddedRef,
+      computationStore,
     });
 
     // Update nodes when formulas or controls change
@@ -585,6 +608,7 @@ const CanvasFlow = observer(
 );
 
 // Main Canvas component with ReactFlowProvider
+// Note: FormulizeContext.Provider should be provided by the parent component
 const Canvas = observer((props: CanvasProps) => {
   return (
     <ReactFlowProvider>

@@ -7,9 +7,8 @@ import { Handle, Position } from "@xyflow/react";
 
 import LatexLabel from "../../components/latex";
 import SVGLabel from "../../components/svg-label";
+import { useFormulize } from "../../components/useFormulize";
 import { useVariableDrag } from "../../rendering/useVariableDrag";
-import { computationStore } from "../../store/computation";
-import { executionStore } from "../../store/execution";
 import { VAR_CLASSES } from "../css-classes";
 
 export interface LabelNodeData {
@@ -46,6 +45,9 @@ const InlineInput = observer(
     };
     fontSize?: number;
   }) => {
+    const context = useFormulize();
+    const computationStore = context?.computationStore;
+
     const currentValue =
       typeof variable.value === "number" ? variable.value : 0;
     const displayPrecision = variable.precision ?? DEFAULT_INLINE_PRECISION;
@@ -79,11 +81,11 @@ const InlineInput = observer(
         const newValue = event.target.value;
         setLocalValue(newValue);
         const parsed = parseFloat(newValue);
-        if (!isNaN(parsed)) {
+        if (!isNaN(parsed) && computationStore) {
           computationStore.setValue(varId, parsed);
         }
       },
-      [varId]
+      [varId, computationStore]
     );
 
     const handleBlur = useCallback(() => {
@@ -135,19 +137,26 @@ const InlineInput = observer(
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId, environment } = data;
-  const showHoverOutlines = computationStore.showHoverOutlines;
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const executionStore = context?.executionStore;
 
-  const variable = computationStore.variables.get(varId);
-  const isVariableActive = executionStore.activeVariables.has(varId);
-  const isHovered = computationStore.hoverStates.get(varId) ?? false;
+  // Must call all hooks before conditional returns
+  const showHoverOutlines = computationStore?.showHoverOutlines ?? false;
+
+  const variable = computationStore?.variables.get(varId);
+  const isVariableActive = executionStore?.activeVariables.has(varId) ?? false;
+  const isHovered = computationStore?.hoverStates.get(varId) ?? false;
 
   const valueDragRef = useVariableDrag({
     varId,
     role: variable?.role === "input" ? "input" : "output",
     hasDropdownOptions: !!(Array.isArray(variable?.value) || variable?.options),
+    computationStore: computationStore!,
   });
 
   // All conditional returns must happen after all hooks are called
+  if (!computationStore || !executionStore) return null;
   if (!variable) return null;
   if (computationStore.isStepMode() && !isVariableActive) return null;
 

@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
-import { computationStore } from "../store/computation";
+import { useFormulize } from "./useFormulize";
 
 interface DOMNodeInfo {
   id: string;
@@ -114,6 +114,8 @@ interface ExpressionScopeInfo {
 }
 
 export const MathJaxTreePane = () => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const [trees, setTrees] = useState<DOMNodeInfo[]>([]);
   const [collapsed, setCollapsed] = useState<{ [key: string]: boolean }>({});
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
@@ -128,6 +130,10 @@ export const MathJaxTreePane = () => {
   }, []);
 
   const refreshExpressionScopes = () => {
+    if (!computationStore) {
+      setExpressionScopes([]);
+      return;
+    }
     const scopes: ExpressionScopeInfo[] = [];
     for (const [
       latexKey,

@@ -2,24 +2,28 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
 import { ISetControl } from "../../types/control";
+import { useFormulize } from "../useFormulize";
 
 interface SetControlProps {
   control: ISetControl;
 }
 
 export const SetControl = observer<SetControlProps>(({ control }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+
+  // Guard: computationStore must be available
+  if (!computationStore) {
+    return <div className="text-red-500">No computation store available</div>;
+  }
   const { variable, availableElements, color = "#3b82f6" } = control;
 
   const variableId = variable;
   const variableData = computationStore.variables.get(variableId || "");
 
   const currentSelectedElements = useMemo(
-    () =>
-      Array.isArray(variableData?.value)
-        ? variableData.value
-        : [],
+    () => (Array.isArray(variableData?.value) ? variableData.value : []),
     [variableData?.value]
   );
 

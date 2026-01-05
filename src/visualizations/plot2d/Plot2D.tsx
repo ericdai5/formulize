@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
+import { useFormulize } from "../../components/useFormulize";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
 import { AxisLabels } from "./AxisLabels";
 import { autoDetectPlotConfig } from "./auto-detect";
@@ -26,12 +26,19 @@ export interface DataPoint {
 }
 
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const axisLabelInfoRef = useRef<AxisLabelInfo>({});
 
+  // Guard: computationStore must be provided
+  if (!computationStore) {
+    return <div className="plot2d-loading">Loading plot...</div>;
+  }
+
   // Auto-detect axes and ranges if not provided
-  const autoDetected = autoDetectPlotConfig(config);
+  const autoDetected = autoDetectPlotConfig(config, computationStore);
 
   // Parse configuration options with defaults (using auto-detected values)
   const {
@@ -151,7 +158,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         xScale,
         yScale,
         plotWidth,
-        plotHeight
+        plotHeight,
+        computationStore
       );
     } else if (hasLines) {
       // Multiple lines mode
@@ -167,6 +175,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         [yMin, yMax],
         plotWidth,
         plotHeight,
+        computationStore,
         drawPlot,
         interaction
       );
@@ -182,6 +191,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         plotHeight,
         xAxis,
         yAxis,
+        computationStore,
       });
     }
   }, [
@@ -205,6 +215,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     xGrid,
     yGrid,
     interaction,
+    computationStore,
   ]);
 
   // Set up reaction to re-render when any variable changes

@@ -2,15 +2,22 @@ import React, { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
 import { ISliderControl } from "../../types/control";
-import { getVariable } from "../../util/computation-helpers.ts";
+import { useFormulize } from "../useFormulize";
 
 interface SliderProps {
   control: ISliderControl;
 }
 
 const Slider = observer(({ control }: SliderProps) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+
+  // Guard: computationStore must be available
+  if (!computationStore) {
+    return <div className="text-red-500">No computation store available</div>;
+  }
+
   // Get the variable ID from the control's variable property
   const getVariableId = useCallback(() => {
     if (control.variable) {
@@ -21,8 +28,8 @@ const Slider = observer(({ control }: SliderProps) => {
 
   const variableId = getVariableId();
   const variable = useMemo(
-    () => (variableId ? getVariable(variableId) : null),
-    [variableId]
+    () => (variableId ? computationStore.variables.get(variableId) : null),
+    [variableId, computationStore]
   );
 
   // Get min, max, step from variable definition
@@ -58,7 +65,8 @@ const Slider = observer(({ control }: SliderProps) => {
   );
 
   const isVertical = control.orientation === "vertical";
-  const currentValue = typeof variable?.value === "number" ? variable.value : (min + max) / 2;
+  const currentValue =
+    typeof variable?.value === "number" ? variable.value : (min + max) / 2;
 
   return (
     <div

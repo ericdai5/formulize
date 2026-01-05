@@ -2,17 +2,23 @@ import { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
-import { executionStore as ctx } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
-import { getVariable } from "../../util/computation-helpers.ts";
 import LatexLabel from "../latex";
+import { useFormulize } from "../useFormulize";
 
 interface ArrayProps {
   control: IArrayControl;
 }
 
 const ArrayControl = observer(({ control }: ArrayProps) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const executionStore = context?.executionStore;
+
+  // Guard: stores must be available
+  if (!computationStore || !executionStore) {
+    return <div className="text-red-500">No stores available</div>;
+  }
   // Get the variable ID from the control's variable property
   const getVariableId = useCallback(() => {
     if (control.variable) {
@@ -23,8 +29,8 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
 
   const variableId = getVariableId();
   const variable = useMemo(
-    () => (variableId ? getVariable(variableId) : null),
-    [variableId]
+    () => (variableId ? computationStore.variables.get(variableId) : null),
+    [variableId, computationStore]
   );
 
   // Get array values from the variable's value property or from memberOf parent
@@ -69,8 +75,8 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
     }
 
     // Check if there's a target index from stepToIndex (block mode)
-    if (ctx.targetIndex) {
-      return ctx.targetIndex.index;
+    if (executionStore.targetIndex) {
+      return executionStore.targetIndex.index;
     }
     return null;
   };

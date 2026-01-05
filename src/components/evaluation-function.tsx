@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../store/computation";
+import { useFormulize } from "./useFormulize";
 
 interface EvaluationFunctionPaneProps {
   className?: string;
@@ -26,6 +26,11 @@ const engineDescriptions = {
 
 const EvaluationFunctionPane = observer(
   ({ className = "" }: EvaluationFunctionPaneProps) => {
+    const context = useFormulize();
+    const computationStore = context?.computationStore;
+    if (!computationStore) {
+      return null;
+    }
     const code = computationStore.lastGeneratedCode;
     const engineType = computationStore.engine;
 

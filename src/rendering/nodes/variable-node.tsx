@@ -2,8 +2,8 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
+import { useFormulize } from "../../components/useFormulize";
 import { useVariableDrag } from "../../rendering/useVariableDrag";
-import { computationStore } from "../../store/computation";
 import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
 
 export interface VariableNodeData {
@@ -14,6 +14,12 @@ export interface VariableNodeData {
 
 const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const { varId, width, height } = data;
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  if (!computationStore) {
+    return null;
+  }
+
   const showBorders = computationStore.showVariableBorders;
   const variable = computationStore.variables.get(varId);
   const role = variable?.role === "input" ? "input" : "output";
@@ -26,6 +32,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     varId,
     role: isSetVariable ? "output" : role, // Set variables are not draggable
     hasDropdownOptions: hasDropdownOptions || isSetVariable,
+    computationStore: computationStore,
   });
 
   const handleMouseEnter = () => {

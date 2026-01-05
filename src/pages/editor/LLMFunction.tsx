@@ -2,10 +2,12 @@ import { useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
+import { useFormulize } from "../../components/useFormulize";
 
 const LLMFunction = observer(() => {
-  const code = computationStore.lastGeneratedCode;
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const code = computationStore?.lastGeneratedCode;
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (

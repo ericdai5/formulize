@@ -1,15 +1,21 @@
 import { processLatexContent } from "../../parse/variable";
+import { ComputationStore } from "../../store/computation";
+import { ExecutionStore } from "../../store/execution";
 import { injectVariableSVGs } from "../svg/svg-processor";
 
 export interface FormulaNodeData {
   latex: string;
+  id?: string;
   environment?: {
     fontSize?: number;
     semantics?: {
       mode?: string;
     };
+    formulaNodeStyle?: React.CSSProperties;
   };
   showDragHandle?: boolean;
+  computationStore?: ComputationStore;
+  executionStore?: ExecutionStore;
 }
 
 /**
@@ -26,7 +32,10 @@ export async function renderFormulaWithMathJax(
 ): Promise<void> {
   if (!container || !isInitialized) return;
 
-  const { latex, environment } = data;
+  const { latex, environment, computationStore, executionStore } = data;
+  if (!computationStore || !executionStore) {
+    return;
+  }
 
   try {
     // Find the formula content container
@@ -44,7 +53,12 @@ export async function renderFormulaWithMathJax(
     // Process the LaTeX to include interactive elements
     let processedLatex;
     try {
-      processedLatex = processLatexContent(latex);
+      processedLatex = processLatexContent(
+        latex,
+        2,
+        computationStore,
+        executionStore
+      );
     } catch (latexError) {
       console.error("Error processing LaTeX content:", latexError);
       processedLatex = latex; // Fallback to original latex
@@ -72,7 +86,7 @@ export async function renderFormulaWithMathJax(
 
     // Inject SVG elements for variables after MathJax rendering
     try {
-      injectVariableSVGs(renderedLatex);
+      injectVariableSVGs(renderedLatex, computationStore);
     } catch (svgError) {
       console.error("Error injecting variable SVGs:", svgError);
     }

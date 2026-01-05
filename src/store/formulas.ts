@@ -12,7 +12,7 @@ import {
   parseVariableStrings,
   updateFormula,
 } from "../parse/formula-tree";
-import { computationStore } from "./computation";
+import { ComputationStore } from "./computation";
 
 export class FormulaStore {
   @observable
@@ -24,7 +24,10 @@ export class FormulaStore {
   @observable
   accessor styledRangesOverride: FormulaLatexRanges | null = null;
 
-  constructor(public id: string) {}
+  constructor(
+    public id: string,
+    private computationStore?: ComputationStore
+  ) {}
 
   @action
   updateFormula(newFormula: AugmentedFormula) {
@@ -39,9 +42,11 @@ export class FormulaStore {
 
   @action
   restoreFormulaState(latex: string) {
-    const allVariableSymbols = Array.from(
-      computationStore.variables.keys()
-    ).filter((symbol) => symbol && symbol.length > 0);
+    const allVariableSymbols = this.computationStore
+      ? Array.from(this.computationStore.variables.keys()).filter(
+          (symbol) => symbol && symbol.length > 0
+        )
+      : [];
     const variableTrees = parseVariableStrings(allVariableSymbols);
     const newFormula = deriveTreeWithVars(
       latex,
@@ -138,9 +143,13 @@ export class FormulaStoreManager {
   private accessor stores = new Map<string, FormulaStore>();
 
   @action
-  createStore(id: string, formulaLatex?: string): FormulaStore {
-    const store = new FormulaStore(id);
-    if (formulaLatex) {
+  createStore(
+    id: string,
+    formulaLatex?: string,
+    computationStore?: ComputationStore
+  ): FormulaStore {
+    const store = new FormulaStore(id, computationStore);
+    if (formulaLatex && computationStore) {
       // Get all variables from computation store and convert to trees
       const allVariableSymbols = Array.from(
         computationStore.variables.keys()

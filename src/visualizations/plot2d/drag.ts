@@ -2,22 +2,17 @@ import { runInAction } from "mobx";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
-import { getVariable } from "../../util/computation-helpers";
+import { ComputationStore } from "../../store/computation";
 
 /**
  * Sets up custom drag interaction for plot2d
  * Enables incremental variable updates based on mouse delta
  */
 export function setupCustomDragInteraction(
-  interactionRect: d3.Selection<
-    SVGRectElement,
-    unknown,
-    null,
-    undefined
-  >,
+  interactionRect: d3.Selection<SVGRectElement, unknown, null, undefined>,
   interaction: ["horizontal-drag" | "vertical-drag", string],
-  isDraggingRef: { current: boolean }
+  isDraggingRef: { current: boolean },
+  computationStore: ComputationStore
 ): void {
   // Custom interaction: incremental drag based on mouse delta
   let startY = 0;
@@ -31,8 +26,8 @@ export function setupCustomDragInteraction(
 
     const [interactionType, customVar] = interaction;
 
-    // Get the target variable
-    const targetVariable = getVariable(customVar);
+    // Get the target variable from scoped store
+    const targetVariable = computationStore.variables.get(customVar);
     if (!targetVariable) return;
 
     const stepSize = targetVariable.step || 0.01;
@@ -83,8 +78,8 @@ export function setupCustomDragInteraction(
     startY = event.clientY;
     startX = event.clientX;
 
-    // Get current value from computation store
-    const currentVariable = getVariable(customVar);
+    // Get current value from scoped computation store
+    const currentVariable = computationStore.variables.get(customVar);
     const value = currentVariable?.value;
     startValue = typeof value === "number" ? value : 0;
 

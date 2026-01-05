@@ -88,6 +88,8 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
       config: config || null,
       isLoading,
       error,
+      computationStore: instance?.computationStore ?? null,
+      executionStore: instance?.executionStore ?? null,
     };
 
     return (

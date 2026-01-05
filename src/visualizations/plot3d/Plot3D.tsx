@@ -14,11 +14,11 @@ import * as Plotly from "plotly.js-dist";
 
 import { IPlot3D } from "../..";
 import { FormulizeConfig } from "../..";
+import { useFormulize } from "../../components/useFormulize";
 import {
   computeSurfaceIntersection,
   solveSingularFormula,
 } from "../../engine/singular-formula-solver";
-import { computationStore } from "../../store/computation";
 import { IPoint3D, ISurface } from "../../types/plot3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
 import { getFormulaById } from "../../util/formula-by-id";
@@ -39,11 +39,18 @@ interface LineData {
 }
 
 const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const plotRef = useRef<HTMLDivElement>(null);
   const [currentPoint, setCurrentPoint] = useState<IPoint3D | null>(null);
   const [surfacesData, setSurfacesData] = useState<ISurface[]>([]);
   const [linesData, setLinesData] = useState<LineData[]>([]);
   const [isPlotInitialized, setIsPlotInitialized] = useState(false);
+
+  // Guard: computationStore must be available
+  if (!computationStore) {
+    return <div className="plot3d-loading">Loading plot...</div>;
+  }
 
   // Parse configuration options with defaults
   const {
@@ -86,11 +93,14 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
   }, [xMax, xMin, yMax, yMin]);
 
   // Helper function to get variable label from computation store
-  const getVariableLabel = useCallback((variableName: string): string => {
-    const varId = variableName;
-    const variable = getVariable(varId);
-    return variable?.name || variableName; // Fallback to variable name if no name
-  }, []);
+  const getVariableLabel = useCallback(
+    (variableName: string): string => {
+      const varId = variableName;
+      const variable = getVariable(varId, computationStore);
+      return variable?.name || variableName; // Fallback to variable name if no name
+    },
+    [computationStore]
+  );
 
   // Create a bound getFormulaById function that uses the environment
   const getFormulaByIdWithConfig = useCallback(
@@ -115,6 +125,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
       samples,
       getFormulaById: getFormulaByIdWithConfig,
       getDefaultColorScale,
+      computationStore,
     };
 
     return getSurfaces(surfaces, params);
@@ -314,9 +325,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
       setLinesData(linesResult);
 
       // Update current point
-      const currentX = getVariableValue(xAxis);
-      const currentY = getVariableValue(yAxis);
-      const currentZ = getVariableValue(zVar);
+      const currentX = getVariableValue(xAxis, computationStore);
+      const currentY = getVariableValue(yAxis, computationStore);
+      const currentZ = getVariableValue(zVar, computationStore);
       setCurrentPoint({ x: currentX, y: currentY, z: currentZ });
     } catch (error) {
       console.error("Error calculating 3D plot data:", error);
@@ -337,9 +348,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config, environment }) => {
   useEffect(() => {
     const disposer = reaction(
       () => {
-        const xValue = getVariableValue(xAxis);
-        const yValue = getVariableValue(yAxis);
-        const zValue = getVariableValue(zVar);
+        const xValue = getVariableValue(xAxis, computationStore);
+        const yValue = getVariableValue(yAxis, computationStore);
+        const zValue = getVariableValue(zVar, computationStore);
 
         return { xValue, yValue, zValue };
       },

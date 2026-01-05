@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 
+import { ComputationStore } from "../../store/computation";
 import type { DataPoint } from "./Plot2D";
 import { createLabelWithBackground } from "./label-background";
 
@@ -13,8 +14,9 @@ export function addCurrentPointHighlight(
   yScale: d3.ScaleLinear<number, number>,
   xRange: [number, number],
   yRange: [number, number],
-  xAxis?: string,
-  yAxis?: string
+  xAxis: string | undefined,
+  yAxis: string | undefined,
+  computationStore: ComputationStore
 ): void {
   if (
     !currentPoint ||
@@ -47,6 +49,7 @@ export function addCurrentPointHighlight(
     yScale,
     xAxis,
     yAxis,
+    computationStore,
     "current-point-label"
   );
 }
