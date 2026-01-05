@@ -1,7 +1,7 @@
 import { Node } from "@xyflow/react";
 
-import { computationStore } from "../../store/computation";
-import { executionStore } from "../../store/execution";
+import { ComputationStore } from "../../store/computation";
+import { ExecutionStore } from "../../store/execution";
 import { VAR_SELECTORS } from "../css-classes";
 import {
   NODE_TYPES,
@@ -112,6 +112,8 @@ export interface AddLabelNodesParams {
   getNodes: () => Node[];
   getViewport: () => { zoom: number; x: number; y: number };
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
+  computationStore: ComputationStore;
+  executionStore: ExecutionStore;
 }
 
 export interface AdjustLabelPositionsParams {
@@ -126,6 +128,8 @@ export interface UpdateLabelNodesParams {
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   formulaId: string;
   containerElement?: Element | null;
+  computationStore: ComputationStore;
+  executionStore: ExecutionStore;
 }
 
 /**
@@ -167,7 +171,9 @@ export const processVariableElementsForLabels = (
   formulaNode: Node,
   id: string,
   currentNodes: Node[],
-  viewport: { zoom: number; x: number; y: number }
+  viewport: { zoom: number; x: number; y: number },
+  computationStore: ComputationStore,
+  executionStore: ExecutionStore
 ): {
   labelNodes: Node[];
   variableNodeUpdates: Array<{
@@ -278,6 +284,8 @@ export const updateLabelNodes = ({
   setNodes,
   formulaId,
   containerElement,
+  computationStore,
+  executionStore,
 }: UpdateLabelNodesParams): void => {
   const currentNodes = getNodes();
   const viewport = getViewport();
@@ -308,7 +316,9 @@ export const updateLabelNodes = ({
         formulaNode,
         formulaId,
         nonLabelNodes,
-        viewport
+        viewport,
+        computationStore,
+        executionStore
       );
     // Apply variable node updates (labelPlacement)
     const updatedNodes = updateLabelPlacement(
@@ -326,6 +336,8 @@ export const addLabelNodes = ({
   getNodes,
   getViewport,
   setNodes,
+  computationStore,
+  executionStore,
 }: AddLabelNodesParams): void => {
   const currentNodes = getNodes();
   const viewport = getViewport();
@@ -342,7 +354,9 @@ export const addLabelNodes = ({
         formulaNode,
         id,
         currentNodes,
-        viewport
+        viewport,
+        computationStore,
+        executionStore
       );
     labelNodes.push(...formulaLabels);
     variableNodeUpdates.push(...formulaUpdates);

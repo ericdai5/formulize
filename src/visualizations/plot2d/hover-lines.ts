@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 
 export interface HoverLinesConfig {
   svg: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -10,13 +10,23 @@ export interface HoverLinesConfig {
   plotHeight: number;
   xAxis?: string;
   yAxis?: string;
+  computationStore: ComputationStore;
 }
 
 /**
  * Adds or updates hover lines for x/y variables
  */
 export function updateHoverLines(config: HoverLinesConfig): void {
-  const { svg, xScale, yScale, plotWidth, plotHeight, xAxis, yAxis } = config;
+  const {
+    svg,
+    xScale,
+    yScale,
+    plotWidth,
+    plotHeight,
+    xAxis,
+    yAxis,
+    computationStore,
+  } = config;
 
   // Remove existing hover lines
   svg.selectAll(".hover-line").remove();

@@ -1,7 +1,7 @@
 import * as acorn from "acorn";
 import beautify from "js-beautify";
 
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import { IEnvironment } from "../../types/environment";
 
 // ============================================================================
@@ -472,8 +472,13 @@ function collectAssignments(ast: ASTNode): CollectedAssignments {
 
 /**
  * Find a variable in the computation store that has memberOf matching the given parent variable
+ * @param parentVarId - The parent variable ID to search for
+ * @param computationStore - Optional scoped computation store (defaults to global)
  */
-export function findMemberOfVariable(parentVarId: string): string | null {
+export function findMemberOfVariable(
+  parentVarId: string,
+  computationStore: ComputationStore
+): string | null {
   for (const [varId, variable] of computationStore.variables.entries()) {
     if (variable.memberOf === parentVarId) {
       return varId;
@@ -484,11 +489,16 @@ export function findMemberOfVariable(parentVarId: string): string | null {
 
 /**
  * Resolve direct linkages and array aliases from collected assignments.
+ * @param assignments - The collected assignments from AST
+ * @param variableLinkage - The linkage map to populate
+ * @param arrayBindings - The array bindings map to populate
+ * @param computationStore - The scoped computation store to use
  */
 function resolveDirectLinkages(
   assignments: Assignment[],
   variableLinkage: Record<string, string | string[]>,
-  arrayBindings: Record<string, string>
+  arrayBindings: Record<string, string>,
+  computationStore: ComputationStore
 ): void {
   for (const { localVar, source } of assignments) {
     if (source.type === "vars_access" && source.computationVar) {
@@ -510,7 +520,10 @@ function resolveDirectLinkages(
       const parentComputationVar = arrayBindings[source.arrayVar];
       if (parentComputationVar) {
         // Try to find a variable with memberOf matching the parent
-        const memberVar = findMemberOfVariable(parentComputationVar);
+        const memberVar = findMemberOfVariable(
+          parentComputationVar,
+          computationStore
+        );
         if (memberVar) {
           variableLinkage[localVar] = memberVar;
         } else {
@@ -596,7 +609,10 @@ function resolveExpressionLinkages(
  * @param code - The JavaScript code of the manual function body
  * @returns Object containing variableLinkage and arrayBindings
  */
-export function extractLinkages(code: string): Linkages {
+export function extractLinkages(
+  code: string,
+  computationStore: ComputationStore
+): Linkages {
   const variableLinkage: Record<string, string | string[]> = {};
   const arrayBindings: Record<string, string> = {};
   try {
@@ -606,8 +622,13 @@ export function extractLinkages(code: string): Linkages {
     }) as unknown as ASTNode;
     // First pass: collect all variable assignments
     const { assignments, expressionAssignments } = collectAssignments(ast);
-    // Second pass: resolve direct linkages and array aliases
-    resolveDirectLinkages(assignments, variableLinkage, arrayBindings);
+    // Second pass: resolve direct linkages and array aliases (use scoped store)
+    resolveDirectLinkages(
+      assignments,
+      variableLinkage,
+      arrayBindings,
+      computationStore
+    );
     // Third pass: resolve expression linkages
     resolveExpressionLinkages(expressionAssignments, variableLinkage);
   } catch (error) {

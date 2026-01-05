@@ -10,7 +10,7 @@
  *
  * All axes and ranges are auto-detected from variable definitions!
  */
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import { IPlot2D } from "../../types/plot2d";
 import { PLOT2D_DEFAULTS } from "./defaults";
 
@@ -27,8 +27,13 @@ interface AutoDetectedConfig {
  * - yAxis defaults to first computed variable
  * - xRange inferred from input variable's range
  * - yRange computed by sampling yAxis across xRange
+ * @param config - The plot configuration
+ * @param computationStore - The computation store to use
  */
-export function autoDetectPlotConfig(config: IPlot2D): AutoDetectedConfig {
+export function autoDetectPlotConfig(
+  config: IPlot2D,
+  computationStore: ComputationStore
+): AutoDetectedConfig {
   // Get all variables from computation store
   const variables = Array.from(computationStore.variables.entries());
   // Find first input and computed variables
@@ -50,7 +55,7 @@ export function autoDetectPlotConfig(config: IPlot2D): AutoDetectedConfig {
   // Auto-detect yRange by sampling computed variable across xRange
   let yRange: [number, number] = config.yRange || PLOT2D_DEFAULTS.yRange;
   if (!config.yRange && xAxis && yAxis) {
-    yRange = computeYRange(xAxis, yAxis, xRange);
+    yRange = computeYRange(xAxis, yAxis, xRange, computationStore);
   }
   return {
     xAxis,
@@ -97,7 +102,8 @@ function generateExtremeCombinations(
 function computeYRange(
   xAxis: string,
   yAxis: string,
-  xRange: [number, number]
+  xRange: [number, number],
+  computationStore: ComputationStore
 ): [number, number] {
   const evaluationFunction = computationStore.evaluateFormula;
   if (!evaluationFunction) {

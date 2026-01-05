@@ -1,9 +1,12 @@
 import { findVariableByElement } from "../../parse/variable";
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import { getVariable } from "../../util/computation-helpers";
 import { VAR_SELECTORS } from "../css-classes";
 
-export const dropdownHandler = (container: HTMLElement) => {
+export const dropdownHandler = (
+  container: HTMLElement,
+  computationStore: ComputationStore
+) => {
   if (!container) return;
 
   const dropdownElements = container.querySelectorAll(VAR_SELECTORS.INPUT);
@@ -16,7 +19,7 @@ export const dropdownHandler = (container: HTMLElement) => {
     }
 
     const { varId } = variableMatch;
-    const variable = getVariable(varId);
+    const variable = getVariable(varId, computationStore);
     if (!variable) {
       return;
     }
@@ -31,7 +34,7 @@ export const dropdownHandler = (container: HTMLElement) => {
       availableOptions = variable.options;
     } else if (variable.key) {
       // For variables with a key, show options from the key variable's value array
-      const keyVar = getVariable(variable.key);
+      const keyVar = getVariable(variable.key, computationStore);
       if (keyVar && Array.isArray(keyVar.value)) {
         availableOptions = keyVar.value;
         isKeyVariable = true;

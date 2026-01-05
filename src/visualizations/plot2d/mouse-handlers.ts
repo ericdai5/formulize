@@ -2,7 +2,7 @@ import { runInAction } from "mobx";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import type { DataPoint } from "./Plot2D";
 import { scaleCurrentPoint } from "./current-point";
 import { setHoverVisibility, updateHoverPosition } from "./hover";
@@ -55,7 +55,8 @@ export function handleMouseMove(
   plotHeight: number,
   xAxis: string,
   yAxis: string,
-  isDragging: boolean
+  isDragging: boolean,
+  computationStore: ComputationStore
 ): void {
   const [mouseX] = d3.pointer(event);
   const x0 = xScale.invert(mouseX);
@@ -88,7 +89,15 @@ export function handleMouseMove(
       });
 
       // Update current point highlight immediately during drag
-      updateCurrentPointHighlight(svg, d, xScale, yScale, xAxis, yAxis);
+      updateCurrentPointHighlight(
+        svg,
+        d,
+        xScale,
+        yScale,
+        xAxis,
+        yAxis,
+        computationStore
+      );
     } catch (error) {
       console.error("Error updating variable during drag:", error);
     }
@@ -104,7 +113,8 @@ export function handleMouseMove(
       event.pageX,
       event.pageY,
       xAxis,
-      yAxis
+      yAxis,
+      computationStore
     );
   } else {
     // Show hover dot during hover (not dragging, not near current point)
@@ -115,7 +125,16 @@ export function handleMouseMove(
 
     scaleCurrentPoint(svg, false); // Reset current point scale
 
-    updateTooltip(tooltip, d.x, d.y, event.pageX, event.pageY, xAxis, yAxis);
+    updateTooltip(
+      tooltip,
+      d.x,
+      d.y,
+      event.pageX,
+      event.pageY,
+      xAxis,
+      yAxis,
+      computationStore
+    );
   }
 }
 
@@ -127,7 +146,8 @@ export function handleMouseDown(
   hover: d3.Selection<SVGGElement, unknown, null, undefined>,
   tooltip: d3.Selection<HTMLDivElement | null, unknown, null, undefined>,
   xScale: d3.ScaleLinear<number, number>,
-  xAxis: string
+  xAxis: string,
+  computationStore: ComputationStore
 ): void {
   runInAction(() => {
     computationStore.setDragging(true);
@@ -160,8 +180,10 @@ export function handleMouseUp(
   hover: d3.Selection<SVGGElement, unknown, null, undefined>,
   plotWidth: number,
   plotHeight: number,
-  onDragEnd?: () => void
+  onDragEnd?: () => void,
+  computationStore?: ComputationStore
 ): void {
+  if (!computationStore) return;
   runInAction(() => {
     computationStore.setDragging(false);
   });
@@ -189,7 +211,8 @@ export function handleClick(
   dataPoints: DataPoint[],
   xScale: d3.ScaleLinear<number, number>,
   xAxis: string,
-  isDragging: boolean
+  isDragging: boolean,
+  computationStore: ComputationStore
 ): void {
   if (!isDragging) {
     const [mouseX] = d3.pointer(event);
@@ -236,8 +259,9 @@ function updateCurrentPointHighlight(
   currentPoint: DataPoint,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
-  xAxis?: string,
-  yAxis?: string
+  xAxis: string | undefined,
+  yAxis: string | undefined,
+  computationStore: ComputationStore
 ): void {
   if (!xAxis || !yAxis) return;
 
@@ -248,5 +272,13 @@ function updateCurrentPointHighlight(
     .attr("cy", yScale(currentPoint.y));
 
   // Update existing current point label
-  updateCurrentPointLabel(svg, currentPoint, xScale, yScale, xAxis, yAxis);
+  updateCurrentPointLabel(
+    svg,
+    currentPoint,
+    xScale,
+    yScale,
+    xAxis,
+    yAxis,
+    computationStore
+  );
 }

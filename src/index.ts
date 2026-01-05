@@ -25,11 +25,11 @@ export type { InterpreterControlProps } from "./components/InterpreterControl";
 // Export view function for manual computation breakpoints
 export { view } from "./engine/manual/controller";
 
-// Export computation API
-export { computationStore } from "./store/computation";
+// Export computation API - factory function and type for scoped stores
+export { createComputationStore, ComputationStore } from "./store/computation";
 
-// Export execution store for interpreter state management
-export { executionStore } from "./store/execution";
+// Export execution store for interpreter state management - factory function and type for scoped stores
+export { createExecutionStore, ExecutionStore } from "./store/execution";
 
 // Export custom visualization registration functions
 export {

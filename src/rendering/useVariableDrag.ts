@@ -1,38 +1,36 @@
 import { useEffect, useRef } from "react";
 
 import { getInputVariableState } from "../parse/variable";
-import { computationStore } from "../store/computation";
+import { ComputationStore } from "../store/computation";
 
 interface UseVariableDragProps {
   varId: string;
   role: "input" | "output";
   hasDropdownOptions?: boolean;
+  computationStore?: ComputationStore | null;
 }
 
 export const useVariableDrag = ({
   varId,
   role,
   hasDropdownOptions,
+  computationStore,
 }: UseVariableDragProps) => {
   const nodeRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const element = nodeRef.current;
+    // Early return if computationStore is not available
+    if (!computationStore) return;
     if (!element || role !== "input" || hasDropdownOptions) return;
-
     let isDragging = false;
     let startY = 0;
-
-    const variableState = getInputVariableState(varId);
+    const variableState = getInputVariableState(varId, computationStore);
     if (!variableState) return;
-
     const { stepSize, minValue, maxValue } = variableState;
-
     // Get initial value from computation store
     const currentVariable = computationStore.variables.get(varId);
     const value = currentVariable?.value;
     let startValue = typeof value === "number" ? value : 0;
-
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
       e.preventDefault();
@@ -44,7 +42,6 @@ export const useVariableDrag = ({
         Math.max(minValue, Math.min(maxValue, newValue))
       );
     };
-
     const handleMouseUp = (e: MouseEvent) => {
       if (isDragging) {
         isDragging = false;
@@ -54,7 +51,6 @@ export const useVariableDrag = ({
         document.removeEventListener("mouseup", handleMouseUp, true);
       }
     };
-
     const handleMouseDown = (e: MouseEvent) => {
       isDragging = true;
       startY = e.clientY;
@@ -65,20 +61,17 @@ export const useVariableDrag = ({
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-
       // Use capture phase to ensure we get the events first
       document.addEventListener("mousemove", handleMouseMove, true);
       document.addEventListener("mouseup", handleMouseUp, true);
     };
-
     element.addEventListener("mousedown", handleMouseDown);
-
     return () => {
       element.removeEventListener("mousedown", handleMouseDown);
       document.removeEventListener("mousemove", handleMouseMove, true);
       document.removeEventListener("mouseup", handleMouseUp, true);
     };
-  }, [varId, role, hasDropdownOptions]);
+  }, [varId, role, hasDropdownOptions, computationStore]);
 
   return nodeRef;
 };

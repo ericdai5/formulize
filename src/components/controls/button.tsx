@@ -1,15 +1,22 @@
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
 import { IButtonControl } from "../../types/control";
 import Latex from "../latex";
+import { useFormulize } from "../useFormulize";
 
 interface ButtonControlProps {
   control: IButtonControl;
 }
 
 export const ButtonControl = observer<ButtonControlProps>(({ control }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+
+  // Guard: computationStore must be available
+  if (!computationStore) {
+    return <div className="text-red-500">No computation store available</div>;
+  }
   const { variable, code, label } = control;
 
   const handleClick = () => {

@@ -5,8 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import { GripVertical } from "lucide-react";
 
-import { computationStore } from "../../store/computation";
-import { executionStore } from "../../store/execution";
+import { useFormulize } from "../../components/useFormulize";
 import {
   FormulaNodeData,
   renderFormulaWithMathJax,
@@ -15,7 +14,12 @@ import {
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
-  const showHoverOutlines = computationStore.showHoverOutlines;
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const executionStore = context?.executionStore;
+
+  // All hooks must be called before any conditional returns
+  const showHoverOutlines = computationStore?.showHoverOutlines ?? false;
   const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
     const initializeMathJax = async () => {
@@ -33,8 +37,18 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     initializeMathJax();
   }, []);
   const renderFormula = useCallback(async () => {
-    await renderFormulaWithMathJax(nodeRef.current, data, isInitialized);
-  }, [data, isInitialized]);
+    // Pass stores from context to the render function (convert null to undefined)
+    const dataWithStores: FormulaNodeData = {
+      ...data,
+      computationStore: computationStore ?? undefined,
+      executionStore: executionStore ?? undefined,
+    };
+    await renderFormulaWithMathJax(
+      nodeRef.current,
+      dataWithStores,
+      isInitialized
+    );
+  }, [data, computationStore, executionStore, isInitialized]);
 
   useEffect(() => {
     if (isInitialized) {
@@ -43,6 +57,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   }, [isInitialized, renderFormula]);
 
   useEffect(() => {
+    if (!computationStore || !executionStore) return;
     const disposer = reaction(
       () => ({
         variables: Array.from(computationStore.variables.entries()).map(
@@ -63,10 +78,11 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
       }
     );
     return () => disposer();
-  }, [isInitialized, renderFormula]);
+  }, [computationStore, executionStore, isInitialized, renderFormula]);
 
   // React to hover state changes and update DOM directly
   useEffect(() => {
+    if (!computationStore) return;
     const disposer = reaction(
       () => Array.from(computationStore.hoverStates.entries()),
       (hoverStates) => {
@@ -86,7 +102,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
       }
     );
     return () => disposer();
-  }, []);
+  }, [computationStore, data.id]);
 
   const handleFormulaMouseEnter = useCallback(() => {
     if (!nodeRef.current) return;
@@ -103,6 +119,9 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
       formulaExpression.classList.remove("hovered");
     }
   }, []);
+
+  // All conditional returns must happen after all hooks are called
+  if (!computationStore || !executionStore) return null;
 
   const customStyle = computationStore.environment?.formulaNodeStyle
     ? toJS(computationStore.environment.formulaNodeStyle)

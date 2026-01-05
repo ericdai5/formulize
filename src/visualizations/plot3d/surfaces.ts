@@ -1,5 +1,5 @@
 import { solveSingularFormula } from "../../engine/singular-formula-solver";
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import { IPoint3D, ISurface } from "../../types/plot3d";
 import { ColorScale, resolveColor } from "./color";
 
@@ -15,6 +15,7 @@ interface SurfaceCalculationParams {
   zMax: number;
   samples: number;
   getFormulaById: (id: string) => string | null;
+  computationStore: ComputationStore;
 }
 
 // Helper function to solve equations using singular formula solver
@@ -48,6 +49,7 @@ export const getSurface = (
     yMax,
     samples,
     getFormulaById,
+    computationStore,
   } = params;
 
   const formulaExpression = getFormulaById(surfaceConfig.id);

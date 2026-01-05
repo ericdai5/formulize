@@ -1,11 +1,15 @@
-import { computationStore } from "../store/computation";
+import { ComputationStore } from "../store/computation";
 
 /**
  * Get a variable value from the computation store
  * @param variableName - The name/symbol of the variable to retrieve
+ * @param computationStore - The computation store to use
  * @returns The variable value or 0 if not found
  */
-export const getVariableValue = (variableName: string): number => {
+export const getVariableValue = (
+  variableName: string,
+  computationStore: ComputationStore
+): number => {
   try {
     const variable = computationStore.variables.get(variableName);
     const value = variable?.value;
@@ -18,9 +22,12 @@ export const getVariableValue = (variableName: string): number => {
 
 /**
  * Get all variables from the computation store as a record
+ * @param computationStore - The computation store to use
  * @returns Record of variable names to their values
  */
-export const getAllVariables = (): Record<string, number> => {
+export const getAllVariables = (
+  computationStore: ComputationStore
+): Record<string, number> => {
   const variables: Record<string, number> = {};
   computationStore.variables.forEach((variable, name) => {
     const value = variable.value;
@@ -34,9 +41,13 @@ export const getAllVariables = (): Record<string, number> => {
 /**
  * Get a variable object from the computation store
  * @param variableName - The name/symbol of the variable to retrieve
+ * @param computationStore - The computation store to use
  * @returns The variable object or undefined if not found
  */
-export const getVariable = (variableName: string) => {
+export const getVariable = (
+  variableName: string,
+  computationStore: ComputationStore
+) => {
   return computationStore.variables.get(variableName);
 };
 
@@ -44,8 +55,13 @@ export const getVariable = (variableName: string) => {
  * Update a variable value in the computation store
  * @param variableName - The name/symbol of the variable to update
  * @param value - The new value to set
+ * @param computationStore - The computation store to use
  */
-export const updateVariable = (variableName: string, value: number) => {
+export const updateVariable = (
+  variableName: string,
+  value: number,
+  computationStore: ComputationStore
+) => {
   try {
     if (computationStore.variables.has(variableName)) {
       computationStore.setValue(variableName, value);
