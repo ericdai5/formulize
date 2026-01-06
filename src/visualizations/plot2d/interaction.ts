@@ -87,12 +87,10 @@ export function addInteractions(
       })
       .on("mousedown", (event) => {
         isDragging = true;
-        computationStore.setDragging(true);
         handleMouseDown(event, hover, tooltip, xScale, xAxis, computationStore);
       })
       .on("mouseup", (event) => {
         isDragging = false;
-        computationStore.setDragging(false);
         handleMouseUp(
           event,
           hover,
