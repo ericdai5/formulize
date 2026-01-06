@@ -25,6 +25,25 @@ class ComputationStore {
   @observable
   accessor hoverStates = new Map<string, boolean>();
 
+  // Node hover states for visualization nodes (node ID -> hover state)
+  @observable
+  accessor nodeHoverStates = new Map<string, boolean>();
+
+  // Formula hover states (formula ID -> hover state)
+  @observable
+  accessor formulaHoverStates = new Map<string, boolean>();
+
+  // Callbacks for formula hover changes (for visualizations to react)
+  private formulaHoverCallbacks: Set<(formulaId: string, isHovered: boolean) => void> = new Set();
+
+  // Mapping from formula IDs to node IDs (for bidirectional hover)
+  @observable
+  accessor formulaNodeMapping = new Map<string, string>();
+
+  // Reverse mapping from node IDs to formula IDs
+  @observable
+  accessor nodeFormulaMapping = new Map<string, string>();
+
   @observable
   accessor showHoverOutlines: boolean = false;
 
@@ -153,6 +172,11 @@ class ComputationStore {
   reset() {
     this.variables.clear();
     this.hoverStates.clear();
+    this.nodeHoverStates.clear();
+    this.formulaHoverStates.clear();
+    this.formulaNodeMapping.clear();
+    this.nodeFormulaMapping.clear();
+    this.formulaHoverCallbacks.clear();
     this.injectedDefaultCSS.clear();
     this.injectedHoverCSS.clear();
     this.expressionScopes.clear();
@@ -351,6 +375,83 @@ class ComputationStore {
   getVariableHover(id: string): boolean {
     return this.hoverStates.get(id) ?? false;
   }
+
+  // ============= Bidirectional Hover System =============
+
+  /**
+   * Set the mapping between formula IDs and visualization node IDs
+   */
+  @action
+  setFormulaNodeMapping(mapping: Record<string, string>) {
+    this.formulaNodeMapping.clear();
+    this.nodeFormulaMapping.clear();
+    for (const [formulaId, nodeId] of Object.entries(mapping)) {
+      this.formulaNodeMapping.set(formulaId, nodeId);
+      this.nodeFormulaMapping.set(nodeId, formulaId);
+    }
+  }
+
+  /**
+   * Set hover state for a visualization node
+   * This will trigger the corresponding formula to highlight
+   */
+  @action
+  setNodeHover(nodeId: string, isHovered: boolean) {
+    this.nodeHoverStates.set(nodeId, isHovered);
+    // Find the corresponding formula and trigger its hover state
+    const formulaId = this.nodeFormulaMapping.get(nodeId);
+    if (formulaId) {
+      this.setFormulaHover(formulaId, isHovered);
+    }
+  }
+
+  /**
+   * Get hover state for a visualization node
+   */
+  getNodeHover(nodeId: string): boolean {
+    return this.nodeHoverStates.get(nodeId) ?? false;
+  }
+
+  /**
+   * Set hover state for a formula
+   * This notifies visualizations that a formula is being hovered
+   */
+  @action
+  setFormulaHover(formulaId: string, isHovered: boolean) {
+    const prevState = this.formulaHoverStates.get(formulaId) ?? false;
+    if (prevState !== isHovered) {
+      this.formulaHoverStates.set(formulaId, isHovered);
+      // Notify all registered callbacks
+      this.formulaHoverCallbacks.forEach(callback => {
+        callback(formulaId, isHovered);
+      });
+      // Also set the corresponding node hover state
+      const nodeId = this.formulaNodeMapping.get(formulaId);
+      if (nodeId && this.nodeHoverStates.get(nodeId) !== isHovered) {
+        this.nodeHoverStates.set(nodeId, isHovered);
+      }
+    }
+  }
+
+  /**
+   * Get hover state for a formula
+   */
+  getFormulaHover(formulaId: string): boolean {
+    return this.formulaHoverStates.get(formulaId) ?? false;
+  }
+
+  /**
+   * Subscribe to formula hover changes
+   * Returns an unsubscribe function
+   */
+  onFormulaHoverChange(callback: (formulaId: string, isHovered: boolean) => void): () => void {
+    this.formulaHoverCallbacks.add(callback);
+    return () => {
+      this.formulaHoverCallbacks.delete(callback);
+    };
+  }
+
+  // ============= End Bidirectional Hover System =============
 
   @observable
   accessor refreshCallback: (() => void) | null = null;

@@ -17,6 +17,7 @@ export { InlineVariable } from "./components/InlineVariable";
 export { VisualizationComponent } from "./components/VisualizationComponent";
 export { FormulizeProvider } from "./components/FormulizeProvider";
 export { useFormulize } from "./components/useFormulize";
+export { EmbeddedFormula } from "./components/EmbeddedFormula";
 
 // Export interpreter controls for step-through debugging
 export { InterpreterControl } from "./components/InterpreterControl";
@@ -39,6 +40,22 @@ export {
   getRegistered,
   isRegistered,
 } from "./visualizations/custom/registry";
+
+// Export built-in custom visualizations
+export {
+  BayesProbabilityChart,
+  registerBuiltInComponents,
+} from "./visualizations/custom/components";
+
+// Export general programmatic generation utilities
+export {
+  Formula,
+  Variable,
+  Semantics,
+  mergeVariables,
+  mergeFormulas,
+} from "./util/generators";
+export type { LoopRange, LoopSpec, LoopContext } from "./util/generators";
 
 // Export types
 export type { ISemantics } from "./types/computation";

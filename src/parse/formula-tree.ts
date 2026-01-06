@@ -2961,6 +2961,9 @@ const nodeMatches = (
 /**
  * Parse a variable string (like "P(B \mid A)") into a mini formula tree
  * Uses the existing deriveTree function to create the tree structure
+ *
+ * Note: Variable names must use valid LaTeX subscript notation.
+ * For multiple indices, use braces: "w_{1,2,3}" not "w_1_2_3"
  */
 export const parseVariableString = (
   variableString: string
