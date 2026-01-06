@@ -2,17 +2,19 @@ import { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
-import { executionStore as ctx } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
-import { getVariable } from "../../util/computation-helpers.ts";
 import LatexLabel from "../latex";
+import { useFormulize } from "../useFormulize";
 
 interface ArrayProps {
   control: IArrayControl;
 }
 
 const ArrayControl = observer(({ control }: ArrayProps) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const executionStore = context?.executionStore;
+
   // Get the variable ID from the control's variable property
   const getVariableId = useCallback(() => {
     if (control.variable) {
@@ -23,12 +25,16 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
 
   const variableId = getVariableId();
   const variable = useMemo(
-    () => (variableId ? getVariable(variableId) : null),
-    [variableId]
+    () =>
+      variableId && computationStore
+        ? computationStore.variables.get(variableId)
+        : null,
+    [variableId, computationStore]
   );
 
   // Get array values from the variable's value property or from memberOf parent
   const getArrayValues = useCallback(() => {
+    if (!computationStore) return [];
     if (variable) {
       // If variable has memberOf, get values from parent variable
       if (variable.memberOf) {
@@ -52,13 +58,13 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
       }
     }
     return [];
-  }, [variable, variableId]);
+  }, [variable, variableId, computationStore]);
 
   const arrayValues = getArrayValues();
 
   // Get active index directly for MobX reactivity
   const getActiveIndex = () => {
-    if (!variableId) {
+    if (!variableId || !computationStore || !executionStore) {
       return null;
     }
 
@@ -69,15 +75,15 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
     }
 
     // Check if there's a target index from stepToIndex (block mode)
-    if (ctx.targetIndex) {
-      return ctx.targetIndex.index;
+    if (executionStore.targetIndex) {
+      return executionStore.targetIndex.index;
     }
     return null;
   };
 
   // Get processed indices for styling
   const getProcessedIndices = () => {
-    if (variableId) {
+    if (variableId && computationStore) {
       return computationStore.processedIndices.get(variableId) || new Set();
     }
     return new Set();
@@ -88,6 +94,11 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
   }, []);
 
   const isVertical = control.orientation === "vertical";
+
+  // Guard: stores must be available - placed after all hooks
+  if (!computationStore || !executionStore) {
+    return <div className="text-red-500">No stores available</div>;
+  }
 
   return (
     <div

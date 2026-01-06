@@ -9,7 +9,6 @@ import beautify from "js-beautify";
 import { refresh, stepForward, stepToIndex } from "../engine/manual/execute";
 import { extractManual } from "../engine/manual/extract";
 import { isAtBlock } from "../engine/manual/interpreter";
-import { executionStore as ctx } from "../store/execution";
 import { IEnvironment } from "../types/environment";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
@@ -22,6 +21,7 @@ import {
 import CollapsibleSection from "./collapsible-section";
 import InterpreterControls from "./interpreter-controls";
 import Timeline from "./timeline";
+import { useFormulize } from "./useFormulize";
 import { VariablesSection } from "./variable-section";
 
 interface DebugModalProps {
@@ -32,6 +32,15 @@ interface DebugModalProps {
 
 const DebugModal: React.FC<DebugModalProps> = observer(
   ({ isOpen, onClose, environment }) => {
+    const context = useFormulize();
+    const computationStore = context?.computationStore;
+    const executionStore = context?.executionStore;
+
+    // Guard: stores must be available
+    if (!computationStore || !executionStore) {
+      return null;
+    }
+    const ctx = executionStore;
     const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
     const [userCode, setUserCode] = useState<string>("");
     const [isInterpreterCollapsed, setIsInterpreterCollapsed] = useState(false);
@@ -113,8 +122,8 @@ const DebugModal: React.FC<DebugModalProps> = observer(
 
     const handleRefresh = useCallback(() => {
       clearUserViewLine();
-      refresh(ctx.code, ctx.environment);
-    }, [clearUserViewLine]);
+      refresh(ctx.code, ctx.environment, ctx, computationStore);
+    }, [clearUserViewLine, ctx, computationStore]);
 
     // Toggle auto-play
     const toggleAutoPlay = () => {
@@ -133,7 +142,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
             ctx.setIsRunning(false);
             return;
           }
-          stepForward();
+          stepForward(ctx, computationStore);
         }, ctx.autoPlaySpeed);
       }
     };
@@ -220,9 +229,12 @@ const DebugModal: React.FC<DebugModalProps> = observer(
     );
 
     // Handle clicking on timeline items to travel to that point in history
-    const handleTimelineItemClick = useCallback((index: number) => {
-      stepToIndex(index);
-    }, []);
+    const handleTimelineItemClick = useCallback(
+      (index: number) => {
+        stepToIndex(index, ctx, computationStore);
+      },
+      [ctx, computationStore]
+    );
 
     const currentState = ctx.history[ctx.historyIndex];
 

@@ -2,7 +2,7 @@ import { runInAction } from "mobx";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import { IVector } from "../../types/plot2d";
 import { getVariableValue } from "../../util/computation-helpers";
 import { VECTOR_DEFAULTS } from "./defaults";
@@ -16,12 +16,15 @@ export interface VectorData {
 /**
  * Processes vector data by resolving variable references
  */
-export function processVectorData(vector: IVector): VectorData[] {
+export function processVectorData(
+  vector: IVector,
+  computationStore: ComputationStore
+): VectorData[] {
   const xData = vector.x.map((val) =>
-    typeof val === "string" ? getVariableValue(val) : val
+    typeof val === "string" ? getVariableValue(val, computationStore) : val
   );
   const yData = vector.y.map((val) =>
-    typeof val === "string" ? getVariableValue(val) : val
+    typeof val === "string" ? getVariableValue(val, computationStore) : val
   );
 
   return xData.map((x, i) => ({
@@ -57,9 +60,11 @@ export function renderVector(
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
   plotWidth?: number,
-  plotHeight?: number
+  plotHeight?: number,
+  computationStore?: ComputationStore
 ): void {
-  const vectorData = processVectorData(vector);
+  if (!computationStore) return;
+  const vectorData = processVectorData(vector, computationStore);
   const shape = vector.shape || VECTOR_DEFAULTS.shape;
   const color = vector.color || VECTOR_DEFAULTS.color;
   const isDraggable = vector.draggable !== false && shape === "arrow";
@@ -483,8 +488,10 @@ export function renderVectors(
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
   plotWidth?: number,
-  plotHeight?: number
+  plotHeight?: number,
+  computationStore?: ComputationStore
 ): void {
+  if (!computationStore) return;
   vectors.forEach((vector, index) => {
     renderVector(
       svg,
@@ -494,7 +501,8 @@ export function renderVectors(
       xScale,
       yScale,
       plotWidth,
-      plotHeight
+      plotHeight,
+      computationStore
     );
   });
 }

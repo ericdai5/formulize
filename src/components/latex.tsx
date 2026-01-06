@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../store/computation";
+import { useFormulize } from "./useFormulize";
 
 interface LatexLabelProps {
   latex: string;
@@ -12,9 +12,12 @@ interface LatexLabelProps {
 const LatexLabel = observer(
   ({ latex, fontSize: customFontSize }: LatexLabelProps) => {
     const labelRef = useRef<HTMLSpanElement>(null);
+    // Use context if available, but don't require it (component can be used standalone)
+    const formulizeContext = useFormulize();
+    const labelFontSize =
+      formulizeContext?.computationStore?.environment?.labelFontSize;
 
-    const fontSize =
-      customFontSize ?? computationStore.environment?.labelFontSize ?? 1.0;
+    const fontSize = customFontSize ?? labelFontSize ?? 1.0;
 
     useEffect(() => {
       let isMounted = true; // Track if component is still mounted

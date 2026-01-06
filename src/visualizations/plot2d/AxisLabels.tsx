@@ -3,7 +3,7 @@ import React from "react";
 import { observer } from "mobx-react-lite";
 
 import LatexLabel from "../../components/latex";
-import { computationStore } from "../../store/computation";
+import { useFormulize } from "../../components/useFormulize";
 import { type AxisLabelInfo } from "./axes";
 
 interface AxisLabelsProps {
@@ -14,6 +14,12 @@ interface AxisLabelsProps {
 
 export const AxisLabels: React.FC<AxisLabelsProps> = observer(
   ({ labelInfo, xAxisHovered = false, yAxisHovered = false }) => {
+    const context = useFormulize();
+    const computationStore = context?.computationStore;
+
+    if (!computationStore) {
+      return null;
+    }
     // Get fontSize from environment, with default and scaling for MathJax scale=1.0
     const fontSize = computationStore.environment?.fontSize ?? 1;
 

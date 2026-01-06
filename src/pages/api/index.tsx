@@ -14,8 +14,7 @@ import IconButton from "../../components/icon-button";
 import Modal from "../../components/modal";
 import { examples as formulaExamples } from "../../examples";
 import { FormulizeConfig } from "../../formulize";
-import Formulize from "../../rendering/formulize";
-import { executionStore } from "../../store/execution";
+import FormulaCanvas from "../../rendering/formulize";
 import { executeUserCode } from "../../util/code-executor";
 
 export default function APIPage() {
@@ -79,9 +78,6 @@ export default function APIPage() {
   // Update formulize input when selectedTemplate changes
   useEffect(() => {
     if (selectedTemplate && formulaExamples[selectedTemplate]) {
-      // Reset execution store when switching templates
-      executionStore.reset();
-
       // Check if we have saved code for this template, otherwise use the default example
       const savedCode = codeByTemplateRef.current[selectedTemplate];
       const newFormula = savedCode || formulaExamples[selectedTemplate];
@@ -108,6 +104,14 @@ export default function APIPage() {
     },
     [selectedTemplate]
   );
+
+  // Memoized callback to prevent FormulizeProvider re-initialization on parent re-renders
+  const handleRenderError = useCallback((formulizeError: string | null) => {
+    // If there's a formulize error, it takes precedence over code execution errors
+    if (formulizeError) {
+      setError(formulizeError);
+    }
+  }, []);
 
   return (
     <div className="relative h-full flex">
@@ -157,14 +161,9 @@ export default function APIPage() {
       <div
         className={`relative flex-1 transition-all duration-300 ease-in-out`}
       >
-        <Formulize
+        <FormulaCanvas
           formulizeConfig={config || undefined}
-          onRenderError={(formulizeError) => {
-            // If there's a formulize error, it takes precedence over code execution errors
-            if (formulizeError) {
-              setError(formulizeError);
-            }
-          }}
+          onRenderError={handleRenderError}
         />
         <div className="absolute top-4 left-4 z-30">
           <IconButton

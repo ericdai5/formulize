@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { computationStore } from "../../store/computation";
+import { useFormulize } from "../../components/useFormulize";
 import { IRole } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";
 
@@ -15,17 +15,20 @@ const VariableTooltip = ({
   currentRole: IRole | "none";
   id: string;
 }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const [value, setValue] = useState("0");
-  const variable = getVariable(id);
+  const variable = computationStore ? getVariable(id, computationStore) : null;
 
   // Initialize value from variable state
   useEffect(() => {
     if (variable && variable.value !== undefined) {
       setValue(variable.value.toString());
     }
-  }, [variable?.value]);
+  }, [variable]);
 
   const handleRoleSelect = (role: IRole) => {
+    if (!computationStore) return;
     if (role === "constant") {
       setShowValueInput(true);
     } else {
@@ -37,6 +40,7 @@ const VariableTooltip = ({
 
   const handleValueSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!computationStore) return;
     const numValue = parseFloat(value);
     if (!isNaN(numValue)) {
       computationStore.setValue(id, numValue);

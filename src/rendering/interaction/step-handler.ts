@@ -4,67 +4,50 @@ import {
   extractLine,
   findMemberOfVariable,
 } from "../../engine/manual/extract";
-import { findVariableByElement } from "../../parse/variable";
-import { computationStore } from "../../store/computation";
-import { executionStore } from "../../store/execution";
-import { getVariable } from "../../util/computation-helpers";
+import { ComputationStore } from "../../store/computation";
+import { ExecutionStore } from "../../store/execution";
 import { VAR_SELECTORS } from "../css-classes";
-
-export const stepHandler = (container: HTMLElement) => {
-  if (!container) return;
-  const interactiveElements = container.querySelectorAll(
-    VAR_SELECTORS.INPUT_AND_COMPUTED
-  );
-  interactiveElements.forEach((element) => {
-    // Find the variable using the improved matching function
-    const variableMatch = findVariableByElement(element as HTMLElement);
-    if (!variableMatch) {
-      return;
-    }
-    const { varId } = variableMatch;
-    const variable = getVariable(varId);
-    if (!variable) {
-      return;
-    }
-    // In step mode, elements should be non-interactive
-    // Remove any existing event listeners by cloning the element
-    const newElement = element.cloneNode(true) as HTMLElement;
-    element.parentNode?.replaceChild(newElement, element);
-    // Add a visual indicator that this is in step mode
-    newElement.classList.add("step-mode");
-    newElement.style.cursor = "default";
-    // Add tooltip showing step mode
-    newElement.title = `${variable.name || varId} (Step Mode)`;
-  });
-};
 
 /**
  * Function to update all variables based on the current step state.
  * @param variables - All variables extracted from interpreter state (source of truth)
  * @param linkageMap - Map of local variable names to variable IDs (can be string or string[] for multi-linkages)
  * @param currentLineCode - The current line of code being executed
+ * @param computationStore - The computation store for this formulize instance
+ * @param executionStore - The execution store for this formulize instance
  * @returns Set of variable IDs that should be active/highlighted (only those on current line)
  */
 export const updateAllVariables = (
   variables: Record<string, unknown>,
   linkageMap: Record<string, string | string[]>,
-  currentLineCode: string
+  currentLineCode: string,
+  computationStore: ComputationStore,
+  executionStore: ExecutionStore
 ): Set<string> => {
   const line = extractLine(currentLineCode);
   const identifiers = extractIdentifiers(line);
   const arrayAccesses = extractArrayAccess(line);
-  updateSingleLinkageValues(variables, linkageMap);
+
+  updateSingleLinkageValues(
+    variables,
+    linkageMap,
+    computationStore,
+    executionStore
+  );
   return determineActiveVariables(
     variables,
     linkageMap,
     identifiers,
-    arrayAccesses
+    arrayAccesses,
+    computationStore
   );
 };
 
 const updateSingleLinkageValues = (
   variables: Record<string, unknown>,
-  linkageMap: Record<string, string | string[]>
+  linkageMap: Record<string, string | string[]>,
+  computationStore: ComputationStore,
+  executionStore: ExecutionStore
 ) => {
   Object.entries(linkageMap).forEach(([localVarName, varId]) => {
     if (Array.isArray(varId)) {
@@ -95,7 +78,8 @@ const determineActiveVariables = (
   variables: Record<string, unknown>,
   linkageMap: Record<string, string | string[]>,
   identifiers: Set<string>,
-  arrayAccesses: Set<string>
+  arrayAccesses: Set<string>,
+  computationStore: ComputationStore
 ): Set<string> => {
   const activeVarIds = new Set<string>();
   Object.entries(linkageMap).forEach(([varName, varId]) => {
@@ -110,7 +94,7 @@ const determineActiveVariables = (
     if (Array.isArray(value)) {
       for (const iterVarId of varIds) {
         if (arrayAccesses.has(varName)) {
-          const memberVar = findMemberOfVariable(iterVarId);
+          const memberVar = findMemberOfVariable(iterVarId, computationStore);
           if (memberVar) {
             activeVarIds.add(memberVar);
             continue;
@@ -157,12 +141,12 @@ export const applyCue = (updatedVarIds: Set<string>) => {
     (element as HTMLElement).classList.remove("step-cue");
   });
   // Second pass: apply step-cue to matching elements
-  // Skip elements whose ancestors already have step-cue (nested variables)
+  // Use element ID directly instead of looking up in computationStore
+  // This works in multi-provider scenarios where the global store may not have the variables
   interactiveElements.forEach((element) => {
     const htmlEl = element as HTMLElement;
-    const variables = findVariableByElement(htmlEl);
-    if (!variables) return;
-    const { varId } = variables;
+    const varId = htmlEl.id;
+    if (!varId) return;
     // Only add step-cue to variables that were actually updated in this step
     // Skip if an ancestor already has step-cue (e.g., y inside y^{(i)} when y^{(i)} is active)
     if (updatedVarIds.has(varId) && !hasAncestorWithStepCue(htmlEl)) {

@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../store/computation";
 import { IVisualization } from "../types/visualization";
 import VisualizationRenderer from "../visualizations/visualization";
+import { useFormulize } from "./useFormulize";
 
 interface VisualizationComponentProps {
   type: "plot2d" | "plot3d" | "custom";
@@ -19,8 +19,15 @@ export const VisualizationComponent: React.FC<VisualizationComponentProps> =
   observer(({ config, className = "", style = {} }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isReady, setIsReady] = useState(false);
+    const context = useFormulize();
+    const computationStore = context?.computationStore;
+    const isLoading = context?.isLoading ?? true;
+    const instance = context?.instance;
 
     useEffect(() => {
+      // Wait for Formulize to be ready
+      if (isLoading || !instance || !computationStore) return;
+
       // Ensure computation store is initialized
       if (computationStore.variables.size > 0) {
         setIsReady(true);
@@ -35,7 +42,7 @@ export const VisualizationComponent: React.FC<VisualizationComponentProps> =
 
         return () => clearInterval(checkInterval);
       }
-    }, []);
+    }, [computationStore, isLoading, instance]);
 
     const containerStyle: React.CSSProperties = {
       width: "100%",

@@ -703,8 +703,13 @@ class ComputationStore {
   }
 }
 
-export const computationStore = new ComputationStore();
+/**
+ * Factory function to create a new ComputationStore instance.
+ * Used for creating scoped stores per FormulizeProvider.
+ */
+export function createComputationStore(): ComputationStore {
+  return new ComputationStore();
+}
 
-// window for debugging
-(window as unknown as Record<string, unknown>).computationStore =
-  computationStore;
+// Export the class for type usage
+export { ComputationStore };

@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import type { DataPoint } from "./Plot2D";
 import { setupCustomDragInteraction } from "./drag";
 import { createHoverGroup } from "./hover";
@@ -28,8 +28,10 @@ export function addInteractions(
   xAxis?: string,
   yAxis?: string,
   onDragEnd?: () => void,
-  interaction?: ["horizontal-drag" | "vertical-drag", string]
+  interaction?: ["horizontal-drag" | "vertical-drag", string],
+  computationStore?: ComputationStore
 ): void {
+  if (!computationStore) return;
   if (!xAxis || !yAxis || dataPoints.length === 0) return;
 
   // Create hover group with crosshairs (only if not using custom interaction)
@@ -79,26 +81,45 @@ export function addInteractions(
           plotHeight,
           xAxis,
           yAxis,
-          isDragging
+          isDragging,
+          computationStore
         );
       })
       .on("mousedown", (event) => {
         isDragging = true;
-        computationStore.setDragging(true);
-        handleMouseDown(event, hover, tooltip, xScale, xAxis);
+        handleMouseDown(event, hover, tooltip, xScale, xAxis, computationStore);
       })
       .on("mouseup", (event) => {
         isDragging = false;
-        computationStore.setDragging(false);
-        handleMouseUp(event, hover, plotWidth, plotHeight, onDragEnd);
+        handleMouseUp(
+          event,
+          hover,
+          plotWidth,
+          plotHeight,
+          onDragEnd,
+          computationStore
+        );
       })
       .on("click", (event) => {
-        handleClick(event, hover, dataPoints, xScale, xAxis, isDragging);
+        handleClick(
+          event,
+          hover,
+          dataPoints,
+          xScale,
+          xAxis,
+          isDragging,
+          computationStore
+        );
       });
   } else if (interaction) {
     // Custom interaction: incremental drag based on mouse delta
     const isDraggingRef = { current: isDragging };
-    setupCustomDragInteraction(interactionRect, interaction, isDraggingRef);
+    setupCustomDragInteraction(
+      interactionRect,
+      interaction,
+      isDraggingRef,
+      computationStore
+    );
   }
 }
 

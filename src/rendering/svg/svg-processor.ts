@@ -1,7 +1,7 @@
 /**
  * SVG Processor for handling SVG in variables
  */
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import { VAR_SELECTORS } from "../css-classes";
 import {
   SVGConfig,
@@ -21,8 +21,13 @@ export interface SVGPlaceholder {
 /**
  * Inject SVG elements for variables with SVG configuration
  * This function reads SVG configuration directly from variables in the computation store
+ * @param container - The container element to process
+ * @param computationStore - The computation store to use
  */
-export const injectVariableSVGs = (container: HTMLElement): void => {
+export const injectVariableSVGs = (
+  container: HTMLElement,
+  computationStore: ComputationStore
+): void => {
   // Find all elements with IDs (potential variables)
   const allVariableElements = container.querySelectorAll("[id]");
 

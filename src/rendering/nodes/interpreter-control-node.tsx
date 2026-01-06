@@ -7,10 +7,10 @@ import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import beautify from "js-beautify";
 
 import { SimplifiedInterpreterControls } from "../../components/interpreter-controls";
+import { useFormulize } from "../../components/useFormulize";
 import { refresh } from "../../engine/manual/execute";
 import { extractManual } from "../../engine/manual/extract";
 import { isAtBlock } from "../../engine/manual/interpreter";
-import { executionStore as ctx } from "../../store/execution";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../../util/codemirror";
 import {
   addArrowMarker,
@@ -23,10 +23,22 @@ import {
 // Interpreter Control Node Component
 const InterpreterControlNode = observer(({ data }: { data: any }) => {
   const { environment } = data;
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const executionStore = context?.executionStore;
   const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
   const [userCode, setUserCode] = useState<string>("");
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
-  const [initializedEnvironment, setInitializedEnvironment] = useState<any>(null);
+  const [initializedEnvironment, setInitializedEnvironment] =
+    useState<any>(null);
+
+  // Guard: executionStore and computationStore must be provided
+  if (!executionStore || !computationStore) {
+    return null;
+  }
+
+  // Use executionStore if available, otherwise create a fallback object for hooks
+  const ctx = executionStore;
 
   // Initialize user code when environment changes
   useEffect(() => {
@@ -59,11 +71,17 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
       }
 
       // Automatically initialize the interpreter so stepping works immediately
-      refresh(result.code, environment);
+      refresh(result.code, environment, executionStore, computationStore);
       // Track that this specific environment has been initialized
       setInitializedEnvironment(environment);
     }
-  }, [environment, initializedEnvironment]);
+  }, [
+    environment,
+    initializedEnvironment,
+    executionStore,
+    computationStore,
+    ctx,
+  ]);
 
   const clearUserViewLine = useCallback(() => {
     if (userViewCodeMirrorRef.current?.view) {
@@ -108,7 +126,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
 
       return userCharPos;
     },
-    [userCode]
+    [userCode, ctx.code]
   );
 
   const getLineFromCharPosition = useCallback(
@@ -146,7 +164,13 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
         }
       }
     },
-    [convertCharPos, getLineFromCharPosition, userCode, highlightUserViewLine]
+    [
+      convertCharPos,
+      getLineFromCharPosition,
+      userCode,
+      highlightUserViewLine,
+      ctx.history,
+    ]
   );
 
   const currentState = ctx.history[ctx.historyIndex];
@@ -174,6 +198,8 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
     highlightUserViewLine,
     clearUserViewLine,
     handleUserViewHighlighting,
+    ctx.historyIndex,
+    ctx.history,
   ]);
 
   // Calculate progress based on stepping mode

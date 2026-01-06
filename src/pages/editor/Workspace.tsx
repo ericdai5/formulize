@@ -2,9 +2,9 @@ import { MouseEvent, useCallback, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
+import { useFormulize } from "../../components/useFormulize";
 import { MathSymbol } from "../../parse/formula-tree";
 import { editingStore, formulaStore, selectionStore } from "../../store";
-import { computationStore } from "../../store/computation";
 import { IRole } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";
 import { AlignmentGuides } from "./AlignmentGuides";
@@ -12,6 +12,8 @@ import { RenderedFormula } from "./RenderedFormula";
 import VariableTooltip from "./VariableTooltip";
 
 export const Workspace = observer(() => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const [dragState, setDragState] = useState<
     | { state: "none" }
     | { state: "leftdown"; x: number; y: number }
@@ -117,15 +119,15 @@ export const Workspace = observer(() => {
   // Get current variable type for tooltip
   const getCurrentVariableRole = useCallback(() => {
     const activeVar = getActiveVariable();
-    if (!activeVar) return "none";
+    if (!activeVar || !computationStore) return "none";
 
-    return getVariable(activeVar.id)?.role || "none";
-  }, [getActiveVariable]);
+    return getVariable(activeVar.id, computationStore)?.role || "none";
+  }, [getActiveVariable, computationStore]);
 
   const handleVariableRoleSelect = useCallback(
     (role: IRole) => {
       const activeVar = getActiveVariable();
-      if (!activeVar) return;
+      if (!activeVar || !computationStore) return;
       computationStore.addVariable(activeVar.id);
       computationStore.setVariableRole(activeVar.id, role);
       // Only keep selection for constant variables
@@ -133,7 +135,7 @@ export const Workspace = observer(() => {
         selectionStore.clearSelection();
       }
     },
-    [getActiveVariable]
+    [getActiveVariable, computationStore]
   );
 
   return (
@@ -236,6 +238,8 @@ const SelectionBorders = observer(() => {
 });
 
 export const EnlivenMode = observer(() => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const [tooltipPosition, setTooltipPosition] = useState<{
     x: number;
     y: number;
@@ -273,6 +277,7 @@ export const EnlivenMode = observer(() => {
   };
 
   const handleVariableRoleSelect = (role: IRole) => {
+    if (!computationStore) return;
     const selection = selectionStore.siblingSelections[0]?.[0];
     if (!selection) return;
 
@@ -292,7 +297,7 @@ export const EnlivenMode = observer(() => {
     }
   };
 
-  if (!tooltipPosition) return null;
+  if (!tooltipPosition || !computationStore) return null;
 
   const variableId = selectedVar || getCurrentVariableId();
   if (!variableId) return null;
@@ -301,7 +306,7 @@ export const EnlivenMode = observer(() => {
     <VariableTooltip
       position={tooltipPosition}
       onSelect={handleVariableRoleSelect}
-      currentRole={getVariable(variableId)?.role || "none"}
+      currentRole={getVariable(variableId, computationStore)?.role || "none"}
       id={variableId}
     />
   );

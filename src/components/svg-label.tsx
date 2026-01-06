@@ -7,8 +7,8 @@ import type {
   VariableSVGContent,
 } from "../rendering/svg/svg-registry";
 import { sanitizeSVG } from "../rendering/svg/svg-registry";
-import { computationStore } from "../store/computation";
 import type { IVariable } from "../types/variable";
+import { useFormulize } from "./useFormulize";
 
 interface SVGLabelProps {
   svgPath?: string;
@@ -23,8 +23,11 @@ const SVGLabel = observer(
     const [svgData, setSvgData] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    // Use context if available, but don't require it
+    const formulizeContext = useFormulize();
+    const computationStore = formulizeContext?.computationStore;
 
-    const fontSize = computationStore.environment?.fontSize || 1;
+    const fontSize = computationStore?.environment?.fontSize || 1;
 
     useEffect(() => {
       const loadSVG = async () => {
@@ -42,7 +45,7 @@ const SVGLabel = observer(
                   height: size.height,
                   value: variable?.value,
                   variable: variable,
-                  environment: computationStore.environment || undefined,
+                  environment: computationStore?.environment || undefined,
                 };
                 const result = svgContent(context);
                 // Handle both string and SVGElement returns

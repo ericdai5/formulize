@@ -2,7 +2,7 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { computationStore } from "../../store/computation";
+import { useFormulize } from "../../components/useFormulize";
 import { HANDLE_STYLE } from "../css-classes";
 
 export interface ExpressionNodeData {
@@ -18,7 +18,9 @@ export interface ExpressionNodeData {
  */
 const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
   const { width, height } = data;
-  const showBorder = computationStore.showExpressionNodes;
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const showBorder = computationStore?.showExpressionNodes ?? false;
 
   return (
     <div

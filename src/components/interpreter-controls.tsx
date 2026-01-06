@@ -24,9 +24,9 @@ import {
   stepToPrevView,
   stepToView,
 } from "../engine/manual/execute";
-import { executionStore as ctx } from "../store/execution";
 import Button from "./button";
 import Select from "./select";
+import { useFormulize } from "./useFormulize";
 
 interface InterpreterControlsProps {
   onClose: () => void;
@@ -37,6 +37,17 @@ interface InterpreterControlsProps {
 
 const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
   ({ onClose, onRefresh, onToggleAutoPlay }) => {
+    const context = useFormulize();
+    const computationStore = context?.computationStore;
+    const executionStore = context?.executionStore;
+
+    // Stores are now required - return null if not provided
+    if (!executionStore || !computationStore) {
+      return null;
+    }
+    const ctx = executionStore;
+    const compStore = computationStore;
+
     // When browsing history, we can still use play/stepToView buttons as they auto-move to end
     // But only if execution isn't complete OR if we're not at the end of history yet
     const isBrowsingHistory = ctx.historyIndex < ctx.history.length - 1;
@@ -67,23 +78,23 @@ const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
       ctx.isSteppingToBlock;
 
     const handleStepBackward = () => {
-      stepBackward();
+      stepBackward(ctx, compStore);
     };
 
     const handleStepToNextBlock = () => {
-      stepToNextBlock();
+      stepToNextBlock(ctx, compStore);
     };
 
     const handleStepToPrevBlock = () => {
-      stepToPrevBlock();
+      stepToPrevBlock(ctx, compStore);
     };
 
     const handleStepForward = () => {
-      stepForward();
+      stepForward(ctx, compStore);
     };
 
     const handleStepToView = () => {
-      stepToView();
+      stepToView(ctx, compStore);
     };
 
     return (
@@ -145,13 +156,24 @@ const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
 export default InterpreterControls;
 
 // Simplified Interpreter Controls for canvas nodes
-interface SimplifiedInterpreterControlsProps {
+export interface SimplifiedInterpreterControlsProps {
   onToggleCode?: () => void;
   showCode?: boolean;
 }
 
 export const SimplifiedInterpreterControls: React.FC<SimplifiedInterpreterControlsProps> =
   observer(({ onToggleCode, showCode }) => {
+    const context = useFormulize();
+    const computationStore = context?.computationStore;
+    const executionStore = context?.executionStore;
+
+    // Stores are now required - return null if not provided
+    if (!executionStore || !computationStore) {
+      return null;
+    }
+    const ctx = executionStore;
+    const compStore = computationStore;
+
     // Common disabled state conditions
     const isStepping =
       ctx.isSteppingToView || ctx.isSteppingToIndex || ctx.isSteppingToBlock;
@@ -200,35 +222,45 @@ export const SimplifiedInterpreterControls: React.FC<SimplifiedInterpreterContro
 
     const handleSkipBack = () => {
       if (ctx.steppingMode === "view") {
-        if (ctx.viewPoints.length > 0) stepToIndex(ctx.viewPoints[0]);
+        if (ctx.viewPoints.length > 0)
+          stepToIndex(ctx.viewPoints[0], ctx, compStore);
       } else {
-        if (ctx.blockPoints.length > 0) stepToIndex(ctx.blockPoints[0]);
+        if (ctx.blockPoints.length > 0)
+          stepToIndex(ctx.blockPoints[0], ctx, compStore);
       }
     };
 
     const handleSkipForward = () => {
       if (ctx.steppingMode === "view") {
         if (ctx.viewPoints.length > 0)
-          stepToIndex(ctx.viewPoints[ctx.viewPoints.length - 1]);
+          stepToIndex(
+            ctx.viewPoints[ctx.viewPoints.length - 1],
+            ctx,
+            compStore
+          );
       } else {
         if (ctx.blockPoints.length > 0)
-          stepToIndex(ctx.blockPoints[ctx.blockPoints.length - 1]);
+          stepToIndex(
+            ctx.blockPoints[ctx.blockPoints.length - 1],
+            ctx,
+            compStore
+          );
       }
     };
 
     const handleStepNext = () => {
       if (ctx.steppingMode === "view") {
-        stepToView();
+        stepToView(ctx, compStore);
       } else {
-        stepToNextBlock();
+        stepToNextBlock(ctx, compStore);
       }
     };
 
     const handleStepPrev = () => {
       if (ctx.steppingMode === "view") {
-        stepToPrevView();
+        stepToPrevView(ctx, compStore);
       } else {
-        stepToPrevBlock();
+        stepToPrevBlock(ctx, compStore);
       }
     };
 

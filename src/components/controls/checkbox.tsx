@@ -1,20 +1,25 @@
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
 import { ICheckboxControl } from "../../types/control";
 import Latex from "../latex";
+import { useFormulize } from "../useFormulize";
 
 interface CheckboxControlProps {
   control: ICheckboxControl;
 }
 
 export const CheckboxControl = observer<CheckboxControlProps>(({ control }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+
+  // Guard: computationStore must be available
+  if (!computationStore) {
+    return <div className="text-red-500">No computation store available</div>;
+  }
   const { variable, availableElements, orientation = "horizontal" } = control;
 
   const variableData = computationStore.variables.get(variable || "");
-  const selected = Array.isArray(variableData?.value)
-    ? variableData.value
-    : [];
+  const selected = Array.isArray(variableData?.value) ? variableData.value : [];
 
   const toggle = (element: string) => {
     if (variable) {

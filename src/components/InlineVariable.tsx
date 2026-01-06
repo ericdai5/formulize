@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import { getInputVariableState } from "../parse/variable";
 import { VAR_CLASSES } from "../rendering/css-classes";
-import { computationStore } from "../store/computation";
+import { ComputationStore } from "../store/computation";
 import { useFormulize } from "./useFormulize";
 import { useMathJax } from "./useMathJax";
 
@@ -47,10 +47,12 @@ const InlineVariableInner = observer(
     id,
     display = "value",
     scale = 1,
+    computationStore,
   }: {
     id: string;
     display: DisplayMode;
     scale: number;
+    computationStore: ComputationStore;
   }) => {
     const containerRef = useRef<HTMLSpanElement>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
@@ -58,7 +60,7 @@ const InlineVariableInner = observer(
     // Get the variable from store
     const getVariable = useCallback(() => {
       return computationStore.variables.get(id);
-    }, [id]);
+    }, [id, computationStore]);
 
     // Get hover state for this variable
     const isHovered = computationStore.hoverStates.get(id) ?? false;
@@ -161,7 +163,7 @@ const InlineVariableInner = observer(
           let startY = 0;
           let startValue = 0;
 
-          const variableState = getInputVariableState(id);
+          const variableState = getInputVariableState(id, computationStore);
           if (!variableState) return;
 
           const { stepSize, minValue, maxValue } = variableState;
@@ -206,7 +208,7 @@ const InlineVariableInner = observer(
           container.addEventListener("mousedown", handleMouseDown);
         }
       },
-      [id]
+      [id, computationStore]
     );
 
     // Initial render when MathJax is ready
@@ -233,7 +235,7 @@ const InlineVariableInner = observer(
       );
 
       return () => disposer();
-    }, [id, mathJaxLoaded, renderVariable]);
+    }, [id, mathJaxLoaded, renderVariable, computationStore]);
 
     return (
       <span
@@ -257,10 +259,13 @@ const InlineVariableInner = observer(
  */
 export const InlineVariable: React.FC<InlineVariableProps> = observer(
   ({ id, display = "value", className = "", style = {}, scale = 1 }) => {
-    const { instance, isLoading } = useFormulize();
+    const context = useFormulize();
+    const instance = context?.instance;
+    const isLoading = context?.isLoading ?? true;
+    const computationStore = context?.computationStore;
 
-    // Show placeholder while loading
-    if (isLoading || !instance) {
+    // Show placeholder while loading or no context
+    if (isLoading || !instance || !computationStore) {
       return (
         <span
           className={`inline-variable ${className}`}
@@ -276,7 +281,12 @@ export const InlineVariable: React.FC<InlineVariableProps> = observer(
         className={`inline-variable-wrapper ${className}`}
         style={{ display: "inline", ...style }}
       >
-        <InlineVariableInner id={id} display={display} scale={scale} />
+        <InlineVariableInner
+          id={id}
+          display={display}
+          scale={scale}
+          computationStore={computationStore}
+        />
       </span>
     );
   }

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import { reaction, runInAction } from "mobx";
 
-import { computationStore } from "../../store/computation";
+import { useFormulize } from "../../components/useFormulize";
 import { IContext, ICustom } from "../../types/custom";
 import {
   getVariableValue,
@@ -31,47 +31,56 @@ const ErrorDisplay: React.FC<{ error: string }> = ({ error }) => (
  * Re-renders when variable values change but avoids infinite loops
  */
 const Canvas: React.FC<CanvasProps> = ({ config }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const [variables, setVariables] = useState<Record<string, number>>({});
   const { component, update = {} } = config;
 
   // Create stable callback functions
   const updateVariableCallback = useCallback(
     (variableName: string, value: number) => {
+      if (!computationStore) return;
       try {
         if (computationStore.variables.has(variableName)) {
           runInAction(() => {
-            updateVariable(variableName, value);
+            updateVariable(variableName, value, computationStore);
           });
         }
       } catch (error) {
         console.error(`Error updating variable ${variableName}:`, error);
       }
     },
-    []
+    [computationStore]
   );
 
-  const getVariableCallback = useCallback((variableName: string) => {
-    return getVariableValue(variableName);
-  }, []);
+  const getVariableCallback = useCallback(
+    (variableName: string) => {
+      if (!computationStore) return 0;
+      return getVariableValue(variableName, computationStore);
+    },
+    [computationStore]
+  );
 
   // Function to safely get all variables without causing loops
   const getAllVariablesSafe = useCallback(() => {
+    if (!computationStore) return {};
     const vars: Record<string, number> = {};
     computationStore.variables.forEach((variable, name) => {
       const value = variable.value;
       vars[name] = typeof value === "number" ? value : 0;
     });
     return vars;
-  }, []);
+  }, [computationStore]);
 
   // Initial variable loading
   useEffect(() => {
+    if (!computationStore) return;
     setVariables(getAllVariablesSafe());
-  }, [getAllVariablesSafe]);
+  }, [getAllVariablesSafe, computationStore]);
 
   // Set up variable change reaction only if needed
   useEffect(() => {
-    if (!update.onVariableChange) return;
+    if (!computationStore || !update.onVariableChange) return;
 
     const disposer = reaction(
       () => {
@@ -88,7 +97,12 @@ const Canvas: React.FC<CanvasProps> = ({ config }) => {
     );
 
     return () => disposer();
-  }, [update.onVariableChange, getAllVariablesSafe]);
+  }, [computationStore, update.onVariableChange, getAllVariablesSafe]);
+
+  // Guard: computationStore must be available
+  if (!computationStore) {
+    return <ErrorDisplay error="No computation store available" />;
+  }
 
   // Render the component
   const renderContent = () => {
@@ -109,13 +123,13 @@ const Canvas: React.FC<CanvasProps> = ({ config }) => {
 
     try {
       // Create context with current variable values from state
-      const context: IContext = {
+      const vizContext: IContext = {
         variables: variables, // Use the state variables with actual values
         updateVariable: updateVariableCallback,
         getVariable: getVariableCallback,
       };
 
-      return <ComponentClass context={context} />;
+      return <ComponentClass context={vizContext} />;
     } catch (err) {
       return (
         <ErrorDisplay

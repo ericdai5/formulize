@@ -2,24 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { computationStore } from "../../store/computation";
 import { ISetControl } from "../../types/control";
+import { useFormulize } from "../useFormulize";
 
 interface SetControlProps {
   control: ISetControl;
 }
 
 export const SetControl = observer<SetControlProps>(({ control }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+
   const { variable, availableElements, color = "#3b82f6" } = control;
 
   const variableId = variable;
-  const variableData = computationStore.variables.get(variableId || "");
+  const variableData = computationStore?.variables.get(variableId || "");
 
   const currentSelectedElements = useMemo(
-    () =>
-      Array.isArray(variableData?.value)
-        ? variableData.value
-        : [],
+    () => (Array.isArray(variableData?.value) ? variableData.value : []),
     [variableData?.value]
   );
 
@@ -46,24 +46,29 @@ export const SetControl = observer<SetControlProps>(({ control }) => {
         ? currentSelectedElements.filter((e) => e !== element)
         : [...currentSelectedElements, element];
 
-      if (variableId) {
+      if (variableId && computationStore) {
         computationStore.setSetValue(variableId, newSelection);
       }
     },
-    [currentSelectedElements, variableId]
+    [currentSelectedElements, variableId, computationStore]
   );
 
   const handleSelectAll = useCallback(() => {
-    if (variableId) {
+    if (variableId && computationStore) {
       computationStore.setSetValue(variableId, [...currentAvailableElements]);
     }
-  }, [currentAvailableElements, variableId]);
+  }, [currentAvailableElements, variableId, computationStore]);
 
   const handleSelectNone = useCallback(() => {
-    if (variableId) {
+    if (variableId && computationStore) {
       computationStore.setSetValue(variableId, []);
     }
-  }, [variableId]);
+  }, [variableId, computationStore]);
+
+  // Guard: computationStore must be available (after all hooks)
+  if (!computationStore) {
+    return <div className="text-red-500">No computation store available</div>;
+  }
 
   return (
     <div className="set-control border rounded-lg p-4 bg-white w-80">

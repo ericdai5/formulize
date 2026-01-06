@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import * as d3 from "d3";
 
-import { computationStore } from "../../store/computation";
+import { useFormulize } from "../../components/useFormulize";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
 import { AxisLabels } from "./AxisLabels";
 import { autoDetectPlotConfig } from "./auto-detect";
@@ -26,14 +26,13 @@ export interface DataPoint {
 }
 
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const axisLabelInfoRef = useRef<AxisLabelInfo>({});
 
-  // Auto-detect axes and ranges if not provided
-  const autoDetected = autoDetectPlotConfig(config);
-
-  // Parse configuration options with defaults (using auto-detected values)
+  // Parse configuration options with defaults
   const {
     xAxisInterval,
     xAxisPos,
@@ -49,15 +48,29 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     interaction,
   } = config;
 
-  // Use auto-detected or config-specified values
-  const xAxis = config.xAxis || autoDetected.xAxis;
-  const yAxis = config.yAxis || autoDetected.yAxis;
-  const xRange = config.xRange || autoDetected.xRange;
-  const yRange = config.yRange || autoDetected.yRange;
-
   // If lines is not provided, default to a single line
   // This allows users to just specify xAxis/yAxis without explicitly defining lines
   const lines = useMemo(() => config.lines || [{}], [config.lines]);
+
+  // Memoize auto-detected config and derived values
+  const { xAxis, yAxis, xRange, yRange } = useMemo(() => {
+    if (!computationStore) {
+      // Return defaults when computationStore is not available
+      return {
+        xAxis: config.xAxis || "",
+        yAxis: config.yAxis || "",
+        xRange: config.xRange || ([-10, 10] as [number, number]),
+        yRange: config.yRange || ([-10, 10] as [number, number]),
+      };
+    }
+    const autoDetected = autoDetectPlotConfig(config, computationStore);
+    return {
+      xAxis: config.xAxis || autoDetected.xAxis,
+      yAxis: config.yAxis || autoDetected.yAxis,
+      xRange: config.xRange || autoDetected.xRange,
+      yRange: config.yRange || autoDetected.yRange,
+    };
+  }, [config, computationStore]);
 
   // Calculate plot dimensions using helper function
   const { plotWidth, plotHeight, margin } = calculatePlotDimensions(
@@ -71,6 +84,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
   // Function to draw the plot
   const drawPlot = useCallback(() => {
+    // Guard: computationStore must be available
+    if (!computationStore) return;
+
     // Don't full-redraw during standard drag operations to prevent losing the interaction element
     // The 'reaction' below handles live updates via DOM manipulation instead
     if (computationStore.isDragging && !interaction) return;
@@ -151,7 +167,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         xScale,
         yScale,
         plotWidth,
-        plotHeight
+        plotHeight,
+        computationStore
       );
     } else if (hasLines) {
       // Multiple lines mode
@@ -167,6 +184,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         [yMin, yMax],
         plotWidth,
         plotHeight,
+        computationStore,
         drawPlot,
         interaction
       );
@@ -182,6 +200,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         plotHeight,
         xAxis,
         yAxis,
+        computationStore,
       });
     }
   }, [
@@ -205,10 +224,14 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     xGrid,
     yGrid,
     interaction,
+    computationStore,
   ]);
 
   // Set up reaction to re-render when any variable changes
   useEffect(() => {
+    // Guard: computationStore must be available
+    if (!computationStore) return;
+
     const disposer = reaction(
       () => {
         // Only skip tracking during default dragging (not custom interaction)
@@ -234,12 +257,17 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     );
 
     return () => disposer();
-  }, [drawPlot, interaction]);
+  }, [drawPlot, interaction, computationStore]);
 
   // Re-draw when config changes
   useEffect(() => {
     drawPlot();
   }, [config, drawPlot]);
+
+  // Guard: computationStore must be provided - placed after all hooks
+  if (!computationStore) {
+    return <div className="plot2d-loading">Loading plot...</div>;
+  }
 
   return (
     <div className="formulize-plot2d" style={{ position: "relative" }}>

@@ -270,5 +270,13 @@ class ExecutionStore {
   }
 }
 
-// Create singleton instance
-export const executionStore = new ExecutionStore();
+/**
+ * Factory function to create a new ExecutionStore instance.
+ * Used for creating scoped stores per FormulizeProvider.
+ */
+export function createExecutionStore(): ExecutionStore {
+  return new ExecutionStore();
+}
+
+// Export the class for type usage
+export { ExecutionStore };

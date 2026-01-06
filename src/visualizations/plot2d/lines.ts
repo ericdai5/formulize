@@ -1,9 +1,8 @@
 import * as d3 from "d3";
 
 import { solveSingularFormula } from "../../engine/singular-formula-solver";
-import { computationStore } from "../../store/computation";
+import { ComputationStore } from "../../store/computation";
 import { type ILine } from "../../types/plot2d";
-import { getVariableValue } from "../../util/computation-helpers";
 import { addCurrentPointHighlight, addInteractions } from "./interaction";
 
 export interface DataPoint {
@@ -14,8 +13,11 @@ export interface DataPoint {
 /**
  * Get the formula expression for a given line name/formula id
  */
-function getFormulaExpression(lineName?: string): string | null {
-  const environment = computationStore.environment;
+function getFormulaExpression(
+  lineName: string | undefined,
+  store: ComputationStore
+): string | null {
+  const environment = store.environment;
   if (!environment?.semantics?.expressions) return null;
 
   const expressions = environment.semantics.expressions;
@@ -44,7 +46,8 @@ function calculateLineDataPoints(
   xMax: number,
   yMin: number,
   yMax: number,
-  lineName?: string
+  lineName: string | undefined,
+  computationStore: ComputationStore
 ): DataPoint[] {
   const points: DataPoint[] = [];
 
@@ -56,7 +59,7 @@ function calculateLineDataPoints(
   }
 
   // Get the specific formula expression for this line
-  const expression = getFormulaExpression(lineName);
+  const expression = getFormulaExpression(lineName, computationStore);
 
   // Fallback to global evaluation function if no specific expression
   const evalFunction = computationStore.evaluateFormula;
@@ -136,6 +139,7 @@ export function renderLines(
   yRange: [number, number],
   plotWidth: number,
   plotHeight: number,
+  computationStore: ComputationStore,
   onDragEnd?: () => void,
   interaction?: ["horizontal-drag" | "vertical-drag", string]
 ): void {
@@ -181,7 +185,8 @@ export function renderLines(
       xMax,
       yMin,
       yMax,
-      lineConfig.name // Pass the line name to select the specific formula
+      lineConfig.name, // Pass the line name to select the specific formula
+      computationStore
     );
 
     if (points.length > 0) {
@@ -205,17 +210,14 @@ export function renderLines(
 
       // Add current point highlight for each line (only if not using custom interaction)
       if (!interaction) {
-        const currentX = getVariableValue(xAxis);
-        const currentY = getVariableValue(yAxis);
+        // Get current values from the scoped computation store
+        const xVar = computationStore.variables.get(xAxis);
+        const yVar = computationStore.variables.get(yAxis);
+        const currentX = typeof xVar?.value === "number" ? xVar.value : 0;
+        const currentY = typeof yVar?.value === "number" ? yVar.value : 0;
         const currentPointData = {
-          x:
-            typeof currentX === "number"
-              ? currentX
-              : parseFloat(String(currentX)) || 0,
-          y:
-            typeof currentY === "number"
-              ? currentY
-              : parseFloat(String(currentY)) || 0,
+          x: currentX,
+          y: currentY,
         };
 
         addCurrentPointHighlight(
@@ -226,7 +228,8 @@ export function renderLines(
           [xMin, xMax],
           [yMin, yMax],
           xAxis,
-          yAxis
+          yAxis,
+          computationStore
         );
       }
     }
@@ -245,7 +248,8 @@ export function renderLines(
       xAxis,
       yAxis,
       onDragEnd,
-      interaction
+      interaction,
+      computationStore
     );
   }
 }

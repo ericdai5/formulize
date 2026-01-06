@@ -9,7 +9,6 @@ import beautify from "js-beautify";
 import { refresh } from "../engine/manual/execute";
 import { extractManual } from "../engine/manual/extract";
 import { isAtBlock } from "../engine/manual/interpreter";
-import { executionStore as ctx } from "../store/execution";
 import { IEnvironment } from "../types/environment";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
@@ -45,27 +44,27 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
     const [isUserViewCollapsed, setIsUserViewCollapsed] =
       useState(defaultCollapsed);
     const [error, setError] = useState<string | null>(null);
-    const [initializedEnvironment, setInitializedEnvironment] = useState<any>(null);
+    const [initializedEnvironment, setInitializedEnvironment] =
+      useState<IEnvironment | null>(null);
 
     // Get the Formulize context to know when the instance is ready
     // This ensures computationStore is populated before we initialize the interpreter
-    let formulizeInstance: unknown = null;
-    let formulizeIsLoading = true; // Default to loading until we know otherwise
-    let hasFormulizeContext = false;
-    try {
-      const context = useFormulize();
-      hasFormulizeContext = true;
-      formulizeInstance = context.instance;
-      formulizeIsLoading = context.isLoading;
-    } catch {
-      // useFormulize throws if not inside FormulizeProvider
-      // That's ok - set isLoading to false so we don't block
-      formulizeIsLoading = false;
-      hasFormulizeContext = false;
-    }
+    const context = useFormulize();
+    const hasFormulizeContext = context !== null;
+    const formulizeInstance = context?.instance ?? null;
+    const formulizeIsLoading = context?.isLoading ?? false;
+    const executionStore = context?.executionStore ?? null;
+    const computationStore = context?.computationStore ?? null;
+
+    // Stores may be null while FormulizeProvider is still loading
+    const storesReady = executionStore !== null && computationStore !== null;
 
     // Initialize user code when environment changes AND Formulize instance is ready
     useEffect(() => {
+      // Wait for stores to be available
+      if (!storesReady) {
+        return;
+      }
       if (!environment) {
         setError("No environment provided");
         return;
@@ -91,8 +90,8 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
       }
       if (result.code) {
         setError(null);
-        ctx.setCode(result.code);
-        ctx.setEnvironment(environment);
+        executionStore.setCode(result.code);
+        executionStore.setEnvironment(environment);
         // Set the user view code to the original manual function
         if (environment?.semantics?.manual) {
           const manualFunction = environment.semantics.manual;
@@ -109,16 +108,20 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
         }
 
         // Automatically initialize the interpreter so stepping works immediately
-        refresh(result.code, environment);
+        // Pass both scoped stores for multi-provider scenarios
+        refresh(result.code, environment, executionStore, computationStore);
         // Track that this specific environment has been initialized
         setInitializedEnvironment(environment);
       }
     }, [
       environment,
+      executionStore,
+      computationStore,
       formulizeInstance,
       formulizeIsLoading,
       hasFormulizeContext,
       initializedEnvironment,
+      storesReady,
     ]);
 
     const clearUserViewLine = useCallback(() => {
@@ -132,7 +135,8 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
 
     const convertCharPos = useCallback(
       (interpreterCharPos: number): number => {
-        const interpreterLines = ctx.code.split("\n");
+        if (!executionStore) return 0;
+        const interpreterLines = executionStore.code.split("\n");
         const userLines = userCode.split("\n");
 
         // Find which line in interpreter code the character position corresponds to
@@ -162,7 +166,7 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
 
         return userCharPos;
       },
-      [userCode]
+      [userCode, executionStore]
     );
 
     const getLineFromCharPosition = useCallback(
@@ -191,8 +195,9 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
     // Helper function to handle user view highlighting for block statements
     const handleUserViewHighlighting = useCallback(
       (index: number) => {
-        if (isAtBlock(ctx.history, index) && index > 0) {
-          const previousState = ctx.history[index - 1];
+        if (!executionStore) return;
+        if (isAtBlock(executionStore.history, index) && index > 0) {
+          const previousState = executionStore.history[index - 1];
           if (previousState?.highlight) {
             const userCharPos = convertCharPos(previousState.highlight.start);
             const previousLine = getLineFromCharPosition(userCode, userCharPos);
@@ -200,13 +205,25 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
           }
         }
       },
-      [convertCharPos, getLineFromCharPosition, userCode, highlightUserViewLine]
+      [
+        convertCharPos,
+        getLineFromCharPosition,
+        userCode,
+        highlightUserViewLine,
+        executionStore,
+      ]
     );
 
-    const currentState = ctx.history[ctx.historyIndex];
+    const currentState =
+      executionStore?.history[executionStore?.historyIndex ?? 0];
 
     useEffect(() => {
-      if (!ctx.history || ctx.history.length === 0 || !userCode) {
+      if (
+        !executionStore ||
+        !executionStore.history ||
+        executionStore.history.length === 0 ||
+        !userCode
+      ) {
         clearUserViewLine();
         return;
       }
@@ -216,7 +233,7 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
         const userLine = getLineFromCharPosition(userCode, userCharPos);
         highlightUserViewLine(userLine);
         // Also handle block statement highlighting
-        handleUserViewHighlighting(ctx.historyIndex);
+        handleUserViewHighlighting(executionStore.historyIndex);
       } else {
         clearUserViewLine();
       }
@@ -228,6 +245,7 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
       highlightUserViewLine,
       clearUserViewLine,
       handleUserViewHighlighting,
+      executionStore,
     ]);
 
     const containerStyle: React.CSSProperties = {
@@ -245,11 +263,23 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
       );
     }
 
+    // Show loading state while stores are being initialized
+    if (!storesReady) {
+      return (
+        <div
+          className={`border bg-white border-slate-200 rounded-lg shadow-sm p-4 ${className}`}
+          style={containerStyle}
+        >
+          <div className="text-slate-500 text-sm">Loading...</div>
+        </div>
+      );
+    }
+
     return (
-            <div
-              className={`border bg-white border-slate-200 rounded-lg shadow-sm ${className}`}
-              style={containerStyle}
-            >
+      <div
+        className={`border bg-white border-slate-200 rounded-lg shadow-sm ${className}`}
+        style={containerStyle}
+      >
         <SimplifiedInterpreterControls
           onToggleCode={() => setIsUserViewCollapsed(!isUserViewCollapsed)}
           showCode={!isUserViewCollapsed}

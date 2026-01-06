@@ -1,8 +1,7 @@
 import { VAR_CLASSES } from "../rendering/css-classes";
-import { computationStore } from "../store/computation";
-import { executionStore } from "../store/execution";
+import { ComputationStore } from "../store/computation";
+import { ExecutionStore } from "../store/execution";
 import { IRole } from "../types/variable";
-import { getVariable } from "../util/computation-helpers";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
   Accent,
@@ -31,9 +30,13 @@ import {
 /**
  * Get the CSS class for a variable based on its role
  * @param varSymbol - The variable symbol to look up
+ * @param computationStore - The computation store to use
  * @returns The appropriate CSS class string
  */
-const getCssClassForVariable = (varSymbol: string): string => {
+const getCssClassForVariable = (
+  varSymbol: string,
+  computationStore: ComputationStore
+): string => {
   const variable = computationStore.variables.get(varSymbol);
   const role = variable?.role || "constant";
   if (role === "input") {
@@ -60,6 +63,10 @@ interface NestedVariableConfig {
   memberHoverCSS?: string;
   /** Value to use for CSS variable interpolation */
   memberValue?: number;
+  /** Computation store (required) */
+  computationStore: ComputationStore;
+  /** Execution store (required) */
+  executionStore: ExecutionStore;
 }
 
 /**
@@ -82,6 +89,8 @@ const processNestedVariable = (
     memberDefaultCSS,
     memberHoverCSS,
     memberValue,
+    computationStore,
+    executionStore,
   } = config;
 
   const processNode = (node: AugmentedFormulaNode): string => {
@@ -91,7 +100,12 @@ const processNestedVariable = (
 
       // Check if this symbol matches the index variable
       if (indexVariable && symbol.value === indexVariable) {
-        return renderIndexVariable(symbol.value, defaultPrecision);
+        return renderIndexVariable(
+          symbol.value,
+          defaultPrecision,
+          computationStore,
+          executionStore
+        );
       }
 
       // Check if this symbol matches the memberOf parent variable
@@ -99,6 +113,7 @@ const processNestedVariable = (
         return renderMemberOfSymbol(
           symbol.value,
           memberOfSymbol,
+          computationStore,
           memberDefaultCSS,
           memberHoverCSS,
           memberValue
@@ -116,7 +131,10 @@ const processNestedVariable = (
         const accentLatex =
           "toLatex" in accent ? accent.toLatex("no-id", 0)[0] : "";
         if (accentLatex === memberOfSymbol) {
-          const cssClass = getCssClassForVariable(memberOfSymbol);
+          const cssClass = getCssClassForVariable(
+            memberOfSymbol,
+            computationStore
+          );
           const base = processNode(accent.base);
           return `\\cssId{${memberOfSymbol}}{\\class{${cssClass}}{${accent.label}{${base}}}}`;
         }
@@ -137,7 +155,9 @@ const processNestedVariable = (
  */
 const renderIndexVariable = (
   symbolValue: string,
-  defaultPrecision: number
+  defaultPrecision: number,
+  computationStore: ComputationStore,
+  executionStore: ExecutionStore
 ): string => {
   let value: number | undefined = undefined;
   let variablePrecision = defaultPrecision;
@@ -187,6 +207,7 @@ const renderIndexVariable = (
 const renderMemberOfSymbol = (
   symbolValue: string,
   memberOfSymbol: string,
+  computationStore: ComputationStore,
   memberDefaultCSS?: string,
   memberHoverCSS?: string,
   memberValue?: number
@@ -209,13 +230,18 @@ const renderMemberOfSymbol = (
   const valueToUse = memberValue !== undefined ? memberValue : parentValue;
 
   if (cssToApply) {
-    injectDefaultCSS(memberOfSymbol, cssToApply, valueToUse);
+    injectDefaultCSS(memberOfSymbol, cssToApply, computationStore, valueToUse);
   }
   if (hoverCssToApply) {
-    injectHoverCSS(memberOfSymbol, hoverCssToApply, valueToUse);
+    injectHoverCSS(
+      memberOfSymbol,
+      hoverCssToApply,
+      computationStore,
+      valueToUse
+    );
   }
 
-  const cssClass = getCssClassForVariable(memberOfSymbol);
+  const cssClass = getCssClassForVariable(memberOfSymbol, computationStore);
 
   // If parent has SVG in replace mode, use phantom for the matching symbol
   if (parentHasSVG && parentSvgMode === "replace") {
@@ -390,12 +416,14 @@ const getOriginalLatex = (node: AugmentedFormulaNode): string => {
  * @param node - The AST node to register
  * @param expressionType - Type of expression (e.g., "frac", "sum", "delim")
  * @param result - The processed LaTeX result to wrap
+ * @param computationStore - The computation store to use
  * @returns LaTeX string wrapped with cssId
  */
 const wrapWithExpressionScope = (
   node: AugmentedFormulaNode,
   expressionType: string,
-  result: string
+  result: string,
+  computationStore: ComputationStore
 ): string => {
   const originalLatex = getOriginalLatex(node);
   const containedVars = collectVariableIds(node);
@@ -429,10 +457,16 @@ const getLargeOperatorType = (
  * with CSS classes for interactive display.
  * Also auto-detects structural elements (summations, fractions, etc.) and wraps them
  * with data-expression attributes for accurate bounding box calculations.
+ * @param formula - The augmented formula to process
+ * @param defaultPrecision - Default precision for numeric display
+ * @param computationStore - The computation store to use (required)
+ * @param executionStore - The execution store to use (required)
  */
 export const processVariables = (
   formula: AugmentedFormula,
-  defaultPrecision: number = 2
+  defaultPrecision: number = 2,
+  computationStore: ComputationStore,
+  executionStore: ExecutionStore
 ): string => {
   // Clear existing expression scopes before processing
   computationStore.clearExpressionScopes();
@@ -495,6 +529,8 @@ export const processVariables = (
           memberDefaultCSS: defaultCSS || undefined,
           memberHoverCSS: hoverCSS || undefined,
           memberValue: value,
+          computationStore,
+          executionStore,
         });
       }
       // Use the original symbol as the CSS ID
@@ -511,10 +547,10 @@ export const processVariables = (
       }
       // Inject custom CSS and/or hover CSS into document head if defined
       if (defaultCSS) {
-        injectDefaultCSS(id, defaultCSS, value);
+        injectDefaultCSS(id, defaultCSS, computationStore, value);
       }
       if (hoverCSS) {
-        injectHoverCSS(id, hoverCSS, value);
+        injectHoverCSS(id, hoverCSS, computationStore, value);
       }
       // Wrap the processed body with CSS classes using the variable's specific precision
       // Show name, value, or both based on display property
@@ -574,12 +610,22 @@ export const processVariables = (
         // Check if this is a large operator (sum, prod, int) and wrap with data-expression
         const operatorType = getLargeOperatorType(script);
         if (operatorType) {
-          return wrapWithExpressionScope(script, operatorType, result);
+          return wrapWithExpressionScope(
+            script,
+            operatorType,
+            result,
+            computationStore
+          );
         }
 
         // Also register Script nodes that have a Delimited base (e.g., (\left(...\right))^2)
         if (script.base.type === "delimited" && (script.sub || script.sup)) {
-          return wrapWithExpressionScope(script, "script-delim", result);
+          return wrapWithExpressionScope(
+            script,
+            "script-delim",
+            result,
+            computationStore
+          );
         }
 
         return result;
@@ -590,7 +636,12 @@ export const processVariables = (
         const numerator = processNode(frac.numerator);
         const denominator = processNode(frac.denominator);
         const fracResult = `\\frac{${numerator}}{${denominator}}`;
-        return wrapWithExpressionScope(frac, "frac", fracResult);
+        return wrapWithExpressionScope(
+          frac,
+          "frac",
+          fracResult,
+          computationStore
+        );
       }
 
       case "group": {
@@ -650,14 +701,24 @@ export const processVariables = (
           .join(" \\\\ ");
 
         const matrixResult = `\\begin{${matrix.matrixType}}\n${rows}\n\\end{${matrix.matrixType}}`;
-        return wrapWithExpressionScope(matrix, "matrix", matrixResult);
+        return wrapWithExpressionScope(
+          matrix,
+          "matrix",
+          matrixResult,
+          computationStore
+        );
       }
 
       case "delimited": {
         const delimited = node as Delimited;
         const children = delimited.body.map(processNode).join(" ");
         const delimResult = `\\left${delimited.left}${children}\\right${delimited.right}`;
-        return wrapWithExpressionScope(delimited, "delim", delimResult);
+        return wrapWithExpressionScope(
+          delimited,
+          "delim",
+          delimResult,
+          computationStore
+        );
       }
 
       case "root": {
@@ -710,11 +771,14 @@ export const processVariables = (
 
 /**
  * Get variable state for input processing (used by drag handler)
+ * @param varId - The variable ID
+ * @param store - The computation store to use (required)
  */
 export const getInputVariableState = (
-  varId: string
+  varId: string,
+  store: ComputationStore
 ): { stepSize: number; minValue: number; maxValue: number } | null => {
-  const variable = getVariable(varId);
+  const variable = store.variables.get(varId);
   if (!variable) {
     return null;
   }
@@ -732,13 +796,21 @@ export const getInputVariableState = (
 
 /**
  * Find a variable by matching the element's CSS ID to variables in the computation store
+ * @param element - The HTML element to check
+ * @param computationStore - Optional computation store to search in
  */
 export const findVariableByElement = (
-  element: HTMLElement
+  element: HTMLElement,
+  computationStore?: ComputationStore
 ): { varId: string; symbol: string } | null => {
   const cssId = element.id;
   if (!cssId) {
     return null;
+  }
+  // If no store provided, just return the cssId as the varId
+  // (used in step-handler where we just need to match element IDs)
+  if (!computationStore) {
+    return { varId: cssId, symbol: cssId };
   }
   // The CSS ID should be the original variable symbol
   // Find the corresponding variable in the computation store
@@ -753,19 +825,30 @@ export const findVariableByElement = (
 /**
  * Process a latex string to find and wrap variables with CSS classes
  * This is the main function used by the Formula component
+ * @param latex - The LaTeX string to process
+ * @param defaultPrecision - Default precision for numeric display
+ * @param computationStore - The computation store to use (required)
+ * @param executionStore - The execution store to use (required)
  */
 export const processLatexContent = (
   latex: string,
-  defaultPrecision: number = 2
+  defaultPrecision: number,
+  computationStore: ComputationStore,
+  executionStore: ExecutionStore
 ): string => {
   try {
     // Get variable patterns from computation store
-    const variable = Array.from(computationStore.variables.keys());
+    const variables = Array.from(computationStore.variables.keys());
     // Parse variable patterns into trees for grouping
-    const variableTrees = parseVariableStrings(variable);
+    const variableTrees = parseVariableStrings(variables);
     // Create formula tree with variables grouped, passing original symbols
-    const formula = deriveTreeWithVars(latex, variableTrees, variable);
-    return processVariables(formula, defaultPrecision);
+    const formula = deriveTreeWithVars(latex, variableTrees, variables);
+    return processVariables(
+      formula,
+      defaultPrecision,
+      computationStore,
+      executionStore
+    );
   } catch (error) {
     console.warn("Failed to process latex content:", error);
     return latex; // Return original latex if processing fails
@@ -776,8 +859,13 @@ export const processLatexContent = (
  * Parse a latex string to find all variable identifiers contained within it.
  * This is useful for identifying which variables are present in a user-provided
  * LaTeX substring (like in a view() call).
+ * @param latex - The LaTeX string to parse
+ * @param computationStore - The computation store to use (required)
  */
-export const getVariablesFromLatexString = (latex: string): string[] => {
+export const getVariablesFromLatexString = (
+  latex: string,
+  computationStore: ComputationStore
+): string[] => {
   try {
     // Get variable patterns from computation store
     const variables = Array.from(computationStore.variables.keys());
