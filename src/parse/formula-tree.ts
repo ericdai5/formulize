@@ -2959,41 +2959,17 @@ const nodeMatches = (
 };
 
 /**
- * Convert a variable name with multiple underscores to valid LaTeX subscript notation.
- * For example: "w_2_1_3" -> "w_{2,1,3}"
- * This prevents KaTeX "Double subscript" errors.
- */
-const convertMultipleUnderscoresToLatex = (varName: string): string => {
-  // Skip if already contains LaTeX braces or doesn't have multiple underscores
-  if (varName.includes("{") || varName.includes("\\")) {
-    return varName;
-  }
-
-  // Match pattern: letter(s) followed by multiple underscore-separated indices
-  // e.g., "w_2_1_3" or "b_1_3" or "h_2_3"
-  const parts = varName.split("_");
-  if (parts.length <= 2) {
-    // Single or no underscore - standard LaTeX can handle this
-    return varName;
-  }
-
-  // First part is the base (e.g., "w"), rest are indices
-  const base = parts[0];
-  const indices = parts.slice(1).join(",");
-  return `${base}_{${indices}}`;
-};
-
-/**
  * Parse a variable string (like "P(B \mid A)") into a mini formula tree
  * Uses the existing deriveTree function to create the tree structure
+ *
+ * Note: Variable names must use valid LaTeX subscript notation.
+ * For multiple indices, use braces: "w_{1,2,3}" not "w_1_2_3"
  */
 export const parseVariableString = (
   variableString: string
 ): AugmentedFormula => {
   try {
-    // Convert variable names with multiple underscores to valid LaTeX
-    const latexString = convertMultipleUnderscoresToLatex(variableString);
-    return deriveTree(latexString);
+    return deriveTree(variableString);
   } catch (error) {
     console.warn(`Failed to parse variable string "${variableString}":`, error);
     // If parsing fails, create a simple symbol node

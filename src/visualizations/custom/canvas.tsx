@@ -63,28 +63,33 @@ const Canvas: React.FC<CanvasProps> = ({ config }) => {
 
   // Hover system callbacks
   const setNodeHoverCallback = useCallback((nodeId: string, isHovered: boolean) => {
+    if (!computationStore) return;
     runInAction(() => {
       computationStore.setNodeHover(nodeId, isHovered);
     });
-  }, []);
+  }, [computationStore]);
 
   const getNodeHoverCallback = useCallback((nodeId: string) => {
+    if (!computationStore) return false;
     return computationStore.getNodeHover(nodeId);
-  }, []);
+  }, [computationStore]);
 
   const setFormulaHoverCallback = useCallback((formulaId: string, isHovered: boolean) => {
+    if (!computationStore) return;
     runInAction(() => {
       computationStore.setFormulaHover(formulaId, isHovered);
     });
-  }, []);
+  }, [computationStore]);
 
   const getFormulaHoverCallback = useCallback((formulaId: string) => {
+    if (!computationStore) return false;
     return computationStore.getFormulaHover(formulaId);
-  }, []);
+  }, [computationStore]);
 
   const onFormulaHoverChangeCallback = useCallback((callback: (formulaId: string, isHovered: boolean) => void) => {
+    if (!computationStore) return () => {};
     return computationStore.onFormulaHoverChange(callback);
-  }, []);
+  }, [computationStore]);
 
   // Memoize custom config to prevent unnecessary re-renders
   const customConfig = useMemo(() => config.config, [config.config]);
