@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { reaction, runInAction } from "mobx";
 
@@ -60,6 +60,34 @@ const Canvas: React.FC<CanvasProps> = ({ config }) => {
     },
     [computationStore]
   );
+
+  // Hover system callbacks
+  const setNodeHoverCallback = useCallback((nodeId: string, isHovered: boolean) => {
+    runInAction(() => {
+      computationStore.setNodeHover(nodeId, isHovered);
+    });
+  }, []);
+
+  const getNodeHoverCallback = useCallback((nodeId: string) => {
+    return computationStore.getNodeHover(nodeId);
+  }, []);
+
+  const setFormulaHoverCallback = useCallback((formulaId: string, isHovered: boolean) => {
+    runInAction(() => {
+      computationStore.setFormulaHover(formulaId, isHovered);
+    });
+  }, []);
+
+  const getFormulaHoverCallback = useCallback((formulaId: string) => {
+    return computationStore.getFormulaHover(formulaId);
+  }, []);
+
+  const onFormulaHoverChangeCallback = useCallback((callback: (formulaId: string, isHovered: boolean) => void) => {
+    return computationStore.onFormulaHoverChange(callback);
+  }, []);
+
+  // Memoize custom config to prevent unnecessary re-renders
+  const customConfig = useMemo(() => config.config, [config.config]);
 
   // Function to safely get all variables without causing loops
   const getAllVariablesSafe = useCallback(() => {
@@ -127,6 +155,14 @@ const Canvas: React.FC<CanvasProps> = ({ config }) => {
         variables: variables, // Use the state variables with actual values
         updateVariable: updateVariableCallback,
         getVariable: getVariableCallback,
+        // Bidirectional hover system
+        setNodeHover: setNodeHoverCallback,
+        getNodeHover: getNodeHoverCallback,
+        setFormulaHover: setFormulaHoverCallback,
+        getFormulaHover: getFormulaHoverCallback,
+        onFormulaHoverChange: onFormulaHoverChangeCallback,
+        // Custom config
+        config: customConfig,
       };
 
       return <ComponentClass context={vizContext} />;

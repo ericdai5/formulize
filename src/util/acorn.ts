@@ -14,10 +14,10 @@ import * as acorn from "acorn";
  */
 export const extractVariableNames = (code: string): string[] => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ast = acorn.parse(code, {
       ecmaVersion: 5,
       allowReturnOutsideFunction: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const variableNames: string[] = [];
@@ -135,11 +135,11 @@ export const extractViews = (
     }> = [];
 
     // Parse the code to get the AST
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ast = acorn.parse(code, {
       ecmaVersion: 5,
       allowReturnOutsideFunction: true,
       locations: true, // Enable line/column tracking
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     // Walk through the AST to find view() function calls
