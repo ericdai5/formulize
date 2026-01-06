@@ -11,17 +11,17 @@ export default defineConfig({
   },
   plugins: [
     react({
-      jsxRuntime: 'automatic',
-      jsxImportSource: 'react',
+      jsxRuntime: "automatic",
+      jsxImportSource: "react",
       babel: {
         plugins: [
           ["@babel/plugin-proposal-decorators", { version: "2023-11" }],
         ],
         env: {
           production: {
-            plugins: []
-          }
-        }
+            plugins: [],
+          },
+        },
       },
     }),
     dts({
@@ -51,7 +51,39 @@ export default defineConfig({
     },
     rollupOptions: {
       // Externalize dependencies that shouldn't be bundled
-      external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+      external: [
+        // React
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        // Heavy visualization libraries
+        "plotly.js-dist",
+        "d3",
+        "@xyflow/react",
+        // Math rendering
+        "mathjax-full",
+        "better-react-mathjax",
+        "katex",
+        "mathjs",
+        // State management
+        "mobx",
+        "mobx-react-lite",
+        "mobx-state-tree",
+        // CodeMirror
+        "codemirror",
+        "@codemirror/autocomplete",
+        "@codemirror/lang-javascript",
+        "@codemirror/language",
+        "@codemirror/legacy-modes",
+        "@codemirror/state",
+        "@codemirror/view",
+        "@uiw/react-codemirror",
+        // Other heavy deps
+        "js-interpreter",
+        "lodash",
+        "lucide-react",
+      ],
       output: {
         // Global variables for UMD build
         globals: {
@@ -66,8 +98,20 @@ export default defineConfig({
           "mathjax-full": "MathJax",
           "plotly.js-dist": "Plotly",
           d3: "d3",
+          mathjs: "mathjs",
           codemirror: "CodeMirror",
           "@xyflow/react": "ReactFlow",
+          "better-react-mathjax": "BetterReactMathjax",
+          "@codemirror/autocomplete": "CodeMirrorAutocomplete",
+          "@codemirror/lang-javascript": "CodeMirrorLangJavascript",
+          "@codemirror/language": "CodeMirrorLanguage",
+          "@codemirror/legacy-modes": "CodeMirrorLegacyModes",
+          "@codemirror/state": "CodeMirrorState",
+          "@codemirror/view": "CodeMirrorView",
+          "@uiw/react-codemirror": "ReactCodeMirror",
+          "js-interpreter": "JsInterpreter",
+          lodash: "lodash",
+          "lucide-react": "LucideReact",
         },
       },
     },
