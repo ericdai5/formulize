@@ -280,7 +280,7 @@ export function getViewNodeYPositionAvoidingLabels(
   nodes: Node[],
   formulaNode: Node,
   _viewNodeX: number,
-  baseOffset: number = 60
+  baseOffset: number = 25
 ): number {
   const formulaHeight =
     formulaNode.measured?.height || (formulaNode.height as number) || 200;
