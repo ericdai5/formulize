@@ -260,11 +260,11 @@ export function createViewEdge(
     targetHandle: "expression-handle-bottom",
     type: "straight",
     style: {
-      stroke: "#3b82f6",
-      strokeWidth: 1.5,
-      strokeDasharray: "4 2",
+      stroke: "#cbd5e1",
+      strokeWidth: 1,
+      strokeDasharray: "2 1",
     },
-    animated: true,
+    animated: false,
     selectable: false,
     deletable: false,
   };
