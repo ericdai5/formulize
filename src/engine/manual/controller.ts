@@ -10,7 +10,7 @@ import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
-import { IStep, IView } from "../../types/step";
+import { IStep } from "../../types/step";
 import { ERROR_MESSAGES } from "./constants";
 import { extractLinkages, mergeLinkages } from "./extract";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
@@ -135,9 +135,11 @@ export class Controller {
       // Always store the active variables in the execution store (even if empty set)
       // This ensures labels only show for variables referenced on this line
       ctx.setActiveVariables(updatedVars);
+      // Get the formulaId from the current view (if specified)
+      const formulaId = state.view?.formulaId;
       if (updatedVars.size > 0) {
         requestAnimationFrame(() => {
-          applyCue(updatedVars);
+          applyCue(updatedVars, formulaId);
         });
       }
     } else {
@@ -163,7 +165,8 @@ export class Controller {
       this.activateVarsFromExpression(
         state.view.expression,
         ctx,
-        computationStore
+        computationStore,
+        state.view.formulaId
       );
     }
   }
@@ -172,11 +175,13 @@ export class Controller {
    * Enrich activeVariables with variables contained in the expression string.
    * Filters out nested variables (memberOf parents and index variables) to only
    * highlight complete member variables, not their component parts.
+   * @param formulaId - Optional formula ID to limit cues to a specific formula
    */
   private static activateVarsFromExpression(
     expression: string,
     ctx: ExecutionStore,
-    computationStore: ComputationStore
+    computationStore: ComputationStore,
+    formulaId?: string
   ): void {
     const unescaped = unescapeLatex(expression);
     const varIds = getVariablesFromLatexString(unescaped, computationStore);
@@ -220,7 +225,7 @@ export class Controller {
     const allActive = new Set([...ctx.activeVariables, ...filteredVarIds]);
     ctx.setActiveVariables(allActive);
     requestAnimationFrame(() => {
-      applyCue(allActive);
+      applyCue(allActive, formulaId);
     });
   }
 
@@ -239,6 +244,16 @@ export class Controller {
     let stepNumber = 0;
     let canContinue = true;
 
+    // Track pending view params captured from view() calls
+    // The view() function may execute on step N, but we need to attach it to
+    // the next block statement (step N+1 or later)
+    let pendingView: {
+      description: string;
+      value: unknown;
+      expression?: string;
+      formulaId?: string;
+    } | null = null;
+
     // Clear previous first-seen values
     ctx.clearFirstSeenValues();
 
@@ -254,6 +269,21 @@ export class Controller {
         const state = Step.getState(interpreter, stepNumber, ctx.code);
 
         history.push(state);
+
+        // Check if a view() call was executed during this step
+        // The view function captures its arguments when called
+        const captured = interpreter._capturedView;
+        if (captured) {
+          // Store as pending - we'll attach to the next block statement
+          pendingView = {
+            description: captured.description,
+            value: captured.value,
+            expression: captured.expression,
+            formulaId: captured.formulaId,
+          };
+          // Clear the captured params to prevent processing the same view multiple times
+          interpreter._capturedView = undefined;
+        }
 
         // Capture first-seen values for linked variables
         if (state.variables && ctx.linkageMap) {
@@ -271,25 +301,22 @@ export class Controller {
         // Mark block statements that come after view calls as view points
         // This way we highlight meaningful block execution points after views are evaluated
         if (isAtBlock(history, stepNumber) && stepNumber > 0) {
-          // Check if the previous state was a view call
-          const previousState = history[stepNumber - 1];
-          if (previousState?.highlight) {
-            const codeAtPrevious = ctx.code
-              .substring(
-                previousState.highlight.start,
-                previousState.highlight.end
-              )
-              .trim();
-
-            // Check if the previous statement was a view call
-            if (codeAtPrevious.startsWith("view(")) {
-              viewPoints.push(stepNumber);
-              // Process the view call immediately with the current step's variables
-              const view = this.extractView(codeAtPrevious, state.variables);
-              if (view) {
-                state.view = view;
-              }
-            }
+          // Check if we have pending view params (from a previous view() call)
+          if (pendingView) {
+            viewPoints.push(stepNumber);
+            // Build the view description with the actual variable value
+            const valueStr =
+              pendingView.value !== undefined ? String(pendingView.value) : "";
+            const description = valueStr
+              ? `${pendingView.description} ${valueStr}`
+              : pendingView.description;
+            state.view = {
+              description,
+              expression: pendingView.expression,
+              formulaId: pendingView.formulaId,
+            };
+            // Clear pending params after attaching to a block
+            pendingView = null;
           }
         }
       } catch (err) {
@@ -465,71 +492,6 @@ export class Controller {
           scrollIntoView: true,
         });
       }
-    }
-  }
-
-  /**
-   * Get variable value from step variables with error handling
-   * @param variableName - Name of the variable to look up
-   * @param stepVariables - Variables from the current step
-   * @returns Variable value or error message
-   */
-  private static getValueString(
-    variableName: string,
-    variables: Record<string, unknown>
-  ): string {
-    try {
-      if (variables[variableName] !== undefined) {
-        return String(variables[variableName]);
-      } else {
-        return `(${variableName} not found)`;
-      }
-    } catch (error) {
-      console.warn(
-        `Error extracting variable value for ${variableName}:`,
-        error
-      );
-      return `(error reading ${variableName})`;
-    }
-  }
-
-  /**
-   * Extract view from a view() call string
-   * Parses formats:
-   *   view("description", variableName)
-   *   view("description", variableName, "expression")
-   * @param viewCode - The view call code string
-   * @param stepVariables - Optional step variables to extract variable values from
-   * @returns IView or null if parsing fails
-   */
-  private static extractView(
-    viewCode: string,
-    stepVariables?: Record<string, unknown>
-  ): IView | null {
-    try {
-      // Parse format: view("description", variableName) or view("description", variableName, "scope")
-      const matchWithScope = viewCode.match(
-        /view\("([^"]+)",\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:,\s*"([^"]+)")?\)/
-      );
-      if (!matchWithScope) return null;
-      const [, rawDescription, variableName, expressionScope] = matchWithScope;
-      const description = unescapeLatex(rawDescription);
-
-      // Build final description with variable value if available
-      let finalDescription = description;
-      if (variableName && stepVariables) {
-        const variableValue = this.getValueString(variableName, stepVariables);
-        finalDescription = `${description} ${variableValue}`;
-      }
-
-      return {
-        varId: variableName,
-        description: finalDescription,
-        expression: expressionScope || undefined,
-      };
-    } catch (error) {
-      console.error("Error extracting view description:", error);
-      return null;
     }
   }
 }

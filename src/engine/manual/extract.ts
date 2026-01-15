@@ -236,14 +236,55 @@ function extractViewIdentifier(lineCode: string): Set<string> | null {
   if (!trimmed.startsWith("view(")) {
     return null;
   }
-  // Parse format: view("description", variableName)
-  const match = trimmed.match(
-    /^view\s*\(\s*"[^"]*"\s*,\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)/
-  );
-  if (match) {
-    return new Set([match[1]]);
+  try {
+    // Wrap in a function body to make it valid JavaScript
+    const wrappedCode = `function _wrapper() { ${lineCode} }`;
+    const ast = acorn.parse(wrappedCode, {
+      ecmaVersion: 5,
+    }) as unknown as ASTNode;
+    const identifiers = new Set<string>();
+    // Walk the AST to find the view() CallExpression
+    walkAst(ast, (node) => {
+      const callee = node.callee as ASTNode | undefined;
+      if (
+        node.type === "CallExpression" &&
+        callee?.type === "Identifier" &&
+        callee?.name === "view"
+      ) {
+        // Get the second argument (the options object)
+        const args = node.arguments as ASTNode[] | undefined;
+        if (args && args.length >= 2) {
+          const optionsArg = args[1];
+          // Look for ObjectExpression with a "value" property
+          if (optionsArg?.type === "ObjectExpression") {
+            const properties = optionsArg.properties as ASTNode[] | undefined;
+            if (properties) {
+              for (const prop of properties) {
+                // Check if this is the "value" property
+                const key = prop.key as ASTNode | undefined;
+                const propValue = prop.value as ASTNode | undefined;
+                if (
+                  key?.type === "Identifier" &&
+                  key?.name === "value" &&
+                  propValue?.type === "Identifier" &&
+                  propValue?.name
+                ) {
+                  identifiers.add(propValue.name);
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    return identifiers;
+  } catch (error) {
+    console.debug(
+      "Failed to parse view() call for identifier extraction:",
+      error instanceof Error ? error.message : String(error)
+    );
+    return new Set();
   }
-  return new Set(); // It's a view call but couldn't parse the variable
 }
 
 /**
@@ -306,6 +347,26 @@ export function extractIdentifiers(lineCode: string): Set<string> {
  */
 export function extractLine(code: string): string {
   const trimmed = code.trim();
+  // Check if this is a view() call - need to extract the full call including object argument
+  if (trimmed.startsWith("view(")) {
+    // Find the matching closing parenthesis for the view call
+    let parenDepth = 0;
+    let foundOpenParen = false;
+    for (let i = 0; i < trimmed.length; i++) {
+      const char = trimmed[i];
+      if (char === "(") {
+        parenDepth++;
+        foundOpenParen = true;
+      } else if (char === ")") {
+        parenDepth--;
+        if (foundOpenParen && parenDepth === 0) {
+          // Return everything up to and including the closing paren
+          return trimmed.substring(0, i + 1);
+        }
+      }
+    }
+  }
+
   // Check if this is a block statement (starts with for, while, if, function, etc.)
   const blockKeywords =
     /^(for|while|if|else|function|switch|try|catch|finally)\s*\(/;

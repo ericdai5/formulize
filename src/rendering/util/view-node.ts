@@ -249,11 +249,10 @@ export function createViewEdge(
     target: expressionNodeId,
     sourceHandle: "view-handle-top",
     targetHandle: "expression-handle-bottom",
-    type: "straight",
+    type: "default", // bezier curved edge
     style: {
       stroke: "#cbd5e1",
       strokeWidth: 1,
-      strokeDasharray: "2 1",
     },
     animated: false,
     selectable: false,
@@ -426,6 +425,21 @@ export function addViewNodes({
     return;
   }
 
+  // If viewDesc specifies a formulaId, only show view nodes for that formula
+  // If this formula doesn't match, remove any existing view nodes and return
+  if (view.formulaId && formulaId && view.formulaId !== formulaId) {
+    setNodes((currentNodes) =>
+      currentNodes.filter(
+        (node) =>
+          node.type !== NODE_TYPES.VIEW && node.type !== NODE_TYPES.EXPRESSION
+      )
+    );
+    setEdges((currentEdges) =>
+      currentEdges.filter((edge) => !edge.id.startsWith("edge-view-"))
+    );
+    return;
+  }
+
   // Get active variable IDs from the scoped execution store
   const activeVarIds = Array.from(executionStore.activeVariables);
 
@@ -436,8 +450,14 @@ export function addViewNodes({
     formulaNode = currentNodes.find(
       (node) => node.type === NODE_TYPES.FORMULA && node.data.id === formulaId
     );
+  } else if (view.formulaId) {
+    // Canvas with specific formulaId in view: find by that ID
+    formulaNode = currentNodes.find(
+      (node) =>
+        node.type === NODE_TYPES.FORMULA && node.data.id === view.formulaId
+    );
   } else {
-    // Canvas: use first formula node
+    // Canvas without specific formulaId: use first formula node
     const formulaNodes = getFormulaNodes(currentNodes);
     formulaNode = formulaNodes[0];
   }
