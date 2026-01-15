@@ -8,7 +8,6 @@ export const summationBasic = `const config = {
   variables: {
     E: {
       role: "computed",
-      precision: 2,
       default: 0,
       name: "Expected Value",
       latexDisplay: "name",
@@ -17,7 +16,6 @@ export const summationBasic = `const config = {
     x: {
       role: "input",
       memberOf: "X",
-      precision: 0,
       name: "x: member of X",
       latexDisplay: "name",
       labelDisplay: "value",
@@ -25,21 +23,12 @@ export const summationBasic = `const config = {
     X: {
       role: "input",
       default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      precision: 0,
     },
     "P(x)": {
       role: "input",
       key: "x",
       default: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
-      precision: 2,
       name: "Probability of x",
-      latexDisplay: "name",
-      labelDisplay: "value",
-    },
-    c: {
-      role: "computed",
-      precision: 2,
-      name: "Current Expected Value",
       latexDisplay: "name",
       labelDisplay: "value",
     }
@@ -55,23 +44,23 @@ export const summationBasic = `const config = {
         var xi = xValues[i];
         var probability = pxValues[i];
         if (i === 0) {
-          view("Get a value x from X:", xi);
-          view("Get a value P(x) from P(x):", probability);
+          view("Get a value x from X:", { value: xi });
+          view("Get a value P(x) from P(x):", { value: probability });
         }
         var currExpected = Math.round(xi * probability * 100) / 100;
         if (i === 0) {
-          view("This evaluates to:", currExpected);
+          view("This evaluates to:", { value: currExpected });
         }
         expectedValue = Math.round((expectedValue + currExpected) * 100) / 100;
         switch (i) {
           case 0:
-            view("add up term into E:", expectedValue);
+            view("add up term into E:", { value: expectedValue });
             break;
           case 1:
-            view("add next term...", expectedValue);
+            view("add next term...", { value: expectedValue });
             break;
           case xValues.length - 1:
-            view("finish accumulating weighted sum:", expectedValue);
+            view("finish accumulating weighted sum:", { value: expectedValue });
             break;
         }
       }

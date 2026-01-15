@@ -92,33 +92,45 @@ export const lossFunction = `const config = {
       var lambda = vars["\\\\lambda"];
       var theta_params = vars["\\\\theta"];
       var mse = 0;
-      view("Starting MSE calculation for m examples", m, "\\\\frac{1}{m} \\\\sum_{i=1}^{m}");
+      view("Starting MSE calculation for m examples", {
+        value: m,
+        expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m}"
+      });
       for (var i = 0; i < m; i++) {
         var index = i + 1;
         var y_i = y_data[i];
         var yHat_i = yHat_data[i];
         if (i === 0) {
-          view("Get value y:", y_i);
-          view("Get value $\\\\hat{y}$:", yHat_i);
+          view("Get value y:", { value: y_i });
+          view("Get value $\\\\hat{y}$:", { value: yHat_i });
         }
         var error = y_i - yHat_i;
-        view("Calculating individual error for example:", error);
+        view("Calculating individual error for example:", { value: error });
         mse += error * error;
       }
       mse = mse / m;
-      view("Computed Mean Squared Error", mse, "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2");
+      view("Computed Mean Squared Error", {
+        value: mse,
+        expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2"
+      });
       var regularization = 0;
-      view("Starting Regularization calculation", lambda);
+      view("Starting Regularization calculation", { value: lambda });
       for (var j = 0; j < theta_params.length; j++) {
         var index_j = j + 1;
         var theta_j = theta_params[j];
-        view("Adding squared parameter to penalty", theta_j);
+        view("Adding squared parameter to penalty", { value: theta_j });
         regularization += theta_j * theta_j;
       }
       var reg_term = lambda * regularization;
-      view("Total Regularization Penalty", reg_term, "\\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2");
+      view("Total Regularization Penalty", {
+        value: reg_term,
+        expression: "\\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2"
+      });
       var loss = mse + reg_term;
-      view("Final Total Loss $J(\\\\theta)$:", loss, "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2");
+      view("Final Total Loss $J(\\\\theta)$:", {
+        value: loss,
+        expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2"
+      });
       return loss;
     },
     variableLinkage: {
