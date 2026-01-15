@@ -11,14 +11,14 @@ export interface IHighlight {
 /**
  * A view that is created by a view() call
  * @property description - The description text to display
- * @property varId - The variable ID this view is for
  * @property expression - Optional expression scope for bounding box around
  * expression and also active variables
+ * @property formulaId - Optional formula ID to target specific formula component
  */
 export interface IView {
   description: string;
-  varId: string;
   expression?: string;
+  formulaId?: string;
 }
 
 /**
