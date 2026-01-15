@@ -486,6 +486,9 @@ const FormulaCanvasInner = observer(
       setEdges,
       adjustLabelPositions,
       fitView,
+      computationStore,
+      executionStore.activeVariables,
+      executionStore.currentView,
     ]);
 
     // Create edges after labels are visible and positioned

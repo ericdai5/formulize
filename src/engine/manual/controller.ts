@@ -45,17 +45,16 @@ export const getArrayControl = (
  * which overrides this function within the execution context.
  *
  * @param description - Text description of what is being shown
- * @param value - The value to display (optional)
- * @param expression - LaTeX expression to highlight (optional)
+ * @param options - Options object containing value, expression, and formulaId
  *
  * @example
- * view("Current sum:", sum);
- * view("Processing element", element, "x_{i}");
+ * view("Current sum:", { value: sum });
+ * view("Processing element", { value: element, expression: "x_{i}" });
+ * view("Loss value:", { value: loss, formulaId: "loss-function" });
  */
 export function view(
   _description: string,
-  _value?: unknown,
-  _expression?: string
+  _options?: { value?: unknown; expression?: string; formulaId?: string }
 ): void {
   // This is a stub - the actual implementation is injected by the interpreter at runtime.
   // When called outside of the interpreter context, this is a no-op.

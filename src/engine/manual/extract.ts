@@ -226,9 +226,10 @@ const JS_KEYWORDS = new Set([
 ]);
 
 /**
- * Extract identifiers from a view() call - only the variable argument
+ * Extract the identifier from a view() call's value property using AST parsing.
+ * Syntax: view("description", { value: variableName, expression: "..." })
  * @param lineCode - The line of code (a view call)
- * @returns Set containing only the variable argument, or empty if not a view call
+ * @returns Set containing only the variable from value property, or null if not a view call
  */
 function extractViewIdentifier(lineCode: string): Set<string> | null {
   const trimmed = lineCode.trim();
@@ -298,6 +299,7 @@ export function extractIdentifiers(lineCode: string): Set<string> {
  * Extract just the line from code, for statements excluding the body.
  * For example, for `for (var i = 0; i < n; i++) { ... }`, returns just `for (var i = 0; i < n; i++)`.
  * For `var x = 1;`, returns the full statement.
+ * For `view("desc", { value: x })`, returns the full view call including multi-line object.
  *
  * @param code - The code to extract from
  * @returns Just the line without body
