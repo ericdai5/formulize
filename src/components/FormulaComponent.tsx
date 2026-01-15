@@ -487,8 +487,8 @@ const FormulaCanvasInner = observer(
       adjustLabelPositions,
       fitView,
       computationStore,
-      executionStore.activeVariables,
-      executionStore.currentView,
+      executionStore,
+      id,
     ]);
 
     // Create edges after labels are visible and positioned
@@ -644,7 +644,11 @@ export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
     }
 
     return (
-      <div className={`formula-component ${className}`} style={containerStyle}>
+      <div
+        className={`formula-component ${className}`}
+        style={containerStyle}
+        data-formula-id={id}
+      >
         <ReactFlowProvider>
           <FormulaCanvasInner
             id={id}
