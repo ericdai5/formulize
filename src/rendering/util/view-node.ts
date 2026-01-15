@@ -4,21 +4,13 @@ import { unescapeLatex } from "../../engine/manual/controller";
 import { getVariablesFromLatexString } from "../../parse/variable";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
+import { IView } from "../../types/step";
 import {
   NODE_TYPES,
   getFormulaElement,
   getFormulaNodes,
   getViewNodeYPositionAvoidingLabels,
 } from "./node-helpers";
-
-/**
- * View description from execution store
- */
-export interface ViewDescription {
-  varId: string;
-  description: string;
-  expression?: string;
-}
 
 /**
  * Bounding box for expression highlighting
@@ -177,7 +169,7 @@ export function calculateBoundingBoxFromExpression(
 export function createViewNode(
   viewNodeId: string,
   formulaNode: Node,
-  viewDesc: ViewDescription,
+  view: IView,
   activeVarIds: string[],
   position: { x: number; y: number },
   expressionNodeId?: string
@@ -189,8 +181,7 @@ export function createViewNode(
     parentId: formulaNode.id,
     origin: [0.5, 0] as [number, number],
     data: {
-      varId: viewDesc.varId,
-      description: viewDesc.description,
+      description: view.description,
       activeVarIds,
       expressionNodeId,
     },
@@ -276,7 +267,7 @@ export function createViewEdge(
 export interface CreateViewNodesParams {
   currentNodes: Node[];
   formulaNode: Node;
-  viewDesc: ViewDescription;
+  view: IView;
   activeVarIds: string[];
   viewport?: { zoom: number };
   viewNodeIndex?: number;
@@ -294,7 +285,7 @@ export function createViewAndExpressionNodes(
   const {
     currentNodes,
     formulaNode,
-    viewDesc,
+    view,
     activeVarIds,
     viewport = { zoom: 1 },
     viewNodeIndex = 0,
@@ -308,9 +299,9 @@ export function createViewAndExpressionNodes(
   // Try to calculate bounding box from expression first (if provided)
   let boundingBox: BoundingBox | null = null;
 
-  if (viewDesc.expression) {
+  if (view.expression) {
     boundingBox = calculateBoundingBoxFromExpression(
-      viewDesc.expression,
+      view.expression,
       formulaNode,
       viewport,
       computationStore
@@ -336,7 +327,7 @@ export function createViewAndExpressionNodes(
 
     const viewNodeId = `view-${viewNodeIndex}`;
     viewNodes.push(
-      createViewNode(viewNodeId, formulaNode, viewDesc, activeVarIds, {
+      createViewNode(viewNodeId, formulaNode, view, activeVarIds, {
         x: viewCenterX,
         y: viewNodeY,
       })
@@ -374,7 +365,7 @@ export function createViewAndExpressionNodes(
     createViewNode(
       viewNodeId,
       formulaNode,
-      viewDesc,
+      view,
       activeVarIds,
       {
         x: expressionCenterX,
@@ -420,8 +411,8 @@ export function addViewNodes({
   const viewport = getViewport?.() || { zoom: 1, x: 0, y: 0 };
 
   // Get current view description from the scoped execution store
-  const viewDesc = executionStore.currentView;
-  if (!viewDesc) {
+  const view = executionStore.currentView;
+  if (!view) {
     // Remove view and expression nodes if no current view
     setNodes((currentNodes) =>
       currentNodes.filter(
@@ -460,7 +451,7 @@ export function addViewNodes({
     createViewAndExpressionNodes({
       currentNodes,
       formulaNode,
-      viewDesc,
+      view,
       activeVarIds,
       viewport,
       computationStore,
