@@ -6,6 +6,8 @@ import { createLabelWithBackground } from "./label-background";
 
 /**
  * Adds current point highlight to the plot
+ * @param color - Optional color for the point (defaults to red #ef4444)
+ * @param lineIndex - Index of the line (for unique identification and label positioning)
  */
 export function addCurrentPointHighlight(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -16,7 +18,9 @@ export function addCurrentPointHighlight(
   yRange: [number, number],
   xAxis: string | undefined,
   yAxis: string | undefined,
-  computationStore: ComputationStore
+  computationStore: ComputationStore,
+  color?: string,
+  lineIndex: number = 0
 ): void {
   if (
     !currentPoint ||
@@ -30,18 +34,20 @@ export function addCurrentPointHighlight(
     return;
   }
 
-  // Add highlight circle
+  const pointColor = color || "#ef4444"; // Default to red
+
+  // Add highlight circle with unique class per line
   svg
     .append("circle")
-    .attr("class", "current-point")
+    .attr("class", `current-point current-point-${lineIndex}`)
     .attr("cx", xScale(currentPoint.x))
     .attr("cy", yScale(currentPoint.y))
     .attr("r", 6)
-    .attr("fill", "#ef4444")
+    .attr("fill", pointColor)
     .attr("stroke", "#fff")
     .attr("stroke-width", 2);
 
-  // Add label with background
+  // Add label with background (offset vertically for each line to prevent overlap)
   createLabelWithBackground(
     svg,
     currentPoint,
@@ -50,7 +56,8 @@ export function addCurrentPointHighlight(
     xAxis,
     yAxis,
     computationStore,
-    "current-point-label"
+    `current-point-label-${lineIndex}`,
+    lineIndex // Pass index for vertical offset
   );
 }
 

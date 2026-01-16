@@ -6,6 +6,7 @@ import { formatVariableValue, getVariableLabel } from "./utils";
 
 /**
  * Updates the current point label during real-time interaction
+ * @param lineIndex - Index of the line (for unique identification), defaults to 0
  */
 export function updateCurrentPointLabel(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -14,16 +15,19 @@ export function updateCurrentPointLabel(
   yScale: d3.ScaleLinear<number, number>,
   xAxis: string | undefined,
   yAxis: string | undefined,
-  computationStore: ComputationStore
+  computationStore: ComputationStore,
+  lineIndex: number = 0
 ): void {
   if (!xAxis || !yAxis) return;
 
   // Update existing current point label
   const labelText = `${getVariableLabel(xAxis, computationStore)}: ${formatVariableValue(Number(currentPoint.x), xAxis, computationStore)}, ${getVariableLabel(yAxis, computationStore)}: ${formatVariableValue(Number(currentPoint.y), yAxis, computationStore)}`;
   const labelX = xScale(currentPoint.x) + 10;
-  const labelY = yScale(currentPoint.y) - 10;
+  // Offset each label vertically by 30px * lineIndex to prevent overlap
+  const verticalOffset = lineIndex * 30;
+  const labelY = yScale(currentPoint.y) - 10 - verticalOffset;
 
-  const labelElement = svg.select("text.current-point-label");
+  const labelElement = svg.select(`text.current-point-label-${lineIndex}`);
   labelElement
     .attr("x", labelX)
     .attr("font-size", "16px")
@@ -44,7 +48,7 @@ export function updateCurrentPointLabel(
 
     // Update background rectangle
     svg
-      .select("rect.current-point-label-bg")
+      .select(`rect.current-point-label-${lineIndex}-bg`)
       .attr("x", labelX - 8)
       .attr("y", rectY)
       .attr("width", bbox.width + 16)

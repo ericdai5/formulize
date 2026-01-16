@@ -6,6 +6,7 @@ import { formatVariableValue, getVariableLabel } from "./utils";
 
 /**
  * Creates a label with background rectangle for a point
+ * @param lineIndex - Index of the line for vertical offset (default 0)
  */
 export function createLabelWithBackground(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -15,11 +16,14 @@ export function createLabelWithBackground(
   xAxis: string,
   yAxis: string,
   computationStore: ComputationStore,
-  className: string = "current-point-label"
+  className: string = "current-point-label",
+  lineIndex: number = 0
 ): void {
   const labelText = `${getVariableLabel(xAxis, computationStore)}: ${formatVariableValue(Number(currentPoint.x), xAxis, computationStore)}, ${getVariableLabel(yAxis, computationStore)}: ${formatVariableValue(Number(currentPoint.y), yAxis, computationStore)}`;
   const labelX = xScale(currentPoint.x) + 10;
-  const labelY = yScale(currentPoint.y) - 10;
+  // Offset each label vertically by 30px * lineIndex to prevent overlap
+  const verticalOffset = lineIndex * 30;
+  const labelY = yScale(currentPoint.y) - 10 - verticalOffset;
 
   // Create temporary text element to measure dimensions
   const tempText = svg

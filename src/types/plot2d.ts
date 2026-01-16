@@ -22,6 +22,8 @@ export interface ILine {
   lineWidth?: number;
   name?: string;
   showInLegend?: boolean;
+  /** Optional y-axis variable for this specific line. If not provided, uses the plot's yAxis. */
+  yAxis?: string;
 }
 
 export interface IPlot2D {
