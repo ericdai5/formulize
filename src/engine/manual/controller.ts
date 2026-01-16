@@ -115,32 +115,45 @@ export class Controller {
       clearAllCues();
     });
     if (state.variables && ctx.linkageMap && ctx.code) {
-      // When at a block statement, use previous state's highlight to get user-visible code that was just executed
-      let highlight = state.highlight;
-      if (isAtBlock(ctx.history, stepIndex) && stepIndex > 0) {
-        const prevState = ctx.history[stepIndex - 1];
-        if (prevState?.highlight) {
-          highlight = prevState.highlight;
-        }
-      }
-      // Get the current line of code from the highlight positions
-      const currLine = ctx.code.substring(highlight.start, highlight.end);
-      const updatedVars = updateAllVariables(
-        state.variables,
-        ctx.linkageMap,
-        currLine,
-        computationStore,
-        ctx
-      );
-      // Always store the active variables in the execution store (even if empty set)
-      // This ensures labels only show for variables referenced on this line
-      ctx.setActiveVariables(updatedVars);
       // Get the formulaId from the current view (if specified)
       const formulaId = state.view?.formulaId;
-      if (updatedVars.size > 0) {
-        requestAnimationFrame(() => {
-          applyCue(updatedVars, formulaId);
-        });
+
+      // If view has an expression, ONLY use that for highlighting (ignore code line)
+      if (state.view?.expression) {
+        // Clear any variables from code line, use only expression
+        ctx.setActiveVariables(new Set());
+        this.activateVarsFromExpression(
+          state.view.expression,
+          ctx,
+          computationStore,
+          formulaId
+        );
+      } else {
+        // When at a block statement, use previous state's highlight to get user-visible code that was just executed
+        let highlight = state.highlight;
+        if (isAtBlock(ctx.history, stepIndex) && stepIndex > 0) {
+          const prevState = ctx.history[stepIndex - 1];
+          if (prevState?.highlight) {
+            highlight = prevState.highlight;
+          }
+        }
+        // Get the current line of code from the highlight positions
+        const currLine = ctx.code.substring(highlight.start, highlight.end);
+        const updatedVars = updateAllVariables(
+          state.variables,
+          ctx.linkageMap,
+          currLine,
+          computationStore,
+          ctx
+        );
+        // Always store the active variables in the execution store (even if empty set)
+        // This ensures labels only show for variables referenced on this line
+        ctx.setActiveVariables(updatedVars);
+        if (updatedVars.size > 0) {
+          requestAnimationFrame(() => {
+            applyCue(updatedVars, formulaId);
+          });
+        }
       }
     } else {
       // If no variables or linkage map, clear active variables
@@ -160,15 +173,6 @@ export class Controller {
     const state = ctx.history[index];
     Step.highlight(ctx.codeMirrorRef, state.highlight);
     this.updateVariables(state, index, ctx, computationStore);
-    // Enrich active variables with expression scope variables if this step has a view
-    if (state.view?.expression) {
-      this.activateVarsFromExpression(
-        state.view.expression,
-        ctx,
-        computationStore,
-        state.view.formulaId
-      );
-    }
   }
 
   /**

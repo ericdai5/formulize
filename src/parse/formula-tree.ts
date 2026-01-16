@@ -2752,7 +2752,7 @@ const subsequenceMatches = (
 /**
  * Check if a node matches a pattern node structurally
  */
-const nodeMatches = (
+export const nodeMatches = (
   node: AugmentedFormulaNode,
   pattern: AugmentedFormulaNode
 ): boolean => {
