@@ -200,10 +200,11 @@ export const initializeInterpreter = (
         const nativeOptions = interpreter.pseudoToNative
           ? interpreter.pseudoToNative(options)
           : options;
-        // Extract value, expression, and formulaId from options object
+        // Extract value, expression, formulaId, and id from options object
         const opts =
           nativeOptions && typeof nativeOptions === "object"
             ? (nativeOptions as {
+                id?: string;
                 value?: unknown;
                 expression?: string;
                 formulaId?: string;
@@ -211,6 +212,7 @@ export const initializeInterpreter = (
             : {};
         // Store captured parameters on the interpreter instance
         const view = {
+          id: opts.id ? String(opts.id) : undefined,
           description: String(description ?? ""),
           value: opts.value,
           expression: opts.expression ? String(opts.expression) : undefined,

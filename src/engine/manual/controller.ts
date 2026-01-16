@@ -51,10 +51,16 @@ export const getArrayControl = (
  * view("Current sum:", { value: sum });
  * view("Processing element", { value: element, expression: "x_{i}" });
  * view("Loss value:", { value: loss, formulaId: "loss-function" });
+ * view("Weight update:", { id: "weight-update", value: w_t });
  */
 export function view(
   _description: string,
-  _options?: { value?: unknown; expression?: string; formulaId?: string }
+  _options?: {
+    id?: string;
+    value?: unknown;
+    expression?: string;
+    formulaId?: string
+  }
 ): void {
   // This is a stub - the actual implementation is injected by the interpreter at runtime.
   // When called outside of the interpreter context, this is a no-op.
@@ -252,6 +258,7 @@ export class Controller {
     // The view() function may execute on step N, but we need to attach it to
     // the next block statement (step N+1 or later)
     let pendingView: {
+      id?: string;
       description: string;
       value: unknown;
       expression?: string;
@@ -280,6 +287,7 @@ export class Controller {
         if (captured) {
           // Store as pending - we'll attach to the next block statement
           pendingView = {
+            id: captured.id,
             description: captured.description,
             value: captured.value,
             expression: captured.expression,
@@ -315,6 +323,7 @@ export class Controller {
               ? `${pendingView.description} ${valueStr}`
               : pendingView.description;
             state.view = {
+              id: pendingView.id,
               description,
               expression: pendingView.expression,
               formulaId: pendingView.formulaId,
