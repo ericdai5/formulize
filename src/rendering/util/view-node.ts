@@ -35,27 +35,50 @@ export interface ViewNodesResult {
  * Calculate bounding box from active variable nodes
  * @param nodes - Array of all React Flow nodes
  * @param activeVarIds - Array of active variable IDs
+ * @param computationStore - Optional computation store for fresh dimensions
+ * @param formulaId - Optional formula ID for formula-specific dimension lookup
  * @returns Bounding box or null if no valid bounding box found
  */
 export function calculateBoundingBoxFromVariableNodes(
   nodes: Node[],
-  activeVarIds: string[]
+  activeVarIds: string[],
+  computationStore?: ComputationStore,
+  formulaId?: string
 ): BoundingBox | null {
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
 
+  // If computationStore and formulaId are provided, use fresh dimensions from store
+  if (computationStore && formulaId) {
+    let found = false;
+    for (const varId of activeVarIds) {
+      // Use formula-specific key to get dimensions for the correct formula
+      const dimensionKey = `${formulaId}-${varId}`;
+      const dims = computationStore.getVariableDimensions(dimensionKey);
+      if (dims) {
+        minX = Math.min(minX, dims.x);
+        maxX = Math.max(maxX, dims.x + dims.width);
+        minY = Math.min(minY, dims.y);
+        maxY = Math.max(maxY, dims.y + dims.height);
+        found = true;
+      }
+    }
+    if (found && minX !== Infinity && maxX !== -Infinity) {
+      return { minX, maxX, minY, maxY };
+    }
+  }
+
+  // Fallback to node-based measurement (may have stale dimensions)
   const activeVariableNodes = nodes.filter(
     (node) =>
       node.type === NODE_TYPES.VARIABLE &&
       activeVarIds.includes((node.data as { varId?: string })?.varId || "")
   );
-
   if (activeVariableNodes.length === 0) {
     return null;
   }
-
   activeVariableNodes.forEach((node) => {
     const width =
       node.measured?.width || (node.data as { width?: number })?.width || 20;
@@ -308,10 +331,14 @@ export function createViewAndExpressionNodes(
   }
 
   // Fall back to variable nodes if no expression bounding box
+  // Pass computationStore and formulaId for fresh dimensions from store
   if (!boundingBox) {
+    const formulaId = formulaNode.data?.id as string | undefined;
     boundingBox = calculateBoundingBoxFromVariableNodes(
       currentNodes,
-      activeVarIds
+      activeVarIds,
+      computationStore,
+      formulaId
     );
   }
 

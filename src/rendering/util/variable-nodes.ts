@@ -129,6 +129,17 @@ export const updateVarNodes = (
       formulaElement,
       viewport
     );
+
+    // Store fresh dimensions in computation store for use by expression node calculation
+    // Use formula-specific key to handle same variable appearing in multiple formulas
+    const dimensionKey = `${id}-${cssId}`;
+    computationStore.setVariableDimensions(dimensionKey, {
+      x: position.x,
+      y: position.y,
+      width: dimensions.width,
+      height: dimensions.height,
+    });
+
     const varNode = variableNodes.get(nodeId);
     if (varNode) {
       const posChanged =

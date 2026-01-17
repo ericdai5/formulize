@@ -24,6 +24,7 @@ import {
   Text,
   Variable,
   deriveTreeWithVars,
+  nodeMatches,
   parseVariableStrings,
 } from "./formula-tree";
 
@@ -141,6 +142,48 @@ const processNestedVariable = (
       }
       const base = processNode(accent.base);
       return `${accent.label}{${base}}`;
+    }
+
+    // Handle group nodes (e.g., {t+1} in subscripts)
+    if (node.type === "group") {
+      const group = node as Group;
+
+      // Check if the entire group matches an index variable
+      if (indexVariable) {
+        // Parse the index variable into a tree for comparison
+        const indexVarTree = parseVariableStrings([indexVariable])[0];
+
+        // Check if this group matches the index variable tree
+        if (indexVarTree && indexVarTree.children.length > 0) {
+          const indexVarNode = indexVarTree.children[0];
+
+          // Compare the group structure with the index variable structure
+          if (nodeMatches(group, indexVarNode)) {
+            return renderIndexVariable(
+              indexVariable,
+              defaultPrecision,
+              computationStore,
+              executionStore
+            );
+          }
+
+          // Also check if the group as a whole represents the index variable
+          // This handles cases where the index variable is parsed differently
+          const groupLatex = group
+            .toLatex("no-id", 0)[0]
+            .replace(/[{}]/g, "")
+            .replace(/\s+/g, "");
+          const indexLatex = indexVariable.replace(/\s+/g, "");
+          if (groupLatex === indexLatex) {
+            return renderIndexVariable(
+              indexVariable,
+              defaultPrecision,
+              computationStore,
+              executionStore
+            );
+          }
+        }
+      }
     }
 
     // For other node types, recursively process their children

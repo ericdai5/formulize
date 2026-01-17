@@ -140,7 +140,7 @@ const isInFormulaContainer = (
   formulaId: string
 ): boolean => {
   // Look for a parent with data-formula-id attribute matching the formulaId
-  const parent = element.closest(`[data-formula-id="${formulaId}"]`);
+  const parent = element.closest(`[data-formula-id="${CSS.escape(formulaId)}"]`);
   return parent !== null;
 };
 
