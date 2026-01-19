@@ -8,7 +8,7 @@ interface StoredPoint {
   viewId: string;
   x: number;
   y: number;
-  timestamp: number;
+  historyIndex: number; // The history index when this point was added
   config: IStepPoint;
 }
 
@@ -39,6 +39,20 @@ export class StepPointsManager {
     // Get current view ID from the current step
     const currentStep = executionStore.history[executionStore.historyIndex];
     const currentViewId = currentStep?.view?.id;
+
+    const currentHistoryIndex = executionStore.historyIndex;
+
+    // Filter out points from future steps (when stepping backwards)
+    this.storedPoints = this.storedPoints.filter(
+      (p) => p.historyIndex <= currentHistoryIndex
+    );
+    // Also clear lastValues for points that were removed
+    this.lastValues.forEach((_, key) => {
+      const [viewId] = key.split("_");
+      if (!this.storedPoints.some((p) => p.viewId === viewId)) {
+        this.lastValues.delete(key);
+      }
+    });
 
     if (!currentViewId) {
       // No current view ID, just render existing points
@@ -73,26 +87,30 @@ export class StepPointsManager {
           // Create a unique key for this point
           const pointKey = `${currentViewId}_${index}_${config.xValue}_${config.yValue}`;
 
-          // Check if the value has changed (to avoid duplicate points at same position)
-          const lastValue = this.lastValues.get(pointKey);
-          if (!lastValue || lastValue.x !== xValue || lastValue.y !== yValue) {
+          // Check if we already have a point at this history index for this view
+          const existingPointAtIndex = this.storedPoints.find(
+            (p) =>
+              p.viewId === currentViewId &&
+              p.historyIndex === currentHistoryIndex
+          );
+
+          if (!existingPointAtIndex) {
             // Add to stored points
             this.storedPoints.push({
               viewId: currentViewId,
               x: xValue,
               y: yValue,
-              timestamp: Date.now(),
+              historyIndex: currentHistoryIndex,
               config,
             });
 
-            // If not persistent, remove old points for this view
+            // If not persistent, remove old points for this view (except the one we just added)
             if (!config.persistence) {
-              // Keep only the most recent non-persistent point for this view
               this.storedPoints = this.storedPoints.filter(
                 (p) =>
                   p.viewId !== currentViewId ||
                   p.config.persistence ||
-                  p.timestamp === this.storedPoints[this.storedPoints.length - 1].timestamp
+                  p.historyIndex === currentHistoryIndex
               );
             }
 
@@ -139,7 +157,7 @@ export class StepPointsManager {
 
     // Render each stored point
     this.storedPoints.forEach((point) => {
-      const pointId = `step-point-${point.viewId}-${point.timestamp}`;
+      const pointId = `step-point-${point.viewId}-${point.historyIndex}`;
       const color = point.config.color || "#3b82f6"; // Default blue
       const size = point.config.size || 6;
 
@@ -176,13 +194,10 @@ export class StepPointsManager {
   }
 
   /**
-   * Clear all stored points
+   * Clear internal state only (no DOM manipulation)
+   * Used when the interpreter is reset
    */
-  public clearAllPoints(
-    svg: d3.Selection<SVGGElement, unknown, null, undefined>
-  ): void {
-    svg.selectAll(".step-point").remove();
-    svg.selectAll(".step-point-label").remove();
+  public clear(): void {
     this.storedPoints = [];
     this.lastValues.clear();
   }

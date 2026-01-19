@@ -295,6 +295,19 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     drawPlot();
   }, [config, drawPlot]);
 
+  // Clear step points when execution store is reset
+  useEffect(() => {
+    if (!executionStore) return;
+    const disposer = reaction(
+      () => executionStore.resetCount,
+      () => {
+        stepPointsManagerRef.current.clear();
+      },
+      { fireImmediately: true }
+    );
+    return () => disposer();
+  }, [executionStore]);
+
   // Guard: computationStore must be provided - placed after all hooks
   if (!computationStore) {
     return <div className="plot2d-loading">Loading plot...</div>;

@@ -59,7 +59,7 @@ export function view(
     id?: string;
     value?: unknown;
     expression?: string;
-    formulaId?: string
+    formulaId?: string;
   }
 ): void {
   // This is a stub - the actual implementation is injected by the interpreter at runtime.
@@ -267,20 +267,16 @@ export class Controller {
 
     // Clear previous first-seen values
     ctx.clearFirstSeenValues();
-
     // Add initial state
     const initialState = Step.getState(interpreter, stepNumber, ctx.code);
     history.push(initialState);
-
     // Execute all steps until completion
     while (canContinue) {
       try {
         canContinue = interpreter.step();
         stepNumber++;
         const state = Step.getState(interpreter, stepNumber, ctx.code);
-
         history.push(state);
-
         // Check if a view() call was executed during this step
         // The view function captures its arguments when called
         const captured = interpreter._capturedView;
@@ -296,7 +292,6 @@ export class Controller {
           // Clear the captured params to prevent processing the same view multiple times
           interpreter._capturedView = undefined;
         }
-
         // Capture first-seen values for linked variables
         if (state.variables && ctx.linkageMap) {
           for (const [localVar, varId] of Object.entries(ctx.linkageMap)) {
@@ -309,22 +304,16 @@ export class Controller {
             }
           }
         }
-
         // Mark block statements that come after view calls as view points
         // This way we highlight meaningful block execution points after views are evaluated
         if (isAtBlock(history, stepNumber) && stepNumber > 0) {
           // Check if we have pending view params (from a previous view() call)
           if (pendingView) {
             viewPoints.push(stepNumber);
-            // Build the view description with the actual variable value
-            const valueStr =
-              pendingView.value !== undefined ? String(pendingView.value) : "";
-            const description = valueStr
-              ? `${pendingView.description} ${valueStr}`
-              : pendingView.description;
             state.view = {
               id: pendingView.id,
-              description,
+              description: pendingView.description,
+              value: pendingView.value,
               expression: pendingView.expression,
               formulaId: pendingView.formulaId,
             };
