@@ -25,6 +25,8 @@ export default defineConfig({
     // Regular app build (not library mode)
     outDir: "dist",
     sourcemap: true,
+    // Disable minification to preserve function source code for step engine
+    minify: false,
     rollupOptions: {
       input: {
         main: "./index.html",
