@@ -9,6 +9,7 @@ import {
 import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
+import { AugmentedFormula } from "../parse/formula-tree";
 import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IRole, IValue, IVariable } from "../types/variable";
@@ -65,6 +66,12 @@ class ComputationStore {
 
   // Counter for generating unique expression scope IDs
   private expressionScopeCounter = 0;
+
+  // Processed formula trees with cssId values assigned to nodes
+  // Maps formula ID to the AugmentedFormula tree after variable processing
+  // Used for DOM element lookup during expression bounding box calculations
+  @observable
+  accessor formulaTrees = new Map<string, AugmentedFormula>();
 
   @observable
   accessor lastGeneratedCode: string | null = null;
@@ -190,6 +197,7 @@ class ComputationStore {
     this.injectedDefaultCSS.clear();
     this.injectedHoverCSS.clear();
     this.expressionScopes.clear();
+    this.formulaTrees.clear();
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
@@ -263,6 +271,33 @@ class ComputationStore {
   clearExpressionScopes() {
     this.expressionScopes.clear();
     this.expressionScopeCounter = 0;
+  }
+
+  /**
+   * Store a processed formula tree for later DOM element lookup
+   * @param formulaId - The formula ID
+   * @param tree - The AugmentedFormula tree with cssId values assigned
+   */
+  @action
+  setFormulaTree(formulaId: string, tree: AugmentedFormula) {
+    this.formulaTrees.set(formulaId, tree);
+  }
+
+  /**
+   * Get the stored formula tree for a formula
+   * @param formulaId - The formula ID
+   * @returns The AugmentedFormula tree or undefined if not found
+   */
+  getFormulaTree(formulaId: string): AugmentedFormula | undefined {
+    return this.formulaTrees.get(formulaId);
+  }
+
+  /**
+   * Clear all stored formula trees
+   */
+  @action
+  clearFormulaTrees() {
+    this.formulaTrees.clear();
   }
 
   /**

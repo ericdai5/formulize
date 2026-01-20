@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 
 import { unescapeLatex } from "../../engine/manual/controller";
-import { getVariablesFromLatexString } from "../../parse/variable";
+import { findExpression } from "../../parse/formula-tree";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
 import { IView } from "../../types/step";
@@ -49,7 +49,6 @@ export function calculateBoundingBoxFromVariableNodes(
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-
   // If computationStore and formulaId are provided, use fresh dimensions from store
   if (computationStore && formulaId) {
     let found = false;
@@ -99,84 +98,82 @@ export function calculateBoundingBoxFromVariableNodes(
 
 /**
  * Calculate bounding box from expression scope (DOM-based)
+ * Uses the stored formula tree with cssId values to find DOM elements.
+ * This approach correctly handles edge cases like `=` inside subscripts.
  * @param expression - LaTeX expression string
  * @param formulaNode - The formula node
  * @param viewport - The React Flow viewport
- * @param computationStore - The computation store to use (optional, defaults to global)
+ * @param computationStore - The computation store containing the formula tree
+ * @param formulaId - The formula ID for tree lookup
  * @returns Bounding box or null if not found
  */
 export function calculateBoundingBoxFromExpression(
   expression: string,
   formulaNode: Node,
   viewport: { zoom: number },
-  computationStore: ComputationStore
+  computationStore: ComputationStore,
+  formulaId?: string
 ): BoundingBox | null {
-  // Look up ALL matching scopeIds from the computation store
-  const scopeIds = computationStore.getScopeIdsForExpression(expression);
-
-  // Look up ALL variables contained in the expression string
-  const variableIds = getVariablesFromLatexString(
-    unescapeLatex(expression),
-    computationStore
-  );
-
-  if (scopeIds.length === 0 && variableIds.length === 0) {
+  if (!formulaId) {
     return null;
   }
-
-  // Query for the expression elements and combine their bounding boxes
+  // Get the stored formula tree with cssId values
+  const formulaTree = computationStore.getFormulaTree(formulaId);
+  if (!formulaTree) {
+    return null;
+  }
+  // Use AST-based subtree matching with the stored tree
+  const unescapedExpression = unescapeLatex(expression);
+  // Get variable symbols from computation store to parse expression with same grouping
+  const variableSymbols = Array.from(computationStore.variables.keys());
+  const expressionMatch = findExpression(
+    formulaTree,
+    unescapedExpression,
+    variableSymbols
+  );
+  if (!expressionMatch || expressionMatch.elementIds.length === 0) {
+    return null;
+  }
+  // Get DOM elements using the cssIds from the formula tree
   const formulaElement = getFormulaElement(formulaNode);
-
   if (!formulaElement) {
     return null;
   }
-
   const formulaRect = formulaElement.getBoundingClientRect();
+  const expressionElements: Element[] = [];
+  // Query DOM elements by their cssIds (from \cssId{} wrappers)
+  for (const cssId of expressionMatch.elementIds) {
+    const element =
+      formulaElement.querySelector(`[id="${CSS.escape(cssId)}"]`) ||
+      formulaElement.querySelector(`[id="${cssId}"]`);
+    if (element) {
+      expressionElements.push(element);
+    }
+  }
+  if (expressionElements.length === 0) {
+    return null;
+  }
+  // Calculate bounding box from all expression elements
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-  let found = false;
-
-  // Helper to add element to bounding box
-  const addToBoundingBox = (element: Element | null) => {
-    if (element) {
-      const exprRect = element.getBoundingClientRect();
-      const elemMinX = (exprRect.left - formulaRect.left) / viewport.zoom;
-      const elemMaxX = (exprRect.right - formulaRect.left) / viewport.zoom;
-      const elemMinY = (exprRect.top - formulaRect.top) / viewport.zoom;
-      const elemMaxY = (exprRect.bottom - formulaRect.top) / viewport.zoom;
-      minX = Math.min(minX, elemMinX);
-      maxX = Math.max(maxX, elemMaxX);
-      minY = Math.min(minY, elemMinY);
-      maxY = Math.max(maxY, elemMaxY);
-      found = true;
-    }
-  };
-
-  // 1. Process structural scopes
-  for (const scopeId of scopeIds) {
-    const exprElement = formulaElement.querySelector(`#${scopeId}`);
-    addToBoundingBox(exprElement);
+  for (const element of expressionElements) {
+    const rect = element.getBoundingClientRect();
+    const elemMinX = (rect.left - formulaRect.left) / viewport.zoom;
+    const elemMaxX = (rect.right - formulaRect.left) / viewport.zoom;
+    const elemMinY = (rect.top - formulaRect.top) / viewport.zoom;
+    const elemMaxY = (rect.bottom - formulaRect.top) / viewport.zoom;
+    minX = Math.min(minX, elemMinX);
+    maxX = Math.max(maxX, elemMaxX);
+    minY = Math.min(minY, elemMinY);
+    maxY = Math.max(maxY, elemMaxY);
   }
-
-  // 2. Process individual variables
-  for (const varId of variableIds) {
-    const varElement = formulaElement.querySelector(
-      `[id="${CSS.escape(varId)}"]`
-    );
-    const fallbackElement = !varElement
-      ? formulaElement.querySelector(`[id="${varId}"]`)
-      : null;
-    const targetElement = varElement || fallbackElement;
-    addToBoundingBox(targetElement);
-  }
-
-  if (!found || minX === Infinity || maxX === -Infinity) {
+  if (minX === Infinity || maxX === -Infinity) {
     return null;
   }
-
-  return { minX, maxX, minY, maxY };
+  const boundingBox = { minX, maxX, minY, maxY };
+  return boundingBox;
 }
 
 /**
@@ -320,20 +317,22 @@ export function createViewAndExpressionNodes(
 
   // Try to calculate bounding box from expression first (if provided)
   let boundingBox: BoundingBox | null = null;
+  // Get formula ID for token lookup
+  const formulaId = formulaNode.data?.id as string | undefined;
 
   if (view.expression) {
     boundingBox = calculateBoundingBoxFromExpression(
       view.expression,
       formulaNode,
       viewport,
-      computationStore
+      computationStore,
+      formulaId
     );
   }
 
   // Fall back to variable nodes if no expression bounding box
   // Pass computationStore and formulaId for fresh dimensions from store
   if (!boundingBox) {
-    const formulaId = formulaNode.data?.id as string | undefined;
     boundingBox = calculateBoundingBoxFromVariableNodes(
       currentNodes,
       activeVarIds,

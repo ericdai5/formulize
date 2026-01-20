@@ -32,7 +32,7 @@ export async function renderFormulaWithMathJax(
 ): Promise<void> {
   if (!container || !isInitialized) return;
 
-  const { latex, environment, computationStore, executionStore } = data;
+  const { latex, id: formulaId, environment, computationStore, executionStore } = data;
   if (!computationStore || !executionStore) {
     return;
   }
@@ -57,7 +57,8 @@ export async function renderFormulaWithMathJax(
         latex,
         2,
         computationStore,
-        executionStore
+        executionStore,
+        formulaId
       );
     } catch (latexError) {
       console.error("Error processing LaTeX content:", latexError);
