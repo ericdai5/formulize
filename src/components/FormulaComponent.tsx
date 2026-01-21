@@ -18,7 +18,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { SimpleCanvasControls } from "../rendering/canvas-controls";
+import { CanvasContextMenu } from "../rendering/canvas-context-menu";
 import ExpressionNode from "../rendering/nodes/expression-node";
 import FormulaNode from "../rendering/nodes/formula-node";
 import LabelNode from "../rendering/nodes/label-node";
@@ -78,6 +78,10 @@ const FormulaCanvasInner = observer(
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [canvasVisible, setCanvasVisible] = React.useState(false);
+    const [contextMenu, setContextMenu] = React.useState<{
+      x: number;
+      y: number;
+    } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const variableNodesAddedRef = useRef(false);
     const initialFitViewCalledRef = useRef(false);
@@ -85,6 +89,23 @@ const FormulaCanvasInner = observer(
     const viewNodeRepositionedRef = useRef(false);
     const { getNodes, getViewport, fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
+
+    // Handle context menu
+    const handleContextMenu = useCallback((event: React.MouseEvent) => {
+      event.preventDefault();
+      // Calculate position relative to the container which is now explicitly relative
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        setContextMenu({
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top,
+        });
+      }
+    }, []);
+
+    const closeContextMenu = useCallback(() => {
+      setContextMenu(null);
+    }, []);
 
     // Helper function to get the formula latex by id
     // Uses the formulas prop passed from context (scoped to this provider)
@@ -465,6 +486,9 @@ const FormulaCanvasInner = observer(
       setEdges,
       adjustLabelPositions,
       fitView,
+      computationStore,
+      executionStore,
+      id,
     ]);
 
     // Create edges after labels are visible and positioned
@@ -539,7 +563,11 @@ const FormulaCanvasInner = observer(
     }, [nodes, edges, id, shouldLabelBeVisible, setEdges]);
 
     return (
-      <div ref={containerRef} className="w-full h-full">
+      <div
+        ref={containerRef}
+        className="w-full h-full relative"
+        onContextMenu={handleContextMenu}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -568,8 +596,13 @@ const FormulaCanvasInner = observer(
             size={1}
             color="#ffffff"
           />
-          <SimpleCanvasControls />
         </ReactFlow>
+        {contextMenu && (
+          <CanvasContextMenu
+            position={contextMenu}
+            onClose={closeContextMenu}
+          />
+        )}
       </div>
     );
   }
@@ -611,7 +644,11 @@ export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
     }
 
     return (
-      <div className={`formula-component ${className}`} style={containerStyle}>
+      <div
+        className={`formula-component ${className}`}
+        style={containerStyle}
+        data-formula-id={id}
+      >
         <ReactFlowProvider>
           <FormulaCanvasInner
             id={id}

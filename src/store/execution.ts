@@ -54,6 +54,8 @@ class ExecutionStore {
   // Used to reset variables when stepping backward to before their declaration
   firstSeenValues: Map<string, number> = new Map();
 
+  resetCount: number = 0;
+
   // Refs for UI components
   autoPlayIntervalRef: React.MutableRefObject<number | null> =
     React.createRef() as React.MutableRefObject<number | null>;
@@ -231,6 +233,7 @@ class ExecutionStore {
     this.blockPoints = [];
     this.activeVariables = new Set();
     this.firstSeenValues = new Map();
+    this.resetCount++;
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
       number | null

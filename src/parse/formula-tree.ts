@@ -524,6 +524,12 @@ abstract class AugmentedFormulaNodeBase {
   public _parent: AugmentedFormulaNode | null = null;
   public _leftSibling: AugmentedFormulaNode | null = null;
   public _rightSibling: AugmentedFormulaNode | null = null;
+  /**
+   * The CSS ID assigned to this node's DOM element during variable processing.
+   * This corresponds to the \cssId{} wrapper in the rendered LaTeX.
+   * Set by processVariables when wrapping elements with cssId.
+   */
+  public cssId: string | null = null;
   constructor(public id: string) {}
 
   protected latexWithId(
@@ -1916,13 +1922,11 @@ const findAndGroupVariableTree = (
       originalSymbol
     )
   );
-
   // Also check for patterns at the top level
   const topLevelMatches = findMatchingSubsequences(
     newChildren,
     variableTree.children
   );
-
   let finalChildren = newChildren;
   if (topLevelMatches.length > 0) {
     finalChildren = replaceSubsequencesWithVariables(
@@ -1932,7 +1936,6 @@ const findAndGroupVariableTree = (
       originalSymbol
     );
   }
-
   return new AugmentedFormula(finalChildren);
 };
 
@@ -2701,12 +2704,10 @@ const findMatchingSubsequences = (
     endIndex: number;
     nodes: AugmentedFormulaNode[];
   }[] = [];
-
   // Handle edge case: empty pattern
   if (patternChildren.length === 0) {
     return matches; // Return empty matches for empty pattern
   }
-
   // Try to find the pattern starting at each position
   for (let i = 0; i <= children.length - patternChildren.length; i++) {
     if (
@@ -2725,7 +2726,6 @@ const findMatchingSubsequences = (
       i += patternChildren.length - 1;
     }
   }
-
   return matches;
 };
 
@@ -2752,7 +2752,7 @@ const subsequenceMatches = (
 /**
  * Check if a node matches a pattern node structurally
  */
-const nodeMatches = (
+export const nodeMatches = (
   node: AugmentedFormulaNode,
   pattern: AugmentedFormulaNode
 ): boolean => {
@@ -3031,4 +3031,91 @@ export const getVariableTokens = (variableString: string): string[] => {
         return token.toLatex("no-id", 0)[0];
     }
   });
+};
+
+/**
+ * Result of finding an expression match within a formula
+ */
+export interface ExpressionMatchResult {
+  /** The matched nodes from the formula */
+  matchedNodes: AugmentedFormulaNode[];
+  /** DOM element IDs (cssIds) to query for bounding box calculation */
+  elementIds: string[];
+}
+
+/**
+ * Find where an expression matches within a stored formula tree.
+ * Uses the cssId values that were assigned during variable processing.
+ * This uses structural AST matching rather than string matching, which correctly
+ * handles cases like `=` inside subscripts (e.g., `\sum_{i=1}^{n}`) without
+ * false positives.
+ * @param formulaTree - The stored formula tree with cssId values assigned
+ * @param expressionLatex - The expression to find within the formula
+ * @returns Match result with nodes and element IDs, or null if no match found
+ */
+export const findExpression = (
+  formulaTree: AugmentedFormula,
+  expressionLatex: string,
+  variableSymbols?: string[]
+): ExpressionMatchResult | null => {
+  try {
+    // Parse the expression into an AST for matching
+    // If variable symbols are provided, apply the same variable grouping as the formula tree
+    let expressionTree: AugmentedFormula;
+    if (variableSymbols && variableSymbols.length > 0) {
+      const variableTrees = parseVariableStrings(variableSymbols);
+      expressionTree = deriveTreeWithVars(
+        expressionLatex,
+        variableTrees,
+        variableSymbols
+      );
+    } else {
+      expressionTree = deriveTree(expressionLatex);
+    }
+    if (expressionTree.children.length === 0) {
+      return null;
+    }
+    // Find matching subsequence in the formula's children
+    const matches = findMatchingSubsequences(
+      formulaTree.children,
+      expressionTree.children
+    );
+    if (matches.length === 0) {
+      return null;
+    }
+    const matchedNodes = matches[0].nodes;
+    // Collect all cssIds from the matched nodes
+    const elementIds = collectCssIds(matchedNodes);
+    if (elementIds.length === 0) {
+      return null;
+    }
+    return {
+      matchedNodes,
+      elementIds,
+    };
+  } catch (error) {
+    console.warn("[findExpression] Error:", error);
+    return null;
+  }
+};
+
+/**
+ * Collect all cssId values from AST nodes.
+ * These IDs correspond to \cssId{} wrappers in the rendered LaTeX and were
+ * assigned during variable processing.
+ *
+ * @param nodes - The matched AST nodes with cssId values
+ */
+const collectCssIds = (nodes: AugmentedFormulaNode[]): string[] => {
+  const ids: string[] = [];
+  const collect = (node: AugmentedFormulaNode, depth: number = 0) => {
+    // Use the cssId that was assigned during variable processing
+    if (node.cssId) {
+      ids.push(node.cssId);
+    }
+    // Recurse into children to collect their cssIds as well
+    node.children.forEach((child) => collect(child, depth + 1));
+  };
+  nodes.forEach((node) => collect(node, 0));
+  return [...new Set(ids)]; // Remove duplicates
 };

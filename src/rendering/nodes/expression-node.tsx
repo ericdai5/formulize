@@ -31,8 +31,12 @@ const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
         position: "relative",
         // Show border when debug mode is enabled
         background: showBorder ? "rgba(59, 130, 246, 0.1)" : "transparent",
-        border: showBorder ? "1px dashed #3b82f6" : "none",
-        borderRadius: showBorder ? 4 : 0,
+        borderTop: showBorder ? "1px dashed #3b82f6" : "none",
+        borderLeft: showBorder ? "1px dashed #3b82f6" : "none",
+        borderRight: showBorder ? "1px dashed #3b82f6" : "none",
+        borderRadius: 4,
+        // Always show bottom border with edge color
+        borderBottom: "1px solid #cbd5e1",
         pointerEvents: "none",
       }}
     >
@@ -41,7 +45,7 @@ const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
         type="target"
         position={Position.Bottom}
         id="expression-handle-bottom"
-        style={HANDLE_STYLE}
+        style={{ ...HANDLE_STYLE, transform: "translateX(-50%)" }}
       />
     </div>
   );

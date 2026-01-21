@@ -9,6 +9,7 @@ import {
 import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
+import { AugmentedFormula } from "../parse/formula-tree";
 import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IRole, IValue, IVariable } from "../types/variable";
@@ -34,7 +35,9 @@ class ComputationStore {
   accessor formulaHoverStates = new Map<string, boolean>();
 
   // Callbacks for formula hover changes (for visualizations to react)
-  private formulaHoverCallbacks: Set<(formulaId: string, isHovered: boolean) => void> = new Set();
+  private formulaHoverCallbacks: Set<
+    (formulaId: string, isHovered: boolean) => void
+  > = new Set();
 
   // Mapping from formula IDs to node IDs (for bidirectional hover)
   @observable
@@ -63,6 +66,12 @@ class ComputationStore {
 
   // Counter for generating unique expression scope IDs
   private expressionScopeCounter = 0;
+
+  // Processed formula trees with cssId values assigned to nodes
+  // Maps formula ID to the AugmentedFormula tree after variable processing
+  // Used for DOM element lookup during expression bounding box calculations
+  @observable
+  accessor formulaTrees = new Map<string, AugmentedFormula>();
 
   @observable
   accessor lastGeneratedCode: string | null = null;
@@ -95,6 +104,14 @@ class ComputationStore {
 
   @observable
   accessor processedIndices = new Map<string, Set<number>>();
+
+  // Fresh variable dimensions from DOM measurements (varId -> { x, y, width, height })
+  // Updated by updateVarNodes, used by calculateBoundingBoxFromVariableNodes
+  @observable
+  accessor variableDimensions = new Map<
+    string,
+    { x: number; y: number; width: number; height: number }
+  >();
 
   // Track injected custom CSS to avoid re-injecting on re-renders
   @observable
@@ -180,6 +197,7 @@ class ComputationStore {
     this.injectedDefaultCSS.clear();
     this.injectedHoverCSS.clear();
     this.expressionScopes.clear();
+    this.formulaTrees.clear();
     this.environment = null;
     this.symbolicFunctions = [];
     this.manualFunctions = [];
@@ -253,6 +271,55 @@ class ComputationStore {
   clearExpressionScopes() {
     this.expressionScopes.clear();
     this.expressionScopeCounter = 0;
+  }
+
+  /**
+   * Store a processed formula tree for later DOM element lookup
+   * @param formulaId - The formula ID
+   * @param tree - The AugmentedFormula tree with cssId values assigned
+   */
+  @action
+  setFormulaTree(formulaId: string, tree: AugmentedFormula) {
+    this.formulaTrees.set(formulaId, tree);
+  }
+
+  /**
+   * Get the stored formula tree for a formula
+   * @param formulaId - The formula ID
+   * @returns The AugmentedFormula tree or undefined if not found
+   */
+  getFormulaTree(formulaId: string): AugmentedFormula | undefined {
+    return this.formulaTrees.get(formulaId);
+  }
+
+  /**
+   * Clear all stored formula trees
+   */
+  @action
+  clearFormulaTrees() {
+    this.formulaTrees.clear();
+  }
+
+  /**
+   * Update fresh dimensions for a variable (called during variable node creation/update)
+   * @param varId - The variable ID
+   * @param dimensions - The position and dimensions of the variable element
+   */
+  @action
+  setVariableDimensions(
+    varId: string,
+    dimensions: { x: number; y: number; width: number; height: number }
+  ) {
+    this.variableDimensions.set(varId, dimensions);
+  }
+
+  /**
+   * Get fresh dimensions for a variable
+   * @param varId - The variable ID
+   * @returns The dimensions or undefined if not found
+   */
+  getVariableDimensions(varId: string) {
+    return this.variableDimensions.get(varId);
   }
 
   @action
@@ -422,7 +489,7 @@ class ComputationStore {
     if (prevState !== isHovered) {
       this.formulaHoverStates.set(formulaId, isHovered);
       // Notify all registered callbacks
-      this.formulaHoverCallbacks.forEach(callback => {
+      this.formulaHoverCallbacks.forEach((callback) => {
         callback(formulaId, isHovered);
       });
       // Also set the corresponding node hover state
@@ -444,7 +511,9 @@ class ComputationStore {
    * Subscribe to formula hover changes
    * Returns an unsubscribe function
    */
-  onFormulaHoverChange(callback: (formulaId: string, isHovered: boolean) => void): () => void {
+  onFormulaHoverChange(
+    callback: (formulaId: string, isHovered: boolean) => void
+  ): () => void {
     this.formulaHoverCallbacks.add(callback);
     return () => {
       this.formulaHoverCallbacks.delete(callback);

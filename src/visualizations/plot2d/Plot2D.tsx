@@ -13,6 +13,7 @@ import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";
 import { updateHoverLines } from "./hover-lines";
 import { renderLines } from "./lines";
+import { StepPointsManager } from "./step-points";
 import { calculatePlotDimensions } from "./utils";
 import { getAllVectorVariables, renderVectors } from "./vectors";
 
@@ -28,9 +29,13 @@ export interface DataPoint {
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const context = useFormulize();
   const computationStore = context?.computationStore;
+  const executionStore = context?.executionStore;
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const axisLabelInfoRef = useRef<AxisLabelInfo>({});
+  const stepPointsManagerRef = useRef<StepPointsManager>(
+    new StepPointsManager()
+  );
 
   // Parse configuration options with defaults
   const {
@@ -46,6 +51,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     width = PLOT2D_DEFAULTS.width,
     height = PLOT2D_DEFAULTS.height,
     interaction,
+    stepPoints,
   } = config;
 
   // If lines is not provided, default to a single line
@@ -185,6 +191,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         plotWidth,
         plotHeight,
         computationStore,
+        executionStore || undefined,
         drawPlot,
         interaction
       );
@@ -202,6 +209,20 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         yAxis,
         computationStore,
       });
+    }
+
+    // Update step points
+    if (stepPoints && executionStore) {
+      stepPointsManagerRef.current.updateStepPoints(
+        svg,
+        stepPoints,
+        xScale,
+        yScale,
+        [xMin, xMax],
+        [yMin, yMax],
+        computationStore,
+        executionStore
+      );
     }
   }, [
     vectors,
@@ -224,7 +245,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     xGrid,
     yGrid,
     interaction,
+    stepPoints,
     computationStore,
+    executionStore,
   ]);
 
   // Set up reaction to re-render when any variable changes
@@ -238,13 +261,21 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         if (computationStore.isDragging && !interaction) return null;
 
         // Track all variable values and hover states for live updates
-        const allVariables: Record<string, number | boolean> = {};
+        const allVariables: Record<string, number | boolean | string> = {};
         for (const [id, variable] of computationStore.variables.entries()) {
           const value = variable.value;
           allVariables[id] = typeof value === "number" ? value : 0;
           allVariables[`${id}_hover`] =
             computationStore.hoverStates.get(id) || false;
         }
+
+        // Also track active variables if execution store exists
+        if (executionStore) {
+          allVariables._activeVars = Array.from(
+            executionStore.activeVariables
+          ).join(",");
+        }
+
         return allVariables;
       },
       () => {
@@ -257,12 +288,25 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     );
 
     return () => disposer();
-  }, [drawPlot, interaction, computationStore]);
+  }, [drawPlot, interaction, computationStore, executionStore]);
 
   // Re-draw when config changes
   useEffect(() => {
     drawPlot();
   }, [config, drawPlot]);
+
+  // Clear step points when execution store is reset
+  useEffect(() => {
+    if (!executionStore) return;
+    const disposer = reaction(
+      () => executionStore.resetCount,
+      () => {
+        stepPointsManagerRef.current.clear();
+      },
+      { fireImmediately: true }
+    );
+    return () => disposer();
+  }, [executionStore]);
 
   // Guard: computationStore must be provided - placed after all hooks
   if (!computationStore) {

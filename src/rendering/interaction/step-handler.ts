@@ -130,10 +130,26 @@ const hasAncestorWithStepCue = (element: HTMLElement): boolean => {
 };
 
 /**
+ * Check if an element is within a formula container with the specified ID
+ * @param element - The element to check
+ * @param formulaId - The formula ID to match
+ * @returns True if the element is within the specified formula container
+ */
+const isInFormulaContainer = (
+  element: HTMLElement,
+  formulaId: string
+): boolean => {
+  // Look for a parent with data-formula-id attribute matching the formulaId
+  const parent = element.closest(`[data-formula-id="${CSS.escape(formulaId)}"]`);
+  return parent !== null;
+};
+
+/**
  * Apply a visual cue styling to variables that are being updated in step mode
  * @param updatedVarIds - Set of variable IDs that were updated
+ * @param formulaId - Optional formula ID to limit cues to a specific formula
  */
-export const applyCue = (updatedVarIds: Set<string>) => {
+export const applyCue = (updatedVarIds: Set<string>, formulaId?: string) => {
   // Use ANY selector to include all variable types (input, computed, index)
   const interactiveElements = document.querySelectorAll(VAR_SELECTORS.ANY);
   // First pass: remove all step-cue classes
@@ -147,6 +163,10 @@ export const applyCue = (updatedVarIds: Set<string>) => {
     const htmlEl = element as HTMLElement;
     const varId = htmlEl.id;
     if (!varId) return;
+    // If formulaId is specified, only apply cue to elements within that formula
+    if (formulaId && !isInFormulaContainer(htmlEl, formulaId)) {
+      return;
+    }
     // Only add step-cue to variables that were actually updated in this step
     // Skip if an ancestor already has step-cue (e.g., y inside y^{(i)} when y^{(i)} is active)
     if (updatedVarIds.has(varId) && !hasAncestorWithStepCue(htmlEl)) {

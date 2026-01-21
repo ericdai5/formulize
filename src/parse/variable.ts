@@ -24,6 +24,7 @@ import {
   Text,
   Variable,
   deriveTreeWithVars,
+  nodeMatches,
   parseVariableStrings,
 } from "./formula-tree";
 
@@ -141,6 +142,48 @@ const processNestedVariable = (
       }
       const base = processNode(accent.base);
       return `${accent.label}{${base}}`;
+    }
+
+    // Handle group nodes (e.g., {t+1} in subscripts)
+    if (node.type === "group") {
+      const group = node as Group;
+
+      // Check if the entire group matches an index variable
+      if (indexVariable) {
+        // Parse the index variable into a tree for comparison
+        const indexVarTree = parseVariableStrings([indexVariable])[0];
+
+        // Check if this group matches the index variable tree
+        if (indexVarTree && indexVarTree.children.length > 0) {
+          const indexVarNode = indexVarTree.children[0];
+
+          // Compare the group structure with the index variable structure
+          if (nodeMatches(group, indexVarNode)) {
+            return renderIndexVariable(
+              indexVariable,
+              defaultPrecision,
+              computationStore,
+              executionStore
+            );
+          }
+
+          // Also check if the group as a whole represents the index variable
+          // This handles cases where the index variable is parsed differently
+          const groupLatex = group
+            .toLatex("no-id", 0)[0]
+            .replace(/[{}]/g, "")
+            .replace(/\s+/g, "");
+          const indexLatex = indexVariable.replace(/\s+/g, "");
+          if (groupLatex === indexLatex) {
+            return renderIndexVariable(
+              indexVariable,
+              defaultPrecision,
+              computationStore,
+              executionStore
+            );
+          }
+        }
+      }
     }
 
     // For other node types, recursively process their children
@@ -400,39 +443,35 @@ export const collectVariableIds = (node: AugmentedFormulaNode): string[] => {
   return varIds;
 };
 
-/**
- * Get the original LaTeX representation of a node (without processing variables)
- * Used to create expression scope keys
- */
-const getOriginalLatex = (node: AugmentedFormulaNode): string => {
-  if ("toLatex" in node && typeof node.toLatex === "function") {
-    return node.toLatex("no-id", 0)[0];
-  }
-  return "";
+// Counter for generating unique cssIds for structural nodes
+let cssIdCounter = 0;
+const resetCssIdCounter = () => {
+  cssIdCounter = 0;
 };
 
 /**
- * Register an expression scope and wrap the result with a cssId
- * @param node - The AST node to register
- * @param expressionType - Type of expression (e.g., "frac", "sum", "delim")
+ * Generate a unique cssId for a node
+ */
+const generateCssId = (nodeType: string): string => {
+  return `${nodeType}-${cssIdCounter++}`;
+};
+
+/**
+ * Wrap a node's result with a cssId and store the cssId on the AST node.
+ * @param node - The AST node to wrap
+ * @param nodeType - Type of node (e.g., "frac", "sum", "delim")
  * @param result - The processed LaTeX result to wrap
- * @param computationStore - The computation store to use
  * @returns LaTeX string wrapped with cssId
  */
-const wrapWithExpressionScope = (
+const wrapWithCssId = (
   node: AugmentedFormulaNode,
-  expressionType: string,
-  result: string,
-  computationStore: ComputationStore
+  nodeType: string,
+  result: string
 ): string => {
-  const originalLatex = getOriginalLatex(node);
-  const containedVars = collectVariableIds(node);
-  const scopeId = computationStore.registerExpressionScope(
-    originalLatex,
-    expressionType,
-    containedVars
-  );
-  return `\\cssId{${scopeId}}{${result}}`;
+  const cssId = generateCssId(nodeType);
+  // Store the cssId on the AST node for DOM element lookup
+  node.cssId = cssId;
+  return `\\cssId{${cssId}}{${result}}`;
 };
 
 /**
@@ -453,23 +492,36 @@ const getLargeOperatorType = (
 };
 
 /**
+ * Result of processing a formula's variables
+ */
+export interface ProcessVariablesResult {
+  /** The processed LaTeX string with cssId wrappers */
+  latex: string;
+  /** The formula tree with cssId values assigned to nodes */
+  tree: AugmentedFormula;
+}
+
+/**
  * Process an augmented formula tree to find Variable nodes and wrap their tokens
  * with CSS classes for interactive display.
  * Also auto-detects structural elements (summations, fractions, etc.) and wraps them
  * with data-expression attributes for accurate bounding box calculations.
+ * Additionally wraps operators and numbers with cssId to enable DOM-based expression
+ * bounding box calculation.
  * @param formula - The augmented formula to process
  * @param defaultPrecision - Default precision for numeric display
  * @param computationStore - The computation store to use (required)
  * @param executionStore - The execution store to use (required)
+ * @returns Object containing processed LaTeX and tokens array
  */
 export const processVariables = (
   formula: AugmentedFormula,
   defaultPrecision: number = 2,
   computationStore: ComputationStore,
   executionStore: ExecutionStore
-): string => {
-  // Clear existing expression scopes before processing
-  computationStore.clearExpressionScopes();
+): ProcessVariablesResult => {
+  // Reset cssId counter for this formula
+  resetCssIdCounter();
 
   const processNode = (node: AugmentedFormulaNode): string => {
     if (node.type === "variable") {
@@ -535,6 +587,8 @@ export const processVariables = (
       }
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
+      // Store the cssId on the AST node for DOM element lookup
+      node.cssId = id;
       // Use different CSS classes based on variable type and interaction mode
       let cssClass: string = VAR_CLASSES.BASE;
       if (variableRole === "input") {
@@ -610,22 +664,12 @@ export const processVariables = (
         // Check if this is a large operator (sum, prod, int) and wrap with data-expression
         const operatorType = getLargeOperatorType(script);
         if (operatorType) {
-          return wrapWithExpressionScope(
-            script,
-            operatorType,
-            result,
-            computationStore
-          );
+          return wrapWithCssId(script, operatorType, result);
         }
 
         // Also register Script nodes that have a Delimited base (e.g., (\left(...\right))^2)
         if (script.base.type === "delimited" && (script.sub || script.sup)) {
-          return wrapWithExpressionScope(
-            script,
-            "script-delim",
-            result,
-            computationStore
-          );
+          return wrapWithCssId(script, "script-delim", result);
         }
 
         return result;
@@ -636,12 +680,7 @@ export const processVariables = (
         const numerator = processNode(frac.numerator);
         const denominator = processNode(frac.denominator);
         const fracResult = `\\frac{${numerator}}{${denominator}}`;
-        return wrapWithExpressionScope(
-          frac,
-          "frac",
-          fracResult,
-          computationStore
-        );
+        return wrapWithCssId(frac, "frac", fracResult);
       }
 
       case "group": {
@@ -701,24 +740,14 @@ export const processVariables = (
           .join(" \\\\ ");
 
         const matrixResult = `\\begin{${matrix.matrixType}}\n${rows}\n\\end{${matrix.matrixType}}`;
-        return wrapWithExpressionScope(
-          matrix,
-          "matrix",
-          matrixResult,
-          computationStore
-        );
+        return wrapWithCssId(matrix, "matrix", matrixResult);
       }
 
       case "delimited": {
         const delimited = node as Delimited;
         const children = delimited.body.map(processNode).join(" ");
         const delimResult = `\\left${delimited.left}${children}\\right${delimited.right}`;
-        return wrapWithExpressionScope(
-          delimited,
-          "delim",
-          delimResult,
-          computationStore
-        );
+        return wrapWithCssId(delimited, "delim", delimResult);
       }
 
       case "root": {
@@ -739,7 +768,8 @@ export const processVariables = (
 
       case "symbol": {
         const symbol = node as MathSymbol;
-        return symbol.value;
+        const value = symbol.value;
+        return wrapWithCssId(symbol, "symbol", value);
       }
 
       case "space": {
@@ -765,8 +795,8 @@ export const processVariables = (
           : "";
     }
   };
-
-  return formula.children.map(processNode).join(" ");
+  const result = formula.children.map(processNode).join(" ");
+  return { latex: result, tree: formula };
 };
 
 /**
@@ -829,12 +859,14 @@ export const findVariableByElement = (
  * @param defaultPrecision - Default precision for numeric display
  * @param computationStore - The computation store to use (required)
  * @param executionStore - The execution store to use (required)
+ * @param formulaId - Optional formula ID for storing tokens
  */
 export const processLatexContent = (
   latex: string,
   defaultPrecision: number,
   computationStore: ComputationStore,
-  executionStore: ExecutionStore
+  executionStore: ExecutionStore,
+  formulaId?: string
 ): string => {
   try {
     // Get variable patterns from computation store
@@ -843,12 +875,21 @@ export const processLatexContent = (
     const variableTrees = parseVariableStrings(variables);
     // Create formula tree with variables grouped, passing original symbols
     const formula = deriveTreeWithVars(latex, variableTrees, variables);
-    return processVariables(
+    const result = processVariables(
       formula,
       defaultPrecision,
       computationStore,
       executionStore
     );
+    // Store the formula tree with cssId values for DOM element lookup
+    if (formulaId) {
+      computationStore.setFormulaTree(formulaId, result.tree);
+    }
+    console.log(
+      `[processLatexContent] Final LaTeX for "${formulaId || "unknown"}":`,
+      result.latex
+    );
+    return result.latex;
   } catch (error) {
     console.warn("Failed to process latex content:", error);
     return latex; // Return original latex if processing fails

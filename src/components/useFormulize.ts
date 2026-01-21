@@ -11,6 +11,8 @@ export interface FormulizeContextValue {
   error: string | null;
   computationStore: ComputationStore | null;
   executionStore: ExecutionStore | null;
+  /** Reinitialize the interpreter with current variable values */
+  reinitialize: () => void;
 }
 
 export const FormulizeContext = createContext<FormulizeContextValue | null>(

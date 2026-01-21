@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
+import { refresh } from "../engine/manual/execute";
+import { extractManual } from "../engine/manual/extract";
 import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
 import { MathJaxLoader } from "./MathJaxLoader";
 import { FormulizeContext, FormulizeContextValue } from "./useFormulize";
@@ -83,6 +85,21 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
       };
     }, [config, onError, onReady, mathJaxLoaded]);
 
+    const reinitialize = useCallback(() => {
+      if (!instance?.executionStore || !instance?.computationStore || !config) {
+        return;
+      }
+      const result = extractManual(config);
+      if (result.code) {
+        refresh(
+          result.code,
+          config,
+          instance.executionStore,
+          instance.computationStore
+        );
+      }
+    }, [instance, config]);
+
     const contextValue: FormulizeContextValue = {
       instance,
       config: config || null,
@@ -90,6 +107,7 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
       error,
       computationStore: instance?.computationStore ?? null,
       executionStore: instance?.executionStore ?? null,
+      reinitialize,
     };
 
     return (

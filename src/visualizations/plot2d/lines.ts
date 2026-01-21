@@ -2,6 +2,7 @@ import * as d3 from "d3";
 
 import { solveSingularFormula } from "../../engine/singular-formula-solver";
 import { ComputationStore } from "../../store/computation";
+import { ExecutionStore } from "../../store/execution";
 import { type ILine } from "../../types/plot2d";
 import { addCurrentPointHighlight, addInteractions } from "./interaction";
 
@@ -38,6 +39,7 @@ function getFormulaExpression(
 
 /**
  * Function to calculate data points for a specific line
+ * @param lineYAxis - Optional y-axis variable specific to this line (overrides yAxis)
  */
 function calculateLineDataPoints(
   xAxis: string,
@@ -47,8 +49,11 @@ function calculateLineDataPoints(
   yMin: number,
   yMax: number,
   lineName: string | undefined,
-  computationStore: ComputationStore
+  computationStore: ComputationStore,
+  lineYAxis?: string
 ): DataPoint[] {
+  // Use line-specific y-axis if provided, otherwise fall back to plot's y-axis
+  const effectiveYAxis = lineYAxis || yAxis;
   const points: DataPoint[] = [];
 
   // Get current variable values
@@ -96,11 +101,11 @@ function calculateLineDataPoints(
 
       if (expression) {
         // Use the singular formula solver from the engine
-        y = solveSingularFormula(expression, vars, yAxis);
+        y = solveSingularFormula(expression, vars, effectiveYAxis);
       } else if (evalFunction) {
         // Fallback to global evaluation
         const result = evalFunction(vars);
-        y = result[yAxis] as number | null;
+        y = result[effectiveYAxis] as number | null;
       }
 
       if (typeof y === "number") {
@@ -140,6 +145,7 @@ export function renderLines(
   plotWidth: number,
   plotHeight: number,
   computationStore: ComputationStore,
+  executionStore: ExecutionStore | undefined,
   onDragEnd?: () => void,
   interaction?: ["horizontal-drag" | "vertical-drag", string]
 ): void {
@@ -178,6 +184,9 @@ export function renderLines(
   const firstLinePoints: DataPoint[] = [];
 
   lines.forEach((lineConfig, index) => {
+    // Use line-specific yAxis if provided, otherwise fall back to plot's yAxis
+    const lineYAxis = lineConfig.yAxis || yAxis;
+
     const points = calculateLineDataPoints(
       xAxis,
       yAxis,
@@ -186,7 +195,8 @@ export function renderLines(
       yMin,
       yMax,
       lineConfig.name, // Pass the line name to select the specific formula
-      computationStore
+      computationStore,
+      lineYAxis // Pass the line-specific y-axis
     );
 
     if (points.length > 0) {
@@ -208,13 +218,42 @@ export function renderLines(
         .attr("d", lineGenerator)
         .style("pointer-events", "none"); // Ensure line doesn't block interactions
 
-      // Add current point highlight for each line (only if not using custom interaction)
+      // Add current point highlight for EACH line (using line-specific y-axis)
       if (!interaction) {
-        // Get current values from the scoped computation store
+        // Get current x value from the computation store
         const xVar = computationStore.variables.get(xAxis);
-        const yVar = computationStore.variables.get(yAxis);
         const currentX = typeof xVar?.value === "number" ? xVar.value : 0;
-        const currentY = typeof yVar?.value === "number" ? yVar.value : 0;
+
+        // Compute the y value using the formula expression (same as line rendering)
+        // This ensures computed variables like L and ∇L are properly evaluated
+        const expression = getFormulaExpression(
+          lineConfig.name,
+          computationStore
+        );
+        let currentY = 0;
+
+        if (expression) {
+          // Get all current variable values
+          const allVariables: Record<string, number> = {};
+          for (const [id, variable] of computationStore.variables.entries()) {
+            const value = variable.value;
+            allVariables[id] = typeof value === "number" ? value : 0;
+          }
+          // Compute y value at current x position
+          const computedY = solveSingularFormula(
+            expression,
+            allVariables,
+            lineYAxis
+          );
+          if (typeof computedY === "number" && isFinite(computedY)) {
+            currentY = computedY;
+          }
+        } else {
+          // Fallback to reading from store if no expression
+          const yVar = computationStore.variables.get(lineYAxis);
+          currentY = typeof yVar?.value === "number" ? yVar.value : 0;
+        }
+
         const currentPointData = {
           x: currentX,
           y: currentY,
@@ -228,8 +267,11 @@ export function renderLines(
           [xMin, xMax],
           [yMin, yMax],
           xAxis,
-          yAxis,
-          computationStore
+          lineYAxis, // Use line-specific y-axis for the label
+          computationStore,
+          executionStore,
+          color, // Pass line color for the point
+          index // Pass line index for unique identification and label offset
         );
       }
     }

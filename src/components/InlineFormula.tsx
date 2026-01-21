@@ -4,6 +4,7 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { getInputVariableState, processLatexContent } from "../parse/variable";
+import { injectVariableSVGs } from "../rendering/svg/svg-processor";
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
 import { useFormulize } from "./useFormulize";
@@ -89,6 +90,16 @@ const InlineFormulaInner = observer(
         container.innerHTML = "";
         container.appendChild(mathSpan);
         await window.MathJax.typesetPromise([container]);
+
+        // Inject SVG elements for variables after MathJax rendering
+        try {
+          injectVariableSVGs(container, computationStore);
+        } catch (svgError) {
+          console.error(
+            "InlineFormula: Error injecting variable SVGs:",
+            svgError
+          );
+        }
 
         // After rendering, attach hover and drag event listeners to variable elements
         attachVariableInteractionListeners(container);
