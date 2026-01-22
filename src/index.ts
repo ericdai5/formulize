@@ -69,7 +69,7 @@ export type {
   IVariablesUserInput,
 } from "./types/variable";
 export type { IVisualization } from "./types/visualization";
-export type { IPlot2D } from "./types/plot2d";
+export type { IPlot2D, IStepPoint } from "./types/plot2d";
 export type { IPlot3D } from "./types/plot3d";
 export type { ICustom, IContext } from "./types/custom";
 export type { IControls } from "./types/control";

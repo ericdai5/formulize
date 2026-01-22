@@ -40,7 +40,10 @@ export function computeEdgesForFormula(
     if (!varId || !shouldLabelBeVisible(varId)) return;
 
     // Skip labels that are not yet visible (opacity 0 or 0.01)
-    if (labelNode.style && (labelNode.style.opacity === 0 || labelNode.style.opacity === 0.01)) {
+    if (
+      labelNode.style &&
+      (labelNode.style.opacity === 0 || labelNode.style.opacity === 0.01)
+    ) {
       return;
     }
 
@@ -74,11 +77,10 @@ export function computeEdgesForFormula(
       target: variableNode.id,
       sourceHandle,
       targetHandle,
-      type: "straight",
+      type: "default", // bezier curved edge
       style: {
         stroke: "#cbd5e1",
         strokeWidth: 1,
-        strokeDasharray: "2 1",
       },
       animated: false,
       selectable: false,

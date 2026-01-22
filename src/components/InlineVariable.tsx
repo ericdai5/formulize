@@ -56,6 +56,8 @@ const InlineVariableInner = observer(
   }) => {
     const containerRef = useRef<HTMLSpanElement>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
+    const context = useFormulize();
+    const config = context?.config;
 
     // Get the variable from store
     const getVariable = useCallback(() => {
@@ -104,39 +106,6 @@ const InlineVariableInner = observer(
       }
     }, [id, display, getVariable]);
 
-    // Render the variable with MathJax
-    const renderVariable = useCallback(async () => {
-      if (!containerRef.current || !mathJaxLoaded || !window.MathJax) return;
-
-      const latex = buildLatex();
-      if (!latex) {
-        console.warn(`InlineVariable: Variable not found with id "${id}"`);
-        return;
-      }
-
-      try {
-        const container = containerRef.current;
-
-        // Clear previous MathJax content
-        window.MathJax.typesetClear([container]);
-
-        // Create element with inline math mode
-        const mathSpan = document.createElement("span");
-        mathSpan.style.fontSize = `${scale}em`;
-        mathSpan.textContent = `\\(${latex}\\)`;
-
-        // Replace content and typeset
-        container.innerHTML = "";
-        container.appendChild(mathSpan);
-        await window.MathJax.typesetPromise([container]);
-
-        // Attach interaction listeners
-        attachInteractionListeners(container);
-      } catch (error) {
-        console.error("InlineVariable: Render error:", error);
-      }
-    }, [id, buildLatex, mathJaxLoaded, scale]);
-
     // Attach hover and drag listeners
     const attachInteractionListeners = useCallback(
       (container: HTMLElement) => {
@@ -162,11 +131,14 @@ const InlineVariableInner = observer(
           let isDragging = false;
           let startY = 0;
           let startValue = 0;
+          let lastClampedValue = 0;
+          let reinitializeTimeout: ReturnType<typeof setTimeout> | null = null;
 
           const variableState = getInputVariableState(id, computationStore);
           if (!variableState) return;
 
           const { stepSize, minValue, maxValue } = variableState;
+          const isStepMode = computationStore.isStepMode();
 
           const handleMouseMove = (e: MouseEvent) => {
             if (!isDragging) return;
@@ -174,10 +146,13 @@ const InlineVariableInner = observer(
             e.stopPropagation();
             const deltaY = startY - e.clientY;
             const newValue = startValue + deltaY * stepSize;
-            computationStore.setValue(
-              id,
-              Math.max(minValue, Math.min(maxValue, newValue))
+            const clampedValue = Math.max(
+              minValue,
+              Math.min(maxValue, newValue)
             );
+            lastClampedValue = clampedValue;
+            // Update the current value for live feedback
+            computationStore.setValue(id, clampedValue);
           };
 
           const handleMouseUp = (e: MouseEvent) => {
@@ -187,6 +162,22 @@ const InlineVariableInner = observer(
               e.stopPropagation();
               document.removeEventListener("mousemove", handleMouseMove, true);
               document.removeEventListener("mouseup", handleMouseUp, true);
+              // In step mode, update the config default and debounce reinitialization
+              if (isStepMode && config?.variables && config.variables[id]) {
+                const varDef = config.variables[id];
+                if (typeof varDef === "object") {
+                  varDef.default = lastClampedValue;
+                }
+                // Clear any pending reinitialization
+                if (reinitializeTimeout) {
+                  clearTimeout(reinitializeTimeout);
+                }
+                // Debounce reinitialization to wait for user to finish dragging
+                reinitializeTimeout = setTimeout(() => {
+                  context?.reinitialize();
+                  reinitializeTimeout = null;
+                }, 300); // Wait 300ms after last drag before reinitializing
+              }
             }
           };
 
@@ -198,6 +189,7 @@ const InlineVariableInner = observer(
               typeof currentVariable?.value === "number"
                 ? currentVariable.value
                 : 0;
+            lastClampedValue = startValue;
             e.preventDefault();
             e.stopPropagation();
 
@@ -208,8 +200,37 @@ const InlineVariableInner = observer(
           container.addEventListener("mousedown", handleMouseDown);
         }
       },
-      [id, computationStore]
+      [id, computationStore, config, context]
     );
+
+    // Render the variable with MathJax
+    const renderVariable = useCallback(async () => {
+      if (!containerRef.current || !mathJaxLoaded || !window.MathJax) return;
+
+      const latex = buildLatex();
+      if (!latex) {
+        console.warn(`InlineVariable: Variable not found with id "${id}"`);
+        return;
+      }
+
+      try {
+        const container = containerRef.current;
+        // Clear previous MathJax content
+        window.MathJax.typesetClear([container]);
+        // Create element with inline math mode
+        const mathSpan = document.createElement("span");
+        mathSpan.style.fontSize = `${scale}em`;
+        mathSpan.textContent = `\\(${latex}\\)`;
+        // Replace content and typeset
+        container.innerHTML = "";
+        container.appendChild(mathSpan);
+        await window.MathJax.typesetPromise([container]);
+        // Attach interaction listeners
+        attachInteractionListeners(container);
+      } catch (error) {
+        console.error("InlineVariable: Render error:", error);
+      }
+    }, [id, buildLatex, mathJaxLoaded, scale, attachInteractionListeners]);
 
     // Initial render when MathJax is ready
     useEffect(() => {

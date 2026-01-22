@@ -36,7 +36,8 @@ export const getLabelNodePos = (
   varNodeDim: { width: number; height: number },
   formulaNode: Node,
   formulaNodeDim: { width: number; height: number },
-  viewport: { zoom: number }
+  viewport: { zoom: number },
+  forcePlacement?: "above" | "below"
 ): LabelPlacement => {
   // Since labels are hidden initially and repositioned using measured dimensions,
   // we just need simple placeholder values
@@ -92,6 +93,18 @@ export const getLabelNodePos = (
       priority: abovePriority,
     },
   ];
+
+  // If forcePlacement is provided, select that placement
+  if (forcePlacement) {
+    const forced = placements.find((p) => p.type === forcePlacement);
+    if (forced) {
+      return {
+        x: forced.position.x,
+        y: forced.position.y,
+        placement: forced.type,
+      };
+    }
+  }
 
   // Use the smart placement based on variable position
   // No collision detection with arbitrary sizes - we rely on:
@@ -186,6 +199,18 @@ export const processVariableElementsForLabels = (
     nodeId: string;
     labelPlacement: "below" | "above";
   }> = [];
+
+  // In step mode, label nodes should only render for a formula if:
+  // 1. The view doesn't specify a formulaId (show labels for all formulas), OR
+  // 2. The view specifies a formulaId that matches this formula's id
+  if (computationStore.isStepMode()) {
+    const viewFormulaId = executionStore.currentView?.formulaId;
+    // Only skip labels if the view explicitly targets a different formula
+    if (viewFormulaId && viewFormulaId !== id) {
+      return { labelNodes, variableNodeUpdates };
+    }
+  }
+
   // Track which variables already have labels to prevent duplicates
   const processedVariables = new Set<string>();
   // Find variable elements within this formula
@@ -230,6 +255,11 @@ export const processVariableElementsForLabels = (
       width: (variableNode.data.width as number) || 0,
       height: (variableNode.data.height as number) || 0,
     };
+
+    // View nodes are always rendered below the equation.
+    // If there is an active view, force labels to be above to avoid edge overlaps.
+    const forcePlacement = executionStore.currentView ? "above" : undefined;
+
     const labelPos = getLabelNodePos(
       htmlElementPosition,
       htmlElementDimensions,
@@ -238,7 +268,8 @@ export const processVariableElementsForLabels = (
         width: formulaNode.measured?.width || formulaNode.width || 400,
         height: formulaNode.measured?.height || formulaNode.height || 200,
       },
-      viewport
+      viewport,
+      forcePlacement
     );
     // Create the label node - initially nearly transparent until positioned correctly
     // Use 0.01 instead of 0 so React Flow measures it properly

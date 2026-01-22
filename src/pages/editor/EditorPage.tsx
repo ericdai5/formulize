@@ -28,6 +28,7 @@ function EditorPage() {
       error: null,
       computationStore,
       executionStore,
+      reinitialize: () => {},
     }),
     [computationStore, executionStore]
   );

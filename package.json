@@ -42,8 +42,6 @@
   },
   "homepage": "https://github.com/ericdai5/formulize#readme",
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
     "@codemirror/autocomplete": "^6.0.0",
     "@codemirror/lang-javascript": "^6.0.0",
     "@codemirror/language": "^6.0.0",
@@ -64,7 +62,9 @@
     "mobx": "^6.0.0",
     "mobx-react-lite": "^4.0.0",
     "mobx-state-tree": "^5.0.0",
-    "plotly.js-dist": "^3.0.0"
+    "plotly.js-dist": "^3.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -100,6 +100,7 @@
     "acorn": "^8.15.0",
     "dompurify": "^3.2.3",
     "js-beautify": "^1.15.4",
+    "prettier-plugin-latex": "^2.0.1",
     "react-intersection-observer": "^9.8.2",
     "react-split": "^2.0.14",
     "react-usestateref": "^1.0.9"

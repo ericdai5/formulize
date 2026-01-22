@@ -18,7 +18,7 @@ const config = {
       latexDisplay: "value",
       svgContent: amplitudeSvg,
       labelDisplay: "svg",
-      svgSize: { width: 125, height: 125 }
+      svgSize: { width: 40, height: 40 }
     },
     f: {
       role: "input",
@@ -31,7 +31,7 @@ const config = {
       latexDisplay: "value",
       svgContent: frequencySvg,
       labelDisplay: "svg",
-      svgSize: { width: 125, height: 125 }
+      svgSize: { width: 40, height: 40 }
     },
     phi: {
       role: "input",
@@ -44,7 +44,7 @@ const config = {
       latexDisplay: "value",
       svgContent: phaseSvg,
       labelDisplay: "svg",
-      svgSize: { width: 125, height: 125 }
+      svgSize: { width: 40, height: 40 }
     },
     w: {
       role: "computed",

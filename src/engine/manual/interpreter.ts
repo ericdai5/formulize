@@ -3,7 +3,7 @@
  */
 import Interpreter from "js-interpreter";
 
-import { IStep } from "../../types/step";
+import { IStep, IView } from "../../types/step";
 import { IValue } from "../../types/variable";
 
 // Comprehensive interface for JS-Interpreter
@@ -18,10 +18,8 @@ interface JSInterpreter {
   createNativeFunction(func: (...args: unknown[]) => unknown): unknown;
   nativeToPseudo(obj: unknown): unknown;
   pseudoToNative?(obj: unknown): unknown;
-  // Custom property to store current view parameters
-  _currentViewParams?: {
-    pairs?: Array<[string, string]>;
-  };
+  // Custom property to store captured view parameters
+  _capturedView?: IView;
 }
 
 interface StackFrame {
@@ -194,11 +192,33 @@ export const initializeInterpreter = (
       // This is cleaner - just the values, no IVariable wrapper objects
       const varsObject = interpreter.nativeToPseudo(values);
       interpreter.setProperty(globalObject, "vars", varsObject);
-
-      // Set up the view() function as a breakpoint trigger
-      // This function acts as a breakpoint marker
-      // When called, it signals that execution should pause
-      const view = function () {
+      // Set up the view() function as a breakpoint trigger that captures arguments
+      // The function stores its arguments on the interpreter for later retrieval
+      // Syntax: view("description", { value: variable, expression: "latex", formulaId: "id" })
+      const view = function (description: unknown, options: unknown) {
+        // Convert pseudo-object to native object if needed
+        const nativeOptions = interpreter.pseudoToNative
+          ? interpreter.pseudoToNative(options)
+          : options;
+        // Extract value, expression, formulaId, and id from options object
+        const opts =
+          nativeOptions && typeof nativeOptions === "object"
+            ? (nativeOptions as {
+                id?: string;
+                value?: unknown;
+                expression?: string;
+                formulaId?: string;
+              })
+            : {};
+        // Store captured parameters on the interpreter instance
+        const view = {
+          id: opts.id ? String(opts.id) : undefined,
+          description: String(description ?? ""),
+          value: opts.value,
+          expression: opts.expression ? String(opts.expression) : undefined,
+          formulaId: opts.formulaId ? String(opts.formulaId) : undefined,
+        };
+        interpreter._capturedView = view;
         return undefined;
       };
       interpreter.setProperty(
