@@ -13,7 +13,7 @@ import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";
 import { updateHoverLines } from "./hover-lines";
 import { renderLines } from "./lines";
-import { StepPointsManager } from "./step-points";
+import { STEP_POINTS_EXTENSION_KEY, StepPointsRenderer } from "./step-points";
 import { calculatePlotDimensions } from "./utils";
 import { getAllVectorVariables, renderVectors } from "./vectors";
 
@@ -33,8 +33,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const axisLabelInfoRef = useRef<AxisLabelInfo>({});
-  const stepPointsManagerRef = useRef<StepPointsManager>(
-    new StepPointsManager()
+  const stepPointsRendererRef = useRef<StepPointsRenderer>(
+    new StepPointsRenderer()
   );
 
   // Parse configuration options with defaults
@@ -102,8 +102,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // Check if we have vectors or lines
     const hasVectors = vectors && vectors.length > 0;
     const hasLines = xAxis && yAxis && lines.length > 0;
-
-    if (!hasVectors && !hasLines) return;
+    const hasStepPoints = !!stepPoints && !!executionStore;
+    if (!hasVectors && !hasLines && !hasStepPoints) return;
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
@@ -211,16 +211,14 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       });
     }
 
-    // Update step points
+    // Render step points from extensions (values resolved in useEffect)
     if (stepPoints && executionStore) {
-      stepPointsManagerRef.current.updateStepPoints(
+      stepPointsRendererRef.current.render(
         svg,
-        stepPoints,
         xScale,
         yScale,
         [xMin, xMax],
         [yMin, yMax],
-        computationStore,
         executionStore
       );
     }
@@ -269,11 +267,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             computationStore.hoverStates.get(id) || false;
         }
 
-        // Also track active variables if execution store exists
+        // Also track active variables and history index if execution store exists
         if (executionStore) {
           allVariables._activeVars = Array.from(
             executionStore.activeVariables
           ).join(",");
+          // Track historyIndex to re-render when stepping through history
+          allVariables._historyIndex = executionStore.historyIndex;
         }
 
         return allVariables;
@@ -295,18 +295,74 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     drawPlot();
   }, [config, drawPlot]);
 
-  // Clear step points when execution store is reset
+
+  // Re-draw when execution store resets (step points are managed by the system)
   useEffect(() => {
     if (!executionStore) return;
     const disposer = reaction(
       () => executionStore.resetCount,
       () => {
-        stepPointsManagerRef.current.clear();
+        drawPlot();
       },
       { fireImmediately: true }
     );
     return () => disposer();
-  }, [executionStore]);
+  }, [executionStore, drawPlot]);
+
+  // Register step points by resolving variable names from step.variables
+  useEffect(() => {
+    if (!stepPoints || !executionStore || executionStore.history.length === 0) {
+      return;
+    }
+
+    const items: Array<{
+      viewId: string;
+      index?: number;
+      persistence?: boolean;
+      data: Record<string, unknown>;
+    }> = [];
+
+    for (const [viewId, pointsConfig] of Object.entries(stepPoints)) {
+      const pointsArray = Array.isArray(pointsConfig)
+        ? pointsConfig
+        : [pointsConfig];
+
+      for (const pointConfig of pointsArray) {
+        // Iterate ALL steps to find each occurrence of this viewId
+        for (let i = 0; i < executionStore.history.length; i++) {
+          const step = executionStore.history[i];
+          if (step.view?.id !== viewId) continue;
+
+          const xValue = step.variables[pointConfig.xValue];
+          const yValue = step.variables[pointConfig.yValue];
+
+          if (typeof xValue !== "number" || typeof yValue !== "number") {
+            continue;
+          }
+
+          items.push({
+            viewId,
+            index: i,
+            persistence: pointConfig.persistence,
+            data: {
+              xValue,
+              yValue,
+              color: pointConfig.color,
+              size: pointConfig.size,
+              label: pointConfig.label,
+            },
+          });
+        }
+      }
+    }
+
+    if (items.length > 0) {
+      executionStore.addObject({
+        key: STEP_POINTS_EXTENSION_KEY,
+        items,
+      });
+    }
+  }, [stepPoints, executionStore, executionStore?.history.length]);
 
   // Guard: computationStore must be provided - placed after all hooks
   if (!computationStore) {

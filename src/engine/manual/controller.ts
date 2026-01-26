@@ -343,6 +343,9 @@ export class Controller {
     ctx.setHistoryIndex(0);
     ctx.setIsComplete(true);
 
+    // Process extension configs to add items based on viewId and handle persistence
+    ctx.processExtensions();
+
     // Clear all active variables and visual cues for the initial state
     ctx.setActiveVariables(new Set());
     requestAnimationFrame(() => {

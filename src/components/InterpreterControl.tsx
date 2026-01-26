@@ -38,7 +38,7 @@ export interface InterpreterControlProps {
  * requiring React Flow or canvas context.
  */
 export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
-  ({ environment, width, className = "", defaultCollapsed = false }) => {
+  ({ environment, width, className = "", defaultCollapsed = true }) => {
     const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
     const [userCode, setUserCode] = useState<string>("");
     const [isUserViewCollapsed, setIsUserViewCollapsed] =
