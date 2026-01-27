@@ -196,13 +196,13 @@ export const initializeInterpreter = (
       // The function stores its arguments on the interpreter for later retrieval
       // Syntax: view(description, values, options?)
       // - description: string describing what is being shown
-      // - values: Record<string, IValue> mapping LaTeX variable IDs to runtime values
+      // - values: Array of [varId, value] tuples mapping LaTeX variable IDs to runtime values
       // - options: optional object with { id?: string, expression?: string, formulaId?: string }
       // Examples:
-      //   view("Get value x:", { "x": xi })
-      //   view("MSE calculation", { "m": m }, { expression: "\\frac{1}{m}" })
-      //   view("Loss:", { "J": loss }, { expression: "...", formulaId: "loss-func" })
-      //   view("Weight update", { "w": w }, { id: "weight-update", formulaId: "update-rule" })
+      //   view("Get value x:", [["x", xi]])
+      //   view("MSE calculation", [["m", m]], { expression: "\\frac{1}{m}" })
+      //   view("Loss:", [["J", loss]], { expression: "...", formulaId: "loss-func" })
+      //   view("Weight update", [["w", w]], { id: "weight-update", formulaId: "update-rule" })
       const view = function (
         description: unknown,
         valuesArg: unknown,
@@ -218,10 +218,18 @@ export const initializeInterpreter = (
             : optionsArg
           : null;
 
-        // Extract values if it's an object (and not null)
+        // Extract values from array of tuples: [["varId", value], ...]
         let values: Record<string, IValue> | undefined;
-        if (nativeValues && typeof nativeValues === "object") {
-          values = nativeValues as Record<string, IValue>;
+        if (Array.isArray(nativeValues)) {
+          values = {};
+          for (const tuple of nativeValues) {
+            if (Array.isArray(tuple) && tuple.length >= 2) {
+              const [varId, value] = tuple;
+              if (typeof varId === "string") {
+                values[varId] = value as IValue;
+              }
+            }
+          }
         }
 
         // Extract id, expression and formulaId from options object

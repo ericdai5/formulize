@@ -87,6 +87,40 @@ const processNestedVariable = (
       return `${accent.label}{${base}}`;
     }
 
+    // Handle group nodes (e.g., {t+1} in subscripts)
+    if (node.type === "group") {
+      const group = node as Group;
+      // Check if the entire group matches a known variable
+      // toLatex returns "{content}" with braces, so we need to strip them
+      let groupLatex =
+        "toLatex" in group ? group.toLatex("no-id", 0)[0] : "";
+      // Strip surrounding braces if present
+      if (groupLatex.startsWith("{") && groupLatex.endsWith("}")) {
+        groupLatex = groupLatex.slice(1, -1);
+      }
+      // Also try removing spaces for matching (e.g., "t + 1" -> "t+1")
+      const groupLatexNoSpaces = groupLatex.replace(/\s+/g, "");
+      if (computationStore.variables.has(groupLatex)) {
+        return renderNestedVariable(
+          groupLatex,
+          defaultPrecision,
+          computationStore,
+          executionStore
+        );
+      }
+      if (computationStore.variables.has(groupLatexNoSpaces)) {
+        return renderNestedVariable(
+          groupLatexNoSpaces,
+          defaultPrecision,
+          computationStore,
+          executionStore
+        );
+      }
+      // Otherwise, process children recursively
+      const children = group.body.map(processNode).join(" ");
+      return `{${children}}`;
+    }
+
     // For other node types, recursively process their children
     return processNodeChildren(node, processNode);
   };

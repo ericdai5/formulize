@@ -43,19 +43,19 @@ export const getArrayControl = (
  * which overrides this function within the execution context.
  *
  * @param description - Text description of what is being shown
- * @param values - Record mapping LaTeX variable IDs to runtime values
+ * @param values - Array of [varId, value] tuples mapping LaTeX variable IDs to runtime values
  * @param options - Optional object with id, expression and formulaId
  *
  * @example
- * view("Current sum:", { "S": sum });
- * view("Processing element", { "x": xi, "X": xi }, { expression: "x_{i}" });
- * view("Loss value:", { "L": loss }, { formulaId: "loss-function" });
- * view("Final result:", { "E": result }, { expression: "\\sum_{i} x_i", formulaId: "main-formula" });
- * view("Weight update:", { "w": w }, { id: "weight-update", formulaId: "update-rule" });
+ * view("Current sum:", [["S", sum]]);
+ * view("Processing element", [["x", xi], ["X", xi]], { expression: "x_{i}" });
+ * view("Loss value:", [["L", loss]], { formulaId: "loss-function" });
+ * view("Final result:", [["E", result]], { expression: "\\sum_{i} x_i", formulaId: "main-formula" });
+ * view("Weight update:", [["w", w]], { id: "weight-update", formulaId: "update-rule" });
  */
 export function view(
   _description: string,
-  _values?: Record<string, IValue>,
+  _values?: Array<[string, IValue]>,
   _options?: { id?: string; expression?: string; formulaId?: string }
 ): void {
   // This is a stub - the actual implementation is injected by the interpreter at runtime.
