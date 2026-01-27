@@ -1,3 +1,4 @@
+import { average } from "./average";
 import { bayesWithCustomVisualization } from "./bayesVisualization";
 import { fittsLaw } from "./fittsLaw";
 import { gravitationalPotential } from "./gravitationalPotential";
@@ -18,6 +19,7 @@ import { svgKineticEnergy2D } from "./svgLabels";
 import { vectorAddition } from "./vectorAddition";
 
 export const examples = {
+  average,
   kinetic2D,
   kinetic3D,
   quadratic2D,
@@ -39,6 +41,7 @@ export const examples = {
 };
 
 export const exampleDisplayNames = {
+  average: "Average (Mean)",
   kinetic2D: "Kinetic Energy 2D",
   kinetic3D: "Kinetic Energy 3D",
   gravitationalPotential: "Gravitational Potential",
