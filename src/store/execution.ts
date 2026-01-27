@@ -5,8 +5,9 @@ import { makeAutoObservable } from "mobx";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
 import { JSInterpreter } from "../engine/manual/interpreter";
+import { Step } from "../engine/manual/step";
 import { IEnvironment } from "../types/environment";
-import { IStep, IView } from "../types/step";
+import { IObject, IStep, IView } from "../types/step";
 
 /**
  * MobX store for execution state that provides immediate updates
@@ -54,6 +55,9 @@ class ExecutionStore {
   // Used to reset variables when stepping backward to before their declaration
   firstSeenValues: Map<string, number> = new Map();
 
+  // Extension configs for adding items to step extensions based on viewId
+  objectConfigs: IObject[] = [];
+
   resetCount: number = 0;
 
   // Refs for UI components
@@ -85,6 +89,45 @@ class ExecutionStore {
 
   setHistory(history: IStep[]) {
     this.history = history;
+  }
+
+  /**
+   * Set extension configs that define how items are added to step extensions.
+   * These configs are processed during history formation.
+   */
+  setObject(object: IObject[]): void {
+    this.objectConfigs = object;
+  }
+
+  /**
+   * Add an extension config and process it immediately if history exists.
+   * This allows configs to be registered after history is built (e.g., from React useEffect).
+   */
+  addObject(object: IObject): void {
+    // Check if this config key already exists to avoid duplicates on re-render
+    const existingIndex = this.objectConfigs.findIndex(
+      (c) => c.key === object.key
+    );
+    if (existingIndex >= 0) {
+      this.objectConfigs[existingIndex] = object;
+    } else {
+      this.objectConfigs.push(object);
+    }
+
+    // If history already exists, process this config immediately
+    if (this.history.length > 0) {
+      Step.processObjects(this.history, [object]);
+    }
+  }
+
+  /**
+   * Process all extension configs against the current history.
+   * Called automatically after history is built.
+   */
+  processExtensions(): void {
+    if (this.objectConfigs.length > 0) {
+      Step.processObjects(this.history, this.objectConfigs);
+    }
   }
 
   setHistoryIndex(index: number) {
@@ -233,6 +276,7 @@ class ExecutionStore {
     this.blockPoints = [];
     this.activeVariables = new Set();
     this.firstSeenValues = new Map();
+    this.objectConfigs = [];
     this.resetCount++;
     // Reset refs
     this.autoPlayIntervalRef = React.createRef() as React.MutableRefObject<
