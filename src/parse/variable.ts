@@ -689,34 +689,34 @@ export const processLatexContent = (
   }
 };
 
-/**
+/*** CURRENTLY NOT USED BUT MAY BE USEFUL IN THE FUTURE ***
  * Parse a latex string to find all variable identifiers contained within it.
  * This is useful for identifying which variables are present in a user-provided
  * LaTeX substring (like in a view() call).
  * @param latex - The LaTeX string to parse
  * @param computationStore - The computation store to use (required)
  */
-export const getVariablesFromLatexString = (
-  latex: string,
-  computationStore: ComputationStore
-): string[] => {
-  try {
-    // Get variable patterns from computation store
-    const variables = Array.from(computationStore.variables.keys());
-    // Parse variable patterns into trees for grouping
-    const variableTrees = parseVariableStrings(variables);
-    // Create formula tree with variables grouped, passing original symbols
-    const formula = deriveTreeWithVars(latex, variableTrees, variables);
-    // Collect all variable IDs
-    // collectVariableIds expects an AugmentedFormulaNode, but formula is an AugmentedFormula (which has children property)
-    // We can iterate over children and collect IDs from each
-    const varIds: string[] = [];
-    formula.children.forEach((child) => {
-      varIds.push(...collectVariableIds(child));
-    });
-    return varIds;
-  } catch (error) {
-    console.warn("Failed to parse latex for variables:", error);
-    return [];
-  }
-};
+// export const getVariablesFromLatexString = (
+//   latex: string,
+//   computationStore: ComputationStore
+// ): string[] => {
+//   try {
+//     // Get variable patterns from computation store
+//     const variables = Array.from(computationStore.variables.keys());
+//     // Parse variable patterns into trees for grouping
+//     const variableTrees = parseVariableStrings(variables);
+//     // Create formula tree with variables grouped, passing original symbols
+//     const formula = deriveTreeWithVars(latex, variableTrees, variables);
+//     // Collect all variable IDs
+//     // collectVariableIds expects an AugmentedFormulaNode, but formula is an AugmentedFormula (which has children property)
+//     // We can iterate over children and collect IDs from each
+//     const varIds: string[] = [];
+//     formula.children.forEach((child) => {
+//       varIds.push(...collectVariableIds(child));
+//     });
+//     return varIds;
+//   } catch (error) {
+//     console.warn("Failed to parse latex for variables:", error);
+//     return [];
+//   }
+// };

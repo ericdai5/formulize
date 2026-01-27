@@ -608,7 +608,7 @@ const FormulaCanvasInner = observer(
   }
 );
 
-export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
+export const Formula: React.FC<FormulaComponentProps> = observer(
   ({ id, className = "", style = {} }) => {
     const context = useFormulize();
     const instance = context?.instance;
@@ -662,4 +662,4 @@ export const FormulaComponent: React.FC<FormulaComponentProps> = observer(
   }
 );
 
-export default FormulaComponent;
+export default Formula;

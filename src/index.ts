@@ -11,7 +11,7 @@ export { default as Formulize } from "./formulize";
 export type { FormulizeConfig, FormulizeInstance } from "./formulize";
 
 // Export new component-based API
-export { FormulaComponent } from "./components/FormulaComponent";
+export { Formula } from "./components/FormulaComponent";
 export { InlineFormula } from "./components/InlineFormula";
 export { InlineVariable } from "./components/InlineVariable";
 export { VisualizationComponent } from "./components/VisualizationComponent";
@@ -49,7 +49,7 @@ export {
 
 // Export general programmatic generation utilities
 export {
-  Formula,
+  Formula as FormulaGenerator,
   Variable,
   Semantics,
   mergeVariables,

@@ -1,6 +1,5 @@
 import { EditorView } from "@codemirror/view";
 
-import { getVariablesFromLatexString } from "../../parse/variable";
 import {
   applyCue,
   clearAllCues,
