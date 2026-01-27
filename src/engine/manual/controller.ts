@@ -36,7 +36,7 @@ export const getArrayControl = (
 };
 
 /**
- * The view function creates visualization breakpoints during manual computation.
+ * The step function creates visualization breakpoints during manual computation.
  *
  * This is a stub export for TypeScript type checking purposes.
  * The actual implementation is injected at runtime by the interpreter,
@@ -47,13 +47,13 @@ export const getArrayControl = (
  * @param options - Optional object with id, expression and formulaId
  *
  * @example
- * view("Current sum:", [["S", sum]]);
- * view("Processing element", [["x", xi], ["X", xi]], { expression: "x_{i}" });
- * view("Loss value:", [["L", loss]], { formulaId: "loss-function" });
- * view("Final result:", [["E", result]], { expression: "\\sum_{i} x_i", formulaId: "main-formula" });
- * view("Weight update:", [["w", w]], { id: "weight-update", formulaId: "update-rule" });
+ * step("Current sum:", [["S", sum]]);
+ * step("Processing element", [["x", xi], ["X", xi]], { expression: "x_{i}" });
+ * step("Loss value:", [["L", loss]], { formulaId: "loss-function" });
+ * step("Final result:", [["E", result]], { expression: "\\sum_{i} x_i", formulaId: "main-formula" });
+ * step("Weight update:", [["w", w]], { id: "weight-update", formulaId: "update-rule" });
  */
-export function view(
+export function step(
   _description: string,
   _values?: Array<[string, IValue]>,
   _options?: { id?: string; expression?: string; formulaId?: string }

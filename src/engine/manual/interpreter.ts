@@ -192,18 +192,18 @@ export const initializeInterpreter = (
       // This is cleaner - just the values, no IVariable wrapper objects
       const varsObject = interpreter.nativeToPseudo(values);
       interpreter.setProperty(globalObject, "vars", varsObject);
-      // Set up the view() function as a breakpoint trigger that captures arguments
+      // Set up the step() function as a breakpoint trigger that captures arguments
       // The function stores its arguments on the interpreter for later retrieval
-      // Syntax: view(description, values, options?)
+      // Syntax: step(description, values, options?)
       // - description: string describing what is being shown
       // - values: Array of [varId, value] tuples mapping LaTeX variable IDs to runtime values
       // - options: optional object with { id?: string, expression?: string, formulaId?: string }
       // Examples:
-      //   view("Get value x:", [["x", xi]])
-      //   view("MSE calculation", [["m", m]], { expression: "\\frac{1}{m}" })
-      //   view("Loss:", [["J", loss]], { expression: "...", formulaId: "loss-func" })
-      //   view("Weight update", [["w", w]], { id: "weight-update", formulaId: "update-rule" })
-      const view = function (
+      //   step("Get value x:", [["x", xi]])
+      //   step("MSE calculation", [["m", m]], { expression: "\\frac{1}{m}" })
+      //   step("Loss:", [["J", loss]], { expression: "...", formulaId: "loss-func" })
+      //   step("Weight update", [["w", w]], { id: "weight-update", formulaId: "update-rule" })
+      const step = function (
         description: unknown,
         valuesArg: unknown,
         optionsArg?: unknown
@@ -260,8 +260,8 @@ export const initializeInterpreter = (
       };
       interpreter.setProperty(
         globalObject,
-        "view",
-        interpreter.createNativeFunction(view)
+        "step",
+        interpreter.createNativeFunction(step)
       );
 
       // Also provide the getVariablesJSON function for debugging

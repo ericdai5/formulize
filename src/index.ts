@@ -23,8 +23,8 @@ export { EmbeddedFormula } from "./components/EmbeddedFormula";
 export { InterpreterControl } from "./components/InterpreterControl";
 export type { InterpreterControlProps } from "./components/InterpreterControl";
 
-// Export view function for manual computation breakpoints
-export { view } from "./engine/manual/controller";
+// Export step function for manual computation breakpoints
+export { step } from "./engine/manual/controller";
 
 // Export computation API - factory function and type for scoped stores
 export { createComputationStore, ComputationStore } from "./store/computation";
