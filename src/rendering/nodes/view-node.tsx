@@ -29,11 +29,11 @@ const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
       }}
       title={`View comment for expression: ${expression} (draggable)`}
     >
-      {/* Handle at the center top for connecting edges */}
+      {/* Handle at the center bottom for connecting edges */}
       <Handle
         type="source"
-        position={Position.Top}
-        id="view-handle-top"
+        position={Position.Bottom}
+        id="view-handle-bottom"
         style={HANDLE_STYLE}
       />
       <LatexLabel latex={latexDescription} />

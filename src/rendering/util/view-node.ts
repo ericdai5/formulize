@@ -267,8 +267,8 @@ export function createViewEdge(
     id: `edge-view-${viewNodeId}-${expressionNodeId}`,
     source: viewNodeId,
     target: expressionNodeId,
-    sourceHandle: "view-handle-top",
-    targetHandle: "expression-handle-bottom",
+    sourceHandle: "view-handle-bottom",
+    targetHandle: "expression-handle-top",
     type: "default", // bezier curved edge
     style: {
       stroke: "#cbd5e1",

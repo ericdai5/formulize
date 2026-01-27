@@ -31,20 +31,20 @@ const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
         position: "relative",
         // Show border when debug mode is enabled
         background: showBorder ? "rgba(59, 130, 246, 0.1)" : "transparent",
-        borderTop: showBorder ? "1px dashed #3b82f6" : "none",
+        // Always show top border with edge color (or dashed when debug mode)
+        borderTop: showBorder ? "1px dashed #3b82f6" : "1px solid #cbd5e1",
         borderLeft: showBorder ? "1px dashed #3b82f6" : "none",
         borderRight: showBorder ? "1px dashed #3b82f6" : "none",
+        borderBottom: showBorder ? "1px dashed #3b82f6" : "none",
         borderRadius: 4,
-        // Always show bottom border with edge color
-        borderBottom: "1px solid #cbd5e1",
         pointerEvents: "none",
       }}
     >
-      {/* Handle at the bottom center for connecting edges from view nodes */}
+      {/* Handle at the top center for connecting edges from view nodes */}
       <Handle
         type="target"
-        position={Position.Bottom}
-        id="expression-handle-bottom"
+        position={Position.Top}
+        id="expression-handle-top"
         style={{ ...HANDLE_STYLE, transform: "translateX(-50%)" }}
       />
     </div>

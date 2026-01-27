@@ -256,9 +256,9 @@ export const processVariableElementsForLabels = (
       height: (variableNode.data.height as number) || 0,
     };
 
-    // View nodes are always rendered below the equation.
-    // If there is an active view, force labels to be above to avoid edge overlaps.
-    const forcePlacement = executionStore.currentView ? "above" : undefined;
+    // View nodes are always rendered above the equation.
+    // If there is an active view, force labels to be below to avoid edge overlaps.
+    const forcePlacement = executionStore.currentView ? "below" : undefined;
 
     const labelPos = getLabelNodePos(
       htmlElementPosition,
