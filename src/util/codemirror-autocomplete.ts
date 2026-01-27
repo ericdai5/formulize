@@ -31,7 +31,6 @@ const variableCompletions: CompletionOption[] = [
   { label: "options", type: "property", info: "Options array (string[])" },
   { label: "set", type: "property", info: "Set of values (string | number)[]" },
   { label: "key", type: "property", info: "Variable key" },
-  { label: "memberOf", type: "property", info: "Member of group" },
   {
     label: "latexDisplay",
     type: "property",
@@ -42,7 +41,6 @@ const variableCompletions: CompletionOption[] = [
     type: "property",
     info: "Label display: name | value | none",
   },
-  { label: "index", type: "property", info: "Variable index" },
 ];
 
 // Variable type values
@@ -79,11 +77,6 @@ const formulaCompletions: CompletionOption[] = [
     label: "manual",
     type: "property",
     info: "Manual computation function (optional)",
-  },
-  {
-    label: "variableLinkage",
-    type: "property",
-    info: "Variable linkage mapping (optional)",
   },
 ];
 
@@ -126,7 +119,6 @@ const semanticsCompletions: CompletionOption[] = [
   { label: "engine", type: "property", info: "Semantics engine type" },
   { label: "expressions", type: "property", info: "Expressions mapping (optional)" },
   { label: "manual", type: "property", info: "Manual function (optional)" },
-  { label: "variableLinkage", type: "property", info: "Variable linkage (optional)" },
   { label: "mappings", type: "property", info: "Function mappings (optional)" },
   { label: "apiKey", type: "property", info: "API key (optional)" },
   { label: "model", type: "property", info: "Model name (optional)" },

@@ -8,11 +8,13 @@ export interface IHighlight {
   end: number;
 }
 
+import { IValue } from "./variable";
+
 /**
  * A view that is created by a view() call
  * @property id - Optional unique identifier for the view
  * @property description - The description text to display
- * @property value - Optional value associated with the view
+ * @property values - Explicit mapping of LaTeX variable IDs to runtime values
  * @property expression - Optional expression scope for bounding box around
  * expression and also active variables
  * @property formulaId - Optional formula ID to target specific formula component
@@ -20,7 +22,7 @@ export interface IHighlight {
 export interface IView {
   id?: string;
   description: string;
-  value?: unknown;
+  values?: Record<string, IValue>;
   expression?: string;
   formulaId?: string;
 }

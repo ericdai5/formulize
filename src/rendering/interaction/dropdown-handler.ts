@@ -64,11 +64,8 @@ export const dropdownHandler = (
           if (!isNaN(numericValue)) {
             if (isKeyVariable && variable.key) {
               // For variables with a key, update the key variable first
-              // This will automatically update the computed variable via updateIndexBasedVariables
               computationStore.setValue(variable.key, numericValue);
-              // The computed variable (this variable) will be updated automatically
             } else {
-              // For regular set/options variables, update directly
               computationStore.setValue(varId, numericValue);
             }
           }

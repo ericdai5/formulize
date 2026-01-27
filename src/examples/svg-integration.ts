@@ -51,7 +51,6 @@ export const svgIntegration = `const config = {
       precision: 0,
       units: "atoms",
       latexDisplay: "name",
-      memberOf: "N",
       defaultCSS: "filter: drop-shadow(0 0 8px #7FFF00) saturate(1);",
       hoverCSS: "filter: drop-shadow(0 0 12px #00FF00); transform: scale(1.1);"
     },

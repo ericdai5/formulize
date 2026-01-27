@@ -271,8 +271,7 @@ export const processVariableElementsForLabels = (
       viewport,
       forcePlacement
     );
-    // Create the label node - initially nearly transparent until positioned correctly
-    // Use 0.01 instead of 0 so React Flow measures it properly
+    // Create the label node - initially hidden until positioned correctly
     // Make label a child of the formula node so it automatically moves with the formula
     // Convert absolute position to relative position (relative to formula node)
     const relativePosition = {
@@ -292,7 +291,7 @@ export const processVariableElementsForLabels = (
       draggable: true,
       selectable: true,
       style: {
-        opacity: 0.01, // Nearly invisible but measurable
+        opacity: 0, // Hidden until positioned
         pointerEvents: "none" as const, // Disable interactions while hidden
       },
     });
@@ -593,7 +592,7 @@ export const adjustLabelPositions = ({
     const original = currentNodes[index];
     const opacityChanged =
       original.style?.opacity !== node.style?.opacity &&
-      (original.style?.opacity === 0.01 || original.style?.opacity === 0); // Opacity going from hidden to visible
+      original.style?.opacity === 0; // Opacity going from hidden to visible
     return (
       original.position.x !== node.position.x ||
       original.position.y !== node.position.y ||

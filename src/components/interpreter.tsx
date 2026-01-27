@@ -4,12 +4,9 @@ import { observer } from "mobx-react-lite";
 
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import beautify from "js-beautify";
 
 import { refresh, stepForward, stepToIndex } from "../engine/manual/execute";
-import { extractManual } from "../engine/manual/extract";
 import { isAtBlock } from "../engine/manual/interpreter";
-import { IEnvironment } from "../types/environment";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
   addArrowMarker,
@@ -27,11 +24,14 @@ import { VariablesSection } from "./variable-section";
 interface DebugModalProps {
   isOpen: boolean;
   onClose: () => void;
-  environment: IEnvironment | null;
 }
 
+/**
+ * Debug modal for step-through debugging of manual functions.
+ * Must be used inside a FormulizeProvider which handles code extraction.
+ */
 const DebugModal: React.FC<DebugModalProps> = observer(
-  ({ isOpen, onClose, environment }) => {
+  ({ isOpen, onClose }) => {
     const context = useFormulize();
     const computationStore = context?.computationStore;
     const executionStore = context?.executionStore;
@@ -42,7 +42,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
     }
     const ctx = executionStore;
     const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
-    const [userCode, setUserCode] = useState<string>("");
     const [isInterpreterCollapsed, setIsInterpreterCollapsed] = useState(false);
     const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
     const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
@@ -54,20 +53,26 @@ const DebugModal: React.FC<DebugModalProps> = observer(
     const toggleVariables = () =>
       setIsVariablesCollapsed(!isVariablesCollapsed);
 
+    // Read userCode from the store (set by FormulizeProvider during initialization)
+    const userCode = ctx.userCode;
+
     // Functions to control line markers and arrow gutter markers
-    const setCurrentLine = useCallback((line: number) => {
-      if (ctx.codeMirrorRef.current?.view) {
-        const view = ctx.codeMirrorRef.current.view;
-        view.dispatch({
-          effects: [
-            clearLineMarkers.of(null),
-            addLineMarker.of({ line }),
-            clearArrowMarkers.of(null),
-            addArrowMarker.of({ line }),
-          ],
-        });
-      }
-    }, []);
+    const setCurrentLine = useCallback(
+      (line: number) => {
+        if (ctx.codeMirrorRef.current?.view) {
+          const view = ctx.codeMirrorRef.current.view;
+          view.dispatch({
+            effects: [
+              clearLineMarkers.of(null),
+              addLineMarker.of({ line }),
+              clearArrowMarkers.of(null),
+              addArrowMarker.of({ line }),
+            ],
+          });
+        }
+      },
+      [ctx]
+    );
 
     const clearCurrentLine = useCallback(() => {
       if (ctx.codeMirrorRef.current?.view) {
@@ -76,39 +81,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           effects: [clearLineMarkers.of(null), clearArrowMarkers.of(null)],
         });
       }
-    }, []);
-
-    // Initialize interpreter and code when environment changes
-    useEffect(() => {
-      const result = extractManual(environment);
-      if (result.isLoading) {
-        return;
-      }
-      if (result.error) {
-        ctx.setError(result.error);
-        return;
-      }
-      if (result.code) {
-        ctx.setCode(result.code);
-        ctx.setEnvironment(environment);
-        ctx.setError(null);
-        // Set the user view code to the original manual function
-        if (environment?.semantics?.manual) {
-          const manualFunction = environment.semantics.manual;
-          const functionString = manualFunction.toString();
-          // Use js-beautify to format the code with proper indentation
-          const formattedCode = beautify.js(functionString, {
-            indent_size: 2,
-            space_in_empty_paren: false,
-            preserve_newlines: true,
-            max_preserve_newlines: 2,
-            brace_style: "collapse",
-            keep_array_indentation: false,
-          });
-          setUserCode(formattedCode);
-        }
-      }
-    }, [environment]);
+    }, [ctx]);
 
     // Helper function to clear markers in the user view CodeMirror
     const clearUserViewLine = useCallback(() => {
@@ -185,7 +158,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
 
         return userCharPos;
       },
-      [userCode]
+      [userCode, ctx.code]
     );
 
     // Helper function to convert character position to line number
@@ -225,7 +198,13 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           }
         }
       },
-      [convertCharPos, getLineFromCharPosition, userCode, highlightUserViewLine]
+      [
+        convertCharPos,
+        getLineFromCharPosition,
+        userCode,
+        highlightUserViewLine,
+        ctx.history,
+      ]
     );
 
     // Handle clicking on timeline items to travel to that point in history
@@ -258,6 +237,8 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       clearUserViewLine,
       getLineFromCharPosition,
       handleUserViewHighlighting,
+      ctx.code,
+      ctx.historyIndex,
     ]);
 
     // Cleanup on unmount
@@ -267,7 +248,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           clearInterval(ctx.autoPlayIntervalRef.current);
         }
       };
-    }, []);
+    }, [ctx]);
 
     if (!isOpen) return null;
 
@@ -321,7 +302,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
               >
                 <CodeMirror
                   value={userCode}
-                  onChange={(value) => setUserCode(value)}
+                  onChange={(value) => ctx.setUserCode(value)}
                   extensions={[javascript(), ...debugExtensions]}
                   style={CodeMirrorStyle}
                   basicSetup={CodeMirrorSetup}

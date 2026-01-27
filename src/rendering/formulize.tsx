@@ -141,7 +141,6 @@ const FormulaCanvasInner = observer(
         <DebugModal
           isOpen={showDebugModal}
           onClose={() => setShowDebugModal(false)}
-          environment={currentConfig ?? null}
         />
         <Modal
           isOpen={showMathJaxTreePane}

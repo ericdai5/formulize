@@ -24,46 +24,15 @@ import {
   Text,
   Variable,
   deriveTreeWithVars,
-  nodeMatches,
   parseVariableStrings,
 } from "./formula-tree";
-
-/**
- * Get the CSS class for a variable based on its role
- * @param varSymbol - The variable symbol to look up
- * @param computationStore - The computation store to use
- * @returns The appropriate CSS class string
- */
-const getCssClassForVariable = (
-  varSymbol: string,
-  computationStore: ComputationStore
-): string => {
-  const variable = computationStore.variables.get(varSymbol);
-  const role = variable?.role || "constant";
-  if (role === "input") {
-    return VAR_CLASSES.INPUT;
-  } else if (role === "computed") {
-    return VAR_CLASSES.COMPUTED;
-  }
-  return VAR_CLASSES.BASE;
-};
 
 /**
  * Configuration for processing nested variables within a formula node subtree
  */
 interface NestedVariableConfig {
-  /** Index variable to match and show its value (e.g., 'i' in y^{(i)}) */
-  indexVariable?: string;
-  /** Parent variable symbol to match and wrap with cssId (e.g., 'y' in y^{(i)}) */
-  memberOfSymbol?: string;
   /** Default precision for number formatting */
   defaultPrecision: number;
-  /** Custom CSS to inject for memberOf (overrides parent's CSS) */
-  memberDefaultCSS?: string;
-  /** Custom hover CSS to inject for memberOf */
-  memberHoverCSS?: string;
-  /** Value to use for CSS variable interpolation */
-  memberValue?: number;
   /** Computation store (required) */
   computationStore: ComputationStore;
   /** Execution store (required) */
@@ -72,118 +41,50 @@ interface NestedVariableConfig {
 
 /**
  * Process nested variables within a formula node subtree.
- * Handles both index variables (showing values) and memberOf relationships (parent symbol wrapping).
+ * Finds any symbols that are known variables and renders them with values when active.
  *
  * Examples:
- * - For y^{(i)} with index=i, memberOf=y: wraps 'i' with value display, wraps 'y' with cssId
- * - For \hat{y}^{(i)} with index=i, memberOf=\hat{y}: same behavior for accented parent
- * - For N_0 with memberOf=N: wraps 'N' with parent's styling/SVG
+ * - For y^{(i)} where 'i' is a variable: wraps 'i' with value display when active
  */
 const processNestedVariable = (
   node: AugmentedFormulaNode,
   config: NestedVariableConfig
 ): string => {
-  const {
-    indexVariable,
-    memberOfSymbol,
-    defaultPrecision,
-    memberDefaultCSS,
-    memberHoverCSS,
-    memberValue,
-    computationStore,
-    executionStore,
-  } = config;
+  const { defaultPrecision, computationStore, executionStore } = config;
 
   const processNode = (node: AugmentedFormulaNode): string => {
     // Handle symbol nodes
     if (node.type === "symbol") {
       const symbol = node as MathSymbol;
-
-      // Check if this symbol matches the index variable
-      if (indexVariable && symbol.value === indexVariable) {
-        return renderIndexVariable(
+      // Check if this symbol is a known variable in the computation store
+      if (computationStore.variables.has(symbol.value)) {
+        return renderNestedVariable(
           symbol.value,
           defaultPrecision,
           computationStore,
           executionStore
         );
       }
-
-      // Check if this symbol matches the memberOf parent variable
-      if (memberOfSymbol && symbol.value === memberOfSymbol) {
-        return renderMemberOfSymbol(
-          symbol.value,
-          memberOfSymbol,
-          computationStore,
-          memberDefaultCSS,
-          memberHoverCSS,
-          memberValue
-        );
-      }
-
       return symbol.value;
     }
 
     // Handle accent nodes (e.g., \hat{y})
     if (node.type === "accent") {
       const accent = node as Accent;
-      // Check if entire accent matches memberOfSymbol
-      if (memberOfSymbol) {
-        const accentLatex =
-          "toLatex" in accent ? accent.toLatex("no-id", 0)[0] : "";
-        if (accentLatex === memberOfSymbol) {
-          const cssClass = getCssClassForVariable(
-            memberOfSymbol,
-            computationStore
-          );
-          const base = processNode(accent.base);
-          return `\\cssId{${memberOfSymbol}}{\\class{${cssClass}}{${accent.label}{${base}}}}`;
-        }
+      // Check if the entire accent node is a known variable
+      const accentLatex =
+        "toLatex" in accent ? accent.toLatex("no-id", 0)[0] : "";
+      if (computationStore.variables.has(accentLatex)) {
+        return renderNestedVariable(
+          accentLatex,
+          defaultPrecision,
+          computationStore,
+          executionStore
+        );
       }
+      // Otherwise, process the base recursively
       const base = processNode(accent.base);
       return `${accent.label}{${base}}`;
-    }
-
-    // Handle group nodes (e.g., {t+1} in subscripts)
-    if (node.type === "group") {
-      const group = node as Group;
-
-      // Check if the entire group matches an index variable
-      if (indexVariable) {
-        // Parse the index variable into a tree for comparison
-        const indexVarTree = parseVariableStrings([indexVariable])[0];
-
-        // Check if this group matches the index variable tree
-        if (indexVarTree && indexVarTree.children.length > 0) {
-          const indexVarNode = indexVarTree.children[0];
-
-          // Compare the group structure with the index variable structure
-          if (nodeMatches(group, indexVarNode)) {
-            return renderIndexVariable(
-              indexVariable,
-              defaultPrecision,
-              computationStore,
-              executionStore
-            );
-          }
-
-          // Also check if the group as a whole represents the index variable
-          // This handles cases where the index variable is parsed differently
-          const groupLatex = group
-            .toLatex("no-id", 0)[0]
-            .replace(/[{}]/g, "")
-            .replace(/\s+/g, "");
-          const indexLatex = indexVariable.replace(/\s+/g, "");
-          if (groupLatex === indexLatex) {
-            return renderIndexVariable(
-              indexVariable,
-              defaultPrecision,
-              computationStore,
-              executionStore
-            );
-          }
-        }
-      }
     }
 
     // For other node types, recursively process their children
@@ -194,9 +95,9 @@ const processNestedVariable = (
 };
 
 /**
- * Render an index variable with its current value or symbol
+ * Render a nested variable with its current value or symbol
  */
-const renderIndexVariable = (
+const renderNestedVariable = (
   symbolValue: string,
   defaultPrecision: number,
   computationStore: ComputationStore,
@@ -204,94 +105,23 @@ const renderIndexVariable = (
 ): string => {
   let value: number | undefined = undefined;
   let variablePrecision = defaultPrecision;
-  let variableRole: IRole = "constant";
-
-  // Get the value and role from the computation store
+  let latexDisplay: "name" | "value" = "name";
+  // Get the value from the computation store
   const variable = computationStore.variables.get(symbolValue);
   if (variable) {
     value = typeof variable.value === "number" ? variable.value : undefined;
     variablePrecision = variable.precision ?? defaultPrecision;
-    variableRole = variable.role || "constant";
+    latexDisplay = variable.latexDisplay ?? "name";
   }
-
-  // For index role variables, determine if we should show value or symbol
-  let showValue = true;
-  if (variableRole === "index") {
-    let isActive = executionStore.activeVariables.has(symbolValue);
-
-    // Also check if any variable that uses this as an index is active
-    if (!isActive) {
-      for (const activeVarId of executionStore.activeVariables) {
-        const activeVar = computationStore.variables.get(activeVarId);
-        if (activeVar?.index === symbolValue) {
-          isActive = true;
-          break;
-        }
-      }
-    }
-
-    // Only show value when active
-    showValue = isActive;
-  }
-
-  // Always wrap with cssId for highlighting support
   // Show value when active, symbol when not active
-  if (showValue && value !== null && value !== undefined && !isNaN(value)) {
-    return `\\cssId{${symbolValue}}{\\class{${VAR_CLASSES.INDEX}}{${value.toFixed(variablePrecision)}}}`;
-  } else {
-    // Fallback to showing the symbol with cssId
-    return `\\cssId{${symbolValue}}{\\class{${VAR_CLASSES.INDEX}}{${symbolValue}}}`;
+  const isActive = executionStore.activeVariables.has(symbolValue);
+  const hasValidValue = value !== null && value !== undefined && !isNaN(value);
+  // Respect latexDisplay setting - only show value if latexDisplay allows it AND variable is active
+  if (isActive && hasValidValue && latexDisplay === "value") {
+    return `\\cssId{${symbolValue}}{\\class{${VAR_CLASSES.INPUT}}{${value!.toFixed(variablePrecision)}}}`;
   }
-};
-
-/**
- * Render a memberOf parent symbol with appropriate styling
- */
-const renderMemberOfSymbol = (
-  symbolValue: string,
-  memberOfSymbol: string,
-  computationStore: ComputationStore,
-  memberDefaultCSS?: string,
-  memberHoverCSS?: string,
-  memberValue?: number
-): string => {
-  // Get parent variable's configuration
-  const parentVar = computationStore.variables.get(memberOfSymbol);
-  const parentValue =
-    typeof parentVar?.value === "number" ? parentVar.value : undefined;
-  const parentDefaultCSS = parentVar?.defaultCSS || "";
-  const parentHoverCSS = parentVar?.hoverCSS || "";
-  const parentHasSVG = !!(
-    parentVar?.svgMode &&
-    (parentVar.svgPath || parentVar.svgContent)
-  );
-  const parentSvgMode = parentVar?.svgMode;
-
-  // Apply CSS - member CSS overrides parent CSS if provided
-  const cssToApply = memberDefaultCSS || parentDefaultCSS;
-  const hoverCssToApply = memberHoverCSS || parentHoverCSS;
-  const valueToUse = memberValue !== undefined ? memberValue : parentValue;
-
-  if (cssToApply) {
-    injectDefaultCSS(memberOfSymbol, cssToApply, computationStore, valueToUse);
-  }
-  if (hoverCssToApply) {
-    injectHoverCSS(
-      memberOfSymbol,
-      hoverCssToApply,
-      computationStore,
-      valueToUse
-    );
-  }
-
-  const cssClass = getCssClassForVariable(memberOfSymbol, computationStore);
-
-  // If parent has SVG in replace mode, use phantom for the matching symbol
-  if (parentHasSVG && parentSvgMode === "replace") {
-    return `\\cssId{${memberOfSymbol}}{\\class{${cssClass}}{\\phantom{M}}}`;
-  } else {
-    return `\\cssId{${memberOfSymbol}}{\\class{${cssClass}}{${symbolValue}}}`;
-  }
+  // Default: show symbol name (for latexDisplay="name" or when not active)
+  return `\\cssId{${symbolValue}}{\\class{${VAR_CLASSES.INPUT}}{${symbolValue}}}`;
 };
 
 /**
@@ -413,7 +243,6 @@ const processNodeChildren = (
     }
 
     case "accent": {
-      // Accent handled separately in processNestedVariable for memberOf matching
       const accent = node as Accent;
       const base = processNode(accent.base);
       return `${accent.label}{${base}}`;
@@ -528,23 +357,15 @@ export const processVariables = (
       const variableNode = node as Variable;
       const originalSymbol = variableNode.originalSymbol;
 
-      // Get the token from the variable's body (the LaTeX representation of what's inside)
-      const token =
-        variableNode.body && "toLatex" in variableNode.body
-          ? variableNode.body.toLatex("no-id", 0)[0]
-          : originalSymbol;
-
       // Get the value, type, and precision from the computation store
       let value: number | undefined = undefined;
       let variableRole: IRole = "constant";
       let variablePrecision = defaultPrecision;
-      let display: "name" | "value" | "both" = "both"; // Default to showing both for backward compatibility
-      let indexVariable = "";
+      let display: "name" | "value" = "name"; // Default to showing name
       let defaultCSS = "";
       let hoverCSS = "";
       let hasSVG = false;
       let svgMode: "replace" | "append" | undefined = undefined;
-      let memberOf = "";
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
@@ -555,8 +376,6 @@ export const processVariables = (
           variablePrecision = variable.precision ?? defaultPrecision;
           // Use the variable's display property if defined, otherwise default to "name"
           display = variable.latexDisplay ?? "name";
-          // Get the index variable from the computation store
-          indexVariable = variable.index || "";
           // Get custom CSS if defined
           defaultCSS = variable.defaultCSS || "";
           hoverCSS = variable.hoverCSS || "";
@@ -566,25 +385,15 @@ export const processVariables = (
             (variable.svgPath || variable.svgContent)
           );
           svgMode = variable.svgMode;
-          // Get memberOf relationship
-          memberOf = variable.memberOf || "";
           break;
         }
       }
-      // Process the variable's body to apply index variable styling AND/OR member variable styling
-      let processedBody = token;
-      if (indexVariable || memberOf) {
-        processedBody = processNestedVariable(variableNode.body, {
-          indexVariable: indexVariable || undefined,
-          memberOfSymbol: memberOf || undefined,
-          defaultPrecision,
-          memberDefaultCSS: defaultCSS || undefined,
-          memberHoverCSS: hoverCSS || undefined,
-          memberValue: value,
-          computationStore,
-          executionStore,
-        });
-      }
+      // Process the variable's body to find and render any nested variables
+      const processedBody = processNestedVariable(variableNode.body, {
+        defaultPrecision,
+        computationStore,
+        executionStore,
+      });
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
       // Store the cssId on the AST node for DOM element lookup
@@ -595,9 +404,6 @@ export const processVariables = (
         cssClass = VAR_CLASSES.INPUT;
       } else if (variableRole === "computed") {
         cssClass = VAR_CLASSES.COMPUTED;
-      } else if (variableRole === "index") {
-        // Index variables are styled like input variables
-        cssClass = VAR_CLASSES.INPUT;
       }
       // Inject custom CSS and/or hover CSS into document head if defined
       if (defaultCSS) {
@@ -607,7 +413,7 @@ export const processVariables = (
         injectHoverCSS(id, hoverCSS, computationStore, value);
       }
       // Wrap the processed body with CSS classes using the variable's specific precision
-      // Show name, value, or both based on display property
+      // Show name or value based on display property
       let result = "";
       // If variable has SVG in replace mode, create a placeholder that will be replaced
       if (hasSVG && svgMode === "replace") {
@@ -628,21 +434,8 @@ export const processVariables = (
               result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
             }
             break;
-          case "both":
-            // If no value is available, fallback to showing just the name
-            if (value !== null && value !== undefined && !isNaN(value)) {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}: ${value.toFixed(variablePrecision)}}}`;
-            } else {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
-            }
-            break;
           default:
-            // If no value is available, fallback to showing just the name
-            if (value !== null && value !== undefined && !isNaN(value)) {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}: ${value.toFixed(variablePrecision)}}}`;
-            } else {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
-            }
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
             break;
         }
       }

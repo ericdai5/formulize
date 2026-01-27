@@ -216,7 +216,8 @@ const fixParent = (
         sub: node.sub ? fixParent(node.sub, node) : undefined,
         sup: node.sup ? fixParent(node.sup, node) : undefined,
       });
-      console.log("Changed", changed);
+      // DEBUG: Uncomment to log the changed node
+      // console.log("Changed", changed);
       return changed;
     }
     case "frac":

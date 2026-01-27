@@ -4,15 +4,14 @@ import { getVariablesFromLatexString } from "../../parse/variable";
 import {
   applyCue,
   clearAllCues,
-  updateAllVariables,
 } from "../../rendering/interaction/step-handler";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
 import { IStep } from "../../types/step";
+import { IValue } from "../../types/variable";
 import { ERROR_MESSAGES } from "./constants";
-import { extractLinkages, mergeLinkages } from "./extract";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
 import { Step } from "./step";
 
@@ -45,22 +44,20 @@ export const getArrayControl = (
  * which overrides this function within the execution context.
  *
  * @param description - Text description of what is being shown
- * @param options - Options object containing value, expression, and formulaId
+ * @param values - Record mapping LaTeX variable IDs to runtime values
+ * @param options - Optional object with id, expression and formulaId
  *
  * @example
- * view("Current sum:", { value: sum });
- * view("Processing element", { value: element, expression: "x_{i}" });
- * view("Loss value:", { value: loss, formulaId: "loss-function" });
- * view("Weight update:", { id: "weight-update", value: w_t });
+ * view("Current sum:", { "S": sum });
+ * view("Processing element", { "x": xi, "X": xi }, { expression: "x_{i}" });
+ * view("Loss value:", { "L": loss }, { formulaId: "loss-function" });
+ * view("Final result:", { "E": result }, { expression: "\\sum_{i} x_i", formulaId: "main-formula" });
+ * view("Weight update:", { "w": w }, { id: "weight-update", formulaId: "update-rule" });
  */
 export function view(
   _description: string,
-  _options?: {
-    id?: string;
-    value?: unknown;
-    expression?: string;
-    formulaId?: string;
-  }
+  _values?: Record<string, IValue>,
+  _options?: { id?: string; expression?: string; formulaId?: string }
 ): void {
   // This is a stub - the actual implementation is injected by the interpreter at runtime.
   // When called outside of the interpreter context, this is a no-op.
@@ -89,15 +86,6 @@ export class Controller {
       values
     );
     if (!interpreter) return;
-    // Auto-detect variable linkages from the code AST (use scoped store)
-    const { variableLinkage: detectedLinkage } = extractLinkages(
-      ctx.code,
-      computationStore
-    );
-    // Merge with user-specified linkages (user-specified takes precedence)
-    const specifiedLinkage = ctx.environment?.semantics?.variableLinkage;
-    const variableLinkage = mergeLinkages(detectedLinkage, specifiedLinkage);
-    ctx.setLinkageMap(variableLinkage);
     ctx.setInterpreter(interpreter);
     // Clear active variables at the start of execution
     ctx.setActiveVariables(new Set());
@@ -107,12 +95,12 @@ export class Controller {
 
   /**
    * Helper function to restore variables from a historical state and apply visual cues.
+   * Uses explicit values from view() calls to update computation store variables.
    * @param state - The current step state
    * @param stepIndex - The current step index
    */
   private static updateVariables(
     state: IStep,
-    stepIndex: number,
     ctx: ExecutionStore,
     computationStore: ComputationStore
   ): void {
@@ -120,49 +108,26 @@ export class Controller {
     requestAnimationFrame(() => {
       clearAllCues();
     });
-    if (state.variables && ctx.linkageMap && ctx.code) {
-      // Get the formulaId from the current view (if specified)
-      const formulaId = state.view?.formulaId;
-
-      // If view has an expression, ONLY use that for highlighting (ignore code line)
-      if (state.view?.expression) {
-        // Clear any variables from code line, use only expression
-        ctx.setActiveVariables(new Set());
-        this.activateVarsFromExpression(
-          state.view.expression,
-          ctx,
-          computationStore,
-          formulaId
-        );
-      } else {
-        // When at a block statement, use previous state's highlight to get user-visible code that was just executed
-        let highlight = state.highlight;
-        if (isAtBlock(ctx.history, stepIndex) && stepIndex > 0) {
-          const prevState = ctx.history[stepIndex - 1];
-          if (prevState?.highlight) {
-            highlight = prevState.highlight;
-          }
-        }
-        // Get the current line of code from the highlight positions
-        const currLine = ctx.code.substring(highlight.start, highlight.end);
-        const updatedVars = updateAllVariables(
-          state.variables,
-          ctx.linkageMap,
-          currLine,
-          computationStore,
-          ctx
-        );
-        // Always store the active variables in the execution store (even if empty set)
-        // This ensures labels only show for variables referenced on this line
-        ctx.setActiveVariables(updatedVars);
-        if (updatedVars.size > 0) {
-          requestAnimationFrame(() => {
-            applyCue(updatedVars, formulaId);
-          });
+    // Get the formulaId from the current view (if specified)
+    const formulaId = state.view?.formulaId;
+    // If view has explicit values, update the computation store and highlight those variables
+    if (state.view?.values) {
+      const activeVarIds = new Set<string>();
+      // Update each variable with its explicit value
+      for (const [varId, value] of Object.entries(state.view.values)) {
+        if (typeof value === "number" || Array.isArray(value)) {
+          computationStore.setValueInStepMode(varId, value);
+          activeVarIds.add(varId);
         }
       }
+      ctx.setActiveVariables(activeVarIds);
+      if (activeVarIds.size > 0) {
+        requestAnimationFrame(() => {
+          applyCue(activeVarIds, formulaId);
+        });
+      }
     } else {
-      // If no variables or linkage map, clear active variables
+      // No view or no values - clear active variables
       ctx.setActiveVariables(new Set());
     }
   }
@@ -178,66 +143,28 @@ export class Controller {
     ctx.setHistoryIndex(index);
     const state = ctx.history[index];
     Step.highlight(ctx.codeMirrorRef, state.highlight);
-    this.updateVariables(state, index, ctx, computationStore);
+    this.updateVariables(state, ctx, computationStore);
   }
 
-  /**
+  /*** CURRENTLY NOT USED BUT MAY BE USEFUL IN THE FUTURE ***
    * Enrich activeVariables with variables contained in the expression string.
-   * Filters out nested variables (memberOf parents and index variables) to only
-   * highlight complete member variables, not their component parts.
    * @param formulaId - Optional formula ID to limit cues to a specific formula
    */
-  private static activateVarsFromExpression(
-    expression: string,
-    ctx: ExecutionStore,
-    computationStore: ComputationStore,
-    formulaId?: string
-  ): void {
-    const unescaped = unescapeLatex(expression);
-    const varIds = getVariablesFromLatexString(unescaped, computationStore);
-    if (varIds.length === 0) return;
-
-    // Filter out nested variables:
-    // - Variables that are memberOf another variable (e.g., 'y' is memberOf 'y^{(i)}')
-    // - Index variables that are used by member variables (e.g., 'i' in 'y^{(i)}')
-    const filteredVarIds = varIds.filter((varId) => {
-      const variable = computationStore.variables.get(varId);
-      if (!variable) return false;
-
-      // Skip if this variable is a memberOf parent (it's a component of a larger variable)
-      // Check if any other variable in the expression has this as its memberOf
-      for (const otherVarId of varIds) {
-        const otherVar = computationStore.variables.get(otherVarId);
-        if (otherVar?.memberOf === varId) {
-          // This varId is the parent of another variable in the expression
-          // Skip it - we want the complete member variable, not the parent part
-          return false;
-        }
-      }
-
-      // Skip if this is an index variable used by another variable in the expression
-      if (variable.role === "index") {
-        for (const otherVarId of varIds) {
-          const otherVar = computationStore.variables.get(otherVarId);
-          if (otherVar?.index === varId) {
-            // This varId is used as an index by another variable
-            // Skip it - we want the complete member variable, not the index
-            return false;
-          }
-        }
-      }
-
-      return true;
-    });
-
-    if (filteredVarIds.length === 0) return;
-
-    const allActive = new Set([...ctx.activeVariables, ...filteredVarIds]);
-    ctx.setActiveVariables(allActive);
-    requestAnimationFrame(() => {
-      applyCue(allActive, formulaId);
-    });
-  }
+  // private static activateVarsFromExpression(
+  //   expression: string,
+  //   ctx: ExecutionStore,
+  //   computationStore: ComputationStore,
+  //   formulaId?: string
+  // ): void {
+  //   const unescaped = unescapeLatex(expression);
+  //   const varIds = getVariablesFromLatexString(unescaped, computationStore);
+  //   if (varIds.length === 0) return;
+  //   const allActive = new Set([...ctx.activeVariables, ...varIds]);
+  //   ctx.setActiveVariables(allActive);
+  //   requestAnimationFrame(() => {
+  //     applyCue(allActive, formulaId);
+  //   });
+  // }
 
   /**
    * Execute the entire program and build complete execution history.
@@ -260,13 +187,11 @@ export class Controller {
     let pendingView: {
       id?: string;
       description: string;
-      value: unknown;
+      values?: Record<string, IValue>;
       expression?: string;
       formulaId?: string;
     } | null = null;
 
-    // Clear previous first-seen values
-    ctx.clearFirstSeenValues();
     // Add initial state
     const initialState = Step.getState(interpreter, stepNumber, ctx.code);
     history.push(initialState);
@@ -285,24 +210,12 @@ export class Controller {
           pendingView = {
             id: captured.id,
             description: captured.description,
-            value: captured.value,
+            values: captured.values,
             expression: captured.expression,
             formulaId: captured.formulaId,
           };
           // Clear the captured params to prevent processing the same view multiple times
           interpreter._capturedView = undefined;
-        }
-        // Capture first-seen values for linked variables
-        if (state.variables && ctx.linkageMap) {
-          for (const [localVar, varId] of Object.entries(ctx.linkageMap)) {
-            // Skip multi-linkages
-            if (Array.isArray(varId)) continue;
-            const value = state.variables[localVar];
-            if (typeof value === "number") {
-              // setFirstSeenValue only sets if not already seen
-              ctx.setFirstSeenValue(varId, value);
-            }
-          }
         }
         // Mark block statements that come after view calls as view points
         // This way we highlight meaningful block execution points after views are evaluated
@@ -313,7 +226,7 @@ export class Controller {
             state.view = {
               id: pendingView.id,
               description: pendingView.description,
-              value: pendingView.value,
+              values: pendingView.values,
               expression: pendingView.expression,
               formulaId: pendingView.formulaId,
             };
@@ -359,25 +272,31 @@ export class Controller {
     ctx: ExecutionStore,
     computationStore: ComputationStore
   ): void {
+    // Preserve userCode before reset since it's set separately by FormulizeProvider
+    const preservedUserCode = ctx.userCode;
     ctx.reset();
     ctx.setCode(code);
     ctx.setEnvironment(environment);
+    // Restore userCode after reset
+    if (preservedUserCode) {
+      ctx.setUserCode(preservedUserCode);
+    }
     this.clearProcessedIndices(computationStore);
     this.clearAutoPlay(ctx);
     this.resetCodeMirror(ctx);
 
-    // Reset variables in computation store to their original values from environment
+    // Reset only input variables in computation store to their original values from environment
+    // Computed variables should not be reset - they will be recomputed
+    // Use setValueInStepMode action to comply with MobX strict mode
     if (environment?.variables) {
       for (const [varId, varDef] of Object.entries(environment.variables)) {
-        const computationVar = computationStore.variables.get(varId);
-        if (computationVar && typeof varDef === "object") {
-          // Reset the value if defined in environment (using "default" property)
-          if (varDef.default !== undefined) {
-            computationVar.value = varDef.default;
-          } else if (varDef.memberOf) {
-            // For memberOf variables, clear the value (it will be set during execution)
-            computationVar.value = undefined;
-          }
+        if (
+          computationStore.variables.has(varId) &&
+          typeof varDef === "object" &&
+          varDef.default !== undefined &&
+          varDef.role !== "computed"
+        ) {
+          computationStore.setValueInStepMode(varId, varDef.default);
         }
       }
     }

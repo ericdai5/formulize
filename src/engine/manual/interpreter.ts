@@ -194,31 +194,60 @@ export const initializeInterpreter = (
       interpreter.setProperty(globalObject, "vars", varsObject);
       // Set up the view() function as a breakpoint trigger that captures arguments
       // The function stores its arguments on the interpreter for later retrieval
-      // Syntax: view("description", { value: variable, expression: "latex", formulaId: "id" })
-      const view = function (description: unknown, options: unknown) {
-        // Convert pseudo-object to native object if needed
-        const nativeOptions = interpreter.pseudoToNative
-          ? interpreter.pseudoToNative(options)
-          : options;
-        // Extract value, expression, formulaId, and id from options object
-        const opts =
-          nativeOptions && typeof nativeOptions === "object"
-            ? (nativeOptions as {
-                id?: string;
-                value?: unknown;
-                expression?: string;
-                formulaId?: string;
-              })
-            : {};
+      // Syntax: view(description, values, options?)
+      // - description: string describing what is being shown
+      // - values: Record<string, IValue> mapping LaTeX variable IDs to runtime values
+      // - options: optional object with { id?: string, expression?: string, formulaId?: string }
+      // Examples:
+      //   view("Get value x:", { "x": xi })
+      //   view("MSE calculation", { "m": m }, { expression: "\\frac{1}{m}" })
+      //   view("Loss:", { "J": loss }, { expression: "...", formulaId: "loss-func" })
+      //   view("Weight update", { "w": w }, { id: "weight-update", formulaId: "update-rule" })
+      const view = function (
+        description: unknown,
+        valuesArg: unknown,
+        optionsArg?: unknown
+      ) {
+        // Convert pseudo-objects to native objects if needed
+        const nativeValues = interpreter.pseudoToNative
+          ? interpreter.pseudoToNative(valuesArg)
+          : valuesArg;
+        const nativeOptions = optionsArg
+          ? interpreter.pseudoToNative
+            ? interpreter.pseudoToNative(optionsArg)
+            : optionsArg
+          : null;
+
+        // Extract values if it's an object (and not null)
+        let values: Record<string, IValue> | undefined;
+        if (nativeValues && typeof nativeValues === "object") {
+          values = nativeValues as Record<string, IValue>;
+        }
+
+        // Extract id, expression and formulaId from options object
+        let id: string | undefined;
+        let expression: string | undefined;
+        let formulaId: string | undefined;
+        if (nativeOptions && typeof nativeOptions === "object") {
+          const opts = nativeOptions as {
+            id?: unknown;
+            expression?: unknown;
+            formulaId?: unknown;
+          };
+          id = opts.id ? String(opts.id) : undefined;
+          expression = opts.expression ? String(opts.expression) : undefined;
+          formulaId = opts.formulaId ? String(opts.formulaId) : undefined;
+        }
+
         // Store captured parameters on the interpreter instance
-        const view = {
-          id: opts.id ? String(opts.id) : undefined,
+        const capturedView = {
+          id,
           description: String(description ?? ""),
-          value: opts.value,
-          expression: opts.expression ? String(opts.expression) : undefined,
-          formulaId: opts.formulaId ? String(opts.formulaId) : undefined,
+          values,
+          expression,
+          formulaId,
         };
-        interpreter._capturedView = view;
+        interpreter._capturedView = capturedView;
         return undefined;
       };
       interpreter.setProperty(

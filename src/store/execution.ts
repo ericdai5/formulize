@@ -16,6 +16,7 @@ import { IObject, IStep, IView } from "../types/step";
 class ExecutionStore {
   // Core execution state
   code: string = "";
+  userCode: string = ""; // User-facing formatted code for display in UI
   environment: IEnvironment | null = null;
   interpreter: JSInterpreter | null = null;
   history: IStep[] = [];
@@ -38,9 +39,6 @@ class ExecutionStore {
   error: string | null = null;
   autoPlaySpeed: number = 1000; // Default 1 second
   views: any[] = []; // Type can be refined based on actual usage
-
-  // Variable linkage tracking - supports multi-linkages (string | string[])
-  linkageMap: Record<string, string | string[]> = {};
 
   // Track which step indices are view points (ordered array for efficient navigation)
   viewPoints: number[] = [];
@@ -73,6 +71,10 @@ class ExecutionStore {
   // Immediate state updates
   setCode(code: string) {
     this.code = code;
+  }
+
+  setUserCode(userCode: string) {
+    this.userCode = userCode;
   }
 
   setEnvironment(environment: IEnvironment | null) {
@@ -170,26 +172,8 @@ class ExecutionStore {
     this.autoPlaySpeed = speed;
   }
 
-  setLinkageMap(linkageMap: Record<string, string | string[]>) {
-    this.linkageMap = linkageMap;
-  }
-
   setActiveVariables(variables: Set<string>) {
     this.activeVariables = variables;
-  }
-
-  setFirstSeenValue(varId: string, value: number) {
-    if (!this.firstSeenValues.has(varId)) {
-      this.firstSeenValues.set(varId, value);
-    }
-  }
-
-  getFirstSeenValue(varId: string): number | undefined {
-    return this.firstSeenValues.get(varId);
-  }
-
-  clearFirstSeenValues() {
-    this.firstSeenValues.clear();
   }
 
   setView(viewPoints: number[]) {
@@ -258,6 +242,7 @@ class ExecutionStore {
   // Reset all state
   reset() {
     this.code = "";
+    this.userCode = "";
     this.environment = null;
     this.interpreter = null;
     this.history = [];
@@ -271,7 +256,6 @@ class ExecutionStore {
     this.error = null;
     this.autoPlaySpeed = 1000;
     this.views = [];
-    this.linkageMap = {};
     this.viewPoints = [];
     this.blockPoints = [];
     this.activeVariables = new Set();
@@ -297,23 +281,6 @@ class ExecutionStore {
 
   hasViews(): boolean {
     return this.views.length > 0;
-  }
-
-  /**
-   * Gets the actual variable name that's linked to a variable ID
-   * Uses the linkage map to resolve the connection between UI controls and code variables
-   */
-  getLinkedVar(varId: string): string | null {
-    return (
-      Object.keys(this.linkageMap).find((key) => {
-        const linkage = this.linkageMap[key];
-        // Handle both single string and array of strings (multi-linkage)
-        if (Array.isArray(linkage)) {
-          return linkage.includes(varId);
-        }
-        return linkage === varId;
-      }) || null
-    );
   }
 }
 

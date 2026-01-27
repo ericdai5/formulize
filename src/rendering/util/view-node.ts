@@ -208,7 +208,7 @@ export function createViewNode(
     draggable: true,
     selectable: true,
     style: {
-      opacity: 0.01, // Nearly invisible but measurable
+      opacity: 0, // Hidden until positioned
       pointerEvents: "none" as const,
     },
   };
@@ -315,13 +315,14 @@ export function createViewAndExpressionNodes(
   const expressionNodes: Node[] = [];
   const viewEdges: Edge[] = [];
 
-  // Try to calculate bounding box from expression first (if provided)
-  let boundingBox: BoundingBox | null = null;
   // Get formula ID for token lookup
   const formulaId = formulaNode.data?.id as string | undefined;
 
+  // Only calculate expression bounding box if expression is explicitly provided
+  // Expression nodes should only be created when view.expression is set
+  let expressionBoundingBox: BoundingBox | null = null;
   if (view.expression) {
-    boundingBox = calculateBoundingBoxFromExpression(
+    expressionBoundingBox = calculateBoundingBoxFromExpression(
       view.expression,
       formulaNode,
       viewport,
@@ -330,26 +331,67 @@ export function createViewAndExpressionNodes(
     );
   }
 
-  // Fall back to variable nodes if no expression bounding box
-  // Pass computationStore and formulaId for fresh dimensions from store
-  if (!boundingBox) {
-    boundingBox = calculateBoundingBoxFromVariableNodes(
+  // If expression is provided and we have a valid bounding box, create expression node
+  if (view.expression && expressionBoundingBox) {
+    const padding = 4;
+    const expressionNodeId = `expression-${viewNodeIndex}`;
+    expressionNodes.push(
+      createExpressionNode(
+        expressionNodeId,
+        formulaNode,
+        expressionBoundingBox,
+        activeVarIds,
+        padding
+      )
+    );
+
+    // Calculate view node position based on expression
+    const { minX, maxX } = expressionBoundingBox;
+    const expressionWidth = maxX - minX + padding * 2;
+    const expressionCenterX = minX - padding + expressionWidth / 2;
+    const baseViewNodeY = getViewNodeYPositionAvoidingLabels(
+      currentNodes,
+      formulaNode,
+      expressionCenterX
+    );
+
+    // Create view node linked to expression
+    const viewNodeId = `view-${viewNodeIndex}`;
+    viewNodes.push(
+      createViewNode(
+        viewNodeId,
+        formulaNode,
+        view,
+        activeVarIds,
+        {
+          x: expressionCenterX,
+          y: baseViewNodeY + viewNodeIndex * 60,
+        },
+        expressionNodeId
+      )
+    );
+    // Create edge connecting view to expression
+    viewEdges.push(createViewEdge(viewNodeId, expressionNodeId));
+  } else {
+    // No expression provided or couldn't find expression bounding box
+    // Create view node without expression node
+    // Try to position based on active variables, otherwise center on formula
+    let viewCenterX = (formulaNode.measured?.width || 200) / 2;
+    // Try to get position from active variables for better placement
+    const variableBoundingBox = calculateBoundingBoxFromVariableNodes(
       currentNodes,
       activeVarIds,
       computationStore,
       formulaId
     );
-  }
-
-  // If still no bounding box, create view node without expression
-  if (!boundingBox) {
-    const viewCenterX = (formulaNode.measured?.width || 200) / 2;
+    if (variableBoundingBox) {
+      viewCenterX = (variableBoundingBox.minX + variableBoundingBox.maxX) / 2;
+    }
     const viewNodeY = getViewNodeYPositionAvoidingLabels(
       currentNodes,
       formulaNode,
       viewCenterX
     );
-
     const viewNodeId = `view-${viewNodeIndex}`;
     viewNodes.push(
       createViewNode(viewNodeId, formulaNode, view, activeVarIds, {
@@ -357,51 +399,7 @@ export function createViewAndExpressionNodes(
         y: viewNodeY,
       })
     );
-
-    return { viewNodes, expressionNodes, viewEdges };
   }
-
-  // Create expression node
-  const padding = 4;
-  const expressionNodeId = `expression-${viewNodeIndex}`;
-  expressionNodes.push(
-    createExpressionNode(
-      expressionNodeId,
-      formulaNode,
-      boundingBox,
-      activeVarIds,
-      padding
-    )
-  );
-
-  // Calculate view node position
-  const { minX, maxX } = boundingBox;
-  const expressionWidth = maxX - minX + padding * 2;
-  const expressionCenterX = minX - padding + expressionWidth / 2;
-  const baseViewNodeY = getViewNodeYPositionAvoidingLabels(
-    currentNodes,
-    formulaNode,
-    expressionCenterX
-  );
-
-  // Create view node
-  const viewNodeId = `view-${viewNodeIndex}`;
-  viewNodes.push(
-    createViewNode(
-      viewNodeId,
-      formulaNode,
-      view,
-      activeVarIds,
-      {
-        x: expressionCenterX,
-        y: baseViewNodeY + viewNodeIndex * 60,
-      },
-      expressionNodeId
-    )
-  );
-
-  // Create edge
-  viewEdges.push(createViewEdge(viewNodeId, expressionNodeId));
 
   return { viewNodes, expressionNodes, viewEdges };
 }

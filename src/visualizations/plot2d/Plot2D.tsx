@@ -191,7 +191,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         plotWidth,
         plotHeight,
         computationStore,
-        executionStore || undefined,
         drawPlot,
         interaction
       );
@@ -294,7 +293,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   useEffect(() => {
     drawPlot();
   }, [config, drawPlot]);
-
 
   // Re-draw when execution store resets (step points are managed by the system)
   useEffect(() => {

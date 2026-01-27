@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
+import beautify from "js-beautify";
+
 import { refresh } from "../engine/manual/execute";
 import { extractManual } from "../engine/manual/extract";
 import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
@@ -57,6 +59,36 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
           // Create new Formulize instance
           const instance = await Formulize.create(config);
           instanceRef.current = instance;
+
+          // Extract and store the code in executionStore
+          const result = extractManual(config);
+          if (result.code && instance.executionStore) {
+            instance.executionStore.setCode(result.code);
+            instance.executionStore.setEnvironment(config);
+            // Format user-facing code
+            // Note: If extractManual returned code, config.semantics.manual must exist
+            const manualFunction = config.semantics!.manual!;
+            const functionString = manualFunction.toString();
+            const formattedCode = beautify.js(functionString, {
+              indent_size: 2,
+              space_in_empty_paren: false,
+              preserve_newlines: true,
+              max_preserve_newlines: 2,
+              brace_style: "collapse",
+              keep_array_indentation: false,
+            });
+            // Initialize the interpreter (this calls reset() which clears userCode)
+            if (instance.computationStore) {
+              refresh(
+                result.code,
+                config,
+                instance.executionStore,
+                instance.computationStore
+              );
+            }
+            // Set userCode AFTER refresh() since refresh() calls reset() which clears userCode
+            instance.executionStore.setUserCode(formattedCode);
+          }
           setInstance(instance);
           if (onReady) {
             onReady(instance);

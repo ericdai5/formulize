@@ -20,7 +20,7 @@ export const svgKineticEnergy2D = `const config = {
       units: "kg",
       name: "Mass",
       labelDisplay: "svg",
-      svgPath: "./mass.svg",
+      svgPath: "/mass.svg",
       svgSize: { width: 24, height: 24 }
     },
     v: {
@@ -31,7 +31,7 @@ export const svgKineticEnergy2D = `const config = {
       units: "m/s",
       name: "Velocity",
       labelDisplay: "svg",
-      svgPath: "./velocity.svg",
+      svgPath: "/velocity.svg",
       svgSize: { width: 24, height: 24 }
     }
   },

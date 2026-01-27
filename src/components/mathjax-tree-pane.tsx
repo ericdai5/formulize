@@ -39,21 +39,18 @@ const parseDOMNode = (
 ): DOMNodeInfo => {
   const id = `${parentId}-${index}`;
   const htmlEl = element as HTMLElement;
-
   const classes = Array.from(element.classList);
   const isVariable = classes.some(
     (c) =>
       c.includes("formula-var-") ||
       c === "formula-var-base" ||
       c === "formula-var-input" ||
-      c === "formula-var-computed" ||
-      c === "formula-var-index"
+      c === "formula-var-computed"
   );
 
   let variableType: string | null = null;
   if (classes.includes("formula-var-input")) variableType = "input";
   else if (classes.includes("formula-var-computed")) variableType = "computed";
-  else if (classes.includes("formula-var-index")) variableType = "index";
   else if (classes.includes("formula-var-base")) variableType = "base";
 
   // Get direct text content (not from children)
@@ -295,8 +292,6 @@ const DOMTreeNode = ({ node }: { node: DOMNodeInfo }) => {
         return "bg-green-100 text-green-800 border-green-300";
       case "computed":
         return "bg-purple-100 text-purple-800 border-purple-300";
-      case "index":
-        return "bg-orange-100 text-orange-800 border-orange-300";
       case "base":
         return "bg-blue-100 text-blue-800 border-blue-300";
       default:

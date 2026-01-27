@@ -345,13 +345,13 @@ const FormulaCanvasInner = observer(
       if (!nodesInitialized || !variableNodesAddedRef.current) return;
       // Check if all nodes are ready for positioning
       const { labelNodes, viewNodes, allReady } = checkAllNodesMeasured(nodes);
-      // Check if there are view nodes that need to be positioned (have low opacity)
+      // Check if there are view nodes that need to be positioned (have opacity 0)
       const viewNodesNeedPositioning = viewNodes.some(
-        (node) => node.style?.opacity === 0.01
+        (node) => node.style?.opacity === 0
       );
-      // Check if there are label nodes that need to be positioned (have low opacity)
+      // Check if there are label nodes that need to be positioned (have opacity 0)
       const labelNodesNeedPositioning = labelNodes.some(
-        (node) => node.style?.opacity === 0.01
+        (node) => node.style?.opacity === 0
       );
 
       // Skip if initial fitView already done AND no nodes need positioning
@@ -458,7 +458,7 @@ const FormulaCanvasInner = observer(
               updateVariableNodes();
 
               // Update labels and view nodes with current activeVariables
-              // Both are created with opacity 0.01 for measurement
+              // Both are created with opacity 0 for measurement
               updateLabelNodes();
               addViewNodes();
 

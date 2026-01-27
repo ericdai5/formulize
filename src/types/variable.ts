@@ -16,9 +16,8 @@ export type IValue = number | (string | number)[];
  *    - Normal mode: input variables allow users to interact and control the value of the variable.
  *    - Step mode: input variables are non interactive.
  * - "computed" variables are computed variables that are computed by the engine.
- * - "index" variables are index variables that are used to index into other variables.
  */
-export type IRole = "constant" | "input" | "computed" | "index";
+export type IRole = "constant" | "input" | "computed";
 
 export interface IVariable {
   role: IRole;
@@ -33,10 +32,8 @@ export interface IVariable {
   step?: number;
   options?: string[];
   key?: string;
-  memberOf?: string;
   latexDisplay?: "name" | "value";
   labelDisplay?: "name" | "value" | "svg" | "none";
-  index?: string;
   svgPath?: string;
   svgContent?: VariableSVGContent;
   svgSize?: { width: number; height: number };

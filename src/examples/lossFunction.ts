@@ -19,19 +19,15 @@ export const lossFunction = `const config = {
     },
     "y^{(i)}": {
       role: "input",
-      memberOf: "y",
       name: "i-th actual value",
       latexDisplay: "name",
       labelDisplay: "value",
-      index: "i"
     },
     "\\\\hat{y}^{(i)}": {
       role: "input",
-      memberOf: "\\\\hat{y}",
       name: "i-th predicted value",
       latexDisplay: "name",
       labelDisplay: "value",
-      index: "i"
     },
     y: {
       role: "input",
@@ -51,9 +47,7 @@ export const lossFunction = `const config = {
     },
     "\\\\theta_j": {
       role: "input",
-      memberOf: "\\\\theta",
       name: "Parameter j of the model",
-      index: "j",
     },
     "\\\\theta": {
       role: "input",
@@ -68,14 +62,14 @@ export const lossFunction = `const config = {
       precision: 0,
     },
     i: {
-      role: "index",
+      role: "input",
       name: "Index i",
       default: 1,
       latexDisplay: "value",
       precision: 0,
     },
     j: {
-      role: "index",
+      role: "input",
       name: "Index j",
       default: 1,
       latexDisplay: "value",
@@ -92,50 +86,34 @@ export const lossFunction = `const config = {
       var lambda = vars["\\\\lambda"];
       var theta_params = vars["\\\\theta"];
       var mse = 0;
-      view("Starting MSE calculation for m examples", {
-        value: m,
-        expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m}"
-      });
+      view("Starting MSE calculation for m examples", { "m": m, "y": y_data, "\\\\hat{y}": yHat_data }, { expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m}" });
       for (var i = 0; i < m; i++) {
         var index = i + 1;
         var y_i = y_data[i];
         var yHat_i = yHat_data[i];
         if (i === 0) {
-          view("Get value y:", { value: y_i });
-          view("Get value $\\\\hat{y}$:", { value: yHat_i });
+          view("Get value y:", { "y^{(i)}": y_i, "i": index, "y": y_data });
+          view("Get value $\\\\hat{y}$:", { "\\\\hat{y}^{(i)}": yHat_i, "i": index });
         }
         var error = y_i - yHat_i;
-        view("Calculating individual error for example:", { value: error });
+        view("Calculating individual error for example:", { "y^{(i)}": y_i, "\\\\hat{y}^{(i)}": yHat_i, "i": index });
         mse += error * error;
       }
       mse = mse / m;
-      view("Computed Mean Squared Error", {
-        value: mse,
-        expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2"
-      });
+      view("Computed Mean Squared Error", { "m": m }, { expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2" });
       var regularization = 0;
-      view("Starting Regularization calculation", { value: lambda });
+      view("Starting Regularization calculation", { "\\\\lambda": lambda, "\\\\theta": theta_params });
       for (var j = 0; j < theta_params.length; j++) {
         var index_j = j + 1;
         var theta_j = theta_params[j];
-        view("Adding squared parameter to penalty", { value: theta_j });
+        view("Adding squared parameter to penalty", { "\\\\theta_j": theta_j, "j": index_j });
         regularization += theta_j * theta_j;
       }
       var reg_term = lambda * regularization;
-      view("Total Regularization Penalty", {
-        value: reg_term,
-        expression: "\\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2"
-      });
+      view("Total Regularization Penalty", { "\\\\lambda": lambda }, { expression: "\\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2" });
       var loss = mse + reg_term;
-      view("Final Total Loss $J(\\\\theta)$:", {
-        value: loss,
-        expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2"
-      });
+      view("Final Total Loss $J(\\\\theta)$:", { "J(\\\\theta)": loss }, { expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2" });
       return loss;
-    },
-    variableLinkage: {
-      "index": "i",
-      "index_j": "j",
     },
   },
   fontSize: 1.5

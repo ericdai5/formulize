@@ -4,12 +4,9 @@ import { observer } from "mobx-react-lite";
 
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import beautify from "js-beautify";
 
 import { SimplifiedInterpreterControls } from "../../components/interpreter-controls";
 import { useFormulize } from "../../components/useFormulize";
-import { refresh } from "../../engine/manual/execute";
-import { extractManual } from "../../engine/manual/extract";
 import { isAtBlock } from "../../engine/manual/interpreter";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../../util/codemirror";
 import {
@@ -21,67 +18,42 @@ import {
 } from "../../util/codemirror-extension";
 
 // Interpreter Control Node Component
-const InterpreterControlNode = observer(({ data }: { data: any }) => {
-  const { environment } = data;
+// Must be used inside a FormulizeProvider which handles code extraction
+const InterpreterControlNode = observer(() => {
   const context = useFormulize();
-  const computationStore = context?.computationStore;
   const executionStore = context?.executionStore;
+  const isLoading = context?.isLoading ?? true;
   const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
-  const [userCode, setUserCode] = useState<string>("");
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
-  const [initializedEnvironment, setInitializedEnvironment] =
-    useState<any>(null);
 
-  // Guard: executionStore and computationStore must be provided
-  if (!executionStore || !computationStore) {
+  console.log("[InterpreterControlNode] render:", {
+    hasContext: !!context,
+    hasExecutionStore: !!executionStore,
+    isLoading,
+    userCode: executionStore?.userCode?.length ?? 0,
+    code: executionStore?.code?.length ?? 0,
+  });
+
+  // Guard: executionStore must be provided
+  if (!executionStore) {
+    console.log("[InterpreterControlNode] No executionStore, returning null");
     return null;
   }
 
-  // Use executionStore if available, otherwise create a fallback object for hooks
-  const ctx = executionStore;
+  // Read userCode from the store (set by FormulizeProvider during initialization)
+  const userCode = executionStore.userCode;
+  console.log("[InterpreterControlNode] userCode length:", userCode.length);
+  console.log("[InterpreterControlNode] code length:", executionStore.code.length);
 
-  // Initialize user code when environment changes
-  useEffect(() => {
-    const result = extractManual(environment);
-    if (result.isLoading || result.error) {
-      return;
-    }
-
-    // Check if this environment has already been initialized
-    if (environment === initializedEnvironment) {
-      return;
-    }
-
-    if (result.code) {
-      ctx.setCode(result.code);
-      ctx.setEnvironment(environment);
-      // Set the user view code to the original manual function
-      if (environment?.semantics?.manual) {
-        const manualFunction = environment.semantics.manual;
-        const functionString = manualFunction.toString();
-        const formattedCode = beautify.js(functionString, {
-          indent_size: 2,
-          space_in_empty_paren: false,
-          preserve_newlines: true,
-          max_preserve_newlines: 2,
-          brace_style: "collapse",
-          keep_array_indentation: false,
-        });
-        setUserCode(formattedCode);
-      }
-
-      // Automatically initialize the interpreter so stepping works immediately
-      refresh(result.code, environment, executionStore, computationStore);
-      // Track that this specific environment has been initialized
-      setInitializedEnvironment(environment);
-    }
-  }, [
-    environment,
-    initializedEnvironment,
-    executionStore,
-    computationStore,
-    ctx,
-  ]);
+  // Show loading state while FormulizeProvider is initializing
+  if (isLoading && !userCode) {
+    console.log("[InterpreterControlNode] Showing loading state");
+    return (
+      <div className="interpreter-control-node border bg-white border-slate-200 rounded-2xl shadow-sm w-full p-4">
+        <div className="text-slate-500 text-sm">Loading...</div>
+      </div>
+    );
+  }
 
   const clearUserViewLine = useCallback(() => {
     if (userViewCodeMirrorRef.current?.view) {
@@ -94,7 +66,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
 
   const convertCharPos = useCallback(
     (interpreterCharPos: number): number => {
-      const interpreterLines = ctx.code.split("\n");
+      const interpreterLines = executionStore.code.split("\n");
       const userLines = userCode.split("\n");
 
       // Find which line in interpreter code the character position corresponds to
@@ -126,7 +98,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
 
       return userCharPos;
     },
-    [userCode, ctx.code]
+    [userCode, executionStore.code]
   );
 
   const getLineFromCharPosition = useCallback(
@@ -155,8 +127,8 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
   // Helper function to handle user view highlighting for block statements
   const handleUserViewHighlighting = useCallback(
     (index: number) => {
-      if (isAtBlock(ctx.history, index) && index > 0) {
-        const previousState = ctx.history[index - 1];
+      if (isAtBlock(executionStore.history, index) && index > 0) {
+        const previousState = executionStore.history[index - 1];
         if (previousState?.highlight) {
           const userCharPos = convertCharPos(previousState.highlight.start);
           const previousLine = getLineFromCharPosition(userCode, userCharPos);
@@ -169,14 +141,14 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
       getLineFromCharPosition,
       userCode,
       highlightUserViewLine,
-      ctx.history,
+      executionStore.history,
     ]
   );
 
-  const currentState = ctx.history[ctx.historyIndex];
+  const currentState = executionStore.history[executionStore.historyIndex];
 
   useEffect(() => {
-    if (!ctx.history || ctx.history.length === 0 || !userCode) {
+    if (!executionStore.history || executionStore.history.length === 0 || !userCode) {
       clearUserViewLine();
       return;
     }
@@ -186,7 +158,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
       const userLine = getLineFromCharPosition(userCode, userCharPos);
       highlightUserViewLine(userLine);
       // Also handle block statement highlighting
-      handleUserViewHighlighting(ctx.historyIndex);
+      handleUserViewHighlighting(executionStore.historyIndex);
     } else {
       clearUserViewLine();
     }
@@ -198,13 +170,13 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
     highlightUserViewLine,
     clearUserViewLine,
     handleUserViewHighlighting,
-    ctx.historyIndex,
-    ctx.history,
+    executionStore.historyIndex,
+    executionStore.history,
   ]);
 
   // Calculate progress based on stepping mode
-  const points = ctx.steppingMode === "view" ? ctx.viewPoints : ctx.blockPoints;
-  const currentStepNumber = points.filter((p) => p <= ctx.historyIndex).length;
+  const points = executionStore.steppingMode === "view" ? executionStore.viewPoints : executionStore.blockPoints;
+  const currentStepNumber = points.filter((p) => p <= executionStore.historyIndex).length;
   const totalSteps = points.length;
   const progress = totalSteps > 0 ? (currentStepNumber / totalSteps) * 100 : 0;
 
@@ -231,7 +203,7 @@ const InterpreterControlNode = observer(({ data }: { data: any }) => {
         >
           <CodeMirror
             value={userCode}
-            onChange={(value) => setUserCode(value)}
+            onChange={(value) => executionStore.setUserCode(value)}
             extensions={[javascript(), ...debugExtensions]}
             style={CodeMirrorStyle}
             basicSetup={CodeMirrorSetup}
