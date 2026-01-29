@@ -85,7 +85,6 @@ const FormulaCanvasInner = observer(
     const containerRef = useRef<HTMLDivElement>(null);
     const variableNodesAddedRef = useRef(false);
     const initialFitViewCalledRef = useRef(false);
-    const manuallyPositionedLabelsRef = useRef<Set<string>>(new Set());
     const viewNodeRepositionedRef = useRef(false);
     const { getNodes, getViewport, fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
@@ -138,28 +137,15 @@ const FormulaCanvasInner = observer(
       adjustLabelPositionsUtil({
         getNodes,
         setNodes,
-        manuallyPositionedLabels: manuallyPositionedLabelsRef.current,
       });
     }, [getNodes, setNodes]);
 
-    // Enhanced onNodesChange that tracks which labels are manually positioned
+    // Enhanced onNodesChange handler
     const handleNodesChange = useCallback(
       (changes: NodeChange[]) => {
-        // Track which labels are being dragged by the user
-        const currentNodes = getNodes();
-        changes.forEach((change) => {
-          if (change.type === "position" && change.dragging) {
-            const node = currentNodes.find((n) => n.id === change.id);
-            if (node && node.type === NODE_TYPES.LABEL) {
-              // Mark this label as manually positioned
-              manuallyPositionedLabelsRef.current.add(change.id);
-            }
-          }
-        });
-
         onNodesChange(changes);
       },
-      [onNodesChange, getNodes]
+      [onNodesChange]
     );
 
     // Function to update only label nodes when activeVariables change
@@ -447,8 +433,6 @@ const FormulaCanvasInner = observer(
 
             // Debounce the label update to prevent rapid recreation
             timeoutId = window.setTimeout(() => {
-              // Clear manually positioned labels when regenerating
-              manuallyPositionedLabelsRef.current.clear();
               // Clear label edges but preserve view edges
               setEdges((currentEdges) =>
                 currentEdges.filter((edge) => edge.id.startsWith("edge-view-"))

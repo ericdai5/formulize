@@ -70,9 +70,6 @@ const CanvasFlow = observer(
     // Track if initial fitView has been called to prevent re-fitting on every render
     const initialFitViewCalledRef = useRef(false);
 
-    // Track which labels have been manually positioned by the user
-    const manuallyPositionedLabelsRef = useRef<Set<string>>(new Set());
-
     // Track pending label update timeout (outside useEffect for persistence)
     const labelUpdateTimeoutRef = useRef<number | null>(null);
 
@@ -135,18 +132,6 @@ const CanvasFlow = observer(
     // Enhanced onNodesChange that triggers edge updates when nodes move
     const handleNodesChange = useCallback(
       (changes: NodeChange[]) => {
-        // Track which labels are being dragged by the user
-        const currentNodes = getNodes();
-        changes.forEach((change) => {
-          if (change.type === "position" && change.dragging) {
-            const node = currentNodes.find((n) => n.id === change.id);
-            if (node && node.type === NODE_TYPES.LABEL) {
-              // Mark this label as manually positioned
-              manuallyPositionedLabelsRef.current.add(change.id);
-            }
-          }
-        });
-
         onNodesChange(changes);
       },
       [onNodesChange, getNodes]
@@ -270,7 +255,6 @@ const CanvasFlow = observer(
       adjustLabelPositionsUtil({
         getNodes,
         setNodes,
-        manuallyPositionedLabels: manuallyPositionedLabelsRef.current,
       });
     }, [getNodes, setNodes]);
 
@@ -303,7 +287,6 @@ const CanvasFlow = observer(
           // Reset the variable nodes added flag when formulas change
           variableNodesAddedRef.current = false;
           // Clear manually positioned labels when formulas change
-          manuallyPositionedLabelsRef.current.clear();
           setNodes(createNodes());
           setEdges([]); // Clear edges when nodes are reset
           // Variable nodes will be added when nodes are initialized
@@ -312,7 +295,6 @@ const CanvasFlow = observer(
 
       // Initial setup
       variableNodesAddedRef.current = false;
-      manuallyPositionedLabelsRef.current.clear();
       setNodes(createNodes());
       setEdges([]); // Clear edges on initial setup
 
@@ -475,8 +457,6 @@ const CanvasFlow = observer(
               viewNodeRepositionedRef.current = false;
 
               // Clear manually positioned labels when regenerating
-              manuallyPositionedLabelsRef.current.clear();
-
               // Remove existing label nodes, view nodes, expression nodes
               setNodes((currentNodes) => {
                 const nonLabelViewExpressionNodes = currentNodes.filter(
