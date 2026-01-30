@@ -9,7 +9,7 @@ import {
   NODE_TYPES,
   getFormulaElement,
   getFormulaNodes,
-  getViewNodeYPositionAvoidingLabels,
+  getstepNodeYPositionAvoidingLabels,
 } from "./node-helpers";
 
 /**
@@ -23,12 +23,12 @@ export interface BoundingBox {
 }
 
 /**
- * Result of creating view and expression nodes
+ * Result of creating step and expression nodes
  */
-export interface ViewNodesResult {
-  viewNodes: Node[];
+export interface stepNodesResult {
+  stepNodes: Node[];
   expressionNodes: Node[];
-  viewEdges: Edge[];
+  stepEdges: Edge[];
 }
 
 /**
@@ -177,17 +177,17 @@ export function calculateBoundingBoxFromExpression(
 }
 
 /**
- * Create a view node
- * @param viewNodeId - The ID for the view node
+ * Create a step node
+ * @param stepNodeId - The ID for the step node
  * @param formulaNode - The parent formula node
- * @param viewDesc - The view description
+ * @param view - The formula-specific step data (description, values, expression)
  * @param activeVarIds - Array of active variable IDs
- * @param position - Position for the view node
+ * @param position - Position for the step node
  * @param expressionNodeId - Optional expression node ID to link to
- * @returns The view node
+ * @returns The step node
  */
-export function createViewNode(
-  viewNodeId: string,
+export function createstepNode(
+  stepNodeId: string,
   formulaNode: Node,
   view: IView,
   activeVarIds: string[],
@@ -195,7 +195,7 @@ export function createViewNode(
   expressionNodeId?: string
 ): Node {
   return {
-    id: viewNodeId,
+    id: stepNodeId,
     type: "view",
     position,
     parentId: formulaNode.id,
@@ -208,7 +208,7 @@ export function createViewNode(
     draggable: true,
     selectable: true,
     style: {
-      opacity: 0.01, // Nearly invisible but measurable
+      opacity: 0, // Hidden until positioned
       pointerEvents: "none" as const,
     },
   };
@@ -254,21 +254,21 @@ export function createExpressionNode(
 }
 
 /**
- * Create a view edge connecting a view node to an expression node
- * @param viewNodeId - The view node ID
+ * Create a step edge connecting a step node to an expression node
+ * @param stepNodeId - The step node ID
  * @param expressionNodeId - The expression node ID
  * @returns The edge
  */
 export function createViewEdge(
-  viewNodeId: string,
+  stepNodeId: string,
   expressionNodeId: string
 ): Edge {
   return {
-    id: `edge-view-${viewNodeId}-${expressionNodeId}`,
-    source: viewNodeId,
+    id: `edge-step-${stepNodeId}-${expressionNodeId}`,
+    source: stepNodeId,
     target: expressionNodeId,
-    sourceHandle: "view-handle-top",
-    targetHandle: "expression-handle-bottom",
+    sourceHandle: "step-handle-bottom",
+    targetHandle: "expression-handle-top",
     type: "default", // bezier curved edge
     style: {
       stroke: "#cbd5e1",
@@ -281,47 +281,48 @@ export function createViewEdge(
 }
 
 /**
- * Parameters for creating view nodes
+ * Parameters for creating step nodes for a single formula
  */
-export interface CreateViewNodesParams {
+export interface CreatestepNodesParams {
   currentNodes: Node[];
   formulaNode: Node;
   view: IView;
   activeVarIds: string[];
   viewport?: { zoom: number };
-  viewNodeIndex?: number;
+  stepNodeIndex?: number;
   computationStore: ComputationStore;
 }
 
 /**
- * Create view and expression nodes from a view description
- * @param params - Parameters for creating view nodes
- * @returns Object containing view nodes, expression nodes, and edges
+ * Create step and expression nodes from a formula step
+ * @param params - Parameters for creating step nodes
+ * @returns Object containing step nodes, expression nodes, and edges
  */
-export function createViewAndExpressionNodes(
-  params: CreateViewNodesParams
-): ViewNodesResult {
+export function createStepAndExpressionNodes(
+  params: CreatestepNodesParams
+): stepNodesResult {
   const {
     currentNodes,
     formulaNode,
     view,
     activeVarIds,
     viewport = { zoom: 1 },
-    viewNodeIndex = 0,
+    stepNodeIndex = 0,
     computationStore,
   } = params;
 
-  const viewNodes: Node[] = [];
+  const stepNodes: Node[] = [];
   const expressionNodes: Node[] = [];
-  const viewEdges: Edge[] = [];
+  const stepEdges: Edge[] = [];
 
-  // Try to calculate bounding box from expression first (if provided)
-  let boundingBox: BoundingBox | null = null;
   // Get formula ID for token lookup
   const formulaId = formulaNode.data?.id as string | undefined;
 
+  // Only calculate expression bounding box if expression is explicitly provided
+  // Expression nodes should only be created when view.expression is set
+  let expressionBoundingBox: BoundingBox | null = null;
   if (view.expression) {
-    boundingBox = calculateBoundingBoxFromExpression(
+    expressionBoundingBox = calculateBoundingBoxFromExpression(
       view.expression,
       formulaNode,
       viewport,
@@ -330,86 +331,83 @@ export function createViewAndExpressionNodes(
     );
   }
 
-  // Fall back to variable nodes if no expression bounding box
-  // Pass computationStore and formulaId for fresh dimensions from store
-  if (!boundingBox) {
-    boundingBox = calculateBoundingBoxFromVariableNodes(
+  // If expression is provided and we have a valid bounding box, create expression node
+  if (view.expression && expressionBoundingBox) {
+    const padding = 4;
+    const expressionNodeId = `expression-${stepNodeIndex}`;
+    expressionNodes.push(
+      createExpressionNode(
+        expressionNodeId,
+        formulaNode,
+        expressionBoundingBox,
+        activeVarIds,
+        padding
+      )
+    );
+
+    // Calculate step node position based on expression
+    const { minX, maxX } = expressionBoundingBox;
+    const expressionWidth = maxX - minX + padding * 2;
+    const expressionCenterX = minX - padding + expressionWidth / 2;
+    const basestepNodeY = getstepNodeYPositionAvoidingLabels(
+      currentNodes,
+      formulaNode,
+      expressionCenterX
+    );
+
+    // Create step node linked to expression
+    const stepNodeId = `step-${stepNodeIndex}`;
+    stepNodes.push(
+      createstepNode(
+        stepNodeId,
+        formulaNode,
+        view,
+        activeVarIds,
+        {
+          x: expressionCenterX,
+          y: basestepNodeY + stepNodeIndex * 60,
+        },
+        expressionNodeId
+      )
+    );
+    // Create edge connecting step to expression
+    stepEdges.push(createViewEdge(stepNodeId, expressionNodeId));
+  } else {
+    // No expression provided or couldn't find expression bounding box
+    // Create step node without expression node
+    // Try to position based on active variables, otherwise center on formula
+    let viewCenterX = (formulaNode.measured?.width || 200) / 2;
+    // Try to get position from active variables for better placement
+    const variableBoundingBox = calculateBoundingBoxFromVariableNodes(
       currentNodes,
       activeVarIds,
       computationStore,
       formulaId
     );
-  }
-
-  // If still no bounding box, create view node without expression
-  if (!boundingBox) {
-    const viewCenterX = (formulaNode.measured?.width || 200) / 2;
-    const viewNodeY = getViewNodeYPositionAvoidingLabels(
+    if (variableBoundingBox) {
+      viewCenterX = (variableBoundingBox.minX + variableBoundingBox.maxX) / 2;
+    }
+    const stepNodeY = getstepNodeYPositionAvoidingLabels(
       currentNodes,
       formulaNode,
       viewCenterX
     );
-
-    const viewNodeId = `view-${viewNodeIndex}`;
-    viewNodes.push(
-      createViewNode(viewNodeId, formulaNode, view, activeVarIds, {
+    const stepNodeId = `step-${stepNodeIndex}`;
+    stepNodes.push(
+      createstepNode(stepNodeId, formulaNode, view, activeVarIds, {
         x: viewCenterX,
-        y: viewNodeY,
+        y: stepNodeY,
       })
     );
-
-    return { viewNodes, expressionNodes, viewEdges };
   }
 
-  // Create expression node
-  const padding = 4;
-  const expressionNodeId = `expression-${viewNodeIndex}`;
-  expressionNodes.push(
-    createExpressionNode(
-      expressionNodeId,
-      formulaNode,
-      boundingBox,
-      activeVarIds,
-      padding
-    )
-  );
-
-  // Calculate view node position
-  const { minX, maxX } = boundingBox;
-  const expressionWidth = maxX - minX + padding * 2;
-  const expressionCenterX = minX - padding + expressionWidth / 2;
-  const baseViewNodeY = getViewNodeYPositionAvoidingLabels(
-    currentNodes,
-    formulaNode,
-    expressionCenterX
-  );
-
-  // Create view node
-  const viewNodeId = `view-${viewNodeIndex}`;
-  viewNodes.push(
-    createViewNode(
-      viewNodeId,
-      formulaNode,
-      view,
-      activeVarIds,
-      {
-        x: expressionCenterX,
-        y: baseViewNodeY + viewNodeIndex * 60,
-      },
-      expressionNodeId
-    )
-  );
-
-  // Create edge
-  viewEdges.push(createViewEdge(viewNodeId, expressionNodeId));
-
-  return { viewNodes, expressionNodes, viewEdges };
+  return { stepNodes, expressionNodes, stepEdges };
 }
 
 /**
- * Parameters for the addViewNodes utility function
+ * Parameters for the addstepNodes utility function
  */
-export interface AddViewNodesParams {
+export interface AddstepNodesParams {
   getNodes: () => Node[];
   getViewport?: () => { zoom: number; x: number; y: number };
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
@@ -420,10 +418,11 @@ export interface AddViewNodesParams {
 }
 
 /**
- * Add view nodes to the canvas based on current execution state
+ * Add step nodes to the canvas based on current execution state
  * This is the main utility function used by both canvas.tsx and FormulaComponent.tsx
+ * Supports multi-formula steps where each formula can have its own step data.
  */
-export function addViewNodes({
+export function addstepNodes({
   getNodes,
   getViewport,
   setNodes,
@@ -431,14 +430,14 @@ export function addViewNodes({
   formulaId,
   executionStore,
   computationStore,
-}: AddViewNodesParams): void {
+}: AddstepNodesParams): void {
   const currentNodes = getNodes();
   const viewport = getViewport?.() || { zoom: 1, x: 0, y: 0 };
 
-  // Get current view description from the scoped execution store
-  const view = executionStore.currentView;
-  if (!view) {
-    // Remove view and expression nodes if no current view
+  // Get current step from the scoped execution store
+  const step = executionStore.currentStep;
+  if (!step || !step.formulas || Object.keys(step.formulas).length === 0) {
+    // Remove step and expression nodes if no current step
     setNodes((currentNodes) =>
       currentNodes.filter(
         (node) =>
@@ -446,91 +445,104 @@ export function addViewNodes({
       )
     );
     setEdges((currentEdges) =>
-      currentEdges.filter((edge) => !edge.id.startsWith("edge-view-"))
+      currentEdges.filter((edge) => !edge.id.startsWith("edge-step-"))
     );
     return;
   }
 
-  // If viewDesc specifies a formulaId, only show view nodes for that formula
-  // If this formula doesn't match, remove any existing view nodes and return
-  if (view.formulaId && formulaId && view.formulaId !== formulaId) {
-    setNodes((currentNodes) =>
-      currentNodes.filter(
-        (node) =>
-          node.type !== NODE_TYPES.VIEW && node.type !== NODE_TYPES.EXPRESSION
-      )
-    );
-    setEdges((currentEdges) =>
-      currentEdges.filter((edge) => !edge.id.startsWith("edge-view-"))
-    );
-    return;
+  // Collect all step nodes, expression nodes, and edges across all matching formulas
+  const allstepNodes: Node[] = [];
+  const allExpressionNodes: Node[] = [];
+  const allStepEdges: Edge[] = [];
+  let stepNodeIndex = 0;
+
+  // Iterate over each formula step
+  for (const [viewFormulaId, view] of Object.entries(step?.formulas ?? {})) {
+    // Empty string viewFormulaId means "apply to all formulas"
+    const isAllFormulas = viewFormulaId === "";
+
+    // Determine which formula node to use
+    let formulaNode: Node | undefined;
+
+    if (formulaId) {
+      // FormulaComponent context: we have a specific formulaId
+      // Check if this step applies to this formula
+      if (!isAllFormulas && viewFormulaId !== formulaId) {
+        // This step is for a different formula, skip it
+        continue;
+      }
+      // Find the formula node for this component
+      formulaNode = currentNodes.find(
+        (node) => node.type === NODE_TYPES.FORMULA && node.data.id === formulaId
+      );
+    } else {
+      // Canvas context: no specific formulaId
+      if (isAllFormulas) {
+        // Apply to first formula node
+        const formulaNodes = getFormulaNodes(currentNodes);
+        formulaNode = formulaNodes[0];
+      } else {
+        // Apply to specific formula by viewFormulaId
+        formulaNode = currentNodes.find(
+          (node) =>
+            node.type === NODE_TYPES.FORMULA && node.data.id === viewFormulaId
+        );
+      }
+    }
+
+    if (!formulaNode || !formulaNode.measured) {
+      continue;
+    }
+
+    // Get active variable IDs for this formula view
+    const activeVarIds = view.values ? view.values.map(([varId]) => varId) : [];
+
+    // Create step and expression nodes for this formula
+    const { stepNodes, expressionNodes, stepEdges } =
+      createStepAndExpressionNodes({
+        currentNodes,
+        formulaNode,
+        view,
+        activeVarIds,
+        viewport,
+        stepNodeIndex,
+        computationStore,
+      });
+
+    allstepNodes.push(...stepNodes);
+    allExpressionNodes.push(...expressionNodes);
+    allStepEdges.push(...stepEdges);
+    stepNodeIndex += stepNodes.length;
   }
-
-  // Get active variable IDs from the scoped execution store
-  const activeVarIds = Array.from(executionStore.activeVariables);
-
-  // Find the formula node
-  let formulaNode: Node | undefined;
-  if (formulaId) {
-    // FormulaComponent: find by specific ID
-    formulaNode = currentNodes.find(
-      (node) => node.type === NODE_TYPES.FORMULA && node.data.id === formulaId
-    );
-  } else if (view.formulaId) {
-    // Canvas with specific formulaId in view: find by that ID
-    formulaNode = currentNodes.find(
-      (node) =>
-        node.type === NODE_TYPES.FORMULA && node.data.id === view.formulaId
-    );
-  } else {
-    // Canvas without specific formulaId: use first formula node
-    const formulaNodes = getFormulaNodes(currentNodes);
-    formulaNode = formulaNodes[0];
-  }
-
-  if (!formulaNode || !formulaNode.measured) {
-    return;
-  }
-
-  // Create view and expression nodes
-  const { viewNodes, expressionNodes, viewEdges } =
-    createViewAndExpressionNodes({
-      currentNodes,
-      formulaNode,
-      view,
-      activeVarIds,
-      viewport,
-      computationStore,
-    });
 
   // Add nodes to the canvas
-  if (viewNodes.length > 0) {
+  if (allstepNodes.length > 0) {
     setNodes((currentNodes) => {
       const filteredNodes = currentNodes.filter(
         (node) =>
           node.type !== NODE_TYPES.VIEW && node.type !== NODE_TYPES.EXPRESSION
       );
-      return [...filteredNodes, ...expressionNodes, ...viewNodes];
+      return [...filteredNodes, ...allExpressionNodes, ...allstepNodes];
     });
 
     // Add edges after nodes are rendered
-    if (viewEdges.length > 0) {
+    if (allStepEdges.length > 0) {
       setTimeout(() => {
         setEdges((currentEdges) => {
-          const nonViewEdges = currentEdges.filter(
-            (edge) => !edge.id.startsWith("edge-view-")
+          const nonStepEdges = currentEdges.filter(
+            (edge) => !edge.id.startsWith("edge-step-")
           );
-          return [...nonViewEdges, ...viewEdges];
+          return [...nonStepEdges, ...allStepEdges];
         });
       }, 100);
     } else {
-      // Remove view edges if no expression nodes
+      // Remove step edges if no expression nodes
       setEdges((currentEdges) =>
-        currentEdges.filter((edge) => !edge.id.startsWith("edge-view-"))
+        currentEdges.filter((edge) => !edge.id.startsWith("edge-step-"))
       );
     }
   } else {
-    // Remove view nodes, expression nodes, and view edges
+    // Remove step nodes, expression nodes, and stepedges
     setNodes((currentNodes) =>
       currentNodes.filter(
         (node) =>
@@ -538,7 +550,7 @@ export function addViewNodes({
       )
     );
     setEdges((currentEdges) =>
-      currentEdges.filter((edge) => !edge.id.startsWith("edge-view-"))
+      currentEdges.filter((edge) => !edge.id.startsWith("edge-step-"))
     );
   }
 }

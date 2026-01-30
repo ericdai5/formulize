@@ -2,7 +2,6 @@ import * as d3 from "d3";
 
 import { solveSingularFormula } from "../../engine/singular-formula-solver";
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
 import { type ILine } from "../../types/plot2d";
 import { addCurrentPointHighlight, addInteractions } from "./interaction";
 
@@ -70,7 +69,9 @@ function calculateLineDataPoints(
   const evalFunction = computationStore.evaluateFormula;
   if (!expression) {
     const debugState = computationStore.getDebugState();
-    if (!debugState.hasFunction || !evalFunction) return [];
+    if (!debugState.hasFunction || !evalFunction) {
+      return [];
+    }
   }
 
   // Allow points slightly outside the visible range for smooth clipping
@@ -145,7 +146,6 @@ export function renderLines(
   plotWidth: number,
   plotHeight: number,
   computationStore: ComputationStore,
-  executionStore: ExecutionStore | undefined,
   onDragEnd?: () => void,
   interaction?: ["horizontal-drag" | "vertical-drag", string]
 ): void {
@@ -269,7 +269,6 @@ export function renderLines(
           xAxis,
           lineYAxis, // Use line-specific y-axis for the label
           computationStore,
-          executionStore,
           color, // Pass line color for the point
           index // Pass line index for unique identification and label offset
         );

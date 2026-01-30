@@ -93,6 +93,6 @@ export interface IPlot2D {
   height?: number | string;
   tickFontSize?: number;
   interaction?: ["horizontal-drag" | "vertical-drag", string];
-  /** Render points at specific steps/views. Key format: "viewId" or "viewId.pointId" for multiple points per view */
+  /** Render points at specific steps/steps. Key format: "stepId" or "stepId.pointId" for multiple points per step */
   stepPoints?: Record<string, IStepPoint | IStepPoint[]>;
 }

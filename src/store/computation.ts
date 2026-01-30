@@ -369,9 +369,6 @@ class ComputationStore {
       return false;
     }
     variable.value = value;
-    // Update index-based computed variables
-    this.updateIndexBasedVariables(id, value);
-    // Only update computed variables if we're not initializing and not already in an update cycle
     if (!this.isUpdatingDependents && !this.isInitializing) {
       this.updateAllComputedVars();
     }
@@ -530,79 +527,6 @@ class ComputationStore {
     this.refreshCallback = callback;
   }
 
-  // Resolve memberOf relationships after all variables have been added
-  @action
-  resolveMemberOfRelationships() {
-    for (const [, variable] of this.variables.entries()) {
-      if (variable.memberOf) {
-        const parentVar = this.variables.get(variable.memberOf);
-        if (parentVar && Array.isArray(parentVar.value)) {
-          // Set default value to first element if child doesn't have a value, no index, and not in step mode
-          if (
-            variable.value === undefined &&
-            parentVar.value.length > 0 &&
-            !variable.index &&
-            !this.isStepMode()
-          ) {
-            variable.value =
-              typeof parentVar.value[0] === "number"
-                ? parentVar.value[0]
-                : parseFloat(String(parentVar.value[0]));
-          }
-        }
-      }
-    }
-  }
-
-  // Update variables that have a set based on a key variable (bidirectional index-based matching)
-  @action
-  private updateIndexBasedVariables(
-    changedVariableId: string,
-    changedValue: number
-  ) {
-    const changedVariable = this.variables.get(changedVariableId);
-    if (!changedVariable) return;
-
-    // Case 1: The changed variable has a key (depends on another variable)
-    if (changedVariable.key && Array.isArray(changedVariable.value)) {
-      const keyVariable = this.variables.get(changedVariable.key);
-      if (keyVariable && Array.isArray(keyVariable.value)) {
-        // Find the index of the changed value in the changed variable's set
-        const changedIndex = changedVariable.value.indexOf(changedValue);
-        if (changedIndex !== -1 && changedIndex < keyVariable.value.length) {
-          // Update the key variable's value using the same index
-          const keyValue = keyVariable.value[changedIndex];
-          keyVariable.value =
-            typeof keyValue === "number"
-              ? keyValue
-              : parseFloat(String(keyValue));
-        }
-      }
-    }
-
-    // Case 2: Other variables depend on the changed variable (changed variable is a key)
-    for (const [varId, variable] of this.variables.entries()) {
-      if (
-        variable.key === changedVariableId &&
-        Array.isArray(variable.value) &&
-        varId !== changedVariableId
-      ) {
-        if (Array.isArray(changedVariable.value)) {
-          // Find the index of the changed value in the changed variable's set
-          const changedIndex = changedVariable.value.indexOf(changedValue);
-          if (changedIndex !== -1 && changedIndex < variable.value.length) {
-            // Update the computed variable's value using the same index
-            const setValue = variable.value[changedIndex];
-            variable.value =
-              typeof setValue === "number"
-                ? setValue
-                : parseFloat(String(setValue));
-          }
-        }
-      }
-    }
-  }
-
   // Set up all expressions for computation
   @action
   async setComputation(
@@ -681,7 +605,6 @@ class ComputationStore {
 
       // Get computation-level manual function
       const computationManual = this.semantics?.manual;
-
       const result = computeWithManualEngine(
         updatedVariables,
         computationManual
@@ -715,10 +638,8 @@ class ComputationStore {
         step: variableDefinition?.step,
         options: variableDefinition?.options,
         key: variableDefinition?.key,
-        memberOf: variableDefinition?.memberOf,
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
         labelDisplay: variableDefinition?.labelDisplay ?? "value",
-        index: variableDefinition?.index,
         svgPath: variableDefinition?.svgPath,
         svgContent: variableDefinition?.svgContent,
         svgSize: variableDefinition?.svgSize,
@@ -784,19 +705,24 @@ class ComputationStore {
 
     try {
       this.isUpdatingDependents = true;
+      // Include both numeric and array values for manual engine support
       const values = Object.fromEntries(
         Array.from(this.variables.entries())
           .filter(
-            ([, v]) => v.value !== undefined && typeof v.value === "number"
+            ([, v]) =>
+              v.value !== undefined &&
+              (typeof v.value === "number" || Array.isArray(v.value))
           )
           .map(([symbol, v]) => [symbol, v.value as number])
       );
       const results = this.evaluationFunction(values);
-      // Update all computed variables with their computed values
+      // Update all computed variables with their computed values (numeric or array)
       for (const [symbol, variable] of this.variables.entries()) {
         if (variable.role === "computed") {
           const result = results[symbol];
           if (typeof result === "number" && !isNaN(result)) {
+            variable.value = result;
+          } else if (Array.isArray(result)) {
             variable.value = result;
           }
         }

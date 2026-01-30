@@ -69,7 +69,10 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
         ),
         variableRolesChanged: computationStore.variableRolesChanged,
         // Re-render when active variables change (for index variable display)
-        activeVariables: Array.from(executionStore.activeVariables),
+        // Serialize activeVariables Map for change detection
+        activeVariables: Array.from(executionStore.activeVariables.entries()).map(
+          ([formulaId, varSet]) => [formulaId, Array.from(varSet)]
+        ),
       }),
       () => {
         if (isInitialized) {

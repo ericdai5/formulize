@@ -1,4 +1,4 @@
-declare module 'js-interpreter' {
+declare module "js-interpreter" {
   // Type for interpreter values (pseudo-objects)
   type InterpreterValue = unknown;
 
@@ -47,7 +47,7 @@ declare module 'js-interpreter' {
     DONE = 0,
     STEP = 1,
     TASK = 2,
-    ASYNC = 3
+    ASYNC = 3,
   }
 
   // Main Interpreter class
@@ -55,7 +55,10 @@ declare module 'js-interpreter' {
     // Constructor
     constructor(
       code: string | object,
-      initFunc?: (interpreter: Interpreter, globalObject: InterpreterObject) => void
+      initFunc?: (
+        interpreter: Interpreter,
+        globalObject: InterpreterObject
+      ) => void
     );
 
     // Core execution methods
@@ -73,7 +76,10 @@ declare module 'js-interpreter' {
     stateStack: StackFrame[];
 
     // Property manipulation
-    getProperty(obj: InterpreterValue, name: InterpreterValue): InterpreterValue;
+    getProperty(
+      obj: InterpreterValue,
+      name: InterpreterValue
+    ): InterpreterValue;
     setProperty(
       obj: InterpreterValue,
       name: InterpreterValue,
@@ -127,7 +133,7 @@ declare module 'js-interpreter' {
     static Status: typeof Status;
 
     // Custom properties (can be extended)
-    _currentViewParams?: {
+    _currentStepParams?: {
       pairs?: Array<[string, string]>;
     };
   }

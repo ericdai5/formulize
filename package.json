@@ -1,7 +1,7 @@
 {
   "name": "formulize-math",
   "private": false,
-  "version": "0.1.28",
+  "version": "0.1.29",
   "description": "A powerful formula editor and visualization library for mathematical expressions",
   "type": "module",
   "main": "./dist/formulize.cjs.js",
@@ -151,6 +151,7 @@
     "prettier": "^3.2.5",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-router-dom": "^7.13.0",
     "react-scan": "^0.4.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.2.2",

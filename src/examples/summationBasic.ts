@@ -15,7 +15,6 @@ export const summationBasic = `const config = {
     },
     x: {
       role: "input",
-      memberOf: "X",
       name: "x: member of X",
       latexDisplay: "name",
       labelDisplay: "value",
@@ -23,6 +22,8 @@ export const summationBasic = `const config = {
     X: {
       role: "input",
       default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      latexDisplay: "name",
+      labelDisplay: "value",
     },
     "P(x)": {
       role: "input",
@@ -44,23 +45,23 @@ export const summationBasic = `const config = {
         var xi = xValues[i];
         var probability = pxValues[i];
         if (i === 0) {
-          view("Get a value x from X:", { value: xi });
-          view("Get a value P(x) from P(x):", { value: probability });
+          step({ description: "Get a value x from X", values: [["x", xValues], ["X", xi]] });
+          step({ description: "Get a value P(x) from P(x)", values: [["P(x)", probability]] });
         }
         var currExpected = Math.round(xi * probability * 100) / 100;
         if (i === 0) {
-          view("This evaluates to:", { value: currExpected });
+          step({ description: "This evaluates to:", values: [["x", xi], ["P(x)", probability]] });
         }
         expectedValue = Math.round((expectedValue + currExpected) * 100) / 100;
         switch (i) {
           case 0:
-            view("add up term into E:", { value: expectedValue });
+            step({ description: "add up term into E", values: [["E", expectedValue]] });
             break;
           case 1:
-            view("add next term...", { value: expectedValue });
+            step({ description: "add next term...", values: [["E", expectedValue]] });
             break;
           case xValues.length - 1:
-            view("finish accumulating weighted sum:", { value: expectedValue });
+            step({ description: "finish accumulating weighted sum", values: [["E", expectedValue]] });
             break;
         }
       }

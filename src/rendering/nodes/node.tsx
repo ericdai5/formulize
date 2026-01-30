@@ -7,7 +7,7 @@ import FormulaNode from "./formula-node";
 import InterpreterControlNode from "./interpreter-control-node";
 import LabelNode from "./label-node";
 import VariableNode from "./variable-node";
-import ViewNode from "./view-node";
+import stepNode from "./view-node";
 import VisualizationNode from "./visualization-node";
 
 // Define custom node types
@@ -18,7 +18,7 @@ export const nodeTypes: NodeTypes = {
   interpreterControl: InterpreterControlNode,
   variable: VariableNode,
   label: LabelNode,
-  view: ViewNode,
+  view: stepNode,
   expression: ExpressionNode,
   visualization: VisualizationNode,
 };

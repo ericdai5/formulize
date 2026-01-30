@@ -32,33 +32,16 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
     [variableId, computationStore]
   );
 
-  // Get array values from the variable's value property or from memberOf parent
+  // Get array values from the variable's value property
   const getArrayValues = useCallback(() => {
     if (!computationStore) return [];
     if (variable) {
-      // If variable has memberOf, get values from parent variable
-      if (variable.memberOf) {
-        // Prevent circular references by checking if parent points back to this variable
-        if (variable.memberOf === variableId) {
-          console.warn(
-            `Circular memberOf reference detected for variable ${variableId}`
-          );
-          return Array.isArray(variable.value) ? variable.value : [];
-        }
-        const parentVariable = computationStore.variables.get(
-          variable.memberOf
-        );
-        if (Array.isArray(parentVariable?.value)) {
-          return parentVariable.value;
-        }
-      }
-      // Otherwise, get values from the variable's own value property
       if (Array.isArray(variable.value)) {
         return variable.value;
       }
     }
     return [];
-  }, [variable, variableId, computationStore]);
+  }, [variable, computationStore]);
 
   const arrayValues = getArrayValues();
 
@@ -74,7 +57,7 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
       return viewActiveIndex;
     }
 
-    // Check if there's a target index from stepToIndex (block mode)
+    // Check if there's a target index from toIndex (block mode)
     if (executionStore.targetIndex) {
       return executionStore.targetIndex.index;
     }

@@ -11,7 +11,7 @@ export { default as Formulize } from "./formulize";
 export type { FormulizeConfig, FormulizeInstance } from "./formulize";
 
 // Export new component-based API
-export { FormulaComponent } from "./components/FormulaComponent";
+export { Formula } from "./components/FormulaComponent";
 export { InlineFormula } from "./components/InlineFormula";
 export { InlineVariable } from "./components/InlineVariable";
 export { VisualizationComponent } from "./components/VisualizationComponent";
@@ -23,8 +23,8 @@ export { EmbeddedFormula } from "./components/EmbeddedFormula";
 export { InterpreterControl } from "./components/InterpreterControl";
 export type { InterpreterControlProps } from "./components/InterpreterControl";
 
-// Export view function for manual computation breakpoints
-export { view } from "./engine/manual/controller";
+// Export step function for manual computation breakpoints
+export { step } from "./engine/manual/controller";
 
 // Export computation API - factory function and type for scoped stores
 export { createComputationStore, ComputationStore } from "./store/computation";
@@ -49,7 +49,7 @@ export {
 
 // Export general programmatic generation utilities
 export {
-  Formula,
+  Formula as FormulaGenerator,
   Variable,
   Semantics,
   mergeVariables,
@@ -70,6 +70,7 @@ export type {
 } from "./types/variable";
 export type { IVisualization } from "./types/visualization";
 export type { IPlot2D, IStepPoint } from "./types/plot2d";
+export type { IInterpreterStep } from "./types/step";
 export type { IPlot3D } from "./types/plot3d";
 export type { ICustom, IContext } from "./types/custom";
 export type { IControls } from "./types/control";

@@ -2,10 +2,10 @@ import React, { useEffect, useRef } from "react";
 
 import { CornerDownLeft, MessageCircleMore } from "lucide-react";
 
-import { IStep } from "../types/step";
+import { IInterpreterStep } from "../types/step";
 
 interface TimelineProps {
-  history: IStep[];
+  history: IInterpreterStep[];
   historyIndex: number;
   code: string;
   getLineFromCharPosition: (code: string, charPosition: number) => number;

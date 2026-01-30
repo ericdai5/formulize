@@ -3,7 +3,11 @@
  */
 import Interpreter from "js-interpreter";
 
-import { IStep, IView } from "../../types/step";
+import {
+  IView,
+  IInterpreterStep,
+  IStep,
+} from "../../types/step";
 import { IValue } from "../../types/variable";
 
 // Comprehensive interface for JS-Interpreter
@@ -18,8 +22,8 @@ interface JSInterpreter {
   createNativeFunction(func: (...args: unknown[]) => unknown): unknown;
   nativeToPseudo(obj: unknown): unknown;
   pseudoToNative?(obj: unknown): unknown;
-  // Custom property to store captured view parameters
-  _capturedView?: IView;
+  // Custom property to store captured step parameters
+  _capturedStep?: IStep;
 }
 
 interface StackFrame {
@@ -137,7 +141,10 @@ const collectVariablesFromStack = (
  * @param currentIndex - Current index in the history
  * @returns boolean indicating if we're at a block, switch, or return statement after target
  */
-const isAtBlock = (history: IStep[], currentIndex: number): boolean => {
+const isAtBlock = (
+  history: IInterpreterStep[],
+  currentIndex: number
+): boolean => {
   if (currentIndex === 0 || !history || history.length === 0) {
     return false;
   }
@@ -192,39 +199,79 @@ export const initializeInterpreter = (
       // This is cleaner - just the values, no IVariable wrapper objects
       const varsObject = interpreter.nativeToPseudo(values);
       interpreter.setProperty(globalObject, "vars", varsObject);
-      // Set up the view() function as a breakpoint trigger that captures arguments
+      // Set up the step() function as a breakpoint trigger that captures arguments
       // The function stores its arguments on the interpreter for later retrieval
-      // Syntax: view("description", { value: variable, expression: "latex", formulaId: "id" })
-      const view = function (description: unknown, options: unknown) {
-        // Convert pseudo-object to native object if needed
-        const nativeOptions = interpreter.pseudoToNative
-          ? interpreter.pseudoToNative(options)
-          : options;
-        // Extract value, expression, formulaId, and id from options object
-        const opts =
-          nativeOptions && typeof nativeOptions === "object"
-            ? (nativeOptions as {
-                id?: string;
-                value?: unknown;
-                expression?: string;
-                formulaId?: string;
-              })
-            : {};
-        // Store captured parameters on the interpreter instance
-        const view = {
-          id: opts.id ? String(opts.id) : undefined,
-          description: String(description ?? ""),
-          value: opts.value,
-          expression: opts.expression ? String(opts.expression) : undefined,
-          formulaId: opts.formulaId ? String(opts.formulaId) : undefined,
+      // New API:
+      // - Single/all formulas: step({ description, values?, expression? }, id?)
+      // - Multi-formula: step({ "formulaId": { description, values?, expression? }, ... }, id?)
+      // Detection: if input has 'description' property, it's single/all-formula mode
+      // Examples:
+      //   step({ description: "Get value x:", values: [["x", xi]] })
+      //   step({ description: "MSE", values: [["m", m]], expression: "\\frac{1}{m}" })
+      //   step({ "loss-func": { description: "Loss", values: [["J", loss]] } })
+      //   step({ "update-rule": { description: "Weight", values: [["w", w]] } }, "weight-update")
+      const step = function (inputArg: unknown, idArg?: unknown) {
+        // Convert pseudo-objects to native objects if needed
+        const nativeInput = interpreter.pseudoToNative
+          ? interpreter.pseudoToNative(inputArg)
+          : inputArg;
+        const id = idArg ? String(idArg) : undefined;
+
+        // Helper to validate and extract values array
+        const extractValues = (
+          vals: unknown
+        ): Array<[string, IValue]> | undefined => {
+          if (!Array.isArray(vals)) return undefined;
+          const result: Array<[string, IValue]> = [];
+          for (const tuple of vals) {
+            if (
+              Array.isArray(tuple) &&
+              tuple.length >= 2 &&
+              typeof tuple[0] === "string"
+            ) {
+              result.push([tuple[0], tuple[1] as IValue]);
+            }
+          }
+          return result.length > 0 ? result : undefined;
         };
-        interpreter._capturedView = view;
+
+        // Build the captured step in IStep format
+        const capturedStep: IStep = { id, formulas: {} };
+
+        if (nativeInput && typeof nativeInput === "object") {
+          const input = nativeInput as Record<string, unknown>;
+
+          if ("description" in input) {
+            // Single step mode - use empty string key for "all formulas"
+            capturedStep.formulas[""] = {
+              description: String(input.description ?? ""),
+              values: extractValues(input.values),
+              expression: input.expression
+                ? String(input.expression)
+                : undefined,
+            };
+          } else {
+            // Multi-formula mode - keys are formulaIds
+            for (const [formulaId, step] of Object.entries(input)) {
+              const stepData = step as IView;
+              capturedStep.formulas[formulaId] = {
+                description: String(stepData.description ?? ""),
+                values: extractValues(stepData.values),
+                expression: stepData.expression
+                  ? String(stepData.expression)
+                  : undefined,
+              };
+            }
+          }
+        }
+
+        interpreter._capturedStep = capturedStep;
         return undefined;
       };
       interpreter.setProperty(
         globalObject,
-        "view",
-        interpreter.createNativeFunction(view)
+        "step",
+        interpreter.createNativeFunction(step)
       );
 
       // Also provide the getVariablesJSON function for debugging

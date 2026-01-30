@@ -13,7 +13,7 @@ import { VAR_CLASSES } from "../css-classes";
 
 export interface LabelNodeData {
   varId: string;
-  environment?: any;
+  formulaId?: string;
 }
 
 // Static styles to prevent re-renders
@@ -136,16 +136,23 @@ const InlineInput = observer(
 );
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
-  const { varId, environment } = data;
+  const { varId, formulaId } = data;
   const context = useFormulize();
   const computationStore = context?.computationStore;
   const executionStore = context?.executionStore;
+  const labelFontSize = computationStore?.environment?.labelFontSize;
 
   // Must call all hooks before conditional returns
   const showHoverOutlines = computationStore?.showHoverOutlines ?? false;
 
   const variable = computationStore?.variables.get(varId);
-  const isVariableActive = executionStore?.activeVariables.has(varId) ?? false;
+  // activeVariables is a Map<formulaId, Set<varId>>
+  // Empty string key '' means "all formulas"
+  const allFormulasVars = executionStore?.activeVariables.get("") ?? new Set();
+  const thisFormulaVars =
+    formulaId ? (executionStore?.activeVariables.get(formulaId) ?? new Set()) : new Set();
+  const isVariableActive =
+    allFormulasVars.has(varId) || thisFormulaVars.has(varId);
   const isHovered = computationStore?.hoverStates.get(varId) ?? false;
 
   const valueDragRef = useVariableDrag({
@@ -160,32 +167,15 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   if (!variable) return null;
   if (computationStore.isStepMode() && !isVariableActive) return null;
 
-  const { name, role, value, precision, labelDisplay, index, interaction } =
-    variable;
-
-  // Get index variable information
-  const indexVariable = index;
-  let indexDisplay = "";
-
-  if (indexVariable) {
-    const indexVar = computationStore.variables.get(indexVariable);
-    if (
-      indexVar &&
-      typeof indexVar.value === "number" &&
-      !isNaN(indexVar.value)
-    ) {
-      // Format precision based on the index variable's precision or default to 0 for integers
-      const precision = indexVar.precision ?? 0;
-      indexDisplay = `${indexVariable} = ${indexVar.value.toFixed(precision)}`;
-    }
-  }
+  const { name, role, value, precision, labelDisplay, interaction } = variable;
+  const isStepModeActive = computationStore.isStepMode();
 
   // Determine what to display based on labelDisplay setting and interaction mode
   let mainDisplayText = varId; // default to name
   let displayComponent: React.ReactNode = null;
 
-  // Check if this is an inline input variable
-  const isInlineInput = role === "input" && interaction === "inline";
+  // Check if this is an inline input variable (but not in step mode)
+  const isInlineInput = role === "input" && interaction === "inline" && !isStepModeActive;
 
   if (isInlineInput) {
     // Render inline editable input for input variables with inline interaction
@@ -193,10 +183,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       <InlineInput
         varId={varId}
         variable={variable}
-        fontSize={environment?.fontSize}
+        fontSize={labelFontSize}
       />
     );
-  } else if (labelDisplay === "value") {
+  } else if (labelDisplay === "value" || (interaction === "inline" && isStepModeActive)) {
     if (Array.isArray(variable?.value)) {
       // Handle set values - convert all elements to strings for display
       const setElements = variable.value.map((el) => String(el));
@@ -215,7 +205,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         displayComponent = (
           <LatexLabel
             latex={mainDisplayText}
-            fontSize={environment?.fontSize}
+            fontSize={labelFontSize}
           />
         );
       } else {
@@ -223,7 +213,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         displayComponent = (
           <LatexLabel
             latex={mainDisplayText}
-            fontSize={environment?.fontSize}
+            fontSize={labelFontSize}
           />
         );
       }
@@ -231,7 +221,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
       mainDisplayText = value.toFixed(displayPrecision);
       displayComponent = (
-        <LatexLabel latex={mainDisplayText} fontSize={environment?.fontSize} />
+        <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
       );
     } else {
       // If labelDisplay is "value" but no value is set, hide the label node
@@ -249,11 +239,8 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     );
   } else {
     // Default to name display
-    const displayLatex = indexDisplay
-      ? `${mainDisplayText}, ${indexDisplay}`
-      : mainDisplayText;
     displayComponent = (
-      <LatexLabel latex={displayLatex} fontSize={environment?.fontSize} />
+      <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
     );
   }
 
@@ -277,15 +264,16 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   const interactiveClass = getInteractiveClass();
   const isSetVariable = Array.isArray(variable.value);
-  // Don't enable drag for inline input variables
+  // Don't enable drag for inline input variables or in step mode
   const isDraggable =
     (role === "input" || role === "computed") &&
     !isSetVariable &&
-    !isInlineInput;
+    !isInlineInput &&
+    !isStepModeActive;
   const cursor = isDraggable ? "grab" : "default";
-  const valueCursor = isSetVariable
+  const valueCursor = isSetVariable && !isStepModeActive
     ? "pointer"
-    : role === "input" && !computationStore.isStepMode() && !isInlineInput
+    : role === "input" && !isStepModeActive && !isInlineInput
       ? "ns-resize"
       : "default";
 
@@ -305,7 +293,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         cursor,
         ...customStyle,
       }}
-      title={`Variable: ${varId}${name ? ` (${name})` : ""}${indexDisplay ? ` [${indexDisplay}]` : ""}${isDraggable ? " (draggable)" : ""}`}
+      title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggable ? " (draggable)" : ""}`}
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
       onMouseLeave={() => computationStore.setVariableHover(varId, false)}
     >
@@ -314,7 +302,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       >
         <div
           ref={
-            role === "input" && !isSetVariable && !isInlineInput
+            role === "input" && !isSetVariable && !isInlineInput && !isStepModeActive
               ? valueDragRef
               : null
           }
