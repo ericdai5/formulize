@@ -34,7 +34,7 @@ export function computeEdgesForFormula(
   formulaLabelNodes.forEach((labelNode) => {
     const labelNodeData = labelNode.data as {
       varId?: string;
-      id?: string;
+      formulaId?: string;
     };
     const varId = labelNodeData?.varId;
     if (!varId || !shouldLabelBeVisible(varId)) return;

@@ -185,9 +185,9 @@ export const getstepNodes = (nodes: Node[]) =>
 export function extractIds(nodes: Node[]): Set<string> {
   const ids = new Set<string>();
   nodes.forEach((node) => {
-    const id = node.data.id;
-    if (id && typeof id === "string") {
-      ids.add(id);
+    const formulaId = node.data.formulaId;
+    if (formulaId && typeof formulaId === "string") {
+      ids.add(formulaId);
     }
   });
   return ids;
