@@ -333,7 +333,7 @@ export const useAddVariableNodes = ({
   nodesInitialized,
   setNodes,
   addLabelNodes,
-  addViewNodes,
+  addstepNodes,
   variableNodesAddedRef,
   computationStore,
 }: {
@@ -341,7 +341,7 @@ export const useAddVariableNodes = ({
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   variableNodesAddedRef: MutableRefObject<boolean>;
   addLabelNodes: () => void;
-  addViewNodes: () => void;
+  addstepNodes: () => void;
   computationStore: ComputationStore;
 }) => {
   const { getNodes, getViewport } = useReactFlow();
@@ -366,7 +366,7 @@ export const useAddVariableNodes = ({
         variableNodesAddedRef.current = true;
         setTimeout(() => {
           addLabelNodes();
-          addViewNodes();
+          addstepNodes();
         }, 100);
       }
     );

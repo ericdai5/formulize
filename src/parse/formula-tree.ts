@@ -1941,125 +1941,128 @@ const findAndGroupVariableTree = (
 
 /**
  * Check if a node is inside a nested context (subscript, superscript, fraction, etc.)
+ * NOTE: Currently unused - equality context detection is disabled
  */
-const isInNestedContext = (node: AugmentedFormulaNode): boolean => {
-  let parent = node._parent;
-  while (parent) {
-    if (
-      parent.type === "script" ||
-      parent.type === "frac" ||
-      parent.type === "root" ||
-      parent.type === "accent" ||
-      parent.type === "array" ||
-      parent.type === "matrix"
-    ) {
-      return true;
-    }
-    parent = parent._parent;
-  }
-  return false;
-};
+// const isInNestedContext = (node: AugmentedFormulaNode): boolean => {
+//   let parent = node._parent;
+//   while (parent) {
+//     if (
+//       parent.type === "script" ||
+//       parent.type === "frac" ||
+//       parent.type === "root" ||
+//       parent.type === "accent" ||
+//       parent.type === "array" ||
+//       parent.type === "matrix"
+//     ) {
+//       return true;
+//     }
+//     parent = parent._parent;
+//   }
+//   return false;
+// };
 
 /**
  * Check if a node is part of an equality expression (like i=1)
  * Returns true if the node is on the left side of an equals sign
  * Only applies to nested contexts (not root level)
+ * NOTE: Currently disabled - variables in equality expressions are now replaced directly
  */
-const isInEqualityContext = (node: AugmentedFormulaNode): boolean => {
-  // Only check for equality context if we're in a nested structure
-  if (!isInNestedContext(node)) {
-    return false;
-  }
-
-  // Check if this node has a right sibling that is an equals sign
-  if (node._rightSibling && node._rightSibling.type === "symbol") {
-    const rightSymbol = node._rightSibling as MathSymbol;
-    if (rightSymbol.value === "=") {
-      return true;
-    }
-  }
-
-  // Also check if we're in a group that contains an equals sign
-  if (node._parent && node._parent.type === "group") {
-    const parentGroup = node._parent as Group;
-    const nodeIndex = parentGroup.body.indexOf(node);
-
-    // Check if there's an equals sign after this node in the group
-    for (let i = nodeIndex + 1; i < parentGroup.body.length; i++) {
-      const sibling = parentGroup.body[i];
-      if (sibling.type === "symbol" && (sibling as MathSymbol).value === "=") {
-        return true;
-      }
-      // Stop if we encounter something that would break the equality expression
-      if (sibling.type !== "space") {
-        break;
-      }
-    }
-  }
-
-  return false;
-};
+// const isInEqualityContext = (node: AugmentedFormulaNode): boolean => {
+//   // Only check for equality context if we're in a nested structure
+//   if (!isInNestedContext(node)) {
+//     return false;
+//   }
+//
+//   // Check if this node has a right sibling that is an equals sign
+//   if (node._rightSibling && node._rightSibling.type === "symbol") {
+//     const rightSymbol = node._rightSibling as MathSymbol;
+//     if (rightSymbol.value === "=") {
+//       return true;
+//     }
+//   }
+//
+//   // Also check if we're in a group that contains an equals sign
+//   if (node._parent && node._parent.type === "group") {
+//     const parentGroup = node._parent as Group;
+//     const nodeIndex = parentGroup.body.indexOf(node);
+//
+//     // Check if there's an equals sign after this node in the group
+//     for (let i = nodeIndex + 1; i < parentGroup.body.length; i++) {
+//       const sibling = parentGroup.body[i];
+//       if (sibling.type === "symbol" && (sibling as MathSymbol).value === "=") {
+//         return true;
+//       }
+//       // Stop if we encounter something that would break the equality expression
+//       if (sibling.type !== "space") {
+//         break;
+//       }
+//     }
+//   }
+//
+//   return false;
+// };
 
 /**
  * Wrap the right side of equality expressions with Variable nodes.
  * When we see patterns like `i = 1` where `i` matches our variable pattern,
  * wrap `1` with a Variable node that references `i`.
  * This only applies in nested contexts (subscripts, superscripts, etc.)
+ * NOTE: Currently disabled - variables in equality expressions are now replaced directly
  */
-const wrapEqualityRightSides = (
-  children: AugmentedFormulaNode[],
-  variableTreeChildren: AugmentedFormulaNode[],
-  variableLatex: string,
-  originalSymbol: string
-): AugmentedFormulaNode[] => {
-  const result = [...children];
-
-  // Find all equals signs and process them
-  for (let i = 0; i < result.length; i++) {
-    const child = result[i];
-    if (child.type === "symbol" && (child as MathSymbol).value === "=") {
-      // Get the immediate left side (skip spaces)
-      let leftNode: AugmentedFormulaNode | null = null;
-      for (let j = i - 1; j >= 0; j--) {
-        if (result[j].type !== "space") {
-          leftNode = result[j];
-          break;
-        }
-      }
-
-      // Get the immediate right side (skip spaces)
-      let rightIndex = -1;
-      for (let j = i + 1; j < result.length; j++) {
-        if (result[j].type !== "space") {
-          rightIndex = j;
-          break;
-        }
-      }
-
-      // If left matches our variable pattern and right exists, wrap right
-      if (leftNode && rightIndex >= 0) {
-        const leftMatches =
-          variableTreeChildren.length === 1 &&
-          nodeMatches(leftNode, variableTreeChildren[0]);
-
-        if (leftMatches) {
-          const rightNode = result[rightIndex];
-          // Don't double-wrap
-          if (rightNode.type !== "variable") {
-            result[rightIndex] = new Variable(
-              `var-eq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              rightNode,
-              variableLatex,
-              originalSymbol
-            );
-          }
-        }
-      }
-    }
-  }
-
-  return result;
-};
+// const wrapEqualityRightSides = (
+//   children: AugmentedFormulaNode[],
+//   variableTreeChildren: AugmentedFormulaNode[],
+//   variableLatex: string,
+//   originalSymbol: string
+// ): AugmentedFormulaNode[] => {
+//   const result = [...children];
+//
+//   // Find all equals signs and process them
+//   for (let i = 0; i < result.length; i++) {
+//     const child = result[i];
+//     if (child.type === "symbol" && (child as MathSymbol).value === "=") {
+//       // Get the immediate left side (skip spaces)
+//       let leftNode: AugmentedFormulaNode | null = null;
+//       for (let j = i - 1; j >= 0; j--) {
+//         if (result[j].type !== "space") {
+//           leftNode = result[j];
+//           break;
+//         }
+//       }
+//
+//       // Get the immediate right side (skip spaces)
+//       let rightIndex = -1;
+//       for (let j = i + 1; j < result.length; j++) {
+//         if (result[j].type !== "space") {
+//           rightIndex = j;
+//           break;
+//         }
+//       }
+//
+//       // If left matches our variable pattern and right exists, wrap right
+//       if (leftNode && rightIndex >= 0) {
+//         const leftMatches =
+//           variableTreeChildren.length === 1 &&
+//           nodeMatches(leftNode, variableTreeChildren[0]);
+//
+//         if (leftMatches) {
+//           const rightNode = result[rightIndex];
+//           // Don't double-wrap
+//           if (rightNode.type !== "variable") {
+//             result[rightIndex] = new Variable(
+//               `var-eq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+//               rightNode,
+//               variableLatex,
+//               originalSymbol
+//             );
+//           }
+//         }
+//       }
+//     }
+//   }
+//
+//   return result;
+// };
 
 /**
  * Recursively search through a node and its children to find and group variable trees
@@ -2071,11 +2074,10 @@ const recursivelyFindAndGroupVariableTree = (
   originalSymbol: string
 ): AugmentedFormulaNode => {
   // First, check if this entire node matches the variable pattern
-  // BUT don't replace if it's in an equality context (like i=1)
   if (
     variableTreeChildren.length === 1 &&
-    nodeMatches(node, variableTreeChildren[0]) &&
-    !isInEqualityContext(node)
+    nodeMatches(node, variableTreeChildren[0])
+    // && !isInEqualityContext(node) // DISABLED: equality context detection
   ) {
     return new Variable(
       `var-${Date.now()}`,
@@ -2132,8 +2134,8 @@ const recursivelyFindAndGroupVariableTree = (
 
       if (
         baseMatches &&
-        !(processedBase.type === "variable") &&
-        !isInEqualityContext(nodeScript.base)
+        !(processedBase.type === "variable")
+        // && !isInEqualityContext(nodeScript.base) // DISABLED: equality context detection
       ) {
         finalBase = new Variable(
           `var-${Date.now()}`,
@@ -2145,8 +2147,8 @@ const recursivelyFindAndGroupVariableTree = (
       if (
         subMatches &&
         processedSub &&
-        !(processedSub.type === "variable") &&
-        !isInEqualityContext(nodeScript.sub!)
+        !(processedSub.type === "variable")
+        // && !isInEqualityContext(nodeScript.sub!) // DISABLED: equality context detection
       ) {
         finalSub = new Variable(
           `var-${Date.now()}`,
@@ -2158,8 +2160,8 @@ const recursivelyFindAndGroupVariableTree = (
       if (
         supMatches &&
         processedSup &&
-        !(processedSup.type === "variable") &&
-        !isInEqualityContext(nodeScript.sup!)
+        !(processedSup.type === "variable")
+        // && !isInEqualityContext(nodeScript.sup!) // DISABLED: equality context detection
       ) {
         finalSup = new Variable(
           `var-${Date.now()}`,
@@ -2206,8 +2208,8 @@ const recursivelyFindAndGroupVariableTree = (
 
       if (
         numeratorMatches &&
-        !(processedNumerator.type === "variable") &&
-        !isInEqualityContext(nodeFrac.numerator)
+        !(processedNumerator.type === "variable")
+        // && !isInEqualityContext(nodeFrac.numerator) // DISABLED: equality context detection
       ) {
         finalNumerator = new Variable(
           `var-${Date.now()}`,
@@ -2218,8 +2220,8 @@ const recursivelyFindAndGroupVariableTree = (
       }
       if (
         denominatorMatches &&
-        !(processedDenominator.type === "variable") &&
-        !isInEqualityContext(nodeFrac.denominator)
+        !(processedDenominator.type === "variable")
+        // && !isInEqualityContext(nodeFrac.denominator) // DISABLED: equality context detection
       ) {
         finalDenominator = new Variable(
           `var-${Date.now()}`,
@@ -2238,7 +2240,7 @@ const recursivelyFindAndGroupVariableTree = (
     case "group": {
       const nodeGroup = node as Group;
       // First recursively process all children
-      let processedChildren = nodeGroup.body.map((child) =>
+      const processedChildren = nodeGroup.body.map((child) =>
         recursivelyFindAndGroupVariableTree(
           child,
           variableTreeChildren,
@@ -2247,16 +2249,16 @@ const recursivelyFindAndGroupVariableTree = (
         )
       );
 
-      // If in a nested context, wrap right sides of equality bindings
+      // DISABLED: equality context detection - wrap right sides of equality bindings
       // e.g., in `i=1`, if `i` matches our variable, wrap `1` with Variable node
-      if (isInNestedContext(nodeGroup)) {
-        processedChildren = wrapEqualityRightSides(
-          processedChildren,
-          variableTreeChildren,
-          variableLatex,
-          originalSymbol
-        );
-      }
+      // if (isInNestedContext(nodeGroup)) {
+      //   processedChildren = wrapEqualityRightSides(
+      //     processedChildren,
+      //     variableTreeChildren,
+      //     variableLatex,
+      //     originalSymbol
+      //   );
+      // }
 
       // Then look for patterns in this group's children
       const matches = findMatchingSubsequences(
@@ -2362,8 +2364,8 @@ const recursivelyFindAndGroupVariableTree = (
       let finalBody = processedBody;
       if (
         bodyMatches &&
-        !(processedBody.type === "variable") &&
-        !isInEqualityContext(nodeBox.body)
+        !(processedBody.type === "variable")
+        // && !isInEqualityContext(nodeBox.body) // DISABLED: equality context detection
       ) {
         finalBody = new Variable(
           `var-${Date.now()}`,
@@ -2395,8 +2397,8 @@ const recursivelyFindAndGroupVariableTree = (
       let finalBody = processedBody;
       if (
         bodyMatches &&
-        !(processedBody.type === "variable") &&
-        !isInEqualityContext(nodeStrike.body)
+        !(processedBody.type === "variable")
+        // && !isInEqualityContext(nodeStrike.body) // DISABLED: equality context detection
       ) {
         finalBody = new Variable(
           `var-${Date.now()}`,
@@ -2440,8 +2442,8 @@ const recursivelyFindAndGroupVariableTree = (
       let finalBase = processedBase;
       if (
         baseMatches &&
-        !(processedBase.type === "variable") &&
-        !isInEqualityContext(nodeBrace.base)
+        !(processedBase.type === "variable")
+        // && !isInEqualityContext(nodeBrace.base) // DISABLED: equality context detection
       ) {
         finalBase = new Variable(
           `var-${Date.now()}`,
@@ -2552,8 +2554,8 @@ const recursivelyFindAndGroupVariableTree = (
 
       if (
         bodyMatches &&
-        !(processedBody.type === "variable") &&
-        !isInEqualityContext(nodeRoot.body)
+        !(processedBody.type === "variable")
+        // && !isInEqualityContext(nodeRoot.body) // DISABLED: equality context detection
       ) {
         finalBody = new Variable(
           `var-${Date.now()}`,
@@ -2565,8 +2567,8 @@ const recursivelyFindAndGroupVariableTree = (
       if (
         indexMatches &&
         processedIndex &&
-        !(processedIndex.type === "variable") &&
-        !isInEqualityContext(nodeRoot.index!)
+        !(processedIndex.type === "variable")
+        // && !isInEqualityContext(nodeRoot.index!) // DISABLED: equality context detection
       ) {
         finalIndex = new Variable(
           `var-${Date.now()}`,
@@ -2599,8 +2601,8 @@ const recursivelyFindAndGroupVariableTree = (
       let finalBase = processedBase;
       if (
         baseMatches &&
-        !(processedBase.type === "variable") &&
-        !isInEqualityContext(nodeAccent.base)
+        !(processedBase.type === "variable")
+        // && !isInEqualityContext(nodeAccent.base) // DISABLED: equality context detection
       ) {
         finalBase = new Variable(
           `var-${Date.now()}`,
@@ -2645,15 +2647,15 @@ const replaceSubsequencesWithVariables = (
   const newChildren = [...children];
 
   for (const match of sortedMatches) {
-    // Check if any of the matched nodes are in an equality context
-    const anyInEqualityContext = match.nodes.some((node) =>
-      isInEqualityContext(node)
-    );
-
-    if (anyInEqualityContext) {
-      // Skip this match if any node is in an equality context
-      continue;
-    }
+    // DISABLED: equality context detection
+    // const anyInEqualityContext = match.nodes.some((node) =>
+    //   isInEqualityContext(node)
+    // );
+    //
+    // if (anyInEqualityContext) {
+    //   // Skip this match if any node is in an equality context
+    //   continue;
+    // }
 
     // Create a group containing all the matched nodes
     const groupedBody =

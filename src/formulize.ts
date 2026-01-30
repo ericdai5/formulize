@@ -124,7 +124,6 @@ async function initializeInstance(
           }
         }
       });
-      computationStore.resolveMemberOfRelationships();
     }
 
     // Now create individual formula stores for each formula

@@ -34,16 +34,13 @@ export function computeEdgesForFormula(
   formulaLabelNodes.forEach((labelNode) => {
     const labelNodeData = labelNode.data as {
       varId?: string;
-      id?: string;
+      formulaId?: string;
     };
     const varId = labelNodeData?.varId;
     if (!varId || !shouldLabelBeVisible(varId)) return;
 
-    // Skip labels that are not yet visible (opacity 0 or 0.01)
-    if (
-      labelNode.style &&
-      (labelNode.style.opacity === 0 || labelNode.style.opacity === 0.01)
-    ) {
+    // Skip labels that are not yet visible (opacity 0)
+    if (labelNode.style && labelNode.style.opacity === 0) {
       return;
     }
 

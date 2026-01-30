@@ -11,11 +11,14 @@ import {
   getVariableNodes,
 } from "./node-helpers";
 
+// Common type for label placement direction
+type PlacementDirection = "below" | "above";
+
 // Enhanced label positioning system
 export interface LabelPlacement {
   x: number;
   y: number;
-  placement: "below" | "above";
+  placement: PlacementDirection;
 }
 
 export interface NodeBounds {
@@ -132,7 +135,6 @@ export interface AddLabelNodesParams {
 export interface AdjustLabelPositionsParams {
   getNodes: () => Node[];
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  manuallyPositionedLabels: Set<string>;
 }
 
 export interface UpdateLabelNodesParams {
@@ -153,7 +155,7 @@ export interface UpdateLabelNodesParams {
  */
 export const updateLabelPlacement = (
   nodes: Node[],
-  updates: Array<{ nodeId: string; labelPlacement: "below" | "above" }>
+  updates: Array<{ nodeId: string; labelPlacement: PlacementDirection }>
 ): Node[] => {
   return nodes.map((node) => {
     const update = updates.find((u) => u.nodeId === node.id);
@@ -191,23 +193,29 @@ export const processVariableElementsForLabels = (
   labelNodes: Node[];
   variableNodeUpdates: Array<{
     nodeId: string;
-    labelPlacement: "below" | "above";
+    labelPlacement: PlacementDirection;
   }>;
 } => {
   const labelNodes: Node[] = [];
   const variableNodeUpdates: Array<{
     nodeId: string;
-    labelPlacement: "below" | "above";
+    labelPlacement: PlacementDirection;
   }> = [];
 
   // In step mode, label nodes should only render for a formula if:
-  // 1. The view doesn't specify a formulaId (show labels for all formulas), OR
-  // 2. The view specifies a formulaId that matches this formula's id
+  // 1. The step has an empty string key (applies to all formulas), OR
+  // 2. The step has a key that matches this formula's id
   if (computationStore.isStepMode()) {
-    const viewFormulaId = executionStore.currentView?.formulaId;
-    // Only skip labels if the view explicitly targets a different formula
-    if (viewFormulaId && viewFormulaId !== id) {
-      return { labelNodes, variableNodeUpdates };
+    const step = executionStore.currentStep;
+    if (step?.formulas) {
+      const formulaIds = Object.keys(step.formulas);
+      // If step has specific formulaIds (not just empty string for "all"),
+      // only show labels if this formula is targeted
+      const hasAllFormulasKey = formulaIds.includes("");
+      const hasThisFormulaKey = formulaIds.includes(id);
+      if (!hasAllFormulasKey && !hasThisFormulaKey) {
+        return { labelNodes, variableNodeUpdates };
+      }
     }
   }
 
@@ -236,17 +244,22 @@ export const processVariableElementsForLabels = (
     if (variable?.labelDisplay === "value" && !hasValue) return;
     if (!hasValue && !hasName) return;
     // Check if this label should be visible using the same logic as LabelNode component
-    const isVariableActive = executionStore.activeVariables.has(cssId);
+    // activeVariables is a Map<formulaId, Set<varId>>
+    // Empty string key '' means "all formulas"
+    const allFormulasVars = executionStore.activeVariables.get("") ?? new Set();
+    const thisFormulaVars = executionStore.activeVariables.get(id) ?? new Set();
+    const isVariableActive =
+      allFormulasVars.has(cssId) || thisFormulaVars.has(cssId);
     // If in step mode and variable is not active, skip creating this label
     if (computationStore.isStepMode() && !isVariableActive) {
       return;
     }
     // Get the corresponding variable node to get its actual position
-    // Find the first variable node for this cssId since we may have multiple instances
-    // Use node properties instead of ID parsing to handle hyphens in cssId
-    const variableNode = currentNodes.find((node) => {
-      return node.parentId === formulaNode.id && node.data.varId === cssId;
-    });
+    const variableNode = findVariableNodeForFormula(
+      currentNodes,
+      formulaNode.id,
+      cssId
+    );
     if (!variableNode) return;
     // Use the variable node position directly (already in React Flow coordinates)
     // This avoids coordinate conversion issues and should be accurate
@@ -256,23 +269,24 @@ export const processVariableElementsForLabels = (
       height: (variableNode.data.height as number) || 0,
     };
 
-    // View nodes are always rendered below the equation.
-    // If there is an active view, force labels to be above to avoid edge overlaps.
-    const forcePlacement = executionStore.currentView ? "above" : undefined;
+    // Stepnodes are always rendered above the equation.
+    // If there is an active view, force labels to be below to avoid edge overlaps.
+    const forcePlacement = executionStore.currentStep ? "below" : undefined;
+
+    const formulaDimensions = getNodeDimensions(formulaNode, {
+      width: DEFAULT_DIMENSIONS.formulaWidth,
+      height: DEFAULT_DIMENSIONS.formulaHeight,
+    });
 
     const labelPos = getLabelNodePos(
       htmlElementPosition,
       htmlElementDimensions,
       formulaNode,
-      {
-        width: formulaNode.measured?.width || formulaNode.width || 400,
-        height: formulaNode.measured?.height || formulaNode.height || 200,
-      },
+      formulaDimensions,
       viewport,
       forcePlacement
     );
-    // Create the label node - initially nearly transparent until positioned correctly
-    // Use 0.01 instead of 0 so React Flow measures it properly
+    // Create the label node - initially hidden until positioned correctly
     // Make label a child of the formula node so it automatically moves with the formula
     // Convert absolute position to relative position (relative to formula node)
     const relativePosition = {
@@ -286,13 +300,13 @@ export const processVariableElementsForLabels = (
       parentId: formulaNode.id, // Make this a child of the formula node
       data: {
         varId: cssId,
-        id: id,
+        formulaId: id,
         placement: labelPos.placement,
       },
-      draggable: true,
-      selectable: true,
+      draggable: false,
+      selectable: false,
       style: {
-        opacity: 0.01, // Nearly invisible but measurable
+        opacity: 0, // Hidden until positioned
         pointerEvents: "none" as const, // Disable interactions while hidden
       },
     });
@@ -375,7 +389,7 @@ export const addLabelNodes = ({
   const labelNodes: Node[] = [];
   const variableNodeUpdates: Array<{
     nodeId: string;
-    labelPlacement: "below" | "above";
+    labelPlacement: PlacementDirection;
   }> = [];
 
   forEachFormulaNode(currentNodes, (formulaNode, formulaElement, id) => {
@@ -405,203 +419,302 @@ export const addLabelNodes = ({
   }
 };
 
+// Helper interface for label info during positioning
+interface LabelInfo {
+  nodeId: string;
+  idealX: number; // Ideal centered X position (centered on variable)
+  variableCenterX: number; // Center X of the corresponding variable node (for ordering)
+  y: number;
+  width: number;
+  height: number;
+  placement: PlacementDirection;
+  parentId: string;
+  finalX?: number; // Final X position after collision resolution
+}
+
+// Default dimension values for nodes
+const DEFAULT_DIMENSIONS = {
+  labelWidth: 40,
+  labelHeight: 24,
+  formulaWidth: 400,
+  formulaHeight: 200,
+} as const;
+
 /**
- * Adjust label positions after they're rendered and measured
- * Centers labels horizontally above their corresponding variables
+ * Get node dimensions with fallbacks to measured, explicit, or default values
  */
-export const adjustLabelPositions = ({
-  getNodes,
-  setNodes,
-  manuallyPositionedLabels,
-}: AdjustLabelPositionsParams): void => {
-  const currentNodes = getNodes();
+const getNodeDimensions = (
+  node: Node,
+  defaults: { width: number; height: number }
+): { width: number; height: number } => ({
+  width: node.measured?.width || node.width || defaults.width,
+  height: node.measured?.height || node.height || defaults.height,
+});
 
-  // Track positioned labels for horizontal collision detection (using actual measured dimensions)
-  // Group by parent formula node since positions are relative to parent
-  const positionedLabels: Array<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    placement: "above" | "below";
-    parentId: string; // Track which formula node this label belongs to
-  }> = [];
+/**
+ * Find a variable node by its varId and parent formula
+ */
+const findVariableNodeForFormula = (
+  nodes: Node[],
+  formulaNodeId: string,
+  varId: string
+): Node | undefined => {
+  return nodes.find(
+    (node) => node.parentId === formulaNodeId && node.data.varId === varId
+  );
+};
 
-  const updatedNodes = currentNodes.map((node) => {
-    if (node.type !== NODE_TYPES.LABEL || !node.measured) {
-      return node;
-    }
+/**
+ * Sort labels by their variable's center X position
+ * This maintains correct left-to-right ordering to prevent edge crossings
+ */
+const sortLabelsByVariablePosition = (labels: LabelInfo[]): LabelInfo[] => {
+  return [...labels].sort((a, b) => a.variableCenterX - b.variableCenterX);
+};
 
-    // Skip labels that have been manually positioned by the user
-    if (manuallyPositionedLabels.has(node.id)) {
-      // Still track manually positioned labels for collision detection
-      if (node.measured.width && node.measured.height && node.parentId) {
-        positionedLabels.push({
-          x: node.position.x,
-          y: node.position.y,
-          width: node.measured.width,
-          height: node.measured.height,
-          placement: (node.data.placement as "above" | "below") || "below",
-          parentId: node.parentId, // Track parent for relative coordinate comparison
-        });
-      }
-      return node;
-    }
+/**
+ * Position all labels to avoid collisions while keeping them centered
+ * First resolves collisions by pushing right, then calculates the offset
+ * needed to center the result and shifts all labels left accordingly
+ */
+const resolveAllCollisions = (labels: LabelInfo[], spacing: number): void => {
+  if (labels.length === 0) return;
+  if (labels.length === 1) {
+    labels[0].finalX = labels[0].idealX;
+    return;
+  }
 
-    // Extract varId and id from label node data instead of parsing ID
-    // This handles cssId with hyphens correctly
-    const cssId = node.data.varId;
-    const id = node.data.id;
-    if (!cssId || !id || typeof id !== "string") return node;
-    // Find the formula node first
-    const formulaNode = findFormulaNodeById(currentNodes, id);
-    if (!formulaNode) return node;
-    // Find the corresponding variable node using node properties
-    const variableNodes = getVariableNodes(currentNodes);
-    const variableNode = variableNodes.find((vNode) => {
-      return (
-        vNode.data.varId === cssId &&
-        // Check if variable belongs to same formula by checking parent
-        vNode.parentId === formulaNode.id
-      );
-    });
+  const sorted = sortLabelsByVariablePosition(labels);
 
-    if (!variableNode) return node;
-    // Only proceed if the variable node is also measured to ensure coordinate consistency
-    if (!variableNode.measured) return node;
-    // Calculate the perfect centered position using actual measured width
-    const actualLabelWidth = node.measured.width || node.width || 40;
-    // Since labels are now children of formula nodes (parentId set),
-    // all positions are relative to the formula node, not absolute
-    // Variable nodes are also children, so their positions are already relative
-    let variableCenterX: number;
-    if (variableNode.measured && variableNode.measured.width) {
-      // Variable node is measured - use its center in relative coordinates
-      variableCenterX =
-        variableNode.position.x + variableNode.measured.width / 2;
-    } else {
-      // Fallback to data dimensions if not yet measured
-      const variableDimensions = {
-        width: (variableNode.data.width as number) || 0,
-        height: (variableNode.data.height as number) || 0,
-      };
-      variableCenterX = variableNode.position.x + variableDimensions.width / 2;
-    }
+  // First pass: resolve collisions by pushing right
+  sorted[0].finalX = sorted[0].idealX;
+  for (let i = 1; i < sorted.length; i++) {
+    const current = sorted[i];
+    const previous = sorted[i - 1];
+    const previousRight = previous.finalX! + previous.width;
+    const minX = previousRight + spacing;
+    current.finalX = Math.max(current.idealX, minX);
+  }
 
-    let finalLabelX = variableCenterX - actualLabelWidth / 2;
-    // Calculate Y position based on placement and actual measured height
-    // All relative to formula node (0,0 is formula node's top-left)
-    const actualLabelHeight = node.measured.height || node.height || 24;
-    const placement = node.data.placement as "below" | "above";
-    const spacing = { vertical: 10, horizontal: 4 }; // Consistent spacing from formula and between labels
-    const formulaNodeHeight =
-      formulaNode.measured?.height || formulaNode.height || 200;
+  // Calculate how much the labels shifted right overall
+  // Compare the center of the final layout to the center of ideal positions
+  const idealLeft = Math.min(...sorted.map((l) => l.idealX));
+  const idealRight = Math.max(...sorted.map((l) => l.idealX + l.width));
+  const idealCenter = (idealLeft + idealRight) / 2;
+  const finalLeft = sorted[0].finalX!;
+  const finalRight =
+    sorted[sorted.length - 1].finalX! + sorted[sorted.length - 1].width;
+  const finalCenter = (finalLeft + finalRight) / 2;
 
-    let adjustedY: number;
-    if (placement === "above") {
-      // Position above: negative Y (above formula's top edge)
-      adjustedY = -actualLabelHeight - spacing.vertical;
-    } else {
-      // Position below: formulaHeight + spacing
-      adjustedY = formulaNodeHeight + spacing.vertical;
-    }
+  // Shift all labels left to re-center
+  const shift = finalCenter - idealCenter;
+  for (const label of sorted) {
+    label.finalX = label.finalX! - shift;
+  }
+};
 
-    // Check for horizontal collision with already positioned labels at same placement
-    // Only compare labels that share the same parent (same formula node)
-    const hasHorizontalCollision = (testX: number): boolean => {
-      return positionedLabels.some((positioned) => {
-        // Only check labels that belong to the same formula node (same coordinate system)
-        if (positioned.parentId !== formulaNode.id) return false;
-        // Only check labels at the same placement (above/below)
-        if (positioned.placement !== placement) return false;
-        // Check if Y ranges overlap (labels at similar vertical positions)
-        const yOverlap = !(
-          adjustedY + actualLabelHeight < positioned.y ||
-          adjustedY > positioned.y + positioned.height
-        );
+interface LabelSpacing {
+  vertical: number;
+  horizontal: number;
+}
 
-        if (!yOverlap) return false;
-        // Check if X ranges overlap
-        const xOverlap = !(
-          testX + actualLabelWidth < positioned.x ||
-          testX > positioned.x + positioned.width
-        );
+const DEFAULT_LABEL_SPACING: LabelSpacing = { vertical: 10, horizontal: 12 };
 
-        return xOverlap;
-      });
-    };
+/**
+ * Calculate the center X position of a variable node
+ */
+const getVariableCenterX = (variableNode: Node): number => {
+  if (variableNode.measured?.width) {
+    return variableNode.position.x + variableNode.measured.width / 2;
+  }
+  const width = (variableNode.data.width as number) || 0;
+  return variableNode.position.x + width / 2;
+};
 
-    // Adjust X position if collision detected
-    if (hasHorizontalCollision(finalLabelX)) {
-      // Try shifting right first
-      let shiftedX = finalLabelX + spacing.horizontal;
-      let attempts = 0;
-      const maxAttempts = 10;
+/**
+ * Calculate the Y position for a label based on placement
+ */
+const calculateLabelY = (
+  placement: "above" | "below",
+  labelHeight: number,
+  formulaHeight: number,
+  verticalSpacing: number
+): number => {
+  if (placement === "above") {
+    return -labelHeight - verticalSpacing;
+  }
+  return formulaHeight + verticalSpacing;
+};
 
-      while (hasHorizontalCollision(shiftedX) && attempts < maxAttempts) {
-        shiftedX += actualLabelWidth / 2 + spacing.horizontal;
-        attempts++;
-      }
-
-      // If right shift worked, use it
-      if (!hasHorizontalCollision(shiftedX)) {
-        finalLabelX = shiftedX;
-      } else {
-        // Try shifting left instead
-        shiftedX = finalLabelX - spacing.horizontal;
-        attempts = 0;
-
-        while (hasHorizontalCollision(shiftedX) && attempts < maxAttempts) {
-          shiftedX -= actualLabelWidth / 2 + spacing.horizontal;
-          attempts++;
-        }
-
-        if (!hasHorizontalCollision(shiftedX)) {
-          finalLabelX = shiftedX;
-        }
-        // If both fail, keep centered position (collision unavoidable)
-      }
-    }
-
-    // Track this label for subsequent collision detection
-    positionedLabels.push({
-      x: finalLabelX,
-      y: adjustedY,
-      width: actualLabelWidth,
-      height: actualLabelHeight,
-      placement: placement,
-      parentId: formulaNode.id, // Track parent for coordinate system comparison
-    });
-
-    // Fix X alignment and Y position, and make label visible
-    return {
-      ...node,
-      position: {
-        x: finalLabelX,
-        y: adjustedY,
-      },
-      style: {
-        ...node.style,
-        opacity: 1, // Make visible
-        pointerEvents: "auto" as const, // Re-enable interactions
-      },
-    };
+/**
+ * Extract label info from a label node for positioning calculations
+ */
+const extractLabelInfo = (
+  node: Node,
+  variableNodes: Node[],
+  currentNodes: Node[],
+  spacing: LabelSpacing
+): LabelInfo | null => {
+  const cssId = node.data.varId;
+  const formulaId = node.data.formulaId;
+  if (
+    !cssId ||
+    typeof cssId !== "string" ||
+    !formulaId ||
+    typeof formulaId !== "string"
+  )
+    return null;
+  const formulaNode = findFormulaNodeById(currentNodes, formulaId);
+  if (!formulaNode) return null;
+  const variableNode = findVariableNodeForFormula(
+    variableNodes,
+    formulaNode.id,
+    cssId
+  );
+  if (!variableNode || !variableNode.measured) return null;
+  const labelDimensions = getNodeDimensions(node, {
+    width: DEFAULT_DIMENSIONS.labelWidth,
+    height: DEFAULT_DIMENSIONS.labelHeight,
   });
+  const placement = (node.data.placement as PlacementDirection) || "below";
+  const variableCenterX = getVariableCenterX(variableNode);
+  const formulaNodeHeight =
+    formulaNode.measured?.height ||
+    formulaNode.height ||
+    DEFAULT_DIMENSIONS.formulaHeight;
+  const adjustedY = calculateLabelY(
+    placement,
+    labelDimensions.height,
+    formulaNodeHeight,
+    spacing.vertical
+  );
+  const idealX = variableCenterX - labelDimensions.width / 2;
+  return {
+    nodeId: node.id,
+    idealX,
+    variableCenterX,
+    y: adjustedY,
+    width: labelDimensions.width,
+    height: labelDimensions.height,
+    placement,
+    parentId: formulaNode.id,
+  };
+};
 
-  // Only update if there are actual changes (position or visibility)
-  const hasChanges = updatedNodes.some((node, index) => {
+/**
+ * Collect label info for all measured label nodes
+ */
+const collectLabelInfo = (
+  currentNodes: Node[],
+  spacing: LabelSpacing
+): Map<string, LabelInfo> => {
+  const labelInfoMap = new Map<string, LabelInfo>();
+  const variableNodes = getVariableNodes(currentNodes);
+  for (const node of currentNodes) {
+    if (node.type !== NODE_TYPES.LABEL || !node.measured) continue;
+    const labelInfo = extractLabelInfo(
+      node,
+      variableNodes,
+      currentNodes,
+      spacing
+    );
+    if (labelInfo) {
+      labelInfoMap.set(node.id, labelInfo);
+    }
+  }
+  return labelInfoMap;
+};
+
+/**
+ * Group labels by their parent formula and placement (above/below)
+ */
+const groupLabelsByFormulaAndPlacement = (
+  labelInfoMap: Map<string, LabelInfo>
+): Map<string, LabelInfo[]> => {
+  const groupedLabels = new Map<string, LabelInfo[]>();
+  for (const labelInfo of labelInfoMap.values()) {
+    const key = `${labelInfo.parentId}-${labelInfo.placement}`;
+    if (!groupedLabels.has(key)) {
+      groupedLabels.set(key, []);
+    }
+    groupedLabels.get(key)!.push(labelInfo);
+  }
+  return groupedLabels;
+};
+
+/**
+ * Process all labels within each formula/placement group to avoid overlaps
+ */
+const resolveCollisions = (
+  groupedLabels: Map<string, LabelInfo[]>,
+  horizontalSpacing: number
+): void => {
+  for (const labels of groupedLabels.values()) {
+    resolveAllCollisions(labels, horizontalSpacing);
+  }
+};
+
+/**
+ * Apply calculated positions to a label node
+ */
+const applyLabelPosition = (node: Node, labelInfo: LabelInfo): Node => {
+  const finalX = labelInfo.finalX ?? labelInfo.idealX;
+  return {
+    ...node,
+    position: {
+      x: finalX,
+      y: labelInfo.y,
+    },
+    style: {
+      ...node.style,
+      opacity: 1,
+      pointerEvents: "auto" as const,
+    },
+  };
+};
+
+/**
+ * Check if any label positions have changed
+ */
+const hasLabelPositionChanges = (
+  currentNodes: Node[],
+  updatedNodes: Node[]
+): boolean => {
+  return updatedNodes.some((node, index) => {
     const original = currentNodes[index];
     const opacityChanged =
       original.style?.opacity !== node.style?.opacity &&
-      (original.style?.opacity === 0.01 || original.style?.opacity === 0); // Opacity going from hidden to visible
+      original.style?.opacity === 0;
     return (
       original.position.x !== node.position.x ||
       original.position.y !== node.position.y ||
       opacityChanged
     );
   });
+};
 
-  if (hasChanges) {
+/**
+ * Adjust label positions after they're rendered and measured
+ * Uses center-of-mass approach to keep labels balanced around their variables
+ */
+export const adjustLabelPositions = ({
+  getNodes,
+  setNodes,
+}: AdjustLabelPositionsParams): void => {
+  const currentNodes = getNodes();
+  // Collect and process label information
+  const labelInfoMap = collectLabelInfo(currentNodes, DEFAULT_LABEL_SPACING);
+  const groupedLabels = groupLabelsByFormulaAndPlacement(labelInfoMap);
+  // Resolve collisions within each group
+  resolveCollisions(groupedLabels, DEFAULT_LABEL_SPACING.horizontal);
+  // Apply calculated positions to nodes
+  const updatedNodes = currentNodes.map((node) => {
+    if (node.type !== NODE_TYPES.LABEL || !node.measured) return node;
+    const labelInfo = labelInfoMap.get(node.id);
+    if (!labelInfo) return node;
+    return applyLabelPosition(node, labelInfo);
+  });
+  if (hasLabelPositionChanges(currentNodes, updatedNodes)) {
     setNodes(updatedNodes);
   }
 };

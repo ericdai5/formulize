@@ -1,6 +1,6 @@
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
-import { IObject, IStep } from "../../types/step";
+import { IObject, IInterpreterStep } from "../../types/step";
 import { highlightCode } from "../../util/codemirror";
 import { JSInterpreter, StackFrame } from "./interpreter";
 import { VariableExtractor } from "./variableExtractor";
@@ -10,7 +10,7 @@ export class Step {
     interpreter: JSInterpreter,
     stepNumber: number,
     code: string
-  ): IStep {
+  ): IInterpreterStep {
     const stack = interpreter.getStateStack() as StackFrame[];
     const node = stack.length ? stack[stack.length - 1].node : null;
     const variables = VariableExtractor.extractVariables(
@@ -20,7 +20,7 @@ export class Step {
     );
     const stackTrace = this.buildStackTrace(stack);
     return {
-      step: stepNumber,
+      index: stepNumber,
       highlight: { start: node?.start || 0, end: node?.end || 0 },
       variables,
       stackTrace,
@@ -42,13 +42,13 @@ export class Step {
    * @param history - The execution history array
    * @param objectConfigs - Array of object configurations
    */
-  static processObjects(history: IStep[], objects: IObject[]): void {
+  static processObjects(history: IInterpreterStep[], objects: IObject[]): void {
     if (!objects || objects.length === 0) return;
     // First pass: add items to steps where viewId (and optionally index) matches
     for (const object of objects) {
       for (let stepIdx = 0; stepIdx < history.length; stepIdx++) {
         const step = history[stepIdx];
-        const viewId = step.view?.id;
+        const viewId = step.step?.id;
         if (!viewId) continue;
         // Check each item config for matching viewId and index
         for (const itemConfig of object.items) {
@@ -80,7 +80,7 @@ export class Step {
    *
    * @param history - The execution history array
    */
-  static propagatePersistentExtensions(history: IStep[]): void {
+  static propagatePersistentExtensions(history: IInterpreterStep[]): void {
     // Collect all extension keys from all steps
     const allKeys = new Set<string>();
     for (const step of history) {

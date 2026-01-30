@@ -4,12 +4,8 @@ import { observer } from "mobx-react-lite";
 
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import beautify from "js-beautify";
 
-import { refresh } from "../engine/manual/execute";
-import { extractManual } from "../engine/manual/extract";
 import { isAtBlock } from "../engine/manual/interpreter";
-import { IEnvironment } from "../types/environment";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
   addArrowMarker,
@@ -22,8 +18,6 @@ import { SimplifiedInterpreterControls } from "./interpreter-controls";
 import { useFormulize } from "./useFormulize";
 
 export interface InterpreterControlProps {
-  /** The environment configuration containing the manual function */
-  environment: IEnvironment;
   /** Optional width for the component */
   width?: number | string;
   /** Optional className for additional styling */
@@ -34,95 +28,21 @@ export interface InterpreterControlProps {
 
 /**
  * An interpreter control component for step-through debugging
- * of manual functions. This component can be used independently without
- * requiring React Flow or canvas context.
+ * of manual functions. Must be used inside a FormulizeProvider.
  */
 export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
-  ({ environment, width, className = "", defaultCollapsed = true }) => {
+  ({ width, className = "", defaultCollapsed = true }) => {
     const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
-    const [userCode, setUserCode] = useState<string>("");
     const [isUserViewCollapsed, setIsUserViewCollapsed] =
       useState(defaultCollapsed);
-    const [error, setError] = useState<string | null>(null);
-    const [initializedEnvironment, setInitializedEnvironment] =
-      useState<IEnvironment | null>(null);
 
-    // Get the Formulize context to know when the instance is ready
-    // This ensures computationStore is populated before we initialize the interpreter
+    // Get the Formulize context - code is extracted and stored by FormulizeProvider
     const context = useFormulize();
-    const hasFormulizeContext = context !== null;
-    const formulizeInstance = context?.instance ?? null;
-    const formulizeIsLoading = context?.isLoading ?? false;
     const executionStore = context?.executionStore ?? null;
-    const computationStore = context?.computationStore ?? null;
+    const isLoading = context?.isLoading ?? true;
 
-    // Stores may be null while FormulizeProvider is still loading
-    const storesReady = executionStore !== null && computationStore !== null;
-
-    // Initialize user code when environment changes AND Formulize instance is ready
-    useEffect(() => {
-      // Wait for stores to be available
-      if (!storesReady) {
-        return;
-      }
-      if (!environment) {
-        setError("No environment provided");
-        return;
-      }
-
-      // If inside FormulizeProvider, wait for it to finish initializing
-      if (hasFormulizeContext && (formulizeIsLoading || !formulizeInstance)) {
-        return;
-      }
-
-      // Check if this environment has already been initialized
-      if (environment === initializedEnvironment) {
-        return;
-      }
-
-      const result = extractManual(environment);
-      if (result.isLoading) {
-        return;
-      }
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      if (result.code) {
-        setError(null);
-        executionStore.setCode(result.code);
-        executionStore.setEnvironment(environment);
-        // Set the user view code to the original manual function
-        if (environment?.semantics?.manual) {
-          const manualFunction = environment.semantics.manual;
-          const functionString = manualFunction.toString();
-          const formattedCode = beautify.js(functionString, {
-            indent_size: 2,
-            space_in_empty_paren: false,
-            preserve_newlines: true,
-            max_preserve_newlines: 2,
-            brace_style: "collapse",
-            keep_array_indentation: false,
-          });
-          setUserCode(formattedCode);
-        }
-
-        // Automatically initialize the interpreter so stepping works immediately
-        // Pass both scoped stores for multi-provider scenarios
-        refresh(result.code, environment, executionStore, computationStore);
-        // Track that this specific environment has been initialized
-        setInitializedEnvironment(environment);
-      }
-    }, [
-      environment,
-      executionStore,
-      computationStore,
-      formulizeInstance,
-      formulizeIsLoading,
-      hasFormulizeContext,
-      initializedEnvironment,
-      storesReady,
-    ]);
+    // Read userCode from the store (set by FormulizeProvider during initialization)
+    const userCode = executionStore?.userCode ?? "";
 
     const clearUserViewLine = useCallback(() => {
       if (userViewCodeMirrorRef.current?.view) {
@@ -252,19 +172,8 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
       width: width || "100%",
     };
 
-    if (error) {
-      return (
-        <div
-          className={`border bg-white border-slate-200 rounded-lg shadow-sm p-4 ${className}`}
-          style={containerStyle}
-        >
-          <div className="text-red-500 text-sm">{error}</div>
-        </div>
-      );
-    }
-
     // Show loading state while stores are being initialized
-    if (!storesReady) {
+    if (!executionStore || (isLoading && !userCode)) {
       return (
         <div
           className={`border bg-white border-slate-200 rounded-lg shadow-sm p-4 ${className}`}
@@ -288,7 +197,7 @@ export const InterpreterControl: React.FC<InterpreterControlProps> = observer(
           <div style={{ textAlign: "left", cursor: "default" }}>
             <CodeMirror
               value={userCode}
-              onChange={(value) => setUserCode(value)}
+              onChange={(value) => executionStore?.setUserCode(value)}
               extensions={[javascript(), ...debugExtensions]}
               style={CodeMirrorStyle}
               basicSetup={CodeMirrorSetup}

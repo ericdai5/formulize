@@ -62,7 +62,7 @@ export function findFormulaNodeById(
  */
 export function findLabelNodesById(nodes: Node[], id: string): Node[] {
   return nodes.filter(
-    (node) => node.type === NODE_TYPES.LABEL && node.data.id === id
+    (node) => node.type === NODE_TYPES.LABEL && node.data.formulaId === id
   );
 }
 
@@ -174,7 +174,7 @@ export const getVariableNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.VARIABLE);
 export const getExpressionNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.EXPRESSION);
-export const getViewNodes = (nodes: Node[]) =>
+export const getstepNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.VIEW);
 
 /**
@@ -185,9 +185,9 @@ export const getViewNodes = (nodes: Node[]) =>
 export function extractIds(nodes: Node[]): Set<string> {
   const ids = new Set<string>();
   nodes.forEach((node) => {
-    const id = node.data.id;
-    if (id && typeof id === "string") {
-      ids.add(id);
+    const formulaId = node.data.formulaId;
+    if (formulaId && typeof formulaId === "string") {
+      ids.add(formulaId);
     }
   });
   return ids;
@@ -214,39 +214,39 @@ export function checkNodesMeasured(nodes: Node[]): boolean {
  */
 export function checkAllNodesMeasured(nodes: Node[]): {
   labelNodes: Node[];
-  viewNodes: Node[];
+  stepNodes: Node[];
   allReady: boolean;
 } {
   const labelNodes = getLabelNodes(nodes);
-  const viewNodes = getViewNodes(nodes);
+  const stepNodes = getstepNodes(nodes);
   const variableNodes = getVariableNodes(nodes);
   const labelNodesMeasured = checkNodesMeasured(labelNodes);
-  const viewNodesMeasured = checkNodesMeasured(viewNodes);
+  const stepNodesMeasured = checkNodesMeasured(stepNodes);
   const variableNodesMeasured = checkNodesMeasured(variableNodes);
   return {
     labelNodes,
-    viewNodes,
-    allReady: labelNodesMeasured && viewNodesMeasured && variableNodesMeasured,
+    stepNodes,
+    allReady: labelNodesMeasured && stepNodesMeasured && variableNodesMeasured,
   };
 }
 
 /**
- * Position view nodes to avoid label collisions and make them visible
+ * Position step nodes to avoid label collisions and make them visible
  * @param currentNodes - Current array of nodes
  * @param formulaNode - The parent formula node
- * @returns Updated array of nodes with positioned and visible view nodes
+ * @returns Updated array of nodes with positioned and visible step nodes
  */
-export function positionAndShowViewNodes(
+export function positionAndShowstepNodes(
   currentNodes: Node[],
   formulaNode: Node
 ): Node[] {
   return currentNodes.map((node) => {
     if (node.type === NODE_TYPES.VIEW) {
-      // Calculate the view node X center position
+      // Calculate the step node X center position
       const viewCenterX = node.position.x;
 
       // Calculate Y position that avoids label collisions
-      const newY = getViewNodeYPositionAvoidingLabels(
+      const newY = getstepNodeYPositionAvoidingLabels(
         currentNodes,
         formulaNode,
         viewCenterX
@@ -267,57 +267,51 @@ export function positionAndShowViewNodes(
 }
 
 /**
- * Calculate the optimal Y position for a view node that avoids collisions with label nodes.
- * If there are any labels below the formula, position the view node below all of them.
+ * Calculate the optimal Y position for a step node that avoids collisions with label nodes.
+ * Step nodes are positioned above the formula. If there are any labels above the formula,
+ * position the step node above all of them.
  *
  * @param nodes - Array of all React Flow nodes
  * @param formulaNode - The parent formula node
- * @param _viewNodeX - The X position (unused, kept for API compatibility)
- * @param baseOffset - Base offset from formula height (default 60)
- * @returns The optimal Y position for the view node
+ * @param _stepNodeX - The X position (unused, kept for API compatibility)
+ * @param baseOffset - Base offset above the formula (default 25)
+ * @returns The optimal Y position for the step node (negative value, above formula)
  */
-export function getViewNodeYPositionAvoidingLabels(
+export function getstepNodeYPositionAvoidingLabels(
   nodes: Node[],
   formulaNode: Node,
-  _viewNodeX: number,
+  _stepNodeX: number,
   baseOffset: number = 25
 ): number {
-  const formulaHeight =
-    formulaNode.measured?.height || (formulaNode.height as number) || 200;
-
   // Find all label nodes that belong to this formula
   const labelNodes = nodes.filter(
     (node) => node.type === NODE_TYPES.LABEL && node.parentId === formulaNode.id
   );
 
-  // If there are no labels, use the base offset
+  // If there are no labels, position above the formula with base offset
   if (labelNodes.length === 0) {
-    return formulaHeight + baseOffset;
+    return -baseOffset;
   }
 
-  // Find the maximum bottom edge of all labels
-  // Labels placed "below" are at Y = formulaHeight + 10 (spacing.vertical)
+  // Find the minimum top edge of all labels that are above the formula
   // Labels placed "above" are at negative Y
-  const defaultLabelHeight = 30;
-  let maxLabelBottom = 0;
+  let minLabelTop = 0;
 
   for (const labelNode of labelNodes) {
     const labelY = labelNode.position.y;
-    const labelHeight = labelNode.measured?.height || defaultLabelHeight;
-    const labelBottom = labelY + labelHeight;
 
-    // Only consider labels that are below the formula (positive Y relative to formula)
-    if (labelY >= 0) {
-      maxLabelBottom = Math.max(maxLabelBottom, labelBottom);
+    // Only consider labels that are above the formula (negative Y relative to formula)
+    if (labelY < 0) {
+      minLabelTop = Math.min(minLabelTop, labelY);
     }
   }
 
-  // If labels are below the formula, position view node below them
-  if (maxLabelBottom > 0) {
+  // If labels are above the formula, position step node above them
+  if (minLabelTop < 0) {
     const verticalSpacing = 25;
-    return maxLabelBottom + verticalSpacing;
+    return minLabelTop - verticalSpacing;
   }
 
-  // Otherwise use base offset
-  return formulaHeight + baseOffset;
+  // Otherwise use base offset above the formula
+  return -baseOffset;
 }

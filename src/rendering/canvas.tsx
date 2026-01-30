@@ -37,13 +37,13 @@ import {
   getFormulaNodes,
   getLabelNodes,
   getVariableNodes,
-  positionAndShowViewNodes,
+  positionAndShowstepNodes,
 } from "./util/node-helpers";
 import {
   useAddVariableNodes,
   useUpdateVariableNodes,
 } from "./util/variable-nodes";
-import { addViewNodes as addViewNodesUtil } from "./util/view-node";
+import { addstepNodes as addstepNodesUtil } from "./util/view-node";
 
 interface CanvasProps {
   formulaStore?: FormulaStore;
@@ -70,14 +70,11 @@ const CanvasFlow = observer(
     // Track if initial fitView has been called to prevent re-fitting on every render
     const initialFitViewCalledRef = useRef(false);
 
-    // Track which labels have been manually positioned by the user
-    const manuallyPositionedLabelsRef = useRef<Set<string>>(new Set());
-
     // Track pending label update timeout (outside useEffect for persistence)
     const labelUpdateTimeoutRef = useRef<number | null>(null);
 
-    // Track if view nodes have been repositioned after label adjustment
-    const viewNodeRepositionedRef = useRef(false);
+    // Track if step nodes have been repositioned after label adjustment
+    const stepNodeRepositionedRef = useRef(false);
 
     // React Flow hooks for accessing measured node data
     const { getNodes, getViewport, fitView } = useReactFlow();
@@ -118,7 +115,14 @@ const CanvasFlow = observer(
       }
 
       // In step mode, only show labels for active variables
-      return executionStore.activeVariables.has(varId);
+      // activeVariables is a Map<formulaId, Set<varId>>
+      // For canvas.tsx (multi-formula canvas), check all formula sets
+      for (const varSet of executionStore.activeVariables.values()) {
+        if (varSet.has(varId)) {
+          return true;
+        }
+      }
+      return false;
     }, []);
 
     /**
@@ -135,18 +139,6 @@ const CanvasFlow = observer(
     // Enhanced onNodesChange that triggers edge updates when nodes move
     const handleNodesChange = useCallback(
       (changes: NodeChange[]) => {
-        // Track which labels are being dragged by the user
-        const currentNodes = getNodes();
-        changes.forEach((change) => {
-          if (change.type === "position" && change.dragging) {
-            const node = currentNodes.find((n) => n.id === change.id);
-            if (node && node.type === NODE_TYPES.LABEL) {
-              // Mark this label as manually positioned
-              manuallyPositionedLabelsRef.current.add(change.id);
-            }
-          }
-        });
-
         onNodesChange(changes);
       },
       [onNodesChange, getNodes]
@@ -235,9 +227,9 @@ const CanvasFlow = observer(
       return nodes;
     }, [getFormula, controls, environment]);
 
-    // Function to add view nodes for variables with view descriptions
-    const addViewNodes = useCallback(() => {
-      addViewNodesUtil({
+    // Function to add step nodes for variables with step descriptions
+    const addstepNodes = useCallback(() => {
+      addstepNodesUtil({
         getNodes,
         getViewport,
         setNodes,
@@ -270,7 +262,6 @@ const CanvasFlow = observer(
       adjustLabelPositionsUtil({
         getNodes,
         setNodes,
-        manuallyPositionedLabels: manuallyPositionedLabelsRef.current,
       });
     }, [getNodes, setNodes]);
 
@@ -279,7 +270,7 @@ const CanvasFlow = observer(
       nodesInitialized,
       setNodes,
       addLabelNodes,
-      addViewNodes,
+      addstepNodes,
       variableNodesAddedRef,
       computationStore,
     });
@@ -303,7 +294,6 @@ const CanvasFlow = observer(
           // Reset the variable nodes added flag when formulas change
           variableNodesAddedRef.current = false;
           // Clear manually positioned labels when formulas change
-          manuallyPositionedLabelsRef.current.clear();
           setNodes(createNodes());
           setEdges([]); // Clear edges when nodes are reset
           // Variable nodes will be added when nodes are initialized
@@ -312,7 +302,6 @@ const CanvasFlow = observer(
 
       // Initial setup
       variableNodesAddedRef.current = false;
-      manuallyPositionedLabelsRef.current.clear();
       setNodes(createNodes());
       setEdges([]); // Clear edges on initial setup
 
@@ -406,9 +395,9 @@ const CanvasFlow = observer(
         ) {
           const computedEdges = createLabelVariableEdges(nodes);
 
-          // Preserve existing view edges (they are managed separately by addViewNodes)
-          const existingViewEdges = edges.filter((edge) =>
-            edge.id.startsWith("edge-view-")
+          // Preserve existing step edges (they are managed separately by addstepNodes)
+          const existingStepEdges = edges.filter((edge) =>
+            edge.id.startsWith("edge-step-")
           );
 
           // Preserve object identity for unchanged edges to avoid re-renders
@@ -429,8 +418,8 @@ const CanvasFlow = observer(
             })
             .sort((a, b) => a.id.localeCompare(b.id));
 
-          // Combine label edges with preserved view edges
-          const nextEdges = [...nextLabelEdges, ...existingViewEdges];
+          // Combine label edges with preserved step edges
+          const nextEdges = [...nextLabelEdges, ...existingStepEdges];
 
           // Shallow reference equality check to skip unnecessary setEdges
           const sameByRef =
@@ -440,12 +429,12 @@ const CanvasFlow = observer(
             setEdges(nextEdges);
           }
         } else {
-          // Keep only view edges while labels are being positioned
-          const viewEdges = edges.filter((edge) =>
-            edge.id.startsWith("edge-view-")
+          // Keep only step edges while labels are being positioned
+          const stepEdges = edges.filter((edge) =>
+            edge.id.startsWith("edge-step-")
           );
-          if (viewEdges.length !== edges.length) {
-            setEdges(viewEdges);
+          if (stepEdges.length !== edges.length) {
+            setEdges(stepEdges);
           }
         }
       } else {
@@ -458,8 +447,11 @@ const CanvasFlow = observer(
       const disposer = reaction(
         () => ({
           isStepMode: computationStore.isStepMode(),
-          activeVariables: Array.from(executionStore.activeVariables),
-          currentView: executionStore.currentView,
+          // Track activeVariables by serializing the Map to detect changes
+          activeVariables: Array.from(
+            executionStore.activeVariables.entries()
+          ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
+          currentStep: executionStore.currentStep,
         }),
         () => {
           if (nodesInitialized && variableNodesAddedRef.current) {
@@ -469,15 +461,13 @@ const CanvasFlow = observer(
             }
 
             labelUpdateTimeoutRef.current = window.setTimeout(() => {
-              // Reset view node repositioned flag so view nodes will be added
+              // Reset view node repositioned flag so step nodes will be added
               // after labels are positioned. This must be done here (inside the timeout)
               // to ensure it happens AFTER any stale label adjustment effects have run.
-              viewNodeRepositionedRef.current = false;
+              stepNodeRepositionedRef.current = false;
 
               // Clear manually positioned labels when regenerating
-              manuallyPositionedLabelsRef.current.clear();
-
-              // Remove existing label nodes, view nodes, expression nodes
+              // Remove existing label nodes, step nodes, expression nodes
               setNodes((currentNodes) => {
                 const nonLabelViewExpressionNodes = currentNodes.filter(
                   (node) =>
@@ -492,11 +482,11 @@ const CanvasFlow = observer(
               setEdges([]);
 
               // Update variable nodes first to ensure dimensions are correct
-              // after CSS class changes (e.g., step-cue), then re-add labels and view nodes
+              // after CSS class changes (e.g., step-cue), then re-add labels and step nodes
               updateVariableNodes();
               window.setTimeout(() => {
                 addLabelNodes();
-                addViewNodes();
+                addstepNodes();
               }, 100);
             }, 100);
           }
@@ -509,7 +499,7 @@ const CanvasFlow = observer(
     }, [
       nodesInitialized,
       addLabelNodes,
-      addViewNodes,
+      addstepNodes,
       updateVariableNodes,
       setNodes,
       setEdges,
@@ -519,9 +509,9 @@ const CanvasFlow = observer(
     useEffect(() => {
       if (!nodesInitialized) return;
       // Check if all nodes are ready for positioning
-      const { labelNodes, viewNodes, allReady } = checkAllNodesMeasured(nodes);
-      // If no labels and no view nodes exist, nothing to do
-      if (labelNodes.length === 0 && viewNodes.length === 0) {
+      const { labelNodes, stepNodes, allReady } = checkAllNodesMeasured(nodes);
+      // If no labels and no step nodes exist, nothing to do
+      if (labelNodes.length === 0 && stepNodes.length === 0) {
         return;
       }
 
@@ -533,13 +523,13 @@ const CanvasFlow = observer(
             adjustLabelPositions();
           }
 
-          // Position view nodes to avoid label collisions, then make them visible
+          // Position step nodes to avoid label collisions, then make them visible
           if (
-            viewNodes.length > 0 &&
-            executionStore.currentView &&
-            !viewNodeRepositionedRef.current
+            stepNodes.length > 0 &&
+            executionStore.currentStep &&
+            !stepNodeRepositionedRef.current
           ) {
-            viewNodeRepositionedRef.current = true;
+            stepNodeRepositionedRef.current = true;
 
             // Find the first formula node
             const formulaNodes = getFormulaNodes(nodes);
@@ -547,7 +537,7 @@ const CanvasFlow = observer(
 
             if (formulaNode) {
               setNodes((currentNodes) =>
-                positionAndShowViewNodes(currentNodes, formulaNode)
+                positionAndShowstepNodes(currentNodes, formulaNode)
               );
             }
           }

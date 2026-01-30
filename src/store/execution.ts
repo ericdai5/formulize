@@ -7,7 +7,7 @@ import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { JSInterpreter } from "../engine/manual/interpreter";
 import { Step } from "../engine/manual/step";
 import { IEnvironment } from "../types/environment";
-import { IObject, IStep, IView } from "../types/step";
+import { IInterpreterStep, IObject, IStep } from "../types/step";
 
 /**
  * MobX store for execution state that provides immediate updates
@@ -16,9 +16,10 @@ import { IObject, IStep, IView } from "../types/step";
 class ExecutionStore {
   // Core execution state
   code: string = "";
+  userCode: string = ""; // User-facing formatted code for display in UI
   environment: IEnvironment | null = null;
   interpreter: JSInterpreter | null = null;
-  history: IStep[] = [];
+  history: IInterpreterStep[] = [];
   historyIndex: number = 0;
   isComplete: boolean = false;
 
@@ -26,30 +27,29 @@ class ExecutionStore {
   steppingMode: "line" | "view" = "view";
 
   // Stepping states
-  isSteppingToView: boolean = false;
-  isSteppingToIndex: boolean = false;
-  isSteppingToBlock: boolean = false;
+  isToStep: boolean = false;
+  isToIndex: boolean = false;
+  isToBlock: boolean = false;
 
-  // Target for stepToIndex
+  // Target for toIndex
   targetIndex: { varId: string; index: number } | null = null;
 
   // UI/Execution states that were previously useState
   isRunning: boolean = false;
   error: string | null = null;
   autoPlaySpeed: number = 1000; // Default 1 second
-  views: any[] = []; // Type can be refined based on actual usage
+  steps: any[] = []; // Type can be refined based on actual usage
 
-  // Variable linkage tracking - supports multi-linkages (string | string[])
-  linkageMap: Record<string, string | string[]> = {};
-
-  // Track which step indices are view points (ordered array for efficient navigation)
-  viewPoints: number[] = [];
+  // Track which step indices are step points (ordered array for efficient navigation)
+  stepPoints: number[] = [];
 
   // Track which step indices are block points (ordered array for efficient navigation)
   blockPoints: number[] = [];
 
   // Currently active (changed) variables in the current step
-  activeVariables: Set<string> = new Set();
+  // Map from formulaId to Set of active variable IDs
+  // Empty string key '' means "all formulas"
+  activeVariables: Map<string, Set<string>> = new Map();
 
   // First values seen for each linked variable during initial execution
   // Used to reset variables when stepping backward to before their declaration
@@ -75,6 +75,10 @@ class ExecutionStore {
     this.code = code;
   }
 
+  setUserCode(userCode: string) {
+    this.userCode = userCode;
+  }
+
   setEnvironment(environment: IEnvironment | null) {
     this.environment = environment;
   }
@@ -83,11 +87,11 @@ class ExecutionStore {
     this.interpreter = interpreter;
   }
 
-  addToHistory(state: IStep) {
+  addToHistory(state: IInterpreterStep) {
     this.history.push(state);
   }
 
-  setHistory(history: IStep[]) {
+  setHistory(history: IInterpreterStep[]) {
     this.history = history;
   }
 
@@ -142,16 +146,16 @@ class ExecutionStore {
     this.steppingMode = mode;
   }
 
-  setIsSteppingToView(stepping: boolean) {
-    this.isSteppingToView = stepping;
+  setIsSteppingToStep(stepping: boolean) {
+    this.isToStep = stepping;
   }
 
   setIsSteppingToIndex(stepping: boolean) {
-    this.isSteppingToIndex = stepping;
+    this.isToIndex = stepping;
   }
 
   setIsSteppingToBlock(stepping: boolean) {
-    this.isSteppingToBlock = stepping;
+    this.isToBlock = stepping;
   }
 
   setTargetIndex(target: { varId: string; index: number } | null) {
@@ -170,46 +174,28 @@ class ExecutionStore {
     this.autoPlaySpeed = speed;
   }
 
-  setLinkageMap(linkageMap: Record<string, string | string[]>) {
-    this.linkageMap = linkageMap;
-  }
-
-  setActiveVariables(variables: Set<string>) {
+  setActiveVariables(variables: Map<string, Set<string>>) {
     this.activeVariables = variables;
   }
 
-  setFirstSeenValue(varId: string, value: number) {
-    if (!this.firstSeenValues.has(varId)) {
-      this.firstSeenValues.set(varId, value);
-    }
-  }
-
-  getFirstSeenValue(varId: string): number | undefined {
-    return this.firstSeenValues.get(varId);
-  }
-
-  clearFirstSeenValues() {
-    this.firstSeenValues.clear();
-  }
-
-  setView(viewPoints: number[]) {
-    this.viewPoints = [...viewPoints].sort((a, b) => a - b);
+  setStep(stepPoints: number[]) {
+    this.stepPoints = [...stepPoints].sort((a, b) => a - b);
   }
 
   isView(index: number): boolean {
-    return this.viewPoints.includes(index);
+    return this.stepPoints.includes(index);
   }
 
   getNextView(currentIndex: number): number | null {
-    const next = this.viewPoints.find((point) => point > currentIndex);
+    const next = this.stepPoints.find((point) => point > currentIndex);
     return next !== undefined ? next : null;
   }
 
   getPrevView(currentIndex: number): number | null {
     // Find the largest point that's smaller than currentIndex
-    for (let i = this.viewPoints.length - 1; i >= 0; i--) {
-      if (this.viewPoints[i] < currentIndex) {
-        return this.viewPoints[i];
+    for (let i = this.stepPoints.length - 1; i >= 0; i--) {
+      if (this.stepPoints[i] < currentIndex) {
+        return this.stepPoints[i];
       }
     }
     return null;
@@ -239,12 +225,12 @@ class ExecutionStore {
   }
 
   // Computed getters for convenience
-  get currentState(): IStep | undefined {
+  get currentState(): IInterpreterStep | undefined {
     return this.history[this.historyIndex];
   }
 
-  get currentView(): IView | undefined {
-    return this.history[this.historyIndex]?.view;
+  get currentStep(): IStep | undefined {
+    return this.history[this.historyIndex]?.step;
   }
 
   get isAtEndOfHistory(): boolean {
@@ -258,23 +244,23 @@ class ExecutionStore {
   // Reset all state
   reset() {
     this.code = "";
+    this.userCode = "";
     this.environment = null;
     this.interpreter = null;
     this.history = [];
     this.historyIndex = 0;
     this.isComplete = false;
-    this.isSteppingToView = false;
-    this.isSteppingToIndex = false;
-    this.isSteppingToBlock = false;
+    this.isToStep = false;
+    this.isToIndex = false;
+    this.isToBlock = false;
     this.targetIndex = null;
     this.isRunning = false;
     this.error = null;
     this.autoPlaySpeed = 1000;
-    this.views = [];
-    this.linkageMap = {};
-    this.viewPoints = [];
+    this.steps = [];
+    this.stepPoints = [];
     this.blockPoints = [];
-    this.activeVariables = new Set();
+    this.activeVariables = new Map();
     this.firstSeenValues = new Map();
     this.objectConfigs = [];
     this.resetCount++;
@@ -293,27 +279,6 @@ class ExecutionStore {
 
   canStepBackward(): boolean {
     return this.historyIndex > 0;
-  }
-
-  hasViews(): boolean {
-    return this.views.length > 0;
-  }
-
-  /**
-   * Gets the actual variable name that's linked to a variable ID
-   * Uses the linkage map to resolve the connection between UI controls and code variables
-   */
-  getLinkedVar(varId: string): string | null {
-    return (
-      Object.keys(this.linkageMap).find((key) => {
-        const linkage = this.linkageMap[key];
-        // Handle both single string and array of strings (multi-linkage)
-        if (Array.isArray(linkage)) {
-          return linkage.includes(varId);
-        }
-        return linkage === varId;
-      }) || null
-    );
   }
 }
 

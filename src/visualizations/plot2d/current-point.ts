@@ -1,7 +1,6 @@
 import * as d3 from "d3";
 
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
 import type { DataPoint } from "./Plot2D";
 import { createLabelWithBackground } from "./label-background";
 
@@ -20,12 +19,13 @@ export function addCurrentPointHighlight(
   xAxis: string | undefined,
   yAxis: string | undefined,
   computationStore: ComputationStore,
-  executionStore: ExecutionStore | undefined,
   color?: string,
   lineIndex: number = 0
 ): void {
-  // In step mode, don't render the current point or its label
-  if (executionStore && executionStore.history.length > 0) {
+  // In step mode (actively stepping through history), don't render the current point
+  // Check isStepMode from computation store rather than just having history
+  const isInStepMode = computationStore.isStepMode();
+  if (isInStepMode) {
     return;
   }
 

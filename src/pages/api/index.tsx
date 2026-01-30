@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import {
   ChevronLeft,
@@ -18,15 +19,8 @@ import FormulaCanvas from "../../rendering/formulize";
 import { executeUserCode } from "../../util/code-executor";
 
 export default function APIPage() {
-  const [selectedTemplate, setSelectedTemplate] = useState<
-    keyof typeof formulaExamples | undefined
-  >("kinetic2D");
-  const [code, setCode] = useState<string>("");
-  const codeByTemplateRef = useRef<Record<string, string>>({});
-  const [isRendered, setIsRendered] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [config, setConfig] = useState<FormulizeConfig | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const navigate = useNavigate();
+  const { exampleId } = useParams<{ exampleId: string }>();
 
   // Get example keys for navigation
   const exampleKeys = useMemo(
@@ -34,28 +28,53 @@ export default function APIPage() {
     []
   );
 
+  // Derive selected template from URL parameter
+  const selectedTemplate = useMemo(() => {
+    if (exampleId && exampleId in formulaExamples) {
+      return exampleId as keyof typeof formulaExamples;
+    }
+    return exampleKeys[0];
+  }, [exampleId, exampleKeys]);
+
+  const [code, setCode] = useState<string>("");
+  const codeByTemplateRef = useRef<Record<string, string>>({});
+  const [isRendered, setIsRendered] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [config, setConfig] = useState<FormulizeConfig | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
   const currentIndex = useMemo(
     () => (selectedTemplate ? exampleKeys.indexOf(selectedTemplate) : -1),
     [selectedTemplate, exampleKeys]
   );
 
+  // Navigate to example by updating the URL
+  const setSelectedTemplate = useCallback(
+    (template: keyof typeof formulaExamples | undefined) => {
+      if (template) {
+        navigate(`/examples/${template}`);
+      }
+    },
+    [navigate]
+  );
+
   const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
-      setSelectedTemplate(exampleKeys[currentIndex - 1]);
+      navigate(`/examples/${exampleKeys[currentIndex - 1]}`);
     } else if (currentIndex === 0) {
       // Wrap to last
-      setSelectedTemplate(exampleKeys[exampleKeys.length - 1]);
+      navigate(`/examples/${exampleKeys[exampleKeys.length - 1]}`);
     }
-  }, [currentIndex, exampleKeys]);
+  }, [currentIndex, exampleKeys, navigate]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < exampleKeys.length - 1) {
-      setSelectedTemplate(exampleKeys[currentIndex + 1]);
+      navigate(`/examples/${exampleKeys[currentIndex + 1]}`);
     } else if (currentIndex === exampleKeys.length - 1) {
       // Wrap to first
-      setSelectedTemplate(exampleKeys[0]);
+      navigate(`/examples/${exampleKeys[0]}`);
     }
-  }, [currentIndex, exampleKeys]);
+  }, [currentIndex, exampleKeys, navigate]);
 
   // Execute code and extract config
   const executeCode = useCallback(async (codeToExecute: string) => {
