@@ -465,21 +465,6 @@ const findVariableNodeForFormula = (
 };
 
 /**
- * Check if two labels would collide horizontally
- */
-const checkLabelCollision = (
-  a: LabelInfo,
-  b: LabelInfo,
-  spacing: number
-): boolean => {
-  const aLeft = a.finalX ?? a.idealX;
-  const aRight = aLeft + a.width;
-  const bLeft = b.finalX ?? b.idealX;
-  const bRight = bLeft + b.width;
-  return !(aRight + spacing < bLeft || bRight + spacing < aLeft);
-};
-
-/**
  * Sort labels by their variable's center X position
  * This maintains correct left-to-right ordering to prevent edge crossings
  */
@@ -488,93 +473,44 @@ const sortLabelsByVariablePosition = (labels: LabelInfo[]): LabelInfo[] => {
 };
 
 /**
- * Find groups of labels that collide with each other
- * Groups labels that overlap horizontally using a sweep-line approach
+ * Position all labels to avoid collisions while keeping them centered
+ * First resolves collisions by pushing right, then calculates the offset
+ * needed to center the result and shifts all labels left accordingly
  */
-const findCollisionGroups = (
-  labels: LabelInfo[],
-  spacing: number
-): LabelInfo[][] => {
-  if (labels.length === 0) return [];
-  const sorted = sortLabelsByVariablePosition(labels);
-  const groups: LabelInfo[][] = [];
-  let currentGroup: LabelInfo[] = [sorted[0]];
-  for (let i = 1; i < sorted.length; i++) {
-    const label = sorted[i];
-    const collidesWithGroup = currentGroup.some((groupLabel) =>
-      checkLabelCollision(groupLabel, label, spacing)
-    );
-    if (collidesWithGroup) {
-      currentGroup.push(label);
-    } else {
-      groups.push(currentGroup);
-      currentGroup = [label];
-    }
-  }
-  groups.push(currentGroup);
-  return groups;
-};
-
-/**
- * Calculate the center of mass for a group of labels
- * Uses width-weighted averaging for better visual balance
- */
-const calculateCenterOfMass = (labels: LabelInfo[]): number => {
-  let totalWeight = 0;
-  let weightedSum = 0;
-  for (const label of labels) {
-    const centerX = label.idealX + label.width / 2;
-    totalWeight += label.width;
-    weightedSum += centerX * label.width;
-  }
-  return weightedSum / totalWeight;
-};
-
-/**
- * Calculate the total width required for a group of labels including spacing
- */
-const calculateTotalGroupWidth = (
-  labels: LabelInfo[],
-  spacing: number
-): number => {
-  const labelsWidth = labels.reduce((sum, label) => sum + label.width, 0);
-  const spacingWidth = spacing * (labels.length - 1);
-  return labelsWidth + spacingWidth;
-};
-
-/**
- * Position labels sequentially starting from a given X position
- */
-const positionLabelsSequentially = (
-  labels: LabelInfo[],
-  startX: number,
-  spacing: number
-): void => {
-  let currentX = startX;
-  for (const label of labels) {
-    label.finalX = currentX;
-    currentX += label.width + spacing;
-  }
-};
-
-/**
- * Distribute labels in a collision group symmetrically around their center of mass
- * This ensures the overall label group stays centered rather than shifting right
- */
-const distributeGroupAroundCenter = (
-  group: LabelInfo[],
-  spacing: number
-): void => {
-  if (group.length === 0) return;
-  if (group.length === 1) {
-    group[0].finalX = group[0].idealX;
+const resolveAllCollisions = (labels: LabelInfo[], spacing: number): void => {
+  if (labels.length === 0) return;
+  if (labels.length === 1) {
+    labels[0].finalX = labels[0].idealX;
     return;
   }
-  const centerOfMass = calculateCenterOfMass(group);
-  const totalWidth = calculateTotalGroupWidth(group, spacing);
-  const sorted = sortLabelsByVariablePosition(group);
-  const startX = centerOfMass - totalWidth / 2;
-  positionLabelsSequentially(sorted, startX, spacing);
+
+  const sorted = sortLabelsByVariablePosition(labels);
+
+  // First pass: resolve collisions by pushing right
+  sorted[0].finalX = sorted[0].idealX;
+  for (let i = 1; i < sorted.length; i++) {
+    const current = sorted[i];
+    const previous = sorted[i - 1];
+    const previousRight = previous.finalX! + previous.width;
+    const minX = previousRight + spacing;
+    current.finalX = Math.max(current.idealX, minX);
+  }
+
+  // Calculate how much the labels shifted right overall
+  // Compare the center of the final layout to the center of ideal positions
+  const idealLeft = Math.min(...sorted.map((l) => l.idealX));
+  const idealRight = Math.max(...sorted.map((l) => l.idealX + l.width));
+  const idealCenter = (idealLeft + idealRight) / 2;
+  const finalLeft = sorted[0].finalX!;
+  const finalRight =
+    sorted[sorted.length - 1].finalX! + sorted[sorted.length - 1].width;
+  const finalCenter = (finalLeft + finalRight) / 2;
+
+  // Shift all labels left to re-center
+  const shift = finalCenter - idealCenter;
+  for (const label of sorted) {
+    label.finalX = label.finalX! - shift;
+  }
 };
 
 interface LabelSpacing {
@@ -621,7 +557,12 @@ const extractLabelInfo = (
 ): LabelInfo | null => {
   const cssId = node.data.varId;
   const formulaId = node.data.formulaId;
-  if (!cssId || typeof cssId !== "string" || !formulaId || typeof formulaId !== "string")
+  if (
+    !cssId ||
+    typeof cssId !== "string" ||
+    !formulaId ||
+    typeof formulaId !== "string"
+  )
     return null;
   const formulaNode = findFormulaNodeById(currentNodes, formulaId);
   if (!formulaNode) return null;
@@ -702,17 +643,14 @@ const groupLabelsByFormulaAndPlacement = (
 };
 
 /**
- * Process collision groups and distribute labels to avoid overlaps
+ * Process all labels within each formula/placement group to avoid overlaps
  */
 const resolveCollisions = (
   groupedLabels: Map<string, LabelInfo[]>,
   horizontalSpacing: number
 ): void => {
   for (const labels of groupedLabels.values()) {
-    const collisionGroups = findCollisionGroups(labels, horizontalSpacing);
-    for (const group of collisionGroups) {
-      distributeGroupAroundCenter(group, horizontalSpacing);
-    }
+    resolveAllCollisions(labels, horizontalSpacing);
   }
 };
 
