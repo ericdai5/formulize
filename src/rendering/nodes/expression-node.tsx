@@ -13,7 +13,7 @@ export interface ExpressionNodeData {
 
 /**
  * An invisible node that spans across multiple variable nodes.
- * Used to connect view nodes to a group of related variables.
+ * Used to connect step nodes to a group of related variables.
  * When showExpressionNodes is enabled, displays a visible border for debugging.
  */
 const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
@@ -40,7 +40,7 @@ const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
         pointerEvents: "none",
       }}
     >
-      {/* Handle at the top center for connecting edges from view nodes */}
+      {/* Handle at the top center for connecting edges from step nodes */}
       <Handle
         type="target"
         position={Position.Top}

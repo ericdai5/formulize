@@ -18,18 +18,16 @@ const isInFormulaContainer = (
 };
 
 /**
- * Apply a visual cue styling to variables that are being updated in step mode
+ * Apply a visual cue styling to variables that are being updated in step mode.
+ * NOTE: This function does NOT clear existing cues - call clearAllCues() first if needed.
+ * This allows multiple calls for different formulas to accumulate cues.
  * @param updatedVarIds - Set of variable IDs that were updated
  * @param formulaId - Optional formula ID to limit cues to a specific formula
  */
 export const applyCue = (updatedVarIds: Set<string>, formulaId?: string) => {
   // Use ANY selector to include all variable types (input, computed, index)
   const interactiveElements = document.querySelectorAll(VAR_SELECTORS.ANY);
-  // First pass: remove all step-cue classes
-  interactiveElements.forEach((element) => {
-    (element as HTMLElement).classList.remove("step-cue");
-  });
-  // Second pass: apply step-cue to matching elements
+  // Apply step-cue to matching elements
   // Use element ID directly instead of looking up in computationStore
   // This works in multi-provider scenarios where the global store may not have the variables
   interactiveElements.forEach((element) => {

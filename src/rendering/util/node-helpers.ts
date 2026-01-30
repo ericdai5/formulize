@@ -62,7 +62,7 @@ export function findFormulaNodeById(
  */
 export function findLabelNodesById(nodes: Node[], id: string): Node[] {
   return nodes.filter(
-    (node) => node.type === NODE_TYPES.LABEL && node.data.id === id
+    (node) => node.type === NODE_TYPES.LABEL && node.data.formulaId === id
   );
 }
 
@@ -174,7 +174,7 @@ export const getVariableNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.VARIABLE);
 export const getExpressionNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.EXPRESSION);
-export const getViewNodes = (nodes: Node[]) =>
+export const getstepNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.VIEW);
 
 /**
@@ -214,39 +214,39 @@ export function checkNodesMeasured(nodes: Node[]): boolean {
  */
 export function checkAllNodesMeasured(nodes: Node[]): {
   labelNodes: Node[];
-  viewNodes: Node[];
+  stepNodes: Node[];
   allReady: boolean;
 } {
   const labelNodes = getLabelNodes(nodes);
-  const viewNodes = getViewNodes(nodes);
+  const stepNodes = getstepNodes(nodes);
   const variableNodes = getVariableNodes(nodes);
   const labelNodesMeasured = checkNodesMeasured(labelNodes);
-  const viewNodesMeasured = checkNodesMeasured(viewNodes);
+  const stepNodesMeasured = checkNodesMeasured(stepNodes);
   const variableNodesMeasured = checkNodesMeasured(variableNodes);
   return {
     labelNodes,
-    viewNodes,
-    allReady: labelNodesMeasured && viewNodesMeasured && variableNodesMeasured,
+    stepNodes,
+    allReady: labelNodesMeasured && stepNodesMeasured && variableNodesMeasured,
   };
 }
 
 /**
- * Position view nodes to avoid label collisions and make them visible
+ * Position step nodes to avoid label collisions and make them visible
  * @param currentNodes - Current array of nodes
  * @param formulaNode - The parent formula node
- * @returns Updated array of nodes with positioned and visible view nodes
+ * @returns Updated array of nodes with positioned and visible step nodes
  */
-export function positionAndShowViewNodes(
+export function positionAndShowstepNodes(
   currentNodes: Node[],
   formulaNode: Node
 ): Node[] {
   return currentNodes.map((node) => {
     if (node.type === NODE_TYPES.VIEW) {
-      // Calculate the view node X center position
+      // Calculate the step node X center position
       const viewCenterX = node.position.x;
 
       // Calculate Y position that avoids label collisions
-      const newY = getViewNodeYPositionAvoidingLabels(
+      const newY = getstepNodeYPositionAvoidingLabels(
         currentNodes,
         formulaNode,
         viewCenterX
@@ -267,20 +267,20 @@ export function positionAndShowViewNodes(
 }
 
 /**
- * Calculate the optimal Y position for a view node that avoids collisions with label nodes.
- * View nodes are positioned above the formula. If there are any labels above the formula,
- * position the view node above all of them.
+ * Calculate the optimal Y position for a step node that avoids collisions with label nodes.
+ * Step nodes are positioned above the formula. If there are any labels above the formula,
+ * position the step node above all of them.
  *
  * @param nodes - Array of all React Flow nodes
  * @param formulaNode - The parent formula node
- * @param _viewNodeX - The X position (unused, kept for API compatibility)
+ * @param _stepNodeX - The X position (unused, kept for API compatibility)
  * @param baseOffset - Base offset above the formula (default 25)
- * @returns The optimal Y position for the view node (negative value, above formula)
+ * @returns The optimal Y position for the step node (negative value, above formula)
  */
-export function getViewNodeYPositionAvoidingLabels(
+export function getstepNodeYPositionAvoidingLabels(
   nodes: Node[],
   formulaNode: Node,
-  _viewNodeX: number,
+  _stepNodeX: number,
   baseOffset: number = 25
 ): number {
   // Find all label nodes that belong to this formula
@@ -306,7 +306,7 @@ export function getViewNodeYPositionAvoidingLabels(
     }
   }
 
-  // If labels are above the formula, position view node above them
+  // If labels are above the formula, position step node above them
   if (minLabelTop < 0) {
     const verticalSpacing = 25;
     return minLabelTop - verticalSpacing;

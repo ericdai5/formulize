@@ -23,7 +23,7 @@ import ExpressionNode from "../rendering/nodes/expression-node";
 import FormulaNode from "../rendering/nodes/formula-node";
 import LabelNode from "../rendering/nodes/label-node";
 import VariableNode from "../rendering/nodes/variable-node";
-import ViewNode from "../rendering/nodes/view-node";
+import stepNode from "../rendering/nodes/view-node";
 import { computeEdgesForFormula } from "../rendering/util/edges";
 import {
   adjustLabelPositions as adjustLabelPositionsUtil,
@@ -36,13 +36,13 @@ import {
   getFormulaElementFromContainer,
   getLabelNodes,
   getVariableNodes,
-  positionAndShowViewNodes,
+  positionAndShowstepNodes,
 } from "../rendering/util/node-helpers";
 import {
   addVariableNodesForFormula,
   updateVarNodes,
 } from "../rendering/util/variable-nodes";
-import { addViewNodes as addViewNodesUtil } from "../rendering/util/view-node";
+import { addstepNodes as addstepNodesUtil } from "../rendering/util/view-node";
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
 import { useFormulize } from "./useFormulize";
@@ -51,7 +51,7 @@ const nodeTypes = {
   formula: FormulaNode,
   variable: VariableNode,
   label: LabelNode,
-  view: ViewNode,
+  view: stepNode,
   expression: ExpressionNode,
 };
 
@@ -85,7 +85,7 @@ const FormulaCanvasInner = observer(
     const containerRef = useRef<HTMLDivElement>(null);
     const variableNodesAddedRef = useRef(false);
     const initialFitViewCalledRef = useRef(false);
-    const viewNodeRepositionedRef = useRef(false);
+    const stepNodeRepositionedRef = useRef(false);
     const { getNodes, getViewport, fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
 
@@ -127,9 +127,15 @@ const FormulaCanvasInner = observer(
           return true;
         }
         // In step mode, only show labels for active variables
-        return executionStore.activeVariables.has(varId);
+        // activeVariables is a Map<formulaId, Set<varId>>
+        // Check if variable is in the "all formulas" set or this specific formula's set
+        const allFormulasVars =
+          executionStore.activeVariables.get("") ?? new Set();
+        const thisFormulaVars =
+          executionStore.activeVariables.get(id) ?? new Set();
+        return allFormulasVars.has(varId) || thisFormulaVars.has(varId);
       },
-      [computationStore, executionStore]
+      [computationStore, executionStore, id]
     );
 
     // Function to adjust label positions after they're rendered and measured
@@ -161,9 +167,9 @@ const FormulaCanvasInner = observer(
       });
     }, [getNodes, getViewport, id, setNodes, computationStore, executionStore]);
 
-    // Function to add view nodes for step-through visualization
-    const addViewNodes = useCallback(() => {
-      addViewNodesUtil({
+    // Function to add step nodes for step-through visualization
+    const addstepNodes = useCallback(() => {
+      addstepNodesUtil({
         getNodes,
         setNodes,
         setEdges,
@@ -326,13 +332,13 @@ const FormulaCanvasInner = observer(
       return () => clearInterval(interval);
     }, [setNodes, computationStore]);
 
-    // Adjust label and view node positions after they're rendered and measured, then fitView
+    // Adjust label and step node positions after they're rendered and measured, then fitView
     useEffect(() => {
       if (!nodesInitialized || !variableNodesAddedRef.current) return;
       // Check if all nodes are ready for positioning
-      const { labelNodes, viewNodes, allReady } = checkAllNodesMeasured(nodes);
-      // Check if there are view nodes that need to be positioned (have opacity 0)
-      const viewNodesNeedPositioning = viewNodes.some(
+      const { labelNodes, stepNodes, allReady } = checkAllNodesMeasured(nodes);
+      // Check if there are step nodes that need to be positioned (have opacity 0)
+      const stepNodesNeedPositioning = stepNodes.some(
         (node) => node.style?.opacity === 0
       );
       // Check if there are label nodes that need to be positioned (have opacity 0)
@@ -343,14 +349,14 @@ const FormulaCanvasInner = observer(
       // Skip if initial fitView already done AND no nodes need positioning
       if (
         initialFitViewCalledRef.current &&
-        !viewNodesNeedPositioning &&
+        !stepNodesNeedPositioning &&
         !labelNodesNeedPositioning
       ) {
         return;
       }
 
-      // If no labels and no view nodes exist, just fitView once after variable nodes are added
-      if (labelNodes.length === 0 && viewNodes.length === 0) {
+      // If no labels and no step nodes exist, just fitView once after variable nodes are added
+      if (labelNodes.length === 0 && stepNodes.length === 0) {
         if (!initialFitViewCalledRef.current) {
           const timeoutId = setTimeout(() => {
             fitView({ padding: 0.2 });
@@ -371,13 +377,13 @@ const FormulaCanvasInner = observer(
             adjustLabelPositions();
           }
 
-          // Position view nodes to avoid label collisions, then make them visible
+          // Position step nodes to avoid label collisions, then make them visible
           if (
-            viewNodes.length > 0 &&
-            executionStore.currentView &&
-            !viewNodeRepositionedRef.current
+            stepNodes.length > 0 &&
+            executionStore.currentStep &&
+            !stepNodeRepositionedRef.current
           ) {
-            viewNodeRepositionedRef.current = true;
+            stepNodeRepositionedRef.current = true;
 
             // Find the formula node to calculate positions relative to it
             const formulaNode = nodes.find(
@@ -386,12 +392,12 @@ const FormulaCanvasInner = observer(
 
             if (formulaNode) {
               setNodes((currentNodes) =>
-                positionAndShowViewNodes(currentNodes, formulaNode)
+                positionAndShowstepNodes(currentNodes, formulaNode)
               );
             }
           }
 
-          // Fit view after all nodes are positioned and visible to avoid flashing
+          // Fit step after all nodes are positioned and visible to avoid flashing
           if (!initialFitViewCalledRef.current) {
             setTimeout(() => {
               fitView({ padding: 0.2, duration: 300 });
@@ -411,7 +417,7 @@ const FormulaCanvasInner = observer(
       setNodes,
       id,
       fitView,
-      executionStore.currentView,
+      executionStore.currentStep,
     ]);
 
     // Update labels when step mode or active variables change
@@ -421,8 +427,11 @@ const FormulaCanvasInner = observer(
       const disposer = reaction(
         () => ({
           isStepMode: computationStore.isStepMode(),
-          activeVariables: Array.from(executionStore.activeVariables),
-          currentView: executionStore.currentView,
+          // Track activeVariables by serializing the Map to detect changes
+          activeVariables: Array.from(
+            executionStore.activeVariables.entries()
+          ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
+          currentStep: executionStore.currentStep,
         }),
         () => {
           if (nodesInitialized && variableNodesAddedRef.current) {
@@ -433,7 +442,7 @@ const FormulaCanvasInner = observer(
 
             // Debounce the label update to prevent rapid recreation
             timeoutId = window.setTimeout(() => {
-              // Clear label edges but preserve view edges
+              // Clear label edges but preserve step edges
               setEdges((currentEdges) =>
                 currentEdges.filter((edge) => edge.id.startsWith("edge-view-"))
               );
@@ -441,15 +450,15 @@ const FormulaCanvasInner = observer(
               // Update variable node dimensions first (CSS classes may have changed)
               updateVariableNodes();
 
-              // Update labels and view nodes with current activeVariables
+              // Update labels and step nodes with current activeVariables
               // Both are created with opacity 0 for measurement
               updateLabelNodes();
-              addViewNodes();
+              addstepNodes();
 
               // Reset the flag so nodes will be positioned by the label adjustment effect
-              viewNodeRepositionedRef.current = false;
+              stepNodeRepositionedRef.current = false;
 
-              // The label adjustment effect will position both labels AND view nodes
+              // The label adjustment effect will position both labels AND step nodes
               // after they're measured, then make them visible
             }, 50); // Shorter debounce for more responsive updates
           }
@@ -466,7 +475,7 @@ const FormulaCanvasInner = observer(
       nodesInitialized,
       updateVariableNodes,
       updateLabelNodes,
-      addViewNodes,
+      addstepNodes,
       setEdges,
       adjustLabelPositions,
       fitView,
@@ -484,9 +493,9 @@ const FormulaCanvasInner = observer(
           (node) => !node.style || node.style.opacity !== 0
         );
 
-        // Preserve view edges (managed separately by addViewNodes)
-        const existingViewEdges = edges.filter((edge) =>
-          edge.id.startsWith("edge-view-")
+        // Preserve step edges (managed separately by addstepNodes)
+        const existingStepEdges = edges.filter((edge) =>
+          edge.id.startsWith("edge-step-")
         );
 
         // Only create edges if all labels are visible or there are no labels
@@ -519,8 +528,8 @@ const FormulaCanvasInner = observer(
             })
             .sort((a, b) => a.id.localeCompare(b.id));
 
-          // Combine label edges with preserved view edges
-          const nextEdges = [...nextLabelEdges, ...existingViewEdges];
+          // Combine label edges with preserved step edges
+          const nextEdges = [...nextLabelEdges, ...existingStepEdges];
 
           // Shallow reference equality check to skip unnecessary setEdges
           const sameByRef =
@@ -530,18 +539,18 @@ const FormulaCanvasInner = observer(
             setEdges(nextEdges);
           }
         } else {
-          // Keep only view edges while labels are being positioned
-          if (existingViewEdges.length !== edges.length) {
-            setEdges(existingViewEdges);
+          // Keep only step edges while labels are being positioned
+          if (existingStepEdges.length !== edges.length) {
+            setEdges(existingStepEdges);
           }
         }
       } else {
-        // Preserve view edges even when no nodes
-        const existingViewEdges = edges.filter((edge) =>
+        // Preserve step edges even when no nodes
+        const existingStepEdges = edges.filter((edge) =>
           edge.id.startsWith("edge-view-")
         );
-        if (existingViewEdges.length !== edges.length) {
-          setEdges(existingViewEdges);
+        if (existingStepEdges.length !== edges.length) {
+          setEdges(existingStepEdges);
         }
       }
     }, [nodes, edges, id, shouldLabelBeVisible, setEdges]);

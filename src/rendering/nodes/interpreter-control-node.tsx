@@ -25,29 +25,14 @@ const InterpreterControlNode = observer(() => {
   const isLoading = context?.isLoading ?? true;
   const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
-
-  console.log("[InterpreterControlNode] render:", {
-    hasContext: !!context,
-    hasExecutionStore: !!executionStore,
-    isLoading,
-    userCode: executionStore?.userCode?.length ?? 0,
-    code: executionStore?.code?.length ?? 0,
-  });
-
   // Guard: executionStore must be provided
   if (!executionStore) {
-    console.log("[InterpreterControlNode] No executionStore, returning null");
     return null;
   }
-
   // Read userCode from the store (set by FormulizeProvider during initialization)
   const userCode = executionStore.userCode;
-  console.log("[InterpreterControlNode] userCode length:", userCode.length);
-  console.log("[InterpreterControlNode] code length:", executionStore.code.length);
-
   // Show loading state while FormulizeProvider is initializing
   if (isLoading && !userCode) {
-    console.log("[InterpreterControlNode] Showing loading state");
     return (
       <div className="interpreter-control-node border bg-white border-slate-200 rounded-2xl shadow-sm w-full p-4">
         <div className="text-slate-500 text-sm">Loading...</div>
@@ -68,11 +53,9 @@ const InterpreterControlNode = observer(() => {
     (interpreterCharPos: number): number => {
       const interpreterLines = executionStore.code.split("\n");
       const userLines = userCode.split("\n");
-
       // Find which line in interpreter code the character position corresponds to
       let currentPos = 0;
       let interpreterLine = 0;
-
       for (let i = 0; i < interpreterLines.length; i++) {
         const lineLength = interpreterLines[i].length + 1;
         if (currentPos + lineLength > interpreterCharPos) {
@@ -148,7 +131,11 @@ const InterpreterControlNode = observer(() => {
   const currentState = executionStore.history[executionStore.historyIndex];
 
   useEffect(() => {
-    if (!executionStore.history || executionStore.history.length === 0 || !userCode) {
+    if (
+      !executionStore.history ||
+      executionStore.history.length === 0 ||
+      !userCode
+    ) {
       clearUserViewLine();
       return;
     }
@@ -175,8 +162,13 @@ const InterpreterControlNode = observer(() => {
   ]);
 
   // Calculate progress based on stepping mode
-  const points = executionStore.steppingMode === "view" ? executionStore.viewPoints : executionStore.blockPoints;
-  const currentStepNumber = points.filter((p) => p <= executionStore.historyIndex).length;
+  const points =
+    executionStore.steppingMode === "view"
+      ? executionStore.stepPoints
+      : executionStore.blockPoints;
+  const currentStepNumber = points.filter(
+    (p) => p <= executionStore.historyIndex
+  ).length;
   const totalSteps = points.length;
   const progress = totalSteps > 0 ? (currentStepNumber / totalSteps) * 100 : 0;
 

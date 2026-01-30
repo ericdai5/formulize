@@ -8,8 +8,7 @@ import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
-import { IStep } from "../../types/step";
-import { IValue } from "../../types/variable";
+import { IInterpreterStep, IStep, IStepInput } from "../../types/step";
 import { ERROR_MESSAGES } from "./constants";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
 import { Step } from "./step";
@@ -42,22 +41,27 @@ export const getArrayControl = (
  * The actual implementation is injected at runtime by the interpreter,
  * which overrides this function within the execution context.
  *
- * @param description - Text description of what is being shown
- * @param values - Array of [varId, value] tuples mapping LaTeX variable IDs to runtime values
- * @param options - Optional object with id, expression and formulaId
+ * @param input - Either a single step (applies to all formulas) or multiple steps keyed by formulaId
+ * @param id - Optional step-level identifier
  *
- * @example
- * step("Current sum:", [["S", sum]]);
- * step("Processing element", [["x", xi], ["X", xi]], { expression: "x_{i}" });
- * step("Loss value:", [["L", loss]], { formulaId: "loss-function" });
- * step("Final result:", [["E", result]], { expression: "\\sum_{i} x_i", formulaId: "main-formula" });
- * step("Weight update:", [["w", w]], { id: "weight-update", formulaId: "update-rule" });
+ * @example Single/all formulas:
+ * step({ description: "Current sum: $S$", values: [["S", sum]] });
+ *
+ * @example With expression highlighting:
+ * step({ description: "MSE", values: [["L", loss]], expression: "\\frac{1}{m}" });
+ *
+ * @example Multi-formula (keyed by formulaId):
+ * step({
+ *   "loss-function": { description: "Loss", values: [["L", L]] },
+ *   "gradient": { description: "Gradient", values: [["\\nabla L", nablaL]] }
+ * });
+ *
+ * @example With step-level id:
+ * step({
+ *   "update-rule": { description: "Weight update", values: [["w", w]], expression: "w_{t+1}" }
+ * }, "weight-update");
  */
-export function step(
-  _description: string,
-  _values?: Array<[string, IValue]>,
-  _options?: { id?: string; expression?: string; formulaId?: string }
-): void {
+export function step(_input: IStepInput, _id?: string): void {
   // This is a stub - the actual implementation is injected by the interpreter at runtime.
   // When called outside of the interpreter context, this is a no-op.
 }
@@ -87,19 +91,20 @@ export class Controller {
     if (!interpreter) return;
     ctx.setInterpreter(interpreter);
     // Clear active variables at the start of execution
-    ctx.setActiveVariables(new Set());
+    ctx.setActiveVariables(new Map());
     // Execute all steps and build complete history
     this.executeAllSteps(interpreter, ctx);
   }
 
   /**
    * Helper function to restore variables from a historical state and apply visual cues.
-   * Uses explicit values from view() calls to update computation store variables.
+   * Uses explicit values from step() calls to update computation store variables.
+   * Supports multi-formula views where each formula can have its own values.
    * @param state - The current step state
    * @param stepIndex - The current step index
    */
   private static updateVariables(
-    state: IStep,
+    state: IInterpreterStep,
     ctx: ExecutionStore,
     computationStore: ComputationStore
   ): void {
@@ -107,27 +112,42 @@ export class Controller {
     requestAnimationFrame(() => {
       clearAllCues();
     });
-    // Get the formulaId from the current view (if specified)
-    const formulaId = state.view?.formulaId;
-    // If view has explicit values, update the computation store and highlight those variables
-    if (state.view?.values) {
-      const activeVarIds = new Set<string>();
-      // Update each variable with its explicit value
-      for (const [varId, value] of Object.entries(state.view.values)) {
-        if (typeof value === "number" || Array.isArray(value)) {
-          computationStore.setValueInStepMode(varId, value);
-          activeVarIds.add(varId);
+
+    // If no step or no formulas, clear active variables
+    if (!state.step?.formulas) {
+      ctx.setActiveVariables(new Map());
+      return;
+    }
+
+    // Build per-formula active variables map
+    const activeVarsMap = new Map<string, Set<string>>();
+
+    // Collect values from all formula views and update computation store
+    for (const [formulaId, view] of Object.entries(state.step.formulas)) {
+      if (view.values) {
+        const varIds = new Set<string>();
+        for (const [varId, value] of view.values) {
+          if (typeof value === "number" || Array.isArray(value)) {
+            computationStore.setValueInStepMode(varId, value);
+            varIds.add(varId);
+          }
+        }
+        if (varIds.size > 0) {
+          activeVarsMap.set(formulaId, varIds);
         }
       }
-      ctx.setActiveVariables(activeVarIds);
-      if (activeVarIds.size > 0) {
-        requestAnimationFrame(() => {
-          applyCue(activeVarIds, formulaId);
-        });
-      }
-    } else {
-      // No view or no values - clear active variables
-      ctx.setActiveVariables(new Set());
+    }
+
+    ctx.setActiveVariables(activeVarsMap);
+
+    if (activeVarsMap.size > 0) {
+      requestAnimationFrame(() => {
+        // Apply cues per formula
+        for (const [formulaId, varIds] of activeVarsMap.entries()) {
+          // Empty string formulaId means "all formulas" - pass undefined
+          applyCue(varIds, formulaId || undefined);
+        }
+      });
     }
   }
 
@@ -175,21 +195,15 @@ export class Controller {
     ctx: ExecutionStore
   ): void {
     const history = [];
-    const viewPoints: number[] = []; // Track which step numbers are at view points
+    const stepPoints: number[] = []; // Track which step numbers are at step points
     const blockPoints: number[] = []; // Track which step numbers are at block points
     let stepNumber = 0;
     let canContinue = true;
 
-    // Track pending view params captured from view() calls
-    // The view() function may execute on step N, but we need to attach it to
+    // Track pending step params captured from step() calls
+    // The step() function may execute on step N, but we need to attach it to
     // the next block statement (step N+1 or later)
-    let pendingView: {
-      id?: string;
-      description: string;
-      values?: Record<string, IValue>;
-      expression?: string;
-      formulaId?: string;
-    } | null = null;
+    let pendingStep: IStep | null = null;
 
     // Add initial state
     const initialState = Step.getState(interpreter, stepNumber, ctx.code);
@@ -201,36 +215,25 @@ export class Controller {
         stepNumber++;
         const state = Step.getState(interpreter, stepNumber, ctx.code);
         history.push(state);
-        // Check if a view() call was executed during this step
-        // The view function captures its arguments when called
-        const captured = interpreter._capturedView;
+        // Check if a step() call was executed during this step
+        // The step function captures its arguments when called
+        const captured = interpreter._capturedStep;
         if (captured) {
           // Store as pending - we'll attach to the next block statement
-          pendingView = {
-            id: captured.id,
-            description: captured.description,
-            values: captured.values,
-            expression: captured.expression,
-            formulaId: captured.formulaId,
-          };
-          // Clear the captured params to prevent processing the same view multiple times
-          interpreter._capturedView = undefined;
+          // The captured step is already in the normalized IStep format
+          pendingStep = captured;
+          // Clear the captured params to prevent processing the same step multiple times
+          interpreter._capturedStep = undefined;
         }
-        // Mark block statements that come after view calls as view points
-        // This way we highlight meaningful block execution points after views are evaluated
+        // Mark block statements that come after step calls as step points
+        // This way we highlight meaningful block execution points after steps are evaluated
         if (isAtBlock(history, stepNumber) && stepNumber > 0) {
-          // Check if we have pending view params (from a previous view() call)
-          if (pendingView) {
-            viewPoints.push(stepNumber);
-            state.view = {
-              id: pendingView.id,
-              description: pendingView.description,
-              values: pendingView.values,
-              expression: pendingView.expression,
-              formulaId: pendingView.formulaId,
-            };
+          // Check if we have pending step params (from a previous step() call)
+          if (pendingStep) {
+            stepPoints.push(stepNumber);
+            state.step = pendingStep;
             // Clear pending params after attaching to a block
-            pendingView = null;
+            pendingStep = null;
           }
         }
       } catch (err) {
@@ -247,7 +250,7 @@ export class Controller {
     }
 
     // Store the points information
-    ctx.setView(viewPoints);
+    ctx.setStep(stepPoints);
     ctx.setBlock(blockPoints);
 
     // Set complete history and position at the beginning
@@ -259,7 +262,7 @@ export class Controller {
     ctx.processExtensions();
 
     // Clear all active variables and visual cues for the initial state
-    ctx.setActiveVariables(new Set());
+    ctx.setActiveVariables(new Map());
     requestAnimationFrame(() => {
       clearAllCues();
     });
@@ -329,7 +332,7 @@ export class Controller {
     this.step(prevIndex, ctx, computationStore);
   }
 
-  static stepToIndex(
+  static toIndex(
     index: number,
     ctx: ExecutionStore,
     computationStore: ComputationStore
@@ -342,10 +345,7 @@ export class Controller {
   // Step to View
   // ============================================================================
 
-  static stepToView(
-    ctx: ExecutionStore,
-    computationStore: ComputationStore
-  ): void {
+  static toStep(ctx: ExecutionStore, computationStore: ComputationStore): void {
     if (ctx.historyIndex >= ctx.history.length - 1) return;
     const nextView = ctx.getNextView(ctx.historyIndex);
     if (nextView !== null) {
@@ -353,7 +353,7 @@ export class Controller {
     }
   }
 
-  static stepToPrevView(
+  static toPrevView(
     ctx: ExecutionStore,
     computationStore: ComputationStore
   ): void {
@@ -368,7 +368,7 @@ export class Controller {
   // Step to Block
   // ============================================================================
 
-  static stepToNextBlock(
+  static toNextBlock(
     ctx: ExecutionStore,
     computationStore: ComputationStore
   ): void {
@@ -379,7 +379,7 @@ export class Controller {
     }
   }
 
-  static stepToPrevBlock(
+  static toPrevBlock(
     ctx: ExecutionStore,
     computationStore: ComputationStore
   ): void {

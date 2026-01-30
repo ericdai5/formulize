@@ -268,9 +268,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
         // Also track active variables and history index if execution store exists
         if (executionStore) {
+          // Serialize activeVariables Map for change detection
           allVariables._activeVars = Array.from(
-            executionStore.activeVariables
-          ).join(",");
+            executionStore.activeVariables.entries()
+          )
+            .map(([formulaId, varSet]) => `${formulaId}:${Array.from(varSet).join(",")}`)
+            .join(";");
           // Track historyIndex to re-render when stepping through history
           allVariables._historyIndex = executionStore.historyIndex;
         }
@@ -329,7 +332,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Iterate ALL steps to find each occurrence of this viewId
         for (let i = 0; i < executionStore.history.length; i++) {
           const step = executionStore.history[i];
-          if (step.view?.id !== viewId) continue;
+          if (step.step?.id !== viewId) continue;
 
           const xValue = step.variables[pointConfig.xValue];
           const yValue = step.variables[pointConfig.yValue];

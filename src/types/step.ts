@@ -1,3 +1,5 @@
+import { IValue } from "./variable";
+
 /**
  * A highlight of the code
  * @property start - The start index of the highlight
@@ -8,23 +10,33 @@ export interface IHighlight {
   end: number;
 }
 
-import { IValue } from "./variable";
-
 /**
- * A view that is created by a view() call
- * @property id - Optional unique identifier for the view
+ * A single formula's view data
  * @property description - The description text to display
- * @property values - Explicit mapping of LaTeX variable IDs to runtime values
- * @property expression - Optional expression scope for bounding box around
- * expression and also active variables
- * @property formulaId - Optional formula ID to target specific formula component
+ * @property values - Array of [varId, value] tuples mapping LaTeX variable IDs to runtime values
+ * @property expression - Optional expression scope for bounding box highlighting
  */
 export interface IView {
-  id?: string;
   description: string;
-  values?: Record<string, IValue>;
+  values?: Array<[string, IValue]>;
   expression?: string;
-  formulaId?: string;
+}
+
+/**
+ * Step input: either a single view (applies to all formulas) or multiple views keyed by formulaId
+ * - Single: { description: "...", values: [...], expression: "..." }
+ * - Multi-formula: { "formula-id": { description: "...", ... }, "other-id": { ... } }
+ */
+export type IStepInput = IView | Record<string, IView>;
+
+/**
+ * Step structure created by step() calls
+ * @property id - Optional step-level identifier (from second parameter)
+ * @property formulas - Record of formula views keyed by formulaId (empty string '' means all formulas)
+ */
+export interface IStep {
+  id?: string;
+  formulas: Record<string, IView>;
 }
 
 /**
@@ -47,20 +59,20 @@ export interface IObject {
 
 /**
  * A step in the execution of the code
- * @property step - The step number
+ * @property index - The interpreter step number
  * @property highlight - The highlight of the code
  * @property variables - The variables in the step
  * @property stackTrace - The stack trace of the step
  * @property timestamp - The timestamp of the step
- * @property view - The view of the step
+ * @property step - The user created step
  * @property extensions - Generic storage for visualization extensions (keyed by extension type, each containing an array of items)
  */
-export interface IStep {
-  step: number;
+export interface IInterpreterStep {
+  index: number;
   highlight: IHighlight;
   variables: Record<string, unknown>;
   stackTrace: string[];
   timestamp: number;
-  view?: IView;
+  step?: IStep;
   extensions?: Record<string, IObject["items"]>;
 }

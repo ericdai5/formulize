@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
-import { refresh, stepForward, stepToIndex } from "../engine/manual/execute";
+import { refresh, stepForward, toIndex } from "../engine/manual/execute";
 import { isAtBlock } from "../engine/manual/interpreter";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
@@ -210,7 +210,7 @@ const DebugModal: React.FC<DebugModalProps> = observer(
     // Handle clicking on timeline items to travel to that point in history
     const handleTimelineItemClick = useCallback(
       (index: number) => {
-        stepToIndex(index, ctx, computationStore);
+        toIndex(index, ctx, computationStore);
       },
       [ctx, computationStore]
     );

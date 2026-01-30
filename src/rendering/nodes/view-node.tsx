@@ -5,13 +5,13 @@ import { Handle, Position } from "@xyflow/react";
 import LatexLabel from "../../components/latex";
 import { HANDLE_STYLE } from "../css-classes";
 
-export interface ViewNodeData {
+export interface stepNodeData {
   expression: string;
   description: string;
   activeVarIds?: string[];
 }
 
-const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
+const stepNode = observer(({ data }: { data: stepNodeData }) => {
   const { expression, description } = data;
 
   // Wrap text in \text{} for proper LaTeX text rendering
@@ -33,7 +33,7 @@ const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        id="view-handle-bottom"
+        id="step-handle-bottom"
         style={HANDLE_STYLE}
       />
       <LatexLabel latex={latexDescription} />
@@ -41,4 +41,4 @@ const ViewNode = observer(({ data }: { data: ViewNodeData }) => {
   );
 });
 
-export default ViewNode;
+export default stepNode;

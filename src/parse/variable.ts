@@ -148,7 +148,15 @@ const renderNestedVariable = (
     latexDisplay = variable.latexDisplay ?? "name";
   }
   // Show value when active, symbol when not active
-  const isActive = executionStore.activeVariables.has(symbolValue);
+  // activeVariables is a Map<formulaId, Set<varId>>
+  // Check if variable is active in any formula's set
+  let isActive = false;
+  for (const varSet of executionStore.activeVariables.values()) {
+    if (varSet.has(symbolValue)) {
+      isActive = true;
+      break;
+    }
+  }
   const hasValidValue = value !== null && value !== undefined && !isNaN(value);
   // Respect latexDisplay setting - only show value if latexDisplay allows it AND variable is active
   if (isActive && hasValidValue && latexDisplay === "value") {

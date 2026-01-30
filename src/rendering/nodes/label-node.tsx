@@ -13,7 +13,7 @@ import { VAR_CLASSES } from "../css-classes";
 
 export interface LabelNodeData {
   varId: string;
-  environment?: any;
+  formulaId?: string;
 }
 
 // Static styles to prevent re-renders
@@ -136,16 +136,23 @@ const InlineInput = observer(
 );
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
-  const { varId, environment } = data;
+  const { varId, formulaId } = data;
   const context = useFormulize();
   const computationStore = context?.computationStore;
   const executionStore = context?.executionStore;
+  const labelFontSize = computationStore?.environment?.labelFontSize;
 
   // Must call all hooks before conditional returns
   const showHoverOutlines = computationStore?.showHoverOutlines ?? false;
 
   const variable = computationStore?.variables.get(varId);
-  const isVariableActive = executionStore?.activeVariables.has(varId) ?? false;
+  // activeVariables is a Map<formulaId, Set<varId>>
+  // Empty string key '' means "all formulas"
+  const allFormulasVars = executionStore?.activeVariables.get("") ?? new Set();
+  const thisFormulaVars =
+    formulaId ? (executionStore?.activeVariables.get(formulaId) ?? new Set()) : new Set();
+  const isVariableActive =
+    allFormulasVars.has(varId) || thisFormulaVars.has(varId);
   const isHovered = computationStore?.hoverStates.get(varId) ?? false;
 
   const valueDragRef = useVariableDrag({
@@ -176,7 +183,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       <InlineInput
         varId={varId}
         variable={variable}
-        fontSize={environment?.fontSize}
+        fontSize={labelFontSize}
       />
     );
   } else if (labelDisplay === "value" || (interaction === "inline" && isStepModeActive)) {
@@ -198,7 +205,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         displayComponent = (
           <LatexLabel
             latex={mainDisplayText}
-            fontSize={environment?.fontSize}
+            fontSize={labelFontSize}
           />
         );
       } else {
@@ -206,7 +213,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         displayComponent = (
           <LatexLabel
             latex={mainDisplayText}
-            fontSize={environment?.fontSize}
+            fontSize={labelFontSize}
           />
         );
       }
@@ -214,7 +221,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
       mainDisplayText = value.toFixed(displayPrecision);
       displayComponent = (
-        <LatexLabel latex={mainDisplayText} fontSize={environment?.fontSize} />
+        <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
       );
     } else {
       // If labelDisplay is "value" but no value is set, hide the label node
@@ -233,7 +240,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   } else {
     // Default to name display
     displayComponent = (
-      <LatexLabel latex={mainDisplayText} fontSize={environment?.fontSize} />
+      <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
     );
   }
 

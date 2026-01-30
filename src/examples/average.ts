@@ -48,17 +48,17 @@ export const average = `const config = {
       var n = xValues.length;
       var sum = 0;
       var average = 0;
-      step("Get the count $n$ of values", [["n", n]]);
+      step({ description: "Get the count $n$ of values", values: [["n", n]] });
       for (var i = 0; i < n; i++) {
         var xi = xValues[i];
-        step("Get value $X_i$ from $X$", [["i", i + 1], ["X_i", xi], ["X", xValues]]);
-        step("Add $X_i$ to running sum of " + sum, [["X_i", xi]]);
+        step({ description: "Get value $X_i$ from $X$", values: [["i", i + 1], ["X_i", xi], ["X", xValues]] });
+        step({ description: "Add $X_i$ to running sum of " + sum, values: [["X_i", xi]] });
         sum = sum + xi;
-        step("Sum is now " + sum, [["sum", sum]]);
+        step({ description: "Sum is now " + sum, values: [["sum", sum]] });
       }
       average = sum / n;
       average = Math.round(average * 100) / 100;
-      step("Divide $sum = " + sum + "$ by $n = " + n + "$ to get average.", [["\\\\bar{X}", average]]);
+      step({ description: "Divide $sum = " + sum + "$ by $n = " + n + "$ to get average.", values: [["\\\\bar{X}", average]] });
       return average;
     },
   },

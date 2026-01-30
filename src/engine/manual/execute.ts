@@ -29,43 +29,43 @@ export function stepBackward(
   Controller.stepBackward(executionStore, computationStore);
 }
 
-export function stepToView(
+export function toStep(
   executionStore?: ExecutionStore,
   computationStore?: ComputationStore
 ): void {
   if (!executionStore || !computationStore) return;
-  Controller.stepToView(executionStore, computationStore);
+  Controller.toStep(executionStore, computationStore);
 }
 
-export function stepToPrevView(
+export function toPrevView(
   executionStore?: ExecutionStore,
   computationStore?: ComputationStore
 ): void {
   if (!executionStore || !computationStore) return;
-  Controller.stepToPrevView(executionStore, computationStore);
+  Controller.toPrevView(executionStore, computationStore);
 }
 
-export function stepToNextBlock(
+export function toNextBlock(
   executionStore?: ExecutionStore,
   computationStore?: ComputationStore
 ): void {
   if (!executionStore || !computationStore) return;
-  Controller.stepToNextBlock(executionStore, computationStore);
+  Controller.toNextBlock(executionStore, computationStore);
 }
 
-export function stepToPrevBlock(
+export function toPrevBlock(
   executionStore?: ExecutionStore,
   computationStore?: ComputationStore
 ): void {
   if (!executionStore || !computationStore) return;
-  Controller.stepToPrevBlock(executionStore, computationStore);
+  Controller.toPrevBlock(executionStore, computationStore);
 }
 
-export function stepToIndex(
+export function toIndex(
   index: number,
   executionStore?: ExecutionStore,
   computationStore?: ComputationStore
 ): void {
   if (!executionStore || !computationStore) return;
-  Controller.stepToIndex(index, executionStore, computationStore);
+  Controller.toIndex(index, executionStore, computationStore);
 }

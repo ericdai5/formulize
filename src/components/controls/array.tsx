@@ -57,7 +57,7 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
       return viewActiveIndex;
     }
 
-    // Check if there's a target index from stepToIndex (block mode)
+    // Check if there's a target index from toIndex (block mode)
     if (executionStore.targetIndex) {
       return executionStore.targetIndex.index;
     }

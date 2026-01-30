@@ -203,13 +203,19 @@ export const processVariableElementsForLabels = (
   }> = [];
 
   // In step mode, label nodes should only render for a formula if:
-  // 1. The view doesn't specify a formulaId (show labels for all formulas), OR
-  // 2. The view specifies a formulaId that matches this formula's id
+  // 1. The step has an empty string key (applies to all formulas), OR
+  // 2. The step has a key that matches this formula's id
   if (computationStore.isStepMode()) {
-    const viewFormulaId = executionStore.currentView?.formulaId;
-    // Only skip labels if the view explicitly targets a different formula
-    if (viewFormulaId && viewFormulaId !== id) {
-      return { labelNodes, variableNodeUpdates };
+    const step = executionStore.currentStep;
+    if (step?.formulas) {
+      const formulaIds = Object.keys(step.formulas);
+      // If step has specific formulaIds (not just empty string for "all"),
+      // only show labels if this formula is targeted
+      const hasAllFormulasKey = formulaIds.includes("");
+      const hasThisFormulaKey = formulaIds.includes(id);
+      if (!hasAllFormulasKey && !hasThisFormulaKey) {
+        return { labelNodes, variableNodeUpdates };
+      }
     }
   }
 
@@ -238,7 +244,12 @@ export const processVariableElementsForLabels = (
     if (variable?.labelDisplay === "value" && !hasValue) return;
     if (!hasValue && !hasName) return;
     // Check if this label should be visible using the same logic as LabelNode component
-    const isVariableActive = executionStore.activeVariables.has(cssId);
+    // activeVariables is a Map<formulaId, Set<varId>>
+    // Empty string key '' means "all formulas"
+    const allFormulasVars = executionStore.activeVariables.get("") ?? new Set();
+    const thisFormulaVars = executionStore.activeVariables.get(id) ?? new Set();
+    const isVariableActive =
+      allFormulasVars.has(cssId) || thisFormulaVars.has(cssId);
     // If in step mode and variable is not active, skip creating this label
     if (computationStore.isStepMode() && !isVariableActive) {
       return;
@@ -258,9 +269,9 @@ export const processVariableElementsForLabels = (
       height: (variableNode.data.height as number) || 0,
     };
 
-    // View nodes are always rendered above the equation.
+    // Stepnodes are always rendered above the equation.
     // If there is an active view, force labels to be below to avoid edge overlaps.
-    const forcePlacement = executionStore.currentView ? "below" : undefined;
+    const forcePlacement = executionStore.currentStep ? "below" : undefined;
 
     const formulaDimensions = getNodeDimensions(formulaNode, {
       width: DEFAULT_DIMENSIONS.formulaWidth,
@@ -289,7 +300,7 @@ export const processVariableElementsForLabels = (
       parentId: formulaNode.id, // Make this a child of the formula node
       data: {
         varId: cssId,
-        id: id,
+        formulaId: id,
         placement: labelPos.placement,
       },
       draggable: false,
@@ -609,10 +620,10 @@ const extractLabelInfo = (
   spacing: LabelSpacing
 ): LabelInfo | null => {
   const cssId = node.data.varId;
-  const id = node.data.id;
-  if (!cssId || typeof cssId !== "string" || !id || typeof id !== "string")
+  const formulaId = node.data.formulaId;
+  if (!cssId || typeof cssId !== "string" || !formulaId || typeof formulaId !== "string")
     return null;
-  const formulaNode = findFormulaNodeById(currentNodes, id);
+  const formulaNode = findFormulaNodeById(currentNodes, formulaId);
   if (!formulaNode) return null;
   const variableNode = findVariableNodeForFormula(
     variableNodes,
