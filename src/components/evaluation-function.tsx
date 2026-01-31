@@ -10,12 +10,7 @@ const engineDescriptions = {
   "symbolic-algebra": {
     title: "Symbolic Algebra",
     description:
-      "The symbolic algebra engine uses math.js to directly evaluate mathematical formulas through symbolic computations, without requiring code generation from an LLM.",
-  },
-  llm: {
-    title: "LLM Generated",
-    description:
-      "The LLM engine generates JavaScript code on-the-fly to evaluate the formula based on its mathematical understanding. This allows handling complex equations without predefined rules.",
+      "The symbolic algebra engine uses math.js to directly evaluate mathematical formulas through symbolic computations.",
   },
   manual: {
     title: "Manual JavaScript",
@@ -43,16 +38,14 @@ const EvaluationFunctionPane = observer(
       // If no code is available yet, show appropriate placeholder
       if (engineType === "symbolic-algebra") {
         return "// Symbolic Algebra engine will generate code when the formula is rendered";
-      } else if (engineType === "manual") {
-        return "// Manual engine will show custom JavaScript functions when configured";
       } else {
-        return "// LLM will generate code when formula is rendered";
+        return "// Manual engine will show custom JavaScript functions when configured";
       }
     };
 
     const currentEngine =
       engineDescriptions[engineType as keyof typeof engineDescriptions] ||
-      engineDescriptions["llm"];
+      engineDescriptions["manual"];
 
     return (
       <div className={`overflow-hidden ${className}`}>

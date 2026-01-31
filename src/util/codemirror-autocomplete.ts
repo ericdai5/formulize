@@ -117,7 +117,11 @@ const environmentCompletions: CompletionOption[] = [
 // Semantics completions
 const semanticsCompletions: CompletionOption[] = [
   { label: "engine", type: "property", info: "Semantics engine type" },
-  { label: "expressions", type: "property", info: "Expressions mapping (optional)" },
+  {
+    label: "expressions",
+    type: "property",
+    info: "Expressions mapping (optional)",
+  },
   { label: "manual", type: "property", info: "Manual function (optional)" },
   { label: "mappings", type: "property", info: "Function mappings (optional)" },
   { label: "apiKey", type: "property", info: "API key (optional)" },
@@ -132,7 +136,6 @@ const engineValues: CompletionOption[] = [
     type: "value",
     info: "Symbolic algebra engine",
   },
-  { label: '"llm"', type: "value", info: "LLM computation engine" },
   { label: '"manual"', type: "value", info: "Manual computation engine" },
 ];
 

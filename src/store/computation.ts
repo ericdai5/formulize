@@ -1,11 +1,5 @@
 import { action, observable, toJS } from "mobx";
 
-import {
-  DisplayCodeGeneratorContext,
-  generateLLMDisplayCode,
-  generateManualDisplayCode,
-  generateSymbolicAlgebraDisplayCode,
-} from "../engine/display-code-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
 import { AugmentedFormula } from "../parse/formula-tree";
@@ -129,33 +123,6 @@ class ComputationStore {
     return Array.from(this.variables.values()).some(
       (v) => v.role === "computed"
     );
-  }
-
-  private getComputedVars(): IVariable[] {
-    return Array.from(this.variables.values()).filter(
-      (v) => v.role === "computed"
-    );
-  }
-
-  private getComputedVarSymbols(): string[] {
-    return Array.from(this.variables.entries())
-      .filter(([, v]) => v.role === "computed")
-      .map(([id]) => id);
-  }
-
-  private getInputVarSymbols(): string[] {
-    return Array.from(this.variables.entries())
-      .filter(([, v]) => v.role === "input")
-      .map(([id]) => id);
-  }
-
-  private getDisplayCodeGeneratorContext(): DisplayCodeGeneratorContext {
-    return {
-      semantics: this.semantics,
-      variables: this.variables,
-      getComputedVariableSymbols: () => this.getComputedVarSymbols(),
-      getInputVariableSymbols: () => this.getInputVarSymbols(),
-    };
   }
 
   isStepMode(): boolean {
@@ -541,18 +508,9 @@ class ComputationStore {
     if (this.engine === "symbolic-algebra" && this.semantics) {
       this.evaluationFunction =
         this.createMultiExpressionEvaluator(expressions);
-      const displayCode = generateSymbolicAlgebraDisplayCode(
-        expressions,
-        this.getDisplayCodeGeneratorContext()
-      );
-      this.setLastGeneratedCode(displayCode);
     } else if (this.engine === "manual" && this.semantics) {
       // For manual engine, create an evaluator using manual functions
       this.evaluationFunction = this.createManualEvaluator();
-      const displayCode = generateManualDisplayCode(
-        this.getDisplayCodeGeneratorContext()
-      );
-      this.setLastGeneratedCode(displayCode);
     }
 
     // Initial evaluation of all computed variables (skip in step mode)

@@ -10,7 +10,6 @@ import { createExecutionStore } from "../../store/execution";
 import { Debug } from "./Debug";
 import { Editor } from "./Editor";
 import { ElementPane } from "./ElementPane";
-import LLMFunction from "./LLMFunction";
 import { Menu } from "./Menu";
 import { Workspace } from "./Workspace";
 
@@ -39,9 +38,6 @@ function EditorPage() {
         <div className="w-[22%] flex flex-col border-r border-gray-200">
           <div className="flex-1 overflow-auto">
             <Editor />
-          </div>
-          <div className="flex-[0.8] border-t border-gray-200 overflow-auto">
-            <LLMFunction />
           </div>
         </div>
         <div className="w-[56%] flex flex-col">

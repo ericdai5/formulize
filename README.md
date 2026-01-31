@@ -5,7 +5,7 @@ An API for interactive mathematical formula built with React, TypeScript, and Vi
 ## Features
 
 - **Formulize API** - Declarative API for programmatic "executable" formula configuration
-- **Multi-Engine Computation** - Support for manual step-through, symbolic algebra, and LLM-powered function generation
+- **Multi-Engine Computation** - Support for manual step-through, symbolic algebra
 - **Real-time Visualization** - 2D/3D plotting with D3.js and Plotly.js integration
 - **Variable Management** - Dependency tracking and automatic recomputation
 
@@ -157,4 +157,3 @@ Three computation engines are available:
 
 - **manual** - Manual step-through with JS interpreter
 - **symbolic-algebra** - Mathematical computation engine
-- **llm** - LLM-powered function generation
