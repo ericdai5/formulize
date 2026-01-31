@@ -3,7 +3,6 @@ import React from "react";
 import { observer } from "mobx-react-lite";
 
 import {
-  Code,
   Eye,
   Pause,
   Play,
@@ -15,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 
+import { useFormulize } from "../core/hooks";
 import {
   stepBackward,
   stepForward,
@@ -26,7 +26,6 @@ import {
 } from "../engine/manual/execute";
 import Button from "../ui/button";
 import Select from "../ui/select";
-import { useFormulize } from "../core/hooks";
 
 interface InterpreterControlsProps {
   onClose: () => void;
@@ -156,165 +155,123 @@ const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
 export default InterpreterControls;
 
 // Simplified Interpreter Controls for canvas nodes
-export interface SimplifiedInterpreterControlsProps {
-  onToggleCode?: () => void;
-  showCode?: boolean;
-}
+export const SimplifiedInterpreterControls: React.FC = observer(() => {
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  const executionStore = context?.executionStore;
 
-export const SimplifiedInterpreterControls: React.FC<SimplifiedInterpreterControlsProps> =
-  observer(({ onToggleCode, showCode }) => {
-    const context = useFormulize();
-    const computationStore = context?.computationStore;
-    const executionStore = context?.executionStore;
+  // Stores are now required - return null if not provided
+  if (!executionStore || !computationStore) {
+    return null;
+  }
+  const ctx = executionStore;
+  const compStore = computationStore;
 
-    // Stores are now required - return null if not provided
-    if (!executionStore || !computationStore) {
-      return null;
+  // Common disabled state conditions
+  const isStepping = ctx.isToStep || ctx.isToIndex || ctx.isToBlock;
+
+  const toBlockDisabled =
+    !ctx.interpreter ||
+    (ctx.isComplete && ctx.historyIndex >= ctx.history.length - 1) ||
+    ctx.isToStep ||
+    ctx.isToIndex ||
+    ctx.isToBlock;
+
+  const nextBlockDisabled =
+    toBlockDisabled || ctx.getNextBlock(ctx.historyIndex) === null;
+
+  const prevBlockDisabled =
+    ctx.historyIndex <= 0 ||
+    ctx.isRunning ||
+    isStepping ||
+    ctx.getPrevBlock(ctx.historyIndex) === null;
+
+  const nextViewDisabled =
+    toBlockDisabled || ctx.getNextView(ctx.historyIndex) === null;
+
+  const prevViewDisabled =
+    ctx.historyIndex <= 0 ||
+    ctx.isRunning ||
+    isStepping ||
+    ctx.getPrevView(ctx.historyIndex) === null;
+
+  const skipBackDisabled =
+    ctx.isRunning ||
+    isStepping ||
+    (ctx.steppingMode === "view"
+      ? ctx.stepPoints.length === 0 || ctx.historyIndex <= ctx.stepPoints[0]
+      : ctx.blockPoints.length === 0 || ctx.historyIndex <= ctx.blockPoints[0]);
+
+  const skipForwardDisabled =
+    ctx.isRunning ||
+    isStepping ||
+    (ctx.steppingMode === "view"
+      ? ctx.stepPoints.length === 0 ||
+        ctx.historyIndex >= ctx.stepPoints[ctx.stepPoints.length - 1]
+      : ctx.blockPoints.length === 0 ||
+        ctx.historyIndex >= ctx.blockPoints[ctx.blockPoints.length - 1]);
+
+  const handleSkipBack = () => {
+    if (ctx.steppingMode === "view") {
+      if (ctx.stepPoints.length > 0) toIndex(ctx.stepPoints[0], ctx, compStore);
+    } else {
+      if (ctx.blockPoints.length > 0)
+        toIndex(ctx.blockPoints[0], ctx, compStore);
     }
-    const ctx = executionStore;
-    const compStore = computationStore;
+  };
 
-    // Common disabled state conditions
-    const isStepping = ctx.isToStep || ctx.isToIndex || ctx.isToBlock;
+  const handleSkipForward = () => {
+    if (ctx.steppingMode === "view") {
+      if (ctx.stepPoints.length > 0)
+        toIndex(ctx.stepPoints[ctx.stepPoints.length - 1], ctx, compStore);
+    } else {
+      if (ctx.blockPoints.length > 0)
+        toIndex(ctx.blockPoints[ctx.blockPoints.length - 1], ctx, compStore);
+    }
+  };
 
-    const toBlockDisabled =
-      !ctx.interpreter ||
-      (ctx.isComplete && ctx.historyIndex >= ctx.history.length - 1) ||
-      ctx.isToStep ||
-      ctx.isToIndex ||
-      ctx.isToBlock;
+  const handleStepNext = () => {
+    if (ctx.steppingMode === "view") {
+      toStep(ctx, compStore);
+    } else {
+      toNextBlock(ctx, compStore);
+    }
+  };
 
-    const nextBlockDisabled =
-      toBlockDisabled || ctx.getNextBlock(ctx.historyIndex) === null;
+  const handleStepPrev = () => {
+    if (ctx.steppingMode === "view") {
+      toPrevView(ctx, compStore);
+    } else {
+      toPrevBlock(ctx, compStore);
+    }
+  };
 
-    const prevBlockDisabled =
-      ctx.historyIndex <= 0 ||
-      ctx.isRunning ||
-      isStepping ||
-      ctx.getPrevBlock(ctx.historyIndex) === null;
-
-    const nextViewDisabled =
-      toBlockDisabled || ctx.getNextView(ctx.historyIndex) === null;
-
-    const prevViewDisabled =
-      ctx.historyIndex <= 0 ||
-      ctx.isRunning ||
-      isStepping ||
-      ctx.getPrevView(ctx.historyIndex) === null;
-
-    const skipBackDisabled =
-      ctx.isRunning ||
-      isStepping ||
-      (ctx.steppingMode === "view"
-        ? ctx.stepPoints.length === 0 || ctx.historyIndex <= ctx.stepPoints[0]
-        : ctx.blockPoints.length === 0 ||
-          ctx.historyIndex <= ctx.blockPoints[0]);
-
-    const skipForwardDisabled =
-      ctx.isRunning ||
-      isStepping ||
-      (ctx.steppingMode === "view"
-        ? ctx.stepPoints.length === 0 ||
-          ctx.historyIndex >= ctx.stepPoints[ctx.stepPoints.length - 1]
-        : ctx.blockPoints.length === 0 ||
-          ctx.historyIndex >= ctx.blockPoints[ctx.blockPoints.length - 1]);
-
-    const handleSkipBack = () => {
-      if (ctx.steppingMode === "view") {
-        if (ctx.stepPoints.length > 0)
-          toIndex(ctx.stepPoints[0], ctx, compStore);
-      } else {
-        if (ctx.blockPoints.length > 0)
-          toIndex(ctx.blockPoints[0], ctx, compStore);
-      }
-    };
-
-    const handleSkipForward = () => {
-      if (ctx.steppingMode === "view") {
-        if (ctx.stepPoints.length > 0)
-          toIndex(ctx.stepPoints[ctx.stepPoints.length - 1], ctx, compStore);
-      } else {
-        if (ctx.blockPoints.length > 0)
-          toIndex(ctx.blockPoints[ctx.blockPoints.length - 1], ctx, compStore);
-      }
-    };
-
-    const handleStepNext = () => {
-      if (ctx.steppingMode === "view") {
-        toStep(ctx, compStore);
-      } else {
-        toNextBlock(ctx, compStore);
-      }
-    };
-
-    const handleStepPrev = () => {
-      if (ctx.steppingMode === "view") {
-        toPrevView(ctx, compStore);
-      } else {
-        toPrevBlock(ctx, compStore);
-      }
-    };
-
-    return (
-      <div
-        className={`flex justify-start items-center p-2 gap-2 ${showCode ? "border-b border-slate-200" : ""}`}
-      >
-        <Button
-          onClick={handleSkipBack}
-          disabled={skipBackDisabled}
-          icon={SkipBack}
-        />
-        <Button
-          onClick={handleStepPrev}
-          disabled={
-            ctx.steppingMode === "view" ? prevViewDisabled : prevBlockDisabled
-          }
-          icon={StepBack}
-        />
-        <Button
-          onClick={handleStepNext}
-          disabled={
-            ctx.steppingMode === "view" ? nextViewDisabled : nextBlockDisabled
-          }
-          icon={StepForward}
-        />
-        <Button
-          onClick={handleSkipForward}
-          disabled={skipForwardDisabled}
-          icon={SkipForward}
-        />
-        {onToggleCode && <Button onClick={onToggleCode} icon={Code} />}
-        {showCode && (
-          <div className="relative flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 w-28 h-9">
-            <div
-              className={`absolute h-[calc(100%-4px)] w-[calc(50%-2px)] bg-white rounded-[10px] shadow-sm transition-transform duration-200 ease-in-out ${
-                ctx.steppingMode === "view"
-                  ? "translate-x-0"
-                  : "translate-x-full"
-              }`}
-            />
-            <button
-              onClick={() => ctx.setSteppingMode("view")}
-              className={`relative z-10 flex-1 h-full flex items-center justify-center text-xs font-medium transition-colors duration-200 ${
-                ctx.steppingMode === "view"
-                  ? "text-slate-900"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              View
-            </button>
-            <button
-              onClick={() => ctx.setSteppingMode("line")}
-              className={`relative z-10 flex-1 h-full flex items-center justify-center text-xs font-medium transition-colors duration-200 ${
-                ctx.steppingMode === "line"
-                  ? "text-slate-900"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Line
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  });
+  return (
+    <div className="flex justify-start items-center pb-2 gap-2">
+      <Button
+        onClick={handleSkipBack}
+        disabled={skipBackDisabled}
+        icon={SkipBack}
+      />
+      <Button
+        onClick={handleStepPrev}
+        disabled={
+          ctx.steppingMode === "view" ? prevViewDisabled : prevBlockDisabled
+        }
+        icon={StepBack}
+      />
+      <Button
+        onClick={handleStepNext}
+        disabled={
+          ctx.steppingMode === "view" ? nextViewDisabled : nextBlockDisabled
+        }
+        icon={StepForward}
+      />
+      <Button
+        onClick={handleSkipForward}
+        disabled={skipForwardDisabled}
+        icon={SkipForward}
+      />
+    </div>
+  );
+});

@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 
-import type { DataPoint } from "./Plot2D";
+import type { DataPoint } from "./plot-2d";
 
 /**
  * Creates the hover group with circle and crosshair lines

@@ -8,7 +8,7 @@ import { Handle, Position } from "@xyflow/react";
 import LatexLabel from "../latex";
 import SVGLabel from "../svg-label";
 import { useFormulize } from "../../core/hooks";
-import { useVariableDrag } from "../../util/useVariableDrag";
+import { useVariableDrag } from "../../util/use-variable-drag";
 import { VAR_CLASSES } from "../css-classes";
 
 export interface LabelNodeData {

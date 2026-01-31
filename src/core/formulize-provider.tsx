@@ -7,9 +7,9 @@ import beautify from "js-beautify";
 import { refresh } from "../engine/manual/execute";
 import { extractManual } from "../engine/manual/extract";
 import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
-import { MathJaxLoader } from "../internal/MathJaxLoader";
-import { FormulizeContext, FormulizeContextValue } from "./hooks/useFormulize";
-import { useMathJax } from "../util/useMathJax";
+import { MathJaxLoader } from "../internal/mathjax-loader";
+import { FormulizeContext, FormulizeContextValue } from "./hooks/use-formulize";
+import { useMathJax } from "../util/use-mathjax";
 
 interface FormulizeProviderProps {
   config?: FormulizeConfig;

@@ -3,8 +3,8 @@ import React, { useEffect, useState } from "react";
 import { FormulizeConfig } from "..";
 import { IVisualization } from "../types/visualization";
 import Canvas from "./custom/canvas";
-import Plot2D from "./plot2d/Plot2D";
-import Plot3D from "./plot3d/Plot3D";
+import Plot2D from "./plot2d/plot-2d";
+import Plot3D from "./plot3d/plot-3d";
 
 const PlotWrapper: React.FC<{
   title?: string;

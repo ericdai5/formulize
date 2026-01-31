@@ -1,24 +1,24 @@
 import { average } from "./average";
-import { task2instruction } from "./task2instruction";
-import { bayesWithCustomVisualization } from "./bayesVisualization";
-import { fittsLaw } from "./fittsLaw";
-import { gravitationalPotential } from "./gravitationalPotential";
-import { waveEquationSVG } from "./jsGeneratedSVG";
-import { kinetic2D } from "./kinetic2D";
-import { kinetic3D } from "./kinetic3D";
-import { lossFunction } from "./lossFunction";
-import { matrixMultiplication } from "./matrixMultiplication";
-import { parameterizedPlane } from "./parameterizedPlane";
-import { parametric3D } from "./parametric3D";
-import { task2training } from "./task2training";
-import { quadratic2D } from "./quadratic2D";
-import { quadratic3D } from "./quadratic3D";
-import { setOperations } from "./setOperations";
-import { sinTheta } from "./sinTheta";
-import { summationBasic } from "./summationBasic";
+import { task2instruction } from "./task-2-instruction";
+import { bayesWithCustomVisualization } from "./bayes-visualization";
+import { fittsLaw } from "./fitts-law";
+import { gravitationalPotential } from "./gravitational-potential";
+import { waveEquationSVG } from "./js-generated-svg";
+import { kinetic2D } from "./kinetic-2d";
+import { kinetic3D } from "./kinetic-3d";
+import { lossFunction } from "./loss-function";
+import { matrixMultiplication } from "./matrix-multiplication";
+import { parameterizedPlane } from "./parameterized-plane";
+import { parametric3D } from "./parametric-3d";
+import { task2training } from "./task-2-training";
+import { quadratic2D } from "./quadratic-2d";
+import { quadratic3D } from "./quadratic-3d";
+import { setOperations } from "./set-operations";
+import { sinTheta } from "./sin-theta";
+import { summationBasic } from "./summation-basic";
 import { svgIntegration } from "./svg-integration";
-import { svgKineticEnergy2D } from "./svgLabels";
-import { vectorAddition } from "./vectorAddition";
+import { svgKineticEnergy2D } from "./svg-labels";
+import { vectorAddition } from "./vector-addition";
 
 export const examples = {
   average,

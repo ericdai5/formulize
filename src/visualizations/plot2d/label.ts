@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 
 import { ComputationStore } from "../../store/computation";
-import type { DataPoint } from "./Plot2D";
+import type { DataPoint } from "./plot-2d";
 import { formatVariableValue, getVariableLabel } from "./utils";
 
 /**

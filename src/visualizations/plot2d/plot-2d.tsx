@@ -7,7 +7,7 @@ import * as d3 from "d3";
 
 import { useFormulize } from "../../core/hooks";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
-import { AxisLabels } from "./AxisLabels";
+import { AxisLabels } from "./axis-labels";
 import { autoDetectPlotConfig } from "./auto-detect";
 import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { PLOT2D_DEFAULTS } from "./defaults";

@@ -1,8 +1,8 @@
-export { Formula } from "./Formula";
-export { FormulizeProvider } from "./FormulizeProvider";
-export { InlineFormula } from "./InlineFormula";
-export { InlineVariable } from "./InlineVariable";
-export { EmbeddedFormula } from "./EmbeddedFormula";
-export { VisualizationComponent } from "./VisualizationComponent";
-export { InterpreterControl } from "./InterpreterControl";
-export type { InterpreterControlProps } from "./InterpreterControl";
+export { Formula } from "./formula";
+export { FormulizeProvider } from "./formulize-provider";
+export { InlineFormula } from "./inline-formula";
+export { InlineVariable } from "./inline-variable";
+export { EmbeddedFormula } from "./embedded-formula";
+export { VisualizationComponent } from "./visualization-component";
+export { InterpreterControl } from "./interpreter-control";
+export type { InterpreterControlProps } from "./interpreter-control";

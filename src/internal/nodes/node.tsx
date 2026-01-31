@@ -4,7 +4,7 @@ import "@xyflow/react/dist/style.css";
 import ControlNode from "./control-node";
 import ExpressionNode from "./expression-node";
 import FormulaNode from "./formula-node";
-import InterpreterControlNode from "./interpreter-control-node";
+import { InterpreterControlNode } from "./node-wrapper";
 import LabelNode from "./label-node";
 import VariableNode from "./variable-node";
 import StepNode from "./step-node";

@@ -7,7 +7,7 @@ import { getInputVariableState } from "../util/parse/variable";
 import { VAR_CLASSES } from "../internal/css-classes";
 import { ComputationStore } from "../store/computation";
 import { useFormulize } from "./hooks";
-import { useMathJax } from "../util/useMathJax";
+import { useMathJax } from "../util/use-mathjax";
 
 type DisplayMode = "symbol" | "value" | "both" | "withUnits";
 

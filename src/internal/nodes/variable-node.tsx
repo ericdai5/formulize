@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Handle, Position } from "@xyflow/react";
 
 import { useFormulize } from "../../core/hooks";
-import { useVariableDrag } from "../../util/useVariableDrag";
+import { useVariableDrag } from "../../util/use-variable-drag";
 import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
 
 export interface VariableNodeData {

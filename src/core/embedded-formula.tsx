@@ -7,7 +7,7 @@ import { getInputVariableState, processLatexContent } from "../util/parse/variab
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
 import { useFormulize } from "./hooks";
-import { useMathJax } from "../util/useMathJax";
+import { useMathJax } from "../util/use-mathjax";
 
 interface EmbeddedFormulaProps {
   /** Formula ID to render (looks up from environment) */

@@ -8,7 +8,7 @@ import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
 import { useFormulize } from "./hooks";
-import { useMathJax } from "../util/useMathJax";
+import { useMathJax } from "../util/use-mathjax";
 
 interface InlineFormulaProps {
   /** Formula ID to render (looks up from environment) */

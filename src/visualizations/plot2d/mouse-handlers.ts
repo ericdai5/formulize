@@ -3,7 +3,7 @@ import { runInAction } from "mobx";
 import * as d3 from "d3";
 
 import { ComputationStore } from "../../store/computation";
-import type { DataPoint } from "./Plot2D";
+import type { DataPoint } from "./plot-2d";
 import { scaleCurrentPoint } from "./current-point";
 import { setHoverVisibility, updateHoverPosition } from "./hover";
 import { updateCurrentPointLabel } from "./label";
