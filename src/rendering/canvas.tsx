@@ -39,11 +39,11 @@ import {
   getVariableNodes,
   positionAndShowstepNodes,
 } from "./util/node-helpers";
+import { addstepNodes as addstepNodesUtil } from "./util/step-node";
 import {
   useAddVariableNodes,
   useUpdateVariableNodes,
 } from "./util/variable-nodes";
-import { addstepNodes as addstepNodesUtil } from "./util/view-node";
 
 interface CanvasProps {
   formulaStore?: FormulaStore;
@@ -472,7 +472,7 @@ const CanvasFlow = observer(
                 const nonLabelViewExpressionNodes = currentNodes.filter(
                   (node) =>
                     node.type !== NODE_TYPES.LABEL &&
-                    node.type !== NODE_TYPES.VIEW &&
+                    node.type !== NODE_TYPES.STEP &&
                     node.type !== NODE_TYPES.EXPRESSION
                 );
                 return nonLabelViewExpressionNodes;

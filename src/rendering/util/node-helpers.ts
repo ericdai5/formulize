@@ -11,7 +11,7 @@ export const NODE_TYPES = {
   FORMULA: "formula",
   VARIABLE: "variable",
   LABEL: "label",
-  VIEW: "view",
+  STEP: "step",
   EXPRESSION: "expression",
 } as const;
 
@@ -174,8 +174,8 @@ export const getVariableNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.VARIABLE);
 export const getExpressionNodes = (nodes: Node[]) =>
   getNodesByType(nodes, NODE_TYPES.EXPRESSION);
-export const getstepNodes = (nodes: Node[]) =>
-  getNodesByType(nodes, NODE_TYPES.VIEW);
+export const getStepNodes = (nodes: Node[]) =>
+  getNodesByType(nodes, NODE_TYPES.STEP);
 
 /**
  * Extract unique formula IDs from an array of nodes
@@ -218,7 +218,7 @@ export function checkAllNodesMeasured(nodes: Node[]): {
   allReady: boolean;
 } {
   const labelNodes = getLabelNodes(nodes);
-  const stepNodes = getstepNodes(nodes);
+  const stepNodes = getStepNodes(nodes);
   const variableNodes = getVariableNodes(nodes);
   const labelNodesMeasured = checkNodesMeasured(labelNodes);
   const stepNodesMeasured = checkNodesMeasured(stepNodes);
@@ -241,12 +241,12 @@ export function positionAndShowstepNodes(
   formulaNode: Node
 ): Node[] {
   return currentNodes.map((node) => {
-    if (node.type === NODE_TYPES.VIEW) {
+    if (node.type === NODE_TYPES.STEP) {
       // Calculate the step node X center position
       const viewCenterX = node.position.x;
 
       // Calculate Y position that avoids label collisions
-      const newY = getstepNodeYPositionAvoidingLabels(
+      const newY = getStepNodeYPositionAvoidingLabels(
         currentNodes,
         formulaNode,
         viewCenterX
@@ -277,7 +277,7 @@ export function positionAndShowstepNodes(
  * @param baseOffset - Base offset above the formula (default 25)
  * @returns The optimal Y position for the step node (negative value, above formula)
  */
-export function getstepNodeYPositionAvoidingLabels(
+export function getStepNodeYPositionAvoidingLabels(
   nodes: Node[],
   formulaNode: Node,
   _stepNodeX: number,

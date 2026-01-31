@@ -40,7 +40,6 @@ This is a **Formula Editor** built with React + TypeScript + Vite that provides 
 
    - `manual` - Manual step-through with JS interpreter
    - `symbolic-algebra` - Mathematical computation engine
-   - `llm` - LLM-powered function generation
 
 4. **Formula Processing**:
    - LaTeX parsing and rendering with MathJax/KaTeX

@@ -120,6 +120,12 @@ class ExecutionStore {
 
     // If history already exists, process this config immediately
     if (this.history.length > 0) {
+      // Clear existing extensions for this key before processing to avoid duplicates
+      for (const step of this.history) {
+        if (step.extensions && step.extensions[object.key]) {
+          delete step.extensions[object.key];
+        }
+      }
       Step.processObjects(this.history, [object]);
     }
   }

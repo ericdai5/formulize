@@ -1,4 +1,5 @@
 import { average } from "./average";
+import { task2instruction } from "./task2instruction";
 import { bayesWithCustomVisualization } from "./bayesVisualization";
 import { fittsLaw } from "./fittsLaw";
 import { gravitationalPotential } from "./gravitationalPotential";
@@ -9,6 +10,7 @@ import { lossFunction } from "./lossFunction";
 import { matrixMultiplication } from "./matrixMultiplication";
 import { parameterizedPlane } from "./parameterizedPlane";
 import { parametric3D } from "./parametric3D";
+import { task2training } from "./task2training";
 import { quadratic2D } from "./quadratic2D";
 import { quadratic3D } from "./quadratic3D";
 import { setOperations } from "./setOperations";
@@ -20,8 +22,10 @@ import { vectorAddition } from "./vectorAddition";
 
 export const examples = {
   average,
+  task2instruction,
   kinetic2D,
   kinetic3D,
+  task2training,
   quadratic2D,
   quadratic3D,
   sinTheta,
@@ -42,9 +46,11 @@ export const examples = {
 
 export const exampleDisplayNames = {
   average: "Average (Mean)",
+  task2instruction: "Task 2 Instruction",
   kinetic2D: "Kinetic Energy 2D",
   kinetic3D: "Kinetic Energy 3D",
   gravitationalPotential: "Gravitational Potential",
+  task2training: "Task 2 Training",
   quadratic2D: "Quadratic Equation 2D",
   quadratic3D: "Quadratic Equation 3D",
   sinTheta: "Sine Function",

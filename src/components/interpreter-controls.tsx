@@ -67,7 +67,8 @@ const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
       !ctx.interpreter ||
       (ctx.isComplete && !isBrowsingHistory) ||
       ctx.isToStep ||
-      ctx.isToIndex;
+      ctx.isToIndex ||
+      ctx.isToBlock;
 
     const toBlockDisabled =
       !ctx.interpreter ||

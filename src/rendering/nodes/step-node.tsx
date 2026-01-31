@@ -5,18 +5,16 @@ import { Handle, Position } from "@xyflow/react";
 import LatexLabel from "../../components/latex";
 import { HANDLE_STYLE } from "../css-classes";
 
-export interface stepNodeData {
+export interface StepNodeData {
   expression: string;
   description: string;
   activeVarIds?: string[];
 }
 
-const stepNode = observer(({ data }: { data: stepNodeData }) => {
+const StepNode = observer(({ data }: { data: StepNodeData }) => {
   const { expression, description } = data;
-
   // Wrap text in \text{} for proper LaTeX text rendering
   const latexDescription = `\\text{${description}}`;
-
   return (
     <div
       className="view-flow-node text-base text-black font-regular text-center rounded-xl"
@@ -41,4 +39,4 @@ const stepNode = observer(({ data }: { data: stepNodeData }) => {
   );
 });
 
-export default stepNode;
+export default StepNode;
