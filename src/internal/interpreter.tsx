@@ -263,7 +263,6 @@ const DebugModal: React.FC<DebugModalProps> = observer(
           <InterpreterControls
             onClose={onClose}
             onRefresh={handleRefresh}
-            onStepToIndex={() => {}}
             onToggleAutoPlay={toggleAutoPlay}
           />
           {/* Error Display */}

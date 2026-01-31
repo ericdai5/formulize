@@ -1,3 +1,5 @@
+import React from "react";
+
 import { GripHorizontal } from "lucide-react";
 
 import { InterpreterControl } from "../../core/interpreter-control";

@@ -30,7 +30,6 @@ import Select from "../ui/select";
 interface InterpreterControlsProps {
   onClose: () => void;
   onRefresh: () => void;
-  onStepToIndex: (variableId: string, targetIdx: number) => void;
   onToggleAutoPlay: () => void;
 }
 
