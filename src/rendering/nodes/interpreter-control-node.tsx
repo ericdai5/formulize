@@ -25,20 +25,9 @@ const InterpreterControlNode = observer(() => {
   const isLoading = context?.isLoading ?? true;
   const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
   const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
-  // Guard: executionStore must be provided
-  if (!executionStore) {
-    return null;
-  }
+
   // Read userCode from the store (set by FormulizeProvider during initialization)
-  const userCode = executionStore.userCode;
-  // Show loading state while FormulizeProvider is initializing
-  if (isLoading && !userCode) {
-    return (
-      <div className="interpreter-control-node border bg-white border-slate-200 rounded-2xl shadow-sm w-full p-4">
-        <div className="text-slate-500 text-sm">Loading...</div>
-      </div>
-    );
-  }
+  const userCode = executionStore?.userCode ?? "";
 
   const clearUserViewLine = useCallback(() => {
     if (userViewCodeMirrorRef.current?.view) {
@@ -51,6 +40,9 @@ const InterpreterControlNode = observer(() => {
 
   const convertCharPos = useCallback(
     (interpreterCharPos: number): number => {
+      if (!executionStore || !userCode) {
+        return 0;
+      }
       const interpreterLines = executionStore.code.split("\n");
       const userLines = userCode.split("\n");
       // Find which line in interpreter code the character position corresponds to
@@ -81,7 +73,7 @@ const InterpreterControlNode = observer(() => {
 
       return userCharPos;
     },
-    [userCode, executionStore.code]
+    [userCode, executionStore]
   );
 
   const getLineFromCharPosition = useCallback(
@@ -110,6 +102,9 @@ const InterpreterControlNode = observer(() => {
   // Helper function to handle user view highlighting for block statements
   const handleUserViewHighlighting = useCallback(
     (index: number) => {
+      if (!executionStore || !userCode) {
+        return;
+      }
       if (isAtBlock(executionStore.history, index) && index > 0) {
         const previousState = executionStore.history[index - 1];
         if (previousState?.highlight) {
@@ -124,13 +119,17 @@ const InterpreterControlNode = observer(() => {
       getLineFromCharPosition,
       userCode,
       highlightUserViewLine,
-      executionStore.history,
+      executionStore,
     ]
   );
 
-  const currentState = executionStore.history[executionStore.historyIndex];
+  const currentState =
+    executionStore?.history[executionStore.historyIndex] ?? null;
 
   useEffect(() => {
+    if (!executionStore) {
+      return;
+    }
     if (
       !executionStore.history ||
       executionStore.history.length === 0 ||
@@ -157,9 +156,22 @@ const InterpreterControlNode = observer(() => {
     highlightUserViewLine,
     clearUserViewLine,
     handleUserViewHighlighting,
-    executionStore.historyIndex,
-    executionStore.history,
+    executionStore,
   ]);
+
+  // Guard: executionStore must be provided
+  if (!executionStore) {
+    return null;
+  }
+
+  // Show loading state while FormulizeProvider is initializing
+  if (isLoading && !userCode) {
+    return (
+      <div className="interpreter-control-node border bg-white border-slate-200 rounded-2xl shadow-sm w-full p-4">
+        <div className="text-slate-500 text-sm">Loading...</div>
+      </div>
+    );
+  }
 
   // Calculate progress based on stepping mode
   const points =

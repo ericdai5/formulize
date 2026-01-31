@@ -40,18 +40,15 @@ const parseDOMNode = (
   const id = `${parentId}-${index}`;
   const htmlEl = element as HTMLElement;
   const classes = Array.from(element.classList);
-  const isVariable = classes.some(
-    (c) =>
-      c.includes("formula-var-") ||
-      c === "formula-var-base" ||
-      c === "formula-var-input" ||
-      c === "formula-var-computed"
-  );
 
+  // Compute variableType first from the explicit supported classes
   let variableType: string | null = null;
   if (classes.includes("formula-var-input")) variableType = "input";
   else if (classes.includes("formula-var-computed")) variableType = "computed";
   else if (classes.includes("formula-var-base")) variableType = "base";
+
+  // Derive isVariable from variableType to ensure consistency
+  const isVariable = variableType !== null;
 
   // Get direct text content (not from children)
   let textContent = "";

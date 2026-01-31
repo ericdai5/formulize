@@ -6,7 +6,6 @@ import {
   generateManualDisplayCode,
   generateSymbolicAlgebraDisplayCode,
 } from "../engine/display-code-generator";
-import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
 import { AugmentedFormula } from "../parse/formula-tree";
@@ -14,8 +13,10 @@ import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IRole, IValue, IVariable } from "../types/variable";
 
+export type EvaluationFunctionInput = Record<string, number | number[]>;
+
 export type EvaluationFunction = (
-  variables: Record<string, number>
+  variables: EvaluationFunctionInput
 ) => Record<string, IValue>;
 
 class ComputationStore {
@@ -545,9 +546,6 @@ class ComputationStore {
         this.getDisplayCodeGeneratorContext()
       );
       this.setLastGeneratedCode(displayCode);
-    } else if (this.engine === "llm") {
-      // For LLM engine, create a multi-expression evaluator using the LLM approach
-      await this.createLLMMultiExpressionEvaluator(expressions);
     } else if (this.engine === "manual" && this.semantics) {
       // For manual engine, create an evaluator using manual functions
       this.evaluationFunction = this.createManualEvaluator();
@@ -567,7 +565,7 @@ class ComputationStore {
   private createMultiExpressionEvaluator(
     expressions: string[]
   ): EvaluationFunction {
-    return (inputValues: Record<string, number>) => {
+    return (inputValues: EvaluationFunctionInput) => {
       // Use expressions if available
       if (!expressions || expressions.length === 0) {
         console.warn("No expressions available for symbolic algebra engine");
@@ -577,10 +575,17 @@ class ComputationStore {
       // Evaluate using the symbolic algebra engine with the computation store variables
       try {
         const storeVariables = this.getVariables();
+        // Filter to only numeric values for the symbolic algebra engine
+        const numericInputValues: Record<string, number> = {};
+        for (const [key, value] of Object.entries(inputValues)) {
+          if (typeof value === "number") {
+            numericInputValues[key] = value;
+          }
+        }
         const symbolResult = computeWithSymbolicEngine(
           expressions,
           storeVariables,
-          inputValues
+          numericInputValues
         );
         return symbolResult;
       } catch (error) {
@@ -706,14 +711,14 @@ class ComputationStore {
     try {
       this.isUpdatingDependents = true;
       // Include both numeric and array values for manual engine support
-      const values = Object.fromEntries(
+      const values: EvaluationFunctionInput = Object.fromEntries(
         Array.from(this.variables.entries())
           .filter(
             ([, v]) =>
               v.value !== undefined &&
               (typeof v.value === "number" || Array.isArray(v.value))
           )
-          .map(([symbol, v]) => [symbol, v.value as number])
+          .map(([symbol, v]) => [symbol, v.value as number | number[]])
       );
       const results = this.evaluationFunction(values);
       // Update all computed variables with their computed values (numeric or array)
@@ -759,43 +764,6 @@ class ComputationStore {
       variables[varName] = toJS(variable);
     }
     return variables;
-  }
-
-  // Create an LLM-based multi-expression evaluator
-  private async createLLMMultiExpressionEvaluator(expressions: string[]) {
-    const computedVars = this.getComputedVars();
-
-    if (computedVars.length === 0) {
-      return;
-    }
-
-    try {
-      // Use the first expression for LLM generation (maintain backward compatibility)
-      const primaryExpression = expressions[0] || "";
-
-      if (!primaryExpression.trim()) {
-        return;
-      }
-
-      const computedVars = this.getComputedVarSymbols();
-      const inputVars = this.getInputVarSymbols();
-
-      // Generate function code via LLM
-      const functionCode = await generateLLMFunction({
-        formula: primaryExpression,
-        computedVars,
-        inputVars,
-      });
-
-      const displayCode = generateLLMDisplayCode(functionCode, expressions);
-      this.setLastGeneratedCode(displayCode);
-      this.evaluationFunction = new Function(
-        "variables",
-        `"use strict";\n${functionCode}\nreturn evaluate(variables);`
-      ) as EvaluationFunction;
-    } catch (error) {
-      console.error("Error creating LLM multi-expression evaluator:", error);
-    }
   }
 }
 

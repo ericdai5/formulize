@@ -15,7 +15,7 @@ export const summationBasic = `const config = {
     },
     x: {
       role: "input",
-      name: "x: member of X",
+      name: "Member of X",
       latexDisplay: "name",
       labelDisplay: "value",
     },
@@ -45,7 +45,7 @@ export const summationBasic = `const config = {
         var xi = xValues[i];
         var probability = pxValues[i];
         if (i === 0) {
-          step({ description: "Get a value x from X", values: [["x", xValues], ["X", xi]] });
+          step({ description: "Get a value x from X", values: [["x", xi], ["X", xValues]] });
           step({ description: "Get a value P(x) from P(x)", values: [["P(x)", probability]] });
         }
         var currExpected = Math.round(xi * probability * 100) / 100;
