@@ -9,7 +9,7 @@ import {
   NODE_TYPES,
   getFormulaElement,
   getFormulaNodes,
-  getstepNodeYPositionAvoidingLabels,
+  getStepNodeYPositionAvoidingLabels,
 } from "./node-helpers";
 
 /**
@@ -25,7 +25,7 @@ export interface BoundingBox {
 /**
  * Result of creating step and expression nodes
  */
-export interface stepNodesResult {
+export interface StepNodesResult {
   stepNodes: Node[];
   expressionNodes: Node[];
   stepEdges: Edge[];
@@ -196,7 +196,7 @@ export function createstepNode(
 ): Node {
   return {
     id: stepNodeId,
-    type: "view",
+    type: NODE_TYPES.STEP,
     position,
     parentId: formulaNode.id,
     origin: [0.5, 0] as [number, number],
@@ -300,7 +300,7 @@ export interface CreatestepNodesParams {
  */
 export function createStepAndExpressionNodes(
   params: CreatestepNodesParams
-): stepNodesResult {
+): StepNodesResult {
   const {
     currentNodes,
     formulaNode,
@@ -349,7 +349,7 @@ export function createStepAndExpressionNodes(
     const { minX, maxX } = expressionBoundingBox;
     const expressionWidth = maxX - minX + padding * 2;
     const expressionCenterX = minX - padding + expressionWidth / 2;
-    const basestepNodeY = getstepNodeYPositionAvoidingLabels(
+    const basestepNodeY = getStepNodeYPositionAvoidingLabels(
       currentNodes,
       formulaNode,
       expressionCenterX
@@ -387,7 +387,7 @@ export function createStepAndExpressionNodes(
     if (variableBoundingBox) {
       viewCenterX = (variableBoundingBox.minX + variableBoundingBox.maxX) / 2;
     }
-    const stepNodeY = getstepNodeYPositionAvoidingLabels(
+    const stepNodeY = getStepNodeYPositionAvoidingLabels(
       currentNodes,
       formulaNode,
       viewCenterX
@@ -441,7 +441,7 @@ export function addstepNodes({
     setNodes((currentNodes) =>
       currentNodes.filter(
         (node) =>
-          node.type !== NODE_TYPES.VIEW && node.type !== NODE_TYPES.EXPRESSION
+          node.type !== NODE_TYPES.STEP && node.type !== NODE_TYPES.EXPRESSION
       )
     );
     setEdges((currentEdges) =>
@@ -520,7 +520,7 @@ export function addstepNodes({
     setNodes((currentNodes) => {
       const filteredNodes = currentNodes.filter(
         (node) =>
-          node.type !== NODE_TYPES.VIEW && node.type !== NODE_TYPES.EXPRESSION
+          node.type !== NODE_TYPES.STEP && node.type !== NODE_TYPES.EXPRESSION
       );
       return [...filteredNodes, ...allExpressionNodes, ...allstepNodes];
     });
@@ -546,7 +546,7 @@ export function addstepNodes({
     setNodes((currentNodes) =>
       currentNodes.filter(
         (node) =>
-          node.type !== NODE_TYPES.VIEW && node.type !== NODE_TYPES.EXPRESSION
+          node.type !== NODE_TYPES.STEP && node.type !== NODE_TYPES.EXPRESSION
       )
     );
     setEdges((currentEdges) =>

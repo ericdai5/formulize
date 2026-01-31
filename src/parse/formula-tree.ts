@@ -3086,8 +3086,10 @@ export const findExpression = (
       return null;
     }
     const matchedNodes = matches[0].nodes;
-    // Collect all cssIds from the matched nodes
-    const elementIds = collectCssIds(matchedNodes);
+    // Get cssIds directly from matched nodes
+    const elementIds = matchedNodes
+      .map((node) => node.cssId)
+      .filter((id): id is string => id !== null);
     if (elementIds.length === 0) {
       return null;
     }
@@ -3099,25 +3101,4 @@ export const findExpression = (
     console.warn("[findExpression] Error:", error);
     return null;
   }
-};
-
-/**
- * Collect all cssId values from AST nodes.
- * These IDs correspond to \cssId{} wrappers in the rendered LaTeX and were
- * assigned during variable processing.
- *
- * @param nodes - The matched AST nodes with cssId values
- */
-const collectCssIds = (nodes: AugmentedFormulaNode[]): string[] => {
-  const ids: string[] = [];
-  const collect = (node: AugmentedFormulaNode, depth: number = 0) => {
-    // Use the cssId that was assigned during variable processing
-    if (node.cssId) {
-      ids.push(node.cssId);
-    }
-    // Recurse into children to collect their cssIds as well
-    node.children.forEach((child) => collect(child, depth + 1));
-  };
-  nodes.forEach((node) => collect(node, 0));
-  return [...new Set(ids)]; // Remove duplicates
 };

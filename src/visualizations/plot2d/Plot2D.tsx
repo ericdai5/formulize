@@ -363,7 +363,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         items,
       });
     }
-  }, [stepPoints, executionStore, executionStore?.history.length]);
+  }, [stepPoints, executionStore, executionStore?.history.length, executionStore?.resetCount]);
 
   // Guard: computationStore must be provided - placed after all hooks
   if (!computationStore) {

@@ -14,8 +14,10 @@ import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IRole, IValue, IVariable } from "../types/variable";
 
+export type EvaluationFunctionInput = Record<string, number | number[]>;
+
 export type EvaluationFunction = (
-  variables: Record<string, number>
+  variables: EvaluationFunctionInput
 ) => Record<string, IValue>;
 
 class ComputationStore {
@@ -567,7 +569,7 @@ class ComputationStore {
   private createMultiExpressionEvaluator(
     expressions: string[]
   ): EvaluationFunction {
-    return (inputValues: Record<string, number>) => {
+    return (inputValues: EvaluationFunctionInput) => {
       // Use expressions if available
       if (!expressions || expressions.length === 0) {
         console.warn("No expressions available for symbolic algebra engine");
@@ -577,10 +579,17 @@ class ComputationStore {
       // Evaluate using the symbolic algebra engine with the computation store variables
       try {
         const storeVariables = this.getVariables();
+        // Filter to only numeric values for the symbolic algebra engine
+        const numericInputValues: Record<string, number> = {};
+        for (const [key, value] of Object.entries(inputValues)) {
+          if (typeof value === "number") {
+            numericInputValues[key] = value;
+          }
+        }
         const symbolResult = computeWithSymbolicEngine(
           expressions,
           storeVariables,
-          inputValues
+          numericInputValues
         );
         return symbolResult;
       } catch (error) {
@@ -706,14 +715,14 @@ class ComputationStore {
     try {
       this.isUpdatingDependents = true;
       // Include both numeric and array values for manual engine support
-      const values = Object.fromEntries(
+      const values: EvaluationFunctionInput = Object.fromEntries(
         Array.from(this.variables.entries())
           .filter(
             ([, v]) =>
               v.value !== undefined &&
               (typeof v.value === "number" || Array.isArray(v.value))
           )
-          .map(([symbol, v]) => [symbol, v.value as number])
+          .map(([symbol, v]) => [symbol, v.value as number | number[]])
       );
       const results = this.evaluationFunction(values);
       // Update all computed variables with their computed values (numeric or array)

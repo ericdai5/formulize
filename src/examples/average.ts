@@ -7,33 +7,28 @@ export const average = `const config = {
   ],
   variables: {
     "\\\\bar{X}": {
-      role: "computed",
       default: 0,
       name: "Average",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     n: {
-      role: "computed",
       default: 0,
       name: "Count",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     i: {
-      role: "input",
       name: "Index",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     X_i: {
-      role: "input",
       name: "Value at index i",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     X: {
-      role: "input",
       default: [10, 20, 30, 40, 50],
       name: "Data values",
       latexDisplay: "name",
@@ -54,7 +49,7 @@ export const average = `const config = {
         step({ description: "Get value $X_i$ from $X$", values: [["i", i + 1], ["X_i", xi], ["X", xValues]] });
         step({ description: "Add $X_i$ to running sum of " + sum, values: [["X_i", xi]] });
         sum = sum + xi;
-        step({ description: "Sum is now " + sum, values: [["sum", sum]] });
+        step({ description: "Sum is now " + sum, expression: "\\\\sum_{i=1}^{n} X_i" });
       }
       average = sum / n;
       average = Math.round(average * 100) / 100;

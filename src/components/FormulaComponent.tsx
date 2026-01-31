@@ -22,8 +22,8 @@ import { CanvasContextMenu } from "../rendering/canvas-context-menu";
 import ExpressionNode from "../rendering/nodes/expression-node";
 import FormulaNode from "../rendering/nodes/formula-node";
 import LabelNode from "../rendering/nodes/label-node";
+import StepNode from "../rendering/nodes/step-node";
 import VariableNode from "../rendering/nodes/variable-node";
-import stepNode from "../rendering/nodes/view-node";
 import { computeEdgesForFormula } from "../rendering/util/edges";
 import {
   adjustLabelPositions as adjustLabelPositionsUtil,
@@ -38,11 +38,11 @@ import {
   getVariableNodes,
   positionAndShowstepNodes,
 } from "../rendering/util/node-helpers";
+import { addstepNodes as addstepNodesUtil } from "../rendering/util/step-node";
 import {
   addVariableNodesForFormula,
   updateVarNodes,
 } from "../rendering/util/variable-nodes";
-import { addstepNodes as addstepNodesUtil } from "../rendering/util/view-node";
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
 import { useFormulize } from "./useFormulize";
@@ -51,7 +51,7 @@ const nodeTypes = {
   formula: FormulaNode,
   variable: VariableNode,
   label: LabelNode,
-  view: stepNode,
+  step: StepNode,
   expression: ExpressionNode,
 };
 
@@ -444,7 +444,7 @@ const FormulaCanvasInner = observer(
             timeoutId = window.setTimeout(() => {
               // Clear label edges but preserve step edges
               setEdges((currentEdges) =>
-                currentEdges.filter((edge) => edge.id.startsWith("edge-view-"))
+                currentEdges.filter((edge) => edge.id.startsWith("edge-step-"))
               );
 
               // Update variable node dimensions first (CSS classes may have changed)
@@ -547,7 +547,7 @@ const FormulaCanvasInner = observer(
       } else {
         // Preserve step edges even when no nodes
         const existingStepEdges = edges.filter((edge) =>
-          edge.id.startsWith("edge-view-")
+          edge.id.startsWith("edge-step-")
         );
         if (existingStepEdges.length !== edges.length) {
           setEdges(existingStepEdges);
