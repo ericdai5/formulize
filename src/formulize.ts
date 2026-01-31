@@ -102,7 +102,6 @@ async function initializeInstance(
     // Reset all state to ensure we start fresh
     // Clear computation store variables and state
     computationStore.reset();
-    computationStore.setLastGeneratedCode(null);
     computationStore.setVariableRolesChanged(0);
 
     // Set initialization flag to prevent premature evaluations
@@ -157,10 +156,8 @@ async function initializeInstance(
         ? [environment.semantics.manual]
         : [];
 
-    const formulaObjects = environment.formulas;
-
-    // Store the display formulas for rendering and the computation expressions for evaluation
-    computationStore.setDisplayedFormulas(formulaObjects.map((f) => f.latex));
+    // Store formulas in computation store for rendering
+    computationStore.setFormulas(environment.formulas);
 
     // Set up expressions and enable evaluation
     if (symbolicFunctions.length > 0 || manualFunctions.length > 0) {
@@ -250,7 +247,7 @@ async function initializeInstance(
         return formulaStoreManager.allStores;
       },
       getAllFormulas: () => {
-        return computationStore.displayedFormulas || [];
+        return computationStore.formulas.map((f) => f.latex);
       },
       getFormulaStoreCount: () => {
         return formulaStoreManager.getStoreCount();

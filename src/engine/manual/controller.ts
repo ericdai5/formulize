@@ -3,7 +3,7 @@ import { EditorView } from "@codemirror/view";
 import {
   applyCue,
   clearAllCues,
-} from "../../rendering/interaction/step-handler";
+} from "../../util/step-handler";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
 import { IArrayControl } from "../../types/control";

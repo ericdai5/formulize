@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { useFormulize } from "../../components/useFormulize";
+import { useFormulize } from "../../core/hooks";
 import { IRole } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";
 

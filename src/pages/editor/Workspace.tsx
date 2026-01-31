@@ -2,8 +2,8 @@ import { MouseEvent, useCallback, useEffect, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { useFormulize } from "../../components/useFormulize";
-import { MathSymbol } from "../../parse/formula-tree";
+import { useFormulize } from "../../core/hooks";
+import { MathSymbol } from "../../util/parse/formula-tree";
 import { editingStore, formulaStore, selectionStore } from "../../store";
 import { IRole } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";

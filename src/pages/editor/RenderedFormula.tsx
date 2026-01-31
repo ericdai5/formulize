@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import {
   RenderSpec, // deriveAugmentedFormula
-} from "../../parse/formula-tree";
+} from "../../util/parse/formula-tree";
 import { formulaStore, selectionStore } from "../../store";
 
 export const RenderedFormula = observer(() => {

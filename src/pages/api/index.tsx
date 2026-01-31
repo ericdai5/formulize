@@ -9,13 +9,13 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 
-import Editor from "../../components/api-code-editor";
-import ExampleSwitcher from "../../components/example-switcher";
-import IconButton from "../../components/icon-button";
-import Modal from "../../components/modal";
 import { examples as formulaExamples } from "../../examples";
 import { FormulizeConfig } from "../../formulize";
-import FormulaCanvas from "../../rendering/formulize";
+import Editor from "../../internal/api-code-editor";
+import ExampleSwitcher from "../../internal/example-switcher";
+import FormulaCanvas from "../../internal/formulize";
+import IconButton from "../../ui/icon-button";
+import Modal from "../../ui/modal";
 import { executeUserCode } from "../../util/code-executor";
 
 export default function APIPage() {

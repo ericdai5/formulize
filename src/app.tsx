@@ -20,10 +20,8 @@ function App() {
         path="/"
         element={<Navigate to={`/examples/${exampleKeys[0]}`} replace />}
       />
-
       {/* Route for each example */}
       <Route path="/examples/:exampleId" element={<APIPage />} />
-
       {/* Fallback - redirect unknown routes to first example */}
       <Route
         path="*"

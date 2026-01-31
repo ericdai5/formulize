@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import * as d3 from "d3";
 
-import { useFormulize } from "../../components/useFormulize";
+import { useFormulize } from "../../core/hooks";
 import { type IPlot2D, type IVector } from "../../types/plot2d";
 import { AxisLabels } from "./AxisLabels";
 import { autoDetectPlotConfig } from "./auto-detect";

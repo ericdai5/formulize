@@ -1,0 +1,89 @@
+import { observer } from "mobx-react-lite";
+
+import { Handle, Position } from "@xyflow/react";
+
+import { useFormulize } from "../../core/hooks";
+import { useVariableDrag } from "../../util/useVariableDrag";
+import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
+
+export interface VariableNodeData {
+  varId: string;
+  width?: number;
+  height?: number;
+}
+
+const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
+  const { varId, width, height } = data;
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
+  if (!computationStore) {
+    return null;
+  }
+
+  const showBorders = computationStore.showVariableBorders;
+  const variable = computationStore.variables.get(varId);
+  const role = variable?.role === "input" ? "input" : "output";
+  const hasDropdownOptions = !!(
+    Array.isArray(variable?.value) || variable?.options
+  );
+  const isSetVariable = variable?.dataType === "set";
+
+  const nodeRef = useVariableDrag({
+    varId,
+    role: isSetVariable ? "output" : role, // Set variables are not draggable
+    hasDropdownOptions: hasDropdownOptions || isSetVariable,
+    computationStore: computationStore,
+  });
+
+  const handleMouseEnter = () => {
+    computationStore.setVariableHover(varId, true);
+  };
+
+  const handleMouseLeave = () => {
+    computationStore.setVariableHover(varId, false);
+  };
+
+  // Only show draggable cursor for input variables without dropdown and not set variables
+  // Set variables get pointer cursor for click interaction
+  const cursor = isSetVariable
+    ? "pointer"
+    : role === "input" && !hasDropdownOptions
+      ? "ns-resize"
+      : "default";
+
+  return (
+    <div
+      ref={nodeRef}
+      className={`${VAR_CLASSES.BASE} text-xs text-white border-dashed text-center nodrag ${
+        showBorders ? "border border-blue-500 bg-blue-500/50" : ""
+      }`}
+      style={{
+        backgroundColor: "transparent",
+        pointerEvents: "auto",
+        width: width ? `${width}px` : "auto",
+        height: height ? `${height}px` : "auto",
+        cursor,
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Handle for incoming edges from label nodes positioned above - hidden */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="variable-handle-top"
+        style={HANDLE_STYLE}
+      />
+
+      {/* Handle for incoming edges from label nodes positioned below - hidden */}
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="variable-handle-bottom"
+        style={HANDLE_STYLE}
+      />
+    </div>
+  );
+});
+
+export default VariableNode;

@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import {
   FormulizeContext,
   FormulizeContextValue,
-} from "../../components/useFormulize";
-import Canvas from "../../rendering/canvas";
+} from "../../core/hooks";
+import Canvas from "../../internal/canvas";
 import { createComputationStore } from "../../store/computation";
 import { createExecutionStore } from "../../store/execution";
 import { Debug } from "./Debug";

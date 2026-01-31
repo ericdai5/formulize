@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { reaction, runInAction } from "mobx";
 
-import { useFormulize } from "../../components/useFormulize";
+import { useFormulize } from "../../core/hooks";
 import { IContext, ICustom } from "../../types/custom";
 import {
   getVariableValue,

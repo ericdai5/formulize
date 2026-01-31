@@ -2,10 +2,11 @@ import { action, observable, toJS } from "mobx";
 
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
-import { AugmentedFormula } from "../parse/formula-tree";
 import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
+import { IFormula } from "../types/formula";
 import { IRole, IValue, IVariable } from "../types/variable";
+import { AugmentedFormula } from "../util/parse/formula-tree";
 
 export type EvaluationFunctionInput = Record<string, number | number[]>;
 
@@ -69,19 +70,16 @@ class ComputationStore {
   accessor formulaTrees = new Map<string, AugmentedFormula>();
 
   @observable
-  accessor lastGeneratedCode: string | null = null;
-
-  @observable
   accessor engine: "llm" | "symbolic-algebra" | "manual" = "llm";
 
   @observable
   accessor semantics: ISemantics | null = null;
 
   @observable
-  accessor displayedFormulas: string[] = [];
+  accessor symbolicFunctions: string[] = [];
 
   @observable
-  accessor symbolicFunctions: string[] = [];
+  accessor formulas: IFormula[] = [];
 
   @observable
   accessor manualFunctions: IManual[] = [];
@@ -134,11 +132,6 @@ class ComputationStore {
   }
 
   @action
-  setLastGeneratedCode(code: string | null) {
-    this.lastGeneratedCode = code;
-  }
-
-  @action
   setSemantics(config: ISemantics | null) {
     this.semantics = config;
   }
@@ -168,9 +161,9 @@ class ComputationStore {
     this.formulaTrees.clear();
     this.environment = null;
     this.symbolicFunctions = [];
+    this.formulas = [];
     this.manualFunctions = [];
     this.evaluationFunction = null;
-    this.displayedFormulas = [];
     // Remove custom CSS style element
     const styleElement = document.getElementById("custom-var-styles");
     if (styleElement) {
@@ -296,13 +289,13 @@ class ComputationStore {
   }
 
   @action
-  setDisplayedFormulas(formulas: string[]) {
-    this.displayedFormulas = formulas;
+  setSymbolicFunctions(expressions: string[]) {
+    this.symbolicFunctions = expressions;
   }
 
   @action
-  setSymbolicFunctions(expressions: string[]) {
-    this.symbolicFunctions = expressions;
+  setFormulas(formulas: IFormula[]) {
+    this.formulas = formulas;
   }
 
   @action
@@ -655,7 +648,6 @@ class ComputationStore {
     } else if (!hasComputedVars) {
       // Clear evaluation function if no computed variables
       this.evaluationFunction = null;
-      this.lastGeneratedCode = null;
     }
 
     // Update all computed variables
@@ -704,10 +696,8 @@ class ComputationStore {
         value: v.value,
         role: v.role,
       })),
-      lastGeneratedCode: this.lastGeneratedCode,
       hasFunction: !!this.evaluationFunction,
       engine: this.engine,
-      displayedFormulas: this.displayedFormulas,
       symbolicFunctions: this.symbolicFunctions,
     };
   }

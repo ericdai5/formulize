@@ -29,12 +29,12 @@ import {
   FormulaLatexRangeNode,
   StyledRange,
   UnstyledRange,
-} from "../../parse/formula-text";
+} from "../../util/parse/formula-text";
 import {
   type AugmentedFormula,
   checkFormulaCode,
   deriveTree,
-} from "../../parse/formula-tree";
+} from "../../util/parse/formula-tree";
 import { formulaStore, selectionStore } from "../../store";
 
 type DecorationRange = { to: number; from: number; decoration: Decoration };

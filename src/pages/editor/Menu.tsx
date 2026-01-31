@@ -3,7 +3,7 @@ import { default as React } from "react";
 import { observer } from "mobx-react-lite";
 import { Undo, Redo, Strikethrough as StrikethroughIcon, Type, Square, Braces, AlignJustify, Zap } from "lucide-react";
 
-import { consolidateGroups, replaceNodes } from "../../parse/formula-transform";
+import { consolidateGroups, replaceNodes } from "../../util/parse/formula-transform";
 import {
   Aligned,
   AugmentedFormula,
@@ -15,7 +15,7 @@ import {
   Script,
   Strikethrough,
   Text,
-} from "../../parse/formula-tree";
+} from "../../util/parse/formula-tree";
 import {
   editingStore,
   formulaStore,

@@ -2,8 +2,8 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { replaceNodes } from "../../parse/formula-transform";
-import { Group } from "../../parse/formula-tree";
+import { replaceNodes } from "../../util/parse/formula-transform";
+import { Group } from "../../util/parse/formula-tree";
 import {
   DimensionBox,
   debugStore,

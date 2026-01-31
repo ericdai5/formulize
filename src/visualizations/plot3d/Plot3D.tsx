@@ -14,7 +14,7 @@ import * as Plotly from "plotly.js-dist";
 
 import { IPlot3D } from "../..";
 import { FormulizeConfig } from "../..";
-import { useFormulize } from "../../components/useFormulize";
+import { useFormulize } from "../../core/hooks";
 import {
   computeSurfaceIntersection,
   solveSingularFormula,
