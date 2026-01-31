@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
@@ -6,7 +6,6 @@ import { ChevronRight, X } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
-import { ColorPicker, ColorSwatch } from "../pages/editor/Menu";
 import { assertUnreachable, replaceNodes } from "../util/parse/formula-transform";
 import {
   AugmentedFormulaNode,
@@ -366,93 +365,9 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
 };
 
 const ColorNode = ({ tree, store }: { tree: Color; store: FormulaStore }) => {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    const close = () => setOpen(false);
-    window.addEventListener("click", close);
-
-    return () => {
-      window.removeEventListener("click", close);
-    };
-  }, [setOpen]);
-
-  return (
-    <div className="flex flex-row justify-between items-center w-full">
-      <div className="relative mr-2">
-        <div className="cursor-pointer">
-          <ColorSwatch
-            color={tree.color}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(!open);
-            }}
-          />
-        </div>
-        {open && (
-          <div className="absolute top-4 left-0 z-10 bg-gray-100 border border-gray-200">
-            <ColorPicker
-              onSelect={(color) => {
-                store.updateFormula(
-                  replaceNodes(store.augmentedFormula, (node) => {
-                    if (node.type === "color" && node.id === tree.id) {
-                      return node.withChanges({ color });
-                    }
-                    return node;
-                  })
-                );
-                setOpen(false);
-              }}
-            />
-          </div>
-        )}
-      </div>
-      <LabeledNode tree={tree} label="Color" deletable store={store} />
-    </div>
-  );
+  return <LabeledNode tree={tree} label="Color" deletable store={store} />;
 };
 
 const BoxNode = ({ tree, store }: { tree: Box; store: FormulaStore }) => {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    const close = () => setOpen(false);
-    window.addEventListener("click", close);
-
-    return () => {
-      window.removeEventListener("click", close);
-    };
-  }, [setOpen]);
-
-  return (
-    <div className="flex flex-row justify-between items-center w-full">
-      <div className="relative mr-2">
-        <div className="cursor-pointer">
-          <ColorSwatch
-            color={tree.borderColor}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(!open);
-            }}
-          />
-        </div>
-        {open && (
-          <div className="absolute top-4 left-0 z-10 bg-gray-100 border border-gray-200">
-            <ColorPicker
-              onSelect={(borderColor) => {
-                store.updateFormula(
-                  replaceNodes(store.augmentedFormula, (node) => {
-                    if (node.type === "box" && node.id === tree.id) {
-                      return node.withChanges({ borderColor });
-                    }
-                    return node;
-                  })
-                );
-                setOpen(false);
-              }}
-            />
-          </div>
-        )}
-      </div>
-      <LabeledNode tree={tree} label="Box" deletable store={store} />
-    </div>
-  );
+  return <LabeledNode tree={tree} label="Box" deletable store={store} />;
 };
