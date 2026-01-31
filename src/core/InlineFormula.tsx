@@ -4,7 +4,7 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { getInputVariableState, processLatexContent } from "../util/parse/variable";
-import { injectVariableSVGs } from "../svg/svg-processor";
+import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
 import { useFormulize } from "./hooks";

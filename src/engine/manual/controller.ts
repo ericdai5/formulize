@@ -1,14 +1,11 @@
 import { EditorView } from "@codemirror/view";
 
-import {
-  applyCue,
-  clearAllCues,
-} from "../../util/step-handler";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
 import { IArrayControl } from "../../types/control";
 import { IEnvironment } from "../../types/environment";
 import { IInterpreterStep, IStep, IStepInput } from "../../types/step";
+import { applyCue, clearAllCues } from "../../util/step-handler";
 import { ERROR_MESSAGES } from "./constants";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
 import { Step } from "./step";
@@ -283,7 +280,6 @@ export class Controller {
     if (preservedUserCode) {
       ctx.setUserCode(preservedUserCode);
     }
-    this.clearProcessedIndices(computationStore);
     this.clearAutoPlay(ctx);
     this.resetCodeMirror(ctx);
 
@@ -388,12 +384,6 @@ export class Controller {
     if (prevBlock !== null) {
       this.step(prevBlock, ctx, computationStore);
     }
-  }
-
-  private static clearProcessedIndices(
-    computationStore: ComputationStore
-  ): void {
-    computationStore.clearProcessedIndices();
   }
 
   private static clearAutoPlay(ctx: ExecutionStore): void {

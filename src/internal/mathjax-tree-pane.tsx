@@ -4,8 +4,6 @@ import { ChevronRight } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
-import { useFormulize } from "../core/hooks";
-
 interface DOMNodeInfo {
   id: string;
   tagName: string;
@@ -100,52 +98,18 @@ const buildMathJaxTree = (): DOMNodeInfo[] => {
   return trees;
 };
 
-interface ExpressionScopeInfo {
-  latexKey: string;
-  scopeId: string;
-  type: string;
-  containsVars: string[];
-}
-
 export const MathJaxTreePane = () => {
-  const context = useFormulize();
-  const computationStore = context?.computationStore;
   const [trees, setTrees] = useState<DOMNodeInfo[]>([]);
   const [collapsed, setCollapsed] = useState<{ [key: string]: boolean }>({});
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
-  const [expressionScopes, setExpressionScopes] = useState<
-    ExpressionScopeInfo[]
-  >([]);
 
   // Build tree on mount and when refresh is needed
   useEffect(() => {
     setTrees(buildMathJaxTree());
-    refreshExpressionScopes();
   }, []);
-
-  const refreshExpressionScopes = () => {
-    if (!computationStore) {
-      setExpressionScopes([]);
-      return;
-    }
-    const scopes: ExpressionScopeInfo[] = [];
-    for (const [
-      latexKey,
-      scopeData,
-    ] of computationStore.expressionScopes.entries()) {
-      scopes.push({
-        latexKey,
-        scopeId: scopeData.scopeId,
-        type: scopeData.type,
-        containsVars: scopeData.containsVars,
-      });
-    }
-    setExpressionScopes(scopes);
-  };
 
   const handleRefresh = () => {
     setTrees(buildMathJaxTree());
-    refreshExpressionScopes();
   };
 
   const onCollapse = (id: string, isCollapsed: boolean) => {
@@ -206,44 +170,6 @@ export const MathJaxTreePane = () => {
             />
           </div>
         </div>
-      </div>
-
-      {/* Expression Scopes */}
-      <div className="border-b pb-2">
-        <div className="text-xs text-gray-500 mb-2">
-          Expression Scopes ({expressionScopes.length})
-        </div>
-        {expressionScopes.length === 0 ? (
-          <div className="text-xs text-gray-400 italic">
-            No expression scopes registered
-          </div>
-        ) : (
-          <div className="max-h-48 overflow-y-auto space-y-1">
-            {expressionScopes.map((scope) => (
-              <div
-                key={scope.scopeId}
-                className="text-xs bg-gray-50 rounded p-2 border border-gray-200"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-purple-600 font-semibold">
-                    {scope.scopeId}
-                  </span>
-                  <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
-                    {scope.type}
-                  </span>
-                </div>
-                <div className="font-mono text-gray-700 text-xs break-all bg-white p-1 rounded border">
-                  {scope.latexKey}
-                </div>
-                {scope.containsVars.length > 0 && (
-                  <div className="mt-1 text-gray-500">
-                    vars: {scope.containsVars.join(", ")}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {trees.length === 0 ? (

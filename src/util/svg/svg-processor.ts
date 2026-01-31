@@ -1,8 +1,8 @@
 /**
  * SVG Processor for handling SVG in variables
  */
-import { ComputationStore } from "../store/computation";
-import { VAR_SELECTORS } from "../internal/css-classes";
+import { ComputationStore } from "../../store/computation";
+import { VAR_SELECTORS } from "../../internal/css-classes";
 import {
   SVGConfig,
   SVGGeneratorContext,

@@ -1,7 +1,7 @@
 import { processLatexContent } from "../parse/variable";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
-import { injectVariableSVGs } from "../../svg/svg-processor";
+import { injectVariableSVGs } from "../svg/svg-processor";
 
 export interface FormulaNodeData {
   latex: string;

@@ -5,8 +5,8 @@ import { observer } from "mobx-react-lite";
 import type {
   SVGGeneratorContext,
   VariableSVGContent,
-} from "../svg/svg-registry";
-import { sanitizeSVG } from "../svg/svg-registry";
+} from "../util/svg/svg-registry";
+import { sanitizeSVG } from "../util/svg/svg-registry";
 import type { IVariable } from "../types/variable";
 import { useFormulize } from "../core/hooks";
 

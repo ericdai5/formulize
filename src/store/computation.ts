@@ -52,17 +52,6 @@ class ComputationStore {
   @observable
   accessor showExpressionNodes: boolean = false;
 
-  // Expression scopes for bounding box calculations
-  // Maps LaTeX expression strings to their generated scope IDs (e.g., "\\frac{1}{m}" -> "expr-0")
-  @observable
-  accessor expressionScopes = new Map<
-    string,
-    { scopeId: string; type: string; containsVars: string[] }
-  >();
-
-  // Counter for generating unique expression scope IDs
-  private expressionScopeCounter = 0;
-
   // Processed formula trees with cssId values assigned to nodes
   // Maps formula ID to the AugmentedFormula tree after variable processing
   // Used for DOM element lookup during expression bounding box calculations
@@ -70,7 +59,7 @@ class ComputationStore {
   accessor formulaTrees = new Map<string, AugmentedFormula>();
 
   @observable
-  accessor engine: "llm" | "symbolic-algebra" | "manual" = "llm";
+  accessor engine: "symbolic-algebra" | "manual" = "manual";
 
   @observable
   accessor semantics: ISemantics | null = null;
@@ -91,12 +80,6 @@ class ComputationStore {
   accessor variableRolesChanged = 0;
 
   accessor isDragging = false;
-
-  @observable
-  accessor activeIndices = new Map<string, number>();
-
-  @observable
-  accessor processedIndices = new Map<string, Set<number>>();
 
   // Fresh variable dimensions from DOM measurements (varId -> { x, y, width, height })
   // Updated by updateVarNodes, used by calculateBoundingBoxFromVariableNodes
@@ -137,7 +120,7 @@ class ComputationStore {
   }
 
   @action
-  setEngine(engine: "llm" | "symbolic-algebra" | "manual") {
+  setEngine(engine: "symbolic-algebra" | "manual") {
     this.engine = engine;
   }
 
@@ -157,7 +140,6 @@ class ComputationStore {
     this.formulaHoverCallbacks.clear();
     this.injectedDefaultCSS.clear();
     this.injectedHoverCSS.clear();
-    this.expressionScopes.clear();
     this.formulaTrees.clear();
     this.environment = null;
     this.symbolicFunctions = [];
@@ -169,69 +151,6 @@ class ComputationStore {
     if (styleElement) {
       styleElement.remove();
     }
-  }
-
-  /**
-   * Register an expression scope for bounding box calculations.
-   * Called during LaTeX processing to track structural elements.
-   * @param latexExpression - The LaTeX expression string (e.g., "\\frac{1}{m} \\sum_{i=1}^{m}")
-   * @param type - The type of structure (e.g., "sum", "frac", "delim")
-   * @param containsVars - Array of variable IDs contained within this scope
-   * @returns The generated scope ID that was assigned to this expression
-   */
-  @action
-  registerExpressionScope(
-    latexExpression: string,
-    type: string,
-    containsVars: string[]
-  ): string {
-    // Check if this expression is already registered
-    const existing = this.expressionScopes.get(latexExpression);
-    if (existing) {
-      return existing.scopeId;
-    }
-    const scopeId = `expr-${this.expressionScopeCounter++}`;
-    this.expressionScopes.set(latexExpression, { scopeId, type, containsVars });
-    return scopeId;
-  }
-
-  /**
-   * Normalize a LaTeX expression for comparison
-   * Removes \limits, extra spaces, normalizes braces, and normalizes backslashes
-   */
-  private normalizeLatex(latex: string): string {
-    return latex
-      .replace(/\\\\/g, "\\") // Normalize double backslashes to single
-      .replace(/\\limits/g, "") // Remove \limits
-      .replace(/\s+/g, "") // Remove all whitespace
-      .replace(/\{([a-zA-Z0-9])\}/g, "$1"); // Simplify single-char braces like {m} -> m
-  }
-
-  /**
-   * Get all scope IDs that match parts of the given LaTeX expression
-   * @param latexExpression - The LaTeX expression to look up
-   * @returns Array of scope IDs that are contained in the expression
-   */
-  getScopeIdsForExpression(latexExpression: string): string[] {
-    const normalizedInput = this.normalizeLatex(latexExpression);
-    const matchedScopeIds: string[] = [];
-    for (const [key, value] of this.expressionScopes.entries()) {
-      const normalizedKey = this.normalizeLatex(key);
-      // Check if the registered expression is contained in the user's input
-      if (normalizedInput.includes(normalizedKey)) {
-        matchedScopeIds.push(value.scopeId);
-      }
-    }
-    return matchedScopeIds;
-  }
-
-  /**
-   * Clear all expression scopes (called before re-processing LaTeX)
-   */
-  @action
-  clearExpressionScopes() {
-    this.expressionScopes.clear();
-    this.expressionScopeCounter = 0;
   }
 
   /**
@@ -365,34 +284,6 @@ class ComputationStore {
   }
 
   @action
-  setActiveIndex(id: string, index: number) {
-    this.activeIndices.set(id, index);
-  }
-
-  @action
-  clearActiveIndices() {
-    this.activeIndices.clear();
-  }
-
-  @action
-  addProcessedIndex(id: string, index: number) {
-    if (!this.processedIndices.has(id)) {
-      this.processedIndices.set(id, new Set());
-    }
-    this.processedIndices.get(id)!.add(index);
-  }
-
-  @action
-  clearProcessedIndices() {
-    this.processedIndices.clear();
-  }
-
-  @action
-  clearProcessedIndicesForVariable(id: string) {
-    this.processedIndices.delete(id);
-  }
-
-  @action
   setVariableHover(id: string, hover: boolean) {
     this.hoverStates.set(id, hover);
   }
@@ -496,7 +387,6 @@ class ComputationStore {
   ) {
     this.setSymbolicFunctions(expressions);
     this.setManualFunctions(manual);
-
     // Set up the evaluation function to handle all expressions
     if (this.engine === "symbolic-algebra" && this.semantics) {
       this.evaluationFunction =
@@ -505,7 +395,6 @@ class ComputationStore {
       // For manual engine, create an evaluator using manual functions
       this.evaluationFunction = this.createManualEvaluator();
     }
-
     // Initial evaluation of all computed variables (skip in step mode)
     if (!this.isStepMode()) {
       this.updateAllComputedVars();
@@ -522,7 +411,6 @@ class ComputationStore {
         console.warn("No expressions available for symbolic algebra engine");
         return {};
       }
-
       // Evaluate using the symbolic algebra engine with the computation store variables
       try {
         const storeVariables = this.getVariables();
@@ -558,7 +446,6 @@ class ComputationStore {
           value: variables[varName] ?? variable.value,
         };
       }
-
       // Get computation-level manual function
       const computationManual = this.semantics?.manual;
       const result = computeWithManualEngine(
@@ -657,7 +544,6 @@ class ComputationStore {
   @action
   updateAllComputedVars() {
     if (!this.evaluationFunction) return;
-
     try {
       this.isUpdatingDependents = true;
       // Include both numeric and array values for manual engine support
@@ -701,7 +587,6 @@ class ComputationStore {
       symbolicFunctions: this.symbolicFunctions,
     };
   }
-
   // Get resolved variables as a plain object for external use
   // This is the total collection of variables after the system
   // has processed the user-written variables settings.

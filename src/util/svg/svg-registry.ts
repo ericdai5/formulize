@@ -3,8 +3,8 @@
  */
 import DOMPurify from "dompurify";
 
-import type { IEnvironment } from "../types/environment";
-import type { IValue, IVariable } from "../types/variable";
+import type { IEnvironment } from "../../types/environment";
+import type { IValue, IVariable } from "../../types/variable";
 
 export interface SVGConfig {
   width?: number;

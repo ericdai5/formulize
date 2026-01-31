@@ -2,8 +2,8 @@ import { useCallback, useMemo } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { IArrayControl } from "../../types/control";
 import LatexLabel from "../../internal/latex";
+import { IArrayControl } from "../../types/control";
 import { useFormulize } from "../hooks";
 
 interface ArrayProps {
@@ -51,25 +51,11 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
       return null;
     }
 
-    // Check if there's an active index from views
-    const viewActiveIndex = computationStore.activeIndices.get(variableId);
-    if (viewActiveIndex !== undefined) {
-      return viewActiveIndex;
-    }
-
     // Check if there's a target index from toIndex (block mode)
     if (executionStore.targetIndex) {
       return executionStore.targetIndex.index;
     }
     return null;
-  };
-
-  // Get processed indices for styling
-  const getProcessedIndices = () => {
-    if (variableId && computationStore) {
-      return computationStore.processedIndices.get(variableId) || new Set();
-    }
-    return new Set();
   };
 
   const formatValue = useCallback((value: any) => {
@@ -111,9 +97,7 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
         ) : (
           arrayValues.map((value, index) => {
             const activeIndex = getActiveIndex();
-            const processedIndices = getProcessedIndices();
             const isActive = activeIndex !== null && activeIndex === index;
-            const isProcessed = processedIndices.has(index);
             return (
               <div
                 key={index}
@@ -125,9 +109,7 @@ const ArrayControl = observer(({ control }: ArrayProps) => {
                   ${
                     isActive
                       ? "bg-green-100 border-green-400 text-green-800 ring-1 ring-green-300"
-                      : isProcessed
-                        ? "bg-slate-100 border-slate-200 hover:bg-slate-200 hover:border-slate-400 hover:ring-1 hover:ring-slate-200"
-                        : "border-slate-200 hover:bg-slate-200 hover hover:border-slate-400 hover:ring-1 hover:ring-slate-200"
+                      : "border-slate-200 hover:bg-slate-200 hover hover:border-slate-400 hover:ring-1 hover:ring-slate-200"
                   }
                 `}
               >
