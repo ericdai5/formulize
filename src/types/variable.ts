@@ -1,4 +1,4 @@
-import type { VariableSVGContent } from "../rendering/svg/svg-registry";
+import type { VariableSVGContent } from "../util/svg/svg-registry";
 
 export const INPUT_VARIABLE_DEFAULT = {
   MIN_VALUE: -10 as number,

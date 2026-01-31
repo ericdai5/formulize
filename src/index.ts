@@ -11,17 +11,17 @@ export { default as Formulize } from "./formulize";
 export type { FormulizeConfig, FormulizeInstance } from "./formulize";
 
 // Export new component-based API
-export { Formula } from "./components/FormulaComponent";
-export { InlineFormula } from "./components/InlineFormula";
-export { InlineVariable } from "./components/InlineVariable";
-export { VisualizationComponent } from "./components/VisualizationComponent";
-export { FormulizeProvider } from "./components/FormulizeProvider";
-export { useFormulize } from "./components/useFormulize";
-export { EmbeddedFormula } from "./components/EmbeddedFormula";
-
-// Export interpreter controls for step-through debugging
-export { InterpreterControl } from "./components/InterpreterControl";
-export type { InterpreterControlProps } from "./components/InterpreterControl";
+export {
+  Formula,
+  InlineFormula,
+  InlineVariable,
+  VisualizationComponent,
+  FormulizeProvider,
+  EmbeddedFormula,
+  InterpreterControl,
+} from "./core";
+export type { InterpreterControlProps } from "./core";
+export { useFormulize } from "./core/hooks";
 
 // Export step function for manual computation breakpoints
 export { step } from "./engine/manual/controller";

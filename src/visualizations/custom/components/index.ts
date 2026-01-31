@@ -1,7 +1,7 @@
-import BayesProbabilityChart from "./BayesProbabilityChart";
+import BayesProbabilityChart from "./bayes-probability-chart";
 import { register } from "../registry";
 
-export { default as BayesProbabilityChart } from "./BayesProbabilityChart";
+export { default as BayesProbabilityChart } from "./bayes-probability-chart";
 
 // Explicit registration function for library consumers and live app
 export function registerBuiltInComponents() {

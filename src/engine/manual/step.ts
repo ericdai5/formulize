@@ -3,7 +3,7 @@ import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { IObject, IInterpreterStep } from "../../types/step";
 import { highlightCode } from "../../util/codemirror";
 import { JSInterpreter, StackFrame } from "./interpreter";
-import { VariableExtractor } from "./variableExtractor";
+import { VariableExtractor } from "./variable-extractor";
 
 export class Step {
   static getState(
