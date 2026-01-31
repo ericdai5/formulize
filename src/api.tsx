@@ -13,7 +13,7 @@ import { examples as formulaExamples } from "./examples";
 import { FormulizeConfig } from "./formulize";
 import Editor from "./internal/api-code-editor";
 import ExampleSwitcher from "./internal/example-switcher";
-import FormulaCanvas from "./internal/formulize";
+import PlaygroundCanvas from "./internal/playground";
 import IconButton from "./ui/icon-button";
 import Modal from "./ui/modal";
 import { executeUserCode } from "./util/code-executor";
@@ -180,14 +180,13 @@ export default function APIPage() {
       <div
         className={`relative flex-1 transition-all duration-300 ease-in-out`}
       >
-        <FormulaCanvas
+        <PlaygroundCanvas
           formulizeConfig={config || undefined}
           onRenderError={handleRenderError}
         />
         <div className="absolute top-4 left-4 z-30">
           <IconButton
             size="lg"
-            strokeWidth={1.5}
             icon={isRendered ? PanelRightOpen : PanelRightClose}
             alt="Toggle Editor"
             onClick={() => setIsRendered(!isRendered)}
@@ -199,9 +198,9 @@ export default function APIPage() {
             size="lg"
             strokeWidth={1.5}
             icon={Info}
-            alt="Team Members"
+            alt="Credits"
             onClick={() => setIsModalOpen(true)}
-            title="Team Members"
+            title="Credits"
           />
         </div>
       </div>

@@ -6,10 +6,12 @@ import { observer } from "mobx-react-lite";
 import { GripVertical } from "lucide-react";
 
 import { useFormulize } from "../../core/hooks";
+import { debugStore } from "../../store/debug";
 import {
   FormulaNodeData,
   renderFormulaWithMathJax,
 } from "../../util/canvas/formula-node";
+import { buildDebugStyles } from "../../util/debug-styles";
 
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
@@ -19,7 +21,6 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const executionStore = context?.executionStore;
 
   // All hooks must be called before any conditional returns
-  const showHoverOutlines = computationStore?.showHoverOutlines ?? false;
   const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
     const initializeMathJax = async () => {
@@ -70,9 +71,9 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
         variableRolesChanged: computationStore.variableRolesChanged,
         // Re-render when active variables change (for index variable display)
         // Serialize activeVariables Map for change detection
-        activeVariables: Array.from(executionStore.activeVariables.entries()).map(
-          ([formulaId, varSet]) => [formulaId, Array.from(varSet)]
-        ),
+        activeVariables: Array.from(
+          executionStore.activeVariables.entries()
+        ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
       }),
       () => {
         if (isInitialized) {
@@ -107,22 +108,6 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     return () => disposer();
   }, [computationStore, data.id]);
 
-  const handleFormulaMouseEnter = useCallback(() => {
-    if (!nodeRef.current) return;
-    const formulaExpression = nodeRef.current.querySelector(".formula");
-    if (formulaExpression && showHoverOutlines) {
-      formulaExpression.classList.add("hovered");
-    }
-  }, [showHoverOutlines]);
-
-  const handleFormulaMouseLeave = useCallback(() => {
-    if (!nodeRef.current) return;
-    const formulaExpression = nodeRef.current.querySelector(".formula");
-    if (formulaExpression) {
-      formulaExpression.classList.remove("hovered");
-    }
-  }, []);
-
   // All conditional returns must happen after all hooks are called
   if (!computationStore || !executionStore) return null;
 
@@ -133,14 +118,17 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   // Default to showing drag handle unless explicitly set to false
   const showDragHandle = data.showDragHandle !== false;
 
+  // Build debug styles that override customStyle when enabled
+  const debugStyles = buildDebugStyles(
+    debugStore.showFormulaBorders,
+    debugStore.showFormulaShadow
+  );
+
   return (
     <div
       ref={nodeRef}
       className="formula-node relative p-2.5 group"
-      data-show-hover-outlines={showHoverOutlines}
-      style={customStyle}
-      onMouseEnter={handleFormulaMouseEnter}
-      onMouseLeave={handleFormulaMouseLeave}
+      style={{ ...customStyle, ...debugStyles }}
     >
       {/* Left Handle - only show if showDragHandle is true */}
       {showDragHandle && (
