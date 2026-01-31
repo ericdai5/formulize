@@ -6,7 +6,6 @@ import {
   generateManualDisplayCode,
   generateSymbolicAlgebraDisplayCode,
 } from "../engine/display-code-generator";
-import { generateEvaluationFunction as generateLLMFunction } from "../engine/llm/llm-function-generator";
 import { computeWithManualEngine } from "../engine/manual/manual";
 import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
 import { AugmentedFormula } from "../parse/formula-tree";
@@ -547,9 +546,6 @@ class ComputationStore {
         this.getDisplayCodeGeneratorContext()
       );
       this.setLastGeneratedCode(displayCode);
-    } else if (this.engine === "llm") {
-      // For LLM engine, create a multi-expression evaluator using the LLM approach
-      await this.createLLMMultiExpressionEvaluator(expressions);
     } else if (this.engine === "manual" && this.semantics) {
       // For manual engine, create an evaluator using manual functions
       this.evaluationFunction = this.createManualEvaluator();
@@ -768,43 +764,6 @@ class ComputationStore {
       variables[varName] = toJS(variable);
     }
     return variables;
-  }
-
-  // Create an LLM-based multi-expression evaluator
-  private async createLLMMultiExpressionEvaluator(expressions: string[]) {
-    const computedVars = this.getComputedVars();
-
-    if (computedVars.length === 0) {
-      return;
-    }
-
-    try {
-      // Use the first expression for LLM generation (maintain backward compatibility)
-      const primaryExpression = expressions[0] || "";
-
-      if (!primaryExpression.trim()) {
-        return;
-      }
-
-      const computedVars = this.getComputedVarSymbols();
-      const inputVars = this.getInputVarSymbols();
-
-      // Generate function code via LLM
-      const functionCode = await generateLLMFunction({
-        formula: primaryExpression,
-        computedVars,
-        inputVars,
-      });
-
-      const displayCode = generateLLMDisplayCode(functionCode, expressions);
-      this.setLastGeneratedCode(displayCode);
-      this.evaluationFunction = new Function(
-        "variables",
-        `"use strict";\n${functionCode}\nreturn evaluate(variables);`
-      ) as EvaluationFunction;
-    } catch (error) {
-      console.error("Error creating LLM multi-expression evaluator:", error);
-    }
   }
 }
 
