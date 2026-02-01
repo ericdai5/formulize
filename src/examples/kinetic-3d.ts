@@ -28,12 +28,11 @@ export const kinetic3D = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
-    expressions: {
-      "kinetic-energy-3d": "{K} = 0.5 * {m} * {v} * {v}"
+    manual: function(vars) {
+      vars.K = 0.5 * vars.m * vars.v * vars.v;
     }
   },
-  
+
   visualizations: [
     {
       type: "plot3d",
@@ -50,6 +49,8 @@ export const kinetic3D = `const config = {
       surfaces: [
         {
           id: "kinetic-energy-3d",
+          sampleOver: ["m", "v"],
+          outputs: { x: "m", y: "v", z: "K" },
           color: "Viridis",
           opacity: 0.7,
           showInLegend: true

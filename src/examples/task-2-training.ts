@@ -29,7 +29,6 @@ export const task2training = `const config = {
     }
   },
   semantics: {
-    engine: "manual",
     mode: "step",
     manual: function(vars) {
       var x = vars.x;

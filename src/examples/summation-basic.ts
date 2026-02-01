@@ -35,7 +35,6 @@ export const summationBasic = `const config = {
     }
   },
   semantics: {
-    engine: "manual",
     mode: "step",
     manual: function(vars) {
       var xValues = vars.X;

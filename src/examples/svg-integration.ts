@@ -96,10 +96,6 @@ export const svgIntegration = `const config = {
     }
   },
   semantics: {
-    engine: "manual",
-    expressions: {
-      "radioactive-decay": "{N} = {N_0} * exp(-{\\\\lambda} * {t})"
-    },
     manual: function({ N_0, "\\\\lambda": lambda, t }) {
       return N_0 * Math.exp(-lambda * t);
     }

@@ -27,10 +27,6 @@ export const kinetic2D = `const config = {
     }
   },
   semantics: {
-    engine: "manual",
-    expressions: {
-      "kinetic-energy": "{K} = 0.5 * {m} * {v} * {v}"
-    },
     manual: function({ m, v }) {
       return 0.5 * m * Math.pow(v, 2);
     }

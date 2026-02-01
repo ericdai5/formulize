@@ -41,7 +41,6 @@ export const quadratic2D = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
     expressions: {
       "quadratic-equation": "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
     }

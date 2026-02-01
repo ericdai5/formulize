@@ -33,9 +33,10 @@ export const sinTheta = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
-    expressions: {
-      "sin-theta": "{y} = {c} * sin({\\\\theta})"
+    manual: {
+      "sin-theta": function(vars) {
+        vars.y = vars.c * Math.sin(vars["\\\\theta"]);
+      }
     }
   },
 

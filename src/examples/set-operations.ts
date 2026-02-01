@@ -66,7 +66,6 @@ export const setOperations = `const config = {
     }
   ],
   semantics: {
-    engine: "manual",
     manual: (vars) => {
       // Set intersection: P = M ∩ B
       const M = vars.M;

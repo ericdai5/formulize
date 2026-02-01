@@ -24,7 +24,6 @@ export const fittsLaw = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
     expressions: {
       "fitts-law": "{T} = {a} + {b} * log((2 * {D}) / {W})",
       "fitts-law-two": "{T} = {a} + {c} * log((2 * {D}) / {W})"

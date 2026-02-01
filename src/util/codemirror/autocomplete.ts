@@ -116,27 +116,13 @@ const environmentCompletions: CompletionOption[] = [
 
 // Semantics completions
 const semanticsCompletions: CompletionOption[] = [
-  { label: "engine", type: "property", info: "Semantics engine type" },
   {
     label: "expressions",
     type: "property",
-    info: "Expressions mapping (optional)",
+    info: "Expressions mapping (Record<formulaId, expression>)",
   },
-  { label: "manual", type: "property", info: "Manual function (optional)" },
-  { label: "mappings", type: "property", info: "Function mappings (optional)" },
-  { label: "apiKey", type: "property", info: "API key (optional)" },
-  { label: "model", type: "property", info: "Model name (optional)" },
+  { label: "manual", type: "property", info: "Manual functions (single function or Record<formulaId, function>)" },
   { label: "mode", type: "property", info: "Execution mode (optional)" },
-];
-
-// Engine values
-const engineValues: CompletionOption[] = [
-  {
-    label: '"symbolic-algebra"',
-    type: "value",
-    info: "Symbolic algebra engine",
-  },
-  { label: '"manual"', type: "value", info: "Manual computation engine" },
 ];
 
 // Mode values
@@ -269,9 +255,6 @@ export function editorCompletions(
       break;
     case "display":
       options = displayValues;
-      break;
-    case "engine":
-      options = engineValues;
       break;
     case "mode":
       options = modeValues;

@@ -26,7 +26,6 @@ export const task2instruction = `const config = {
     },
   },
   semantics: {
-    engine: "manual",
     mode: "step",
     manual: function(vars) {
       var xValues = vars.X;

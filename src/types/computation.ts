@@ -5,11 +5,7 @@
 export type IManual = (vars: Record<string, any>) => any;
 
 export interface ISemantics {
-  engine: "symbolic-algebra" | "llm" | "manual";
   expressions?: Record<string, string>;
   manual?: IManual;
-  mappings?: Record<string, (...args: unknown[]) => unknown>;
-  apiKey?: string;
-  model?: string;
   mode?: "step" | "normal";
 }

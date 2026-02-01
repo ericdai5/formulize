@@ -70,7 +70,6 @@ export const vectorAddition = `const config = {
     },
   },
   semantics: {
-    engine: "symbolic-algebra",
     expressions: {
       "vector-addition": "[{c_x}, {c_y}] = {k_1} * [{a_x}, {a_y}] + {k_2} * [{b_x}, {b_y}]"
     }
@@ -84,7 +83,6 @@ export const vectorAddition = `const config = {
       title: "Vector Addition Visualization",
       xRange: [-5, 5],
       yRange: [-5, 5],
-
       vectors: [
         {
           shape: "arrow",

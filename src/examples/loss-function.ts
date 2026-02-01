@@ -77,7 +77,6 @@ export const lossFunction = `const config = {
     }
   },
   semantics: {
-    engine: "manual",
     mode: "step",
     manual: function(vars) {
       var m = vars.m;

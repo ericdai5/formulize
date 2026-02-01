@@ -44,21 +44,19 @@ function setupComputationEngine(
   environment: IEnvironment,
   computationStore: ComputationStore
 ) {
-  // Auto-detect engine if not specified
+  // Infer engine from semantics: expressions → symbolic-algebra, manual → manual
+  const hasExpressions =
+    environment.semantics?.expressions &&
+    Object.keys(environment.semantics.expressions).length > 0;
+  const hasManual = !!environment.semantics?.manual;
   let engine: "symbolic-algebra" | "manual" = "manual"; // default
-  if (environment.semantics?.engine) {
-    engine = environment.semantics.engine as "symbolic-algebra" | "manual";
-  } else {
-    // Auto-detect: if computation.manual exists, use manual engine
-    const hasComputationManual =
-      environment.semantics?.manual &&
-      typeof environment.semantics.manual === "function";
-    if (hasComputationManual) {
-      engine = "manual";
-    }
+  if (hasExpressions) {
+    engine = "symbolic-algebra";
+  } else if (hasManual) {
+    engine = "manual";
   }
   computationStore.setEngine(engine);
-  computationStore.setSemantics(environment.semantics || { engine });
+  computationStore.setSemantics(environment.semantics || {});
 }
 
 // Validate environment configuration

@@ -63,10 +63,6 @@ const config = {
     }
   },
   semantics: {
-    engine: "manual",
-    expressions: {
-      "wave-equation": "{w} = {A} * sin(2 * pi * {f} * {t} + {phi})"
-    },
     manual: function({ A, f, t, phi }) {
       return A * Math.sin(2 * Math.PI * f * t + phi);
     }

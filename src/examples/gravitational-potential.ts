@@ -35,7 +35,6 @@ export const gravitationalPotential = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
     expressions: {
       "gravitational-potential": "{U} = {m} * {g} * {h}"
     }

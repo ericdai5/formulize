@@ -16,7 +16,6 @@ export const matrixMultiplication = `const config = {
     "a_{31}": { role: "input", default: 3, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "a_{32}": { role: "input", default: 0, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "a_{33}": { role: "input", default: 2, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
-
     // Matrix B (3x3)
     "b_{11}": { role: "input", default: 2, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "b_{12}": { role: "input", default: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
@@ -27,7 +26,6 @@ export const matrixMultiplication = `const config = {
     "b_{31}": { role: "input", default: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "b_{32}": { role: "input", default: 0, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "b_{33}": { role: "input", default: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
-
     // Matrix C (3x3 result)
     "c_{11}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "c_{12}": { role: "computed", precision: 0, latexDisplay: "value", labelDisplay: "none" },
@@ -96,7 +94,6 @@ export const matrixMultiplication = `const config = {
     }
   ],
   semantics: {
-    engine: "manual",
     manual: (vars) => {
       // Matrix A
       const a11 = vars["a_{11}"] || 0;
@@ -108,7 +105,6 @@ export const matrixMultiplication = `const config = {
       const a31 = vars["a_{31}"] || 0;
       const a32 = vars["a_{32}"] || 0;
       const a33 = vars["a_{33}"] || 0;
-
       // Matrix B
       const b11 = vars["b_{11}"] || 0;
       const b12 = vars["b_{12}"] || 0;
@@ -119,7 +115,6 @@ export const matrixMultiplication = `const config = {
       const b31 = vars["b_{31}"] || 0;
       const b32 = vars["b_{32}"] || 0;
       const b33 = vars["b_{33}"] || 0;
-
       // Matrix multiplication C = A * B
       vars["c_{11}"] = a11 * b11 + a12 * b21 + a13 * b31;
       vars["c_{12}"] = a11 * b12 + a12 * b22 + a13 * b32;
