@@ -67,9 +67,9 @@ export const FormulaTreePane = observer(
 
     if (!store || !store.augmentedFormula) {
       return (
-        <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+        <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-sm">
           <div className="flex flex-row justify-between items-center">
-            <h1 className="text-base">Elements</h1>
+            <h1 className="text-sm">Elements</h1>
           </div>
           <div className="text-gray-500 text-sm">No formula available</div>
         </div>
@@ -77,9 +77,9 @@ export const FormulaTreePane = observer(
     }
 
     return (
-      <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+      <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-sm">
         <div className="flex flex-row justify-between items-center">
-          <h1 className="text-base">Elements</h1>
+          <h1 className="text-sm">Elements</h1>
           <div className="flex flex-row">
             <div
               title="Expand all"

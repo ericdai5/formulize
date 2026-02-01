@@ -140,8 +140,8 @@ export const MathJaxTreePane = () => {
   };
 
   return (
-    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
-      <div className="flex flex-row justify-between items-center">
+    <div className="pt-3 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+      <div className="flex flex-row justify-between items-center px-4">
         <div className="flex flex-row gap-2">
           <button
             onClick={handleRefresh}
@@ -173,11 +173,11 @@ export const MathJaxTreePane = () => {
       </div>
 
       {trees.length === 0 ? (
-        <div className="text-gray-500 text-sm">
+        <div className="text-gray-500 text-sm px-4">
           No MathJax rendered content found. Click Refresh after formulas load.
         </div>
       ) : (
-        <div className="overflow-y-auto flex-grow font-mono text-sm">
+        <div className="overflow-auto flex-grow font-mono text-sm">
           <MathJaxTreeContext.Provider
             value={{
               collapsed,
@@ -187,7 +187,7 @@ export const MathJaxTreePane = () => {
             }}
           >
             {trees.map((tree, index) => (
-              <div key={tree.id} className="mb-4">
+              <div key={tree.id} className="mb-4 pl-4">
                 <div className="text-xs text-gray-400 mb-1">
                   Formula Node {index}
                 </div>
@@ -246,7 +246,7 @@ const DOMTreeNode = ({ node }: { node: DOMNodeInfo }) => {
 
         {/* Node content */}
         <div
-          className="pl-2 p-1 hover:bg-slate-100 rounded-lg w-full flex flex-wrap items-center gap-1"
+          className="pl-2 p-1 hover:bg-slate-100 rounded-lg flex items-center gap-1 whitespace-nowrap"
           onClick={() => onSelectNode(node.id)}
         >
           {/* Tag name */}

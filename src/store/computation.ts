@@ -43,15 +43,6 @@ class ComputationStore {
   @observable
   accessor nodeFormulaMapping = new Map<string, string>();
 
-  @observable
-  accessor showHoverOutlines: boolean = false;
-
-  @observable
-  accessor showVariableBorders: boolean = false;
-
-  @observable
-  accessor showExpressionNodes: boolean = false;
-
   // Processed formula trees with cssId values assigned to nodes
   // Maps formula ID to the AugmentedFormula tree after variable processing
   // Used for DOM element lookup during expression bounding box calculations

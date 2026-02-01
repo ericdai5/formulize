@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Handle, Position } from "@xyflow/react";
 
 import { useFormulize } from "../../core/hooks";
+import { debugStore } from "../../store/debug";
 import { useVariableDrag } from "../../util/use-variable-drag";
 import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
 
@@ -20,7 +21,9 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     return null;
   }
 
-  const showBorders = computationStore.showVariableBorders;
+  // Use debugStore for persistent debug display settings
+  const showBorders = debugStore.showVariableBorders;
+  const showShadow = debugStore.showVariableShadow;
   const variable = computationStore.variables.get(varId);
   const role = variable?.role === "input" ? "input" : "output";
   const hasDropdownOptions = !!(
@@ -55,10 +58,9 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     <div
       ref={nodeRef}
       className={`${VAR_CLASSES.BASE} text-xs text-white border-dashed text-center nodrag ${
-        showBorders ? "border border-blue-500 bg-blue-500/50" : ""
-      }`}
+        showBorders ? "border border-blue-400" : ""
+      } ${showShadow ? "bg-blue-400/20" : ""}`}
       style={{
-        backgroundColor: "transparent",
         pointerEvents: "auto",
         width: width ? `${width}px` : "auto",
         height: height ? `${height}px` : "auto",

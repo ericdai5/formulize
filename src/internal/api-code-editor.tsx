@@ -25,7 +25,7 @@ const Editor = ({ code, onChange, onRender, error }: Editor) => {
           extensions={[javascript(), ...createAutocompletion()]}
           theme="light"
           style={{
-            fontSize: "14px",
+            fontSize: "13px",
             fontFamily:
               'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
           }}

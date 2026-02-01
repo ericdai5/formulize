@@ -42,16 +42,30 @@ const DebugModal: React.FC<DebugModalProps> = observer(
     }
     const ctx = executionStore;
     const userViewCodeMirrorRef = useRef<ReactCodeMirrorRef>(null);
-    const [isInterpreterCollapsed, setIsInterpreterCollapsed] = useState(false);
-    const [isUserViewCollapsed, setIsUserViewCollapsed] = useState(false);
-    const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
-    const [isVariablesCollapsed, setIsVariablesCollapsed] = useState(false);
-    const toggleInterpreter = () =>
-      setIsInterpreterCollapsed(!isInterpreterCollapsed);
-    const toggleUserView = () => setIsUserViewCollapsed(!isUserViewCollapsed);
-    const toggleTimeline = () => setIsTimelineCollapsed(!isTimelineCollapsed);
-    const toggleVariables = () =>
-      setIsVariablesCollapsed(!isVariablesCollapsed);
+
+    // Track open sections in order (max 2 can be open at once)
+    type SectionId = "interpreter" | "userView" | "variables" | "timeline";
+    const [openSections, setOpenSections] = useState<SectionId[]>(["interpreter", "variables"]);
+
+    const toggleSection = (sectionId: SectionId) => {
+      setOpenSections((prev) => {
+        const isCurrentlyOpen = prev.includes(sectionId);
+        if (isCurrentlyOpen) {
+          // Close the section
+          return prev.filter((id) => id !== sectionId);
+        } else {
+          // Open the section, but enforce max 2 open
+          const newOpen = [...prev, sectionId];
+          if (newOpen.length > 2) {
+            // Remove the oldest (first) one
+            return newOpen.slice(1);
+          }
+          return newOpen;
+        }
+      });
+    };
+
+    const isSectionCollapsed = (sectionId: SectionId) => !openSections.includes(sectionId);
 
     // Read userCode from the store (set by FormulizeProvider during initialization)
     const userCode = ctx.userCode;
@@ -250,105 +264,99 @@ const DebugModal: React.FC<DebugModalProps> = observer(
       };
     }, [ctx]);
 
-    if (!isOpen) return null;
-
     return (
-      <>
-        <div
-          className={`fixed top-0 right-0 h-full w-1/2 max-w-3xl bg-white z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
-            isOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-        >
-          {/* Controls Header */}
+      <div
+        className={`h-full bg-white border-l border-slate-200 flex flex-col transition-all duration-300 ease-in-out ${
+          isOpen ? "w-96" : "w-0"
+        } overflow-hidden`}
+      >
+        {/* Controls Header */}
+        <div className="min-w-96">
           <InterpreterControls
             onClose={onClose}
             onRefresh={handleRefresh}
             onToggleAutoPlay={toggleAutoPlay}
           />
-          {/* Error Display */}
-          {ctx.error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mx-4 mt-2 rounded">
-              <strong>Error:</strong> {ctx.error}
-            </div>
-          )}
-          {/* Main Content */}
-          <div className="flex-1 flex border-b overflow-hidden">
-            {/* Code Editors Column */}
-            <div className="w-1/2 border-r flex flex-col h-full">
-              {/* Interpreter View */}
-              <CollapsibleSection
-                title="Interpreter View"
-                isCollapsed={isInterpreterCollapsed}
-                onToggleCollapse={toggleInterpreter}
-                contentClassName="p-0"
-              >
-                <CodeMirror
-                  value={ctx.code}
-                  readOnly
-                  extensions={[javascript()]}
-                  style={CodeMirrorStyle}
-                  basicSetup={CodeMirrorSetup}
-                  editable={false}
-                  ref={ctx.codeMirrorRef}
-                />
-              </CollapsibleSection>
-              {/* User View */}
-              <CollapsibleSection
-                title="User View"
-                isCollapsed={isUserViewCollapsed}
-                onToggleCollapse={toggleUserView}
-                contentClassName="p-0"
-              >
-                <CodeMirror
-                  value={userCode}
-                  onChange={(value) => ctx.setUserCode(value)}
-                  extensions={[javascript(), ...debugExtensions]}
-                  style={CodeMirrorStyle}
-                  basicSetup={CodeMirrorSetup}
-                  ref={userViewCodeMirrorRef}
-                />
-              </CollapsibleSection>
-            </div>
-            {/* Debug Info Column */}
-            <div className="w-1/2 flex flex-col h-full overflow-hidden">
-              <CollapsibleSection
-                title="Variables"
-                isCollapsed={isVariablesCollapsed}
-                onToggleCollapse={toggleVariables}
-              >
-                <VariablesSection currentState={currentState} />
-              </CollapsibleSection>
-              <CollapsibleSection
-                title="Timeline"
-                isCollapsed={isTimelineCollapsed}
-                onToggleCollapse={toggleTimeline}
-                headerContent={
-                  ctx.history.length > 0 && (
-                    <div className="text-slate-500 flex flex-row gap-2">
-                      {ctx.isComplete && (
-                        <span className="text-green-600">Complete</span>
-                      )}
-                      {ctx.isRunning && (
-                        <span className="text-blue-600">Running...</span>
-                      )}
-                    </div>
-                  )
-                }
-              >
-                <Timeline
-                  history={ctx.history}
-                  historyIndex={ctx.historyIndex}
-                  code={ctx.code}
-                  getLineFromCharPosition={getLineFromCharPosition}
-                  isAtBlock={(index: number) => isAtBlock(ctx.history, index)}
-                  isAtView={(index: number) => ctx.isView(index)}
-                  onTimelineItemClick={handleTimelineItemClick}
-                />
-              </CollapsibleSection>
-            </div>
-          </div>
         </div>
-      </>
+        {/* Error Display */}
+        {ctx.error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mx-4 mt-2 rounded text-sm min-w-96">
+            <strong>Error:</strong> {ctx.error}
+          </div>
+        )}
+        {/* Main Content - Stacked Sections */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-96">
+          {/* Interpreter View */}
+          <CollapsibleSection
+            title="Interpreter View"
+            isCollapsed={isSectionCollapsed("interpreter")}
+            onToggleCollapse={() => toggleSection("interpreter")}
+            contentClassName="p-0"
+          >
+            <CodeMirror
+              value={ctx.code}
+              readOnly
+              extensions={[javascript()]}
+              style={CodeMirrorStyle}
+              basicSetup={CodeMirrorSetup}
+              editable={false}
+              ref={ctx.codeMirrorRef}
+            />
+          </CollapsibleSection>
+          {/* User View */}
+          <CollapsibleSection
+            title="User View"
+            isCollapsed={isSectionCollapsed("userView")}
+            onToggleCollapse={() => toggleSection("userView")}
+            contentClassName="p-0"
+          >
+            <CodeMirror
+              value={userCode}
+              onChange={(value) => ctx.setUserCode(value)}
+              extensions={[javascript(), ...debugExtensions]}
+              style={CodeMirrorStyle}
+              basicSetup={CodeMirrorSetup}
+              ref={userViewCodeMirrorRef}
+            />
+          </CollapsibleSection>
+          {/* Variables */}
+          <CollapsibleSection
+            title="Variables"
+            isCollapsed={isSectionCollapsed("variables")}
+            onToggleCollapse={() => toggleSection("variables")}
+          >
+            <VariablesSection currentState={currentState} />
+          </CollapsibleSection>
+          {/* Timeline */}
+          <CollapsibleSection
+            title="Timeline"
+            isCollapsed={isSectionCollapsed("timeline")}
+            onToggleCollapse={() => toggleSection("timeline")}
+            headerContent={
+              ctx.history.length > 0 && (
+                <div className="text-slate-500 flex flex-row gap-2 text-sm">
+                  {ctx.isComplete && (
+                    <span className="text-green-600">Complete</span>
+                  )}
+                  {ctx.isRunning && (
+                    <span className="text-blue-600">Running...</span>
+                  )}
+                </div>
+              )
+            }
+          >
+            <Timeline
+              history={ctx.history}
+              historyIndex={ctx.historyIndex}
+              code={ctx.code}
+              getLineFromCharPosition={getLineFromCharPosition}
+              isAtBlock={(index: number) => isAtBlock(ctx.history, index)}
+              isAtView={(index: number) => ctx.isView(index)}
+              onTimelineItemClick={handleTimelineItemClick}
+            />
+          </CollapsibleSection>
+        </div>
+      </div>
     );
   }
 );
