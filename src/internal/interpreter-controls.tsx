@@ -96,56 +96,62 @@ const InterpreterControls: React.FC<InterpreterControlsProps> = observer(
     };
 
     return (
-      <div className="flex justify-start items-center p-2 border-b gap-2">
-        <Button onClick={onClose} icon={X} />
-        <Button
-          onClick={onRefresh}
-          disabled={refreshDisabled}
-          icon={RotateCcw}
-        />
-        <Button
-          onClick={handleStepBackward}
-          disabled={stepBackwardDisabled}
-          icon={StepBack}
-        />
-        <Button
-          onClick={handleStepForward}
-          disabled={stepForwardDisabled}
-          icon={StepForward}
-        />
-        <Button
-          onClick={handleStepToPrevBlock}
-          disabled={toPrevBlockDisabled}
-          icon={SkipBack}
-        />
-        <Button
-          onClick={handleStepToNextBlock}
-          disabled={toBlockDisabled}
-          icon={SkipForward}
-        />
-        <Button
-          onClick={handleStepToStep}
-          disabled={playStepToStepDisabled}
-          icon={Eye}
-        >
-          {ctx.stepPoints.length}
-        </Button>
-        <Button
-          onClick={onToggleAutoPlay}
-          disabled={playStepToStepDisabled}
-          icon={ctx.isRunning ? Pause : Play}
-        />
-        <Select
-          value={ctx.autoPlaySpeed}
-          onChange={(value) => ctx.setAutoPlaySpeed(Number(value))}
-          options={[
-            { value: 10, label: "10 ms" },
-            { value: 30, label: "30 ms" },
-            { value: 50, label: "50 ms" },
-            { value: 100, label: "100 ms" },
-            { value: 200, label: "200 ms" },
-          ]}
-        />
+      <div className="flex flex-col border-b">
+        {/* Row 1: Navigation controls */}
+        <div className="flex justify-start items-center p-2 gap-2">
+          <Button onClick={onClose} icon={X} />
+          <Button
+            onClick={onRefresh}
+            disabled={refreshDisabled}
+            icon={RotateCcw}
+          />
+          <Button
+            onClick={handleStepBackward}
+            disabled={stepBackwardDisabled}
+            icon={StepBack}
+          />
+          <Button
+            onClick={handleStepForward}
+            disabled={stepForwardDisabled}
+            icon={StepForward}
+          />
+          <Button
+            onClick={handleStepToPrevBlock}
+            disabled={toPrevBlockDisabled}
+            icon={SkipBack}
+          />
+          <Button
+            onClick={handleStepToNextBlock}
+            disabled={toBlockDisabled}
+            icon={SkipForward}
+          />
+          <Button
+            onClick={handleStepToStep}
+            disabled={playStepToStepDisabled}
+            icon={Eye}
+          >
+            {ctx.stepPoints.length}
+          </Button>
+        </div>
+        {/* Row 2: Autoplay controls */}
+        <div className="flex justify-start items-center px-2 pb-2 gap-2">
+          <Button
+            onClick={onToggleAutoPlay}
+            disabled={playStepToStepDisabled}
+            icon={ctx.isRunning ? Pause : Play}
+          />
+          <Select
+            value={ctx.autoPlaySpeed}
+            onChange={(value) => ctx.setAutoPlaySpeed(Number(value))}
+            options={[
+              { value: 10, label: "10 ms" },
+              { value: 30, label: "30 ms" },
+              { value: 50, label: "50 ms" },
+              { value: 100, label: "100 ms" },
+              { value: 200, label: "200 ms" },
+            ]}
+          />
+        </div>
       </div>
     );
   }

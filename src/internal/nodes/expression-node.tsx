@@ -2,7 +2,7 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { useFormulize } from "../../core/hooks";
+import { debugStore } from "../../store/debug";
 import { HANDLE_STYLE } from "../css-classes";
 
 export interface ExpressionNodeData {
@@ -14,13 +14,13 @@ export interface ExpressionNodeData {
 /**
  * An invisible node that spans across multiple variable nodes.
  * Used to connect step nodes to a group of related variables.
- * When showExpressionNodes is enabled, displays a visible border for debugging.
+ * When showExpressionBorders/showExpressionShadow is enabled, displays visible debugging aids.
  */
 const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
   const { width, height } = data;
-  const context = useFormulize();
-  const computationStore = context?.computationStore;
-  const showBorder = computationStore?.showExpressionNodes ?? false;
+  // Use debugStore for persistent debug display settings
+  const showBorder = debugStore.showExpressionBorders;
+  const showShadow = debugStore.showExpressionShadow;
 
   return (
     <div
@@ -29,13 +29,13 @@ const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
         width: width,
         height: height,
         position: "relative",
-        // Show border when debug mode is enabled
-        background: showBorder ? "rgba(59, 130, 246, 0.1)" : "transparent",
-        // Always show top border with edge color (or dashed when debug mode)
-        borderTop: showBorder ? "1px dashed #3b82f6" : "1px solid #cbd5e1",
-        borderLeft: showBorder ? "1px dashed #3b82f6" : "none",
-        borderRight: showBorder ? "1px dashed #3b82f6" : "none",
-        borderBottom: showBorder ? "1px dashed #3b82f6" : "none",
+        // Show background when shadow mode is enabled
+        background: showShadow ? "rgba(96, 165, 250, 0.2)" : "transparent",
+        // Always show top border with edge color (or dashed when border mode)
+        borderTop: showBorder ? "1px dashed #60a5fa" : "1px solid #cbd5e1",
+        borderLeft: showBorder ? "1px dashed #60a5fa" : "none",
+        borderRight: showBorder ? "1px dashed #60a5fa" : "none",
+        borderBottom: showBorder ? "1px dashed #60a5fa" : "none",
         borderRadius: 4,
         pointerEvents: "none",
       }}

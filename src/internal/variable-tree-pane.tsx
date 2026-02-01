@@ -49,9 +49,9 @@ export const VariableTreePane = ({ variableName }: VariableTreePaneProps) => {
 
   if (!variableName) {
     return (
-      <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+      <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-sm">
         <div className="flex flex-row justify-between items-center">
-          <h1 className="text-base">Variable Tree</h1>
+          <h1 className="text-sm">Variable Tree</h1>
         </div>
         <div className="text-gray-500 text-sm">No variable name provided</div>
       </div>
@@ -61,9 +61,9 @@ export const VariableTreePane = ({ variableName }: VariableTreePaneProps) => {
   const { tree, tokens, error } = parseVariableTree(variableName);
 
   return (
-    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-sm">
       <div className="flex flex-row justify-between items-center">
-        <h1 className="text-base">Variable: {variableName}</h1>
+        <h1 className="text-sm">Variable: {variableName}</h1>
         <div className="flex flex-row">
           <div
             title="Expand all"
@@ -235,7 +235,7 @@ export const VariableTreesPane = ({
 
   // Empty state component
   const EmptyState = ({ message }: { message: string }) => (
-    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-base">
+    <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-sm">
       <div className="text-gray-500 text-sm">{message}</div>
     </div>
   );

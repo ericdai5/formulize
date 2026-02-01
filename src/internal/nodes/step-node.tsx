@@ -2,8 +2,10 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import LatexLabel from "../latex";
+import { debugStore } from "../../store/debug";
+import { buildDebugStyles } from "../../util/debug-styles";
 import { HANDLE_STYLE } from "../css-classes";
+import LatexLabel from "../latex";
 
 export interface StepNodeData {
   expression: string;
@@ -15,15 +17,23 @@ const StepNode = observer(({ data }: { data: StepNodeData }) => {
   const { expression, description } = data;
   // Wrap text in \text{} for proper LaTeX text rendering
   const latexDescription = `\\text{${description}}`;
+
+  // Build debug styles from store settings
+  const debugStyles = buildDebugStyles(
+    debugStore.showStepBorders,
+    debugStore.showStepShadow
+  );
+
   return (
     <div
-      className="view-flow-node text-base text-black font-regular text-center rounded-xl"
+      className="view-flow-node text-base text-black font-regular text-center"
       style={{
         pointerEvents: "auto",
         width: "auto",
         height: "auto",
         position: "relative",
         cursor: "grab",
+        ...debugStyles,
       }}
       title={`View comment for expression: ${expression} (draggable)`}
     >

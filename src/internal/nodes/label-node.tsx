@@ -5,11 +5,13 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import LatexLabel from "../latex";
-import SVGLabel from "../svg-label";
 import { useFormulize } from "../../core/hooks";
+import { debugStore } from "../../store/debug";
+import { buildDebugStyles } from "../../util/debug-styles";
 import { useVariableDrag } from "../../util/use-variable-drag";
 import { VAR_CLASSES } from "../css-classes";
+import LatexLabel from "../latex";
+import SVGLabel from "../svg-label";
 
 export interface LabelNodeData {
   varId: string;
@@ -143,14 +145,13 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const labelFontSize = computationStore?.environment?.labelFontSize;
 
   // Must call all hooks before conditional returns
-  const showHoverOutlines = computationStore?.showHoverOutlines ?? false;
-
   const variable = computationStore?.variables.get(varId);
   // activeVariables is a Map<formulaId, Set<varId>>
   // Empty string key '' means "all formulas"
   const allFormulasVars = executionStore?.activeVariables.get("") ?? new Set();
-  const thisFormulaVars =
-    formulaId ? (executionStore?.activeVariables.get(formulaId) ?? new Set()) : new Set();
+  const thisFormulaVars = formulaId
+    ? executionStore?.activeVariables.get(formulaId) ?? new Set()
+    : new Set();
   const isVariableActive =
     allFormulasVars.has(varId) || thisFormulaVars.has(varId);
   const isHovered = computationStore?.hoverStates.get(varId) ?? false;
@@ -175,18 +176,18 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   let displayComponent: React.ReactNode = null;
 
   // Check if this is an inline input variable (but not in step mode)
-  const isInlineInput = role === "input" && interaction === "inline" && !isStepModeActive;
+  const isInlineInput =
+    role === "input" && interaction === "inline" && !isStepModeActive;
 
   if (isInlineInput) {
     // Render inline editable input for input variables with inline interaction
     displayComponent = (
-      <InlineInput
-        varId={varId}
-        variable={variable}
-        fontSize={labelFontSize}
-      />
+      <InlineInput varId={varId} variable={variable} fontSize={labelFontSize} />
     );
-  } else if (labelDisplay === "value" || (interaction === "inline" && isStepModeActive)) {
+  } else if (
+    labelDisplay === "value" ||
+    (interaction === "inline" && isStepModeActive)
+  ) {
     if (Array.isArray(variable?.value)) {
       // Handle set values - convert all elements to strings for display
       const setElements = variable.value.map((el) => String(el));
@@ -203,18 +204,12 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
           mainDisplayText = `${setElements.join(", ")}`;
         }
         displayComponent = (
-          <LatexLabel
-            latex={mainDisplayText}
-            fontSize={labelFontSize}
-          />
+          <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
         );
       } else {
         mainDisplayText = "\\emptyset";
         displayComponent = (
-          <LatexLabel
-            latex={mainDisplayText}
-            fontSize={labelFontSize}
-          />
+          <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
         );
       }
     } else if (typeof value === "number" && value !== null) {
@@ -271,20 +266,26 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     !isInlineInput &&
     !isStepModeActive;
   const cursor = isDraggable ? "grab" : "default";
-  const valueCursor = isSetVariable && !isStepModeActive
-    ? "pointer"
-    : role === "input" && !isStepModeActive && !isInlineInput
-      ? "ns-resize"
-      : "default";
+  const valueCursor =
+    isSetVariable && !isStepModeActive
+      ? "pointer"
+      : role === "input" && !isStepModeActive && !isInlineInput
+        ? "ns-resize"
+        : "default";
 
   const customStyle = computationStore.environment?.labelNodeStyle
     ? toJS(computationStore.environment.labelNodeStyle)
     : {};
 
+  // Build debug styles that override customStyle when enabled
+  const debugStyles = buildDebugStyles(
+    debugStore.showLabelBorders,
+    debugStore.showLabelShadow
+  );
+
   return (
     <div
       className="label-flow-node text-base text-slate-700"
-      data-show-hover-outlines={showHoverOutlines}
       style={{
         pointerEvents: "auto",
         width: "auto",
@@ -292,17 +293,19 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         position: "relative",
         cursor,
         ...customStyle,
+        ...debugStyles,
       }}
       title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggable ? " (draggable)" : ""}`}
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
       onMouseLeave={() => computationStore.setVariableHover(varId, false)}
     >
-      <div
-        className={`flex flex-col items-center gap-1 ${showHoverOutlines ? "hover:outline hover:outline-1 hover:outline-blue-300" : ""}`}
-      >
+      <div className="flex flex-col items-center gap-1">
         <div
           ref={
-            role === "input" && !isSetVariable && !isInlineInput && !isStepModeActive
+            role === "input" &&
+            !isSetVariable &&
+            !isInlineInput &&
+            !isStepModeActive
               ? valueDragRef
               : null
           }
