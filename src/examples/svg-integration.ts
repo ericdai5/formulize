@@ -7,7 +7,6 @@ export const svgIntegration = `const config = {
   ],
   variables: {
     N: {
-      role: "computed",
       name: "Substance Remaining",
       units: "atoms",
       precision: 0,
@@ -43,7 +42,7 @@ export const svgIntegration = `const config = {
       hoverCSS: "filter: drop-shadow(0 0 12px #00FF00); transform: scale(1.1);"
     },
     N_0: {
-      role: "input",
+      input: "drag",
       default: 1000,
       name: "Substance Initial",
       range: [100, 10000],
@@ -55,7 +54,7 @@ export const svgIntegration = `const config = {
       hoverCSS: "filter: drop-shadow(0 0 12px #00FF00); transform: scale(1.1);"
     },
     "\\\\lambda": {
-      role: "input",
+      input: "drag",
       default: 0.1,
       name: "Decay Constant",
       range: [0.01, 0.5],
@@ -65,7 +64,7 @@ export const svgIntegration = `const config = {
       latexDisplay: "name",
     },
     t: {
-      role: "input",
+      input: "drag",
       default: 5,
       name: "time",
       range: [0, 50],
@@ -96,8 +95,8 @@ export const svgIntegration = `const config = {
     }
   },
   semantics: {
-    manual: function({ N_0, "\\\\lambda": lambda, t }) {
-      return N_0 * Math.exp(-lambda * t);
+    manual: function(vars) {
+      vars.N = vars.N_0 * Math.exp(-vars["\\\\lambda"] * vars.t);
     }
   },
   visualizations: [

@@ -1,7 +1,6 @@
 import { VAR_CLASSES } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
-import { IRole } from "../../types/variable";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
   Accent,
@@ -92,8 +91,7 @@ const processNestedVariable = (
       const group = node as Group;
       // Check if the entire group matches a known variable
       // toLatex returns "{content}" with braces, so we need to strip them
-      let groupLatex =
-        "toLatex" in group ? group.toLatex("no-id", 0)[0] : "";
+      let groupLatex = "toLatex" in group ? group.toLatex("no-id", 0)[0] : "";
       // Strip surrounding braces if present
       if (groupLatex.startsWith("{") && groupLatex.endsWith("}")) {
         groupLatex = groupLatex.slice(1, -1);
@@ -401,7 +399,7 @@ export const processVariables = (
 
       // Get the value, type, and precision from the computation store
       let value: number | undefined = undefined;
-      let variableRole: IRole = "constant";
+      let isDraggable = false;
       let variablePrecision = defaultPrecision;
       let display: "name" | "value" = "name"; // Default to showing name
       let defaultCSS = "";
@@ -413,7 +411,7 @@ export const processVariables = (
         if (symbol === originalSymbol) {
           value =
             typeof variable.value === "number" ? variable.value : undefined;
-          variableRole = variable.role || "constant";
+          isDraggable = variable.input === "drag";
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           // Use the variable's display property if defined, otherwise default to "name"
@@ -440,12 +438,11 @@ export const processVariables = (
       const id = originalSymbol;
       // Store the cssId on the AST node for DOM element lookup
       node.cssId = id;
-      // Use different CSS classes based on variable type and interaction mode
+      // Use different CSS classes based on input mode
+      // Drag input variables get INPUT class (interactive), others get BASE class
       let cssClass: string = VAR_CLASSES.BASE;
-      if (variableRole === "input") {
+      if (isDraggable) {
         cssClass = VAR_CLASSES.INPUT;
-      } else if (variableRole === "computed") {
-        cssClass = VAR_CLASSES.COMPUTED;
       }
       // Inject custom CSS and/or hover CSS into document head if defined
       if (defaultCSS) {

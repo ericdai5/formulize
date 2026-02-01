@@ -13,34 +13,42 @@ import { IValue, IVariable } from "../../types/variable";
 // Helpers
 // ============================================================================
 
-function getComputedVariableNames(
-  variables: Record<string, IVariable>
-): string[] {
-  return Object.entries(variables)
-    .filter(([, varDef]) => varDef.role === "computed")
-    .map(([varName]) => varName);
-}
-
-function createValueAccessor(
+/**
+ * Creates a Proxy that allows direct mutation of variable values.
+ * Reading `vars.K` returns `variables.K.value`
+ * Writing `vars.K = 10` directly sets `variables.K.value = 10`
+ */
+function createValueProxy(
   variables: Record<string, IVariable>
 ): Record<string, any> {
-  const vars: Record<string, any> = {};
-  for (const [key, variable] of Object.entries(variables)) {
-    if (
-      variable &&
-      typeof variable === "object" &&
-      "value" in variable &&
-      variable.value !== undefined
-    ) {
-      // Value can be either a number or an array (for sets)
-      vars[key] = variable.value;
+  return new Proxy(
+    {},
+    {
+      get(_target, prop: string) {
+        return variables[prop]?.value;
+      },
+      set(_target, prop: string, value) {
+        if (variables[prop]) {
+          variables[prop].value = value;
+        }
+        return true;
+      },
+      // Support Object.keys(), Object.entries(), etc.
+      ownKeys() {
+        return Object.keys(variables);
+      },
+      getOwnPropertyDescriptor(_target, prop: string) {
+        if (prop in variables) {
+          return {
+            enumerable: true,
+            configurable: true,
+            value: variables[prop]?.value,
+          };
+        }
+        return undefined;
+      },
     }
-  }
-  return vars;
-}
-
-function isValidNumericResult(value: unknown): value is number {
-  return value !== undefined && typeof value === "number" && isFinite(value);
+  );
 }
 
 // ============================================================================
@@ -67,27 +75,10 @@ function executeComputationManual(
   manualFn: IManual,
   variables: Record<string, IVariable>
 ): void {
-  // Create value accessor with all variable values
-  const vars = createValueAccessor(variables);
-  // Execute the manual function
-  const returnValue = manualFn(vars);
-  // Sync back all changed values from vars to variables
-  for (const [varName, value] of Object.entries(vars)) {
-    if (
-      variables[varName] &&
-      (typeof value === "number" || Array.isArray(value))
-    ) {
-      variables[varName].value = value;
-    }
-  }
-  // If manual function returns a value, also sync it to computed variables
-  if (isValidNumericResult(returnValue)) {
-    for (const variable of Object.values(variables)) {
-      if (variable.role === "computed") {
-        variable.value = returnValue;
-      }
-    }
-  }
+  // Create proxy that directly mutates variable values
+  const vars = createValueProxy(variables);
+  // Execute the manual function - mutations go directly to variables
+  manualFn(vars);
 }
 
 // ============================================================================

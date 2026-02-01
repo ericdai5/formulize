@@ -7,20 +7,19 @@ export const kinetic3D = `const config = {
   ],
   variables: {
     K: {
-      role: "computed",
       units: "J",
       name: "Kinetic Energy",
       precision: 2
     },
     m: {
-      role: "input",
+      input: "drag",
       default: 2,
       range: [0.5, 5],
       units: "kg",
       name: "Mass"
     },
     v: {
-      role: "input",
+      input: "drag",
       default: 3,
       range: [0.5, 10],
       units: "m/s",

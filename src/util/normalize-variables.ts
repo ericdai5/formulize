@@ -3,9 +3,8 @@
  *
  * Supports the following input formats:
  * - Number: `a: 0.1` → constant with that value
- * - User-facing object with "default": `W: { role: "input", default: 5 }` → input with value 5
- * - Minimal object: `W: { role: "input" }` → input with default value 1
- * - Minimal computed: `T: { role: "computed" }` → computed variable
+ * - User-facing object with "default": `W: { input: "drag", default: 5 }` → draggable with value 5
+ * - Minimal object: `W: { input: "drag" }` → draggable with default value 1
  * - Full IVariable (internal): used as-is
  *
  * Note: User-facing API uses "default" property, which is converted to internal "value" property
@@ -27,17 +26,16 @@ export function normalizeVariable(
   // Case 1: Input is just a number - becomes a constant
   if (typeof input === "number") {
     return {
-      role: "constant",
       value: input,
     };
   }
 
   // Case 2: Input is a user-facing IVariableUserInput - convert "default" to "value"
   // Strict check: reject if "value" property is used
-  if ('value' in input) {
+  if ("value" in input) {
     throw new Error(
       'Variable configuration uses "value" property which is not allowed. ' +
-      'Use "default" instead. For example: { role: "input", default: 5 }'
+        'Use "default" instead. For example: { input: "drag", default: 5 }'
     );
   }
 
@@ -50,32 +48,30 @@ export function normalizeVariable(
 }
 
 /**
- * Apply smart defaults to a variable based on its role
+ * Apply smart defaults to a variable based on its input type
  */
 function applySmartDefaults(normalized: IVariable): IVariable {
-  // Apply smart defaults based on role
-  if (normalized.role === "input") {
+  // Apply smart defaults based on input type
+  if (normalized.input === "drag") {
     // Set default value if not provided (only for scalar inputs, not sets)
     if (normalized.value === undefined) {
       normalized.value = INPUT_VARIABLE_DEFAULT.VALUE;
     }
-    // Set default interaction mode if not provided
-    // - If range is specified, use drag interaction
-    // - If no range and value is a scalar, use inline typable input
-    // - If value is an array (set), don't set any interaction (use controls)
-    if (
-      normalized.interaction === undefined &&
-      !Array.isArray(normalized.value)
-    ) {
-      normalized.interaction = normalized.range ? "drag" : "inline";
+    // Set default range if not provided
+    if (normalized.range === undefined) {
+      normalized.range = [
+        INPUT_VARIABLE_DEFAULT.MIN_VALUE,
+        INPUT_VARIABLE_DEFAULT.MAX_VALUE,
+      ];
     }
-  } else if (normalized.role === "constant") {
-    // Set default value if not provided
+  } else if (normalized.input === "inline") {
+    // Set default value if not provided for inline inputs
     if (normalized.value === undefined) {
       normalized.value = INPUT_VARIABLE_DEFAULT.VALUE;
     }
   }
-  // For computed variables, value will be calculated
+  // For non-interactive variables (constants or computed by manual function),
+  // value will either be set by default or calculated by the manual function
 
   return normalized;
 }

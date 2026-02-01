@@ -7,33 +7,32 @@ export const quadratic3D = `const config = {
   ],
   variables: {
     y: {
-      role: "computed",
       name: "y-value",
       precision: 2
     },
     x: {
-      role: "input",
+      input: "drag",
       default: 0,
       range: [-5, 5],
       step: 0.1,
       name: "x"
     },
     a: {
-      role: "input",
+      input: "drag",
       default: 1,
       range: [-2, 2],
       step: 0.1,
       name: "Coefficient a"
     },
     b: {
-      role: "input",
+      input: "drag",
       default: 0,
       range: [-5, 5],
       step: 0.1,
       name: "Coefficient b"
     },
     c: {
-      role: "input",
+      input: "drag",
       default: 0,
       range: [-10, 10],
       step: 0.1,
@@ -41,9 +40,8 @@ export const quadratic3D = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
-    expressions: {
-      "quadratic-equation-3d": "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+    manual: function(vars) {
+      vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
     }
   },
 

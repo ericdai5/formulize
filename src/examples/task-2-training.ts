@@ -38,7 +38,7 @@ export const task2training = `const config = {
       step({ description: "Compute $mx = " + m + " \\\\cdot " + x + " = " + mx + "$", values: [["m", m], ["x", x]] });
       var y = mx + b;
       step({ description: "Add $b$: $y = " + mx + " + " + b + " = " + y + "$", values: [["y", y]] });
-      return y;
+      vars.y = y;
     }
   },
   fontSize: 1.5

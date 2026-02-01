@@ -7,13 +7,12 @@ export const sinTheta = `const config = {
   ],
   variables: {
     y: {
-      role: "computed",
       precision: 2,
       latexDisplay: "name",
       labelDisplay: "none"
     },
     c: {
-      role: "input",
+      input: "drag",
       default: 1,
       range: [-3, 3],
       step: 0.1,
@@ -23,7 +22,6 @@ export const sinTheta = `const config = {
       defaultCSS: "min-width:85px; text-align:right; margin-left:-2px"
     },
     "\\\\theta": {
-      role: "constant",
       default: 0,
       range: [-2 * Math.PI, 2 * Math.PI],
       step: 0.01,

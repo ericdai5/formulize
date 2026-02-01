@@ -32,7 +32,7 @@ const HANDLE_STYLE = {
 // Default precision for inline inputs
 const DEFAULT_INLINE_PRECISION = 2;
 
-// Inline editable input component for variables with interaction: "inline"
+// Inline editable input component for variables with input: "inline"
 const InlineInput = observer(
   ({
     varId,
@@ -158,7 +158,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   const valueDragRef = useVariableDrag({
     varId,
-    role: variable?.role === "input" ? "input" : "output",
+    isDraggable: variable?.input === "drag",
     hasDropdownOptions: !!(Array.isArray(variable?.value) || variable?.options),
     computationStore,
   });
@@ -168,25 +168,24 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   if (!variable) return null;
   if (computationStore.isStepMode() && !isVariableActive) return null;
 
-  const { name, role, value, precision, labelDisplay, interaction } = variable;
+  const { name, value, precision, labelDisplay, input } = variable;
   const isStepModeActive = computationStore.isStepMode();
 
-  // Determine what to display based on labelDisplay setting and interaction mode
+  // Determine what to display based on labelDisplay setting and input mode
   let mainDisplayText = varId; // default to name
   let displayComponent: React.ReactNode = null;
 
-  // Check if this is an inline input variable (but not in step mode)
-  const isInlineInput =
-    role === "input" && interaction === "inline" && !isStepModeActive;
+  // Check if this is an inline input variable
+  const isInlineInput = input === "inline";
 
   if (isInlineInput) {
-    // Render inline editable input for input variables with inline interaction
+    // Render inline editable input for input variables
     displayComponent = (
       <InlineInput varId={varId} variable={variable} fontSize={labelFontSize} />
     );
   } else if (
     labelDisplay === "value" ||
-    (interaction === "inline" && isStepModeActive)
+    false // inline input deprecated
   ) {
     if (Array.isArray(variable?.value)) {
       // Handle set values - convert all elements to strings for display
@@ -239,18 +238,14 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     );
   }
 
-  // Determine interactive variable styling based on variable type and context
+  // Determine interactive variable styling based on input type and context
   const getInteractiveClass = () => {
     if (computationStore.isStepMode()) {
       return "step-cue"; // Step mode styling
     }
 
-    if (role === "computed") {
-      return VAR_CLASSES.COMPUTED;
-    }
-
-    if (role === "input") {
-      // All input variables get the unified input class
+    if (input === "drag") {
+      // Draggable variables get the input class
       return VAR_CLASSES.INPUT;
     }
 
@@ -260,16 +255,13 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const interactiveClass = getInteractiveClass();
   const isSetVariable = Array.isArray(variable.value);
   // Don't enable drag for inline input variables or in step mode
-  const isDraggable =
-    (role === "input" || role === "computed") &&
-    !isSetVariable &&
-    !isInlineInput &&
-    !isStepModeActive;
-  const cursor = isDraggable ? "grab" : "default";
+  const isDraggableVar =
+    input === "drag" && !isSetVariable && !isInlineInput && !isStepModeActive;
+  const cursor = isDraggableVar ? "grab" : "default";
   const valueCursor =
     isSetVariable && !isStepModeActive
       ? "pointer"
-      : role === "input" && !isStepModeActive && !isInlineInput
+      : input === "drag" && !isStepModeActive && !isInlineInput
         ? "ns-resize"
         : "default";
 
@@ -295,17 +287,14 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         ...customStyle,
         ...debugStyles,
       }}
-      title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggable ? " (draggable)" : ""}`}
+      title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggableVar ? " (draggable)" : ""}`}
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
       onMouseLeave={() => computationStore.setVariableHover(varId, false)}
     >
       <div className="flex flex-col items-center gap-1">
         <div
           ref={
-            role === "input" &&
-            !isSetVariable &&
-            !isInlineInput &&
-            !isStepModeActive
+            input === "drag" && !isSetVariable && !isInlineInput && !isStepModeActive
               ? valueDragRef
               : null
           }

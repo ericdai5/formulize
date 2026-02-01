@@ -23,22 +23,19 @@ export const parametric3D = `const config = {
   ],
   variables: {
     x: {
-      role: "computed",
       name: "x-coordinate",
       precision: 1
     },
     y: {
-      role: "computed",
       name: "y-coordinate",
       precision: 1
     },
     z: {
-      role: "computed",
       name: "z-coordinate",
       precision: 1
     },
     t: {
-      role: "input",
+      input: "drag",
       default: 0,
       range: [-2, 2],
       step: 0.1,

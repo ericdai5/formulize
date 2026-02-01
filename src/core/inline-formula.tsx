@@ -3,12 +3,15 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { getInputVariableState, processLatexContent } from "../util/parse/variable";
-import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
-import { useFormulize } from "./hooks";
+import {
+  getInputVariableState,
+  processLatexContent,
+} from "../util/parse/variable";
+import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { useMathJax } from "../util/use-mathjax";
+import { useFormulize } from "./hooks";
 
 interface InlineFormulaProps {
   /** Formula ID to render (looks up from environment) */
@@ -123,7 +126,7 @@ const InlineFormulaInner = observer(
 
         variableIds.forEach((varId) => {
           const variable = computationStore.variables.get(varId);
-          const isInput = variable?.role === "input";
+          const isDraggable = variable?.input === "drag";
           const elements = container.querySelectorAll(`#${CSS.escape(varId)}`);
 
           elements.forEach((element) => {
@@ -139,7 +142,7 @@ const InlineFormulaInner = observer(
             });
 
             // Add drag-to-change for input variables
-            if (isInput) {
+            if (isDraggable) {
               el.style.cursor = "ns-resize";
 
               let isDragging = false;

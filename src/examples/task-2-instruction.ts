@@ -38,7 +38,7 @@ export const task2instruction = `const config = {
       }
       average = sum / n;
       average = Math.round(average * 100) / 100;
-      return average;
+      vars["\\\\bar{X}"] = average;
     },
   },
   fontSize: 1.5

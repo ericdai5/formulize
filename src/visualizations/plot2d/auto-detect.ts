@@ -3,9 +3,9 @@
  * Automatically infers axes and ranges from computation store variables
  *
  * ## Features:
- * - **xAxis**: Automatically defaults to the first "input" variable
- * - **yAxis**: Automatically defaults to the first "computed" variable
- * - **xRange**: Automatically inferred from the input variable's range property
+ * - **xAxis**: Automatically defaults to the first drag input variable
+ * - **yAxis**: Automatically defaults to the first non-input variable (computed by manual function)
+ * - **xRange**: Automatically inferred from the drag variable's range property
  * - **yRange**: Automatically computed by sampling the computed variable across the x-range
  *
  * All axes and ranges are auto-detected from variable definitions!
@@ -36,14 +36,15 @@ export function autoDetectPlotConfig(
 ): AutoDetectedConfig {
   // Get all variables from computation store
   const variables = Array.from(computationStore.variables.entries());
-  // Find first input and computed variables
-  const firstInputVar = variables.find(([, v]) => v.role === "input");
-  const firstComputedVar = variables.find(([, v]) => v.role === "computed");
-  // Auto-detect xAxis (use first input variable if not specified)
-  const xAxis = config.xAxis || (firstInputVar ? firstInputVar[0] : undefined);
-  // Auto-detect yAxis (use first computed variable if not specified)
+  // Find first drag input variable and first non-input variable (computed by manual function)
+  const firstDraggableVar = variables.find(([, v]) => v.input === "drag");
+  const firstNonInputVar = variables.find(([, v]) => !v.input);
+  // Auto-detect xAxis (use first drag input variable if not specified)
+  const xAxis =
+    config.xAxis || (firstDraggableVar ? firstDraggableVar[0] : undefined);
+  // Auto-detect yAxis (use first non-input variable if not specified)
   const yAxis =
-    config.yAxis || (firstComputedVar ? firstComputedVar[0] : undefined);
+    config.yAxis || (firstNonInputVar ? firstNonInputVar[0] : undefined);
   // Auto-detect xRange from input variable's range
   let xRange: [number, number] = config.xRange || PLOT2D_DEFAULTS.xRange;
   if (!config.xRange && xAxis) {
@@ -114,15 +115,15 @@ function computeYRange(
   const step = (xMax - xMin) / numSamples;
   let yMin = Infinity;
   let yMax = -Infinity;
-  // Get all other input variables (excluding xAxis)
-  const otherInputVars: Array<{ id: string; range: [number, number] }> = [];
+  // Get all other drag input variables (excluding xAxis)
+  const otherDraggableVars: Array<{ id: string; range: [number, number] }> = [];
   for (const [varId, variable] of computationStore.variables.entries()) {
-    if (varId !== xAxis && variable.role === "input" && variable.range) {
-      otherInputVars.push({ id: varId, range: variable.range });
+    if (varId !== xAxis && variable.input === "drag" && variable.range) {
+      otherDraggableVars.push({ id: varId, range: variable.range });
     }
   }
-  // Generate all extreme combinations of other input variables
-  const extremeCombos = generateExtremeCombinations(otherInputVars);
+  // Generate all extreme combinations of other draggable variables
+  const extremeCombos = generateExtremeCombinations(otherDraggableVars);
   // Sample y values across x range for each combination
   for (let i = 0; i <= numSamples; i++) {
     const xValue = xMin + i * step;

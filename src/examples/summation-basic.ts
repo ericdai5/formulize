@@ -7,26 +7,22 @@ export const summationBasic = `const config = {
   ],
   variables: {
     E: {
-      role: "computed",
       default: 0,
       name: "Expected Value",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     x: {
-      role: "input",
       name: "Member of X",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     X: {
-      role: "input",
       default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       latexDisplay: "name",
       labelDisplay: "value",
     },
     "P(x)": {
-      role: "input",
       key: "x",
       default: [0.05, 0.08, 0.12, 0.15, 0.20, 0.18, 0.12, 0.06, 0.03, 0.01],
       name: "Probability of x",
@@ -64,7 +60,7 @@ export const summationBasic = `const config = {
             break;
         }
       }
-      return expectedValue;
+      vars.E = expectedValue;
     },
   },
   fontSize: 1.5

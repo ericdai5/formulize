@@ -5,7 +5,7 @@ import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-a
 import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
-import { IRole, IValue, IVariable } from "../types/variable";
+import { IValue, IVariable } from "../types/variable";
 import { AugmentedFormula } from "../util/parse/formula-tree";
 
 export type EvaluationFunctionInput = Record<string, number | number[]>;
@@ -90,12 +90,6 @@ class ComputationStore {
   private evaluationFunction: EvaluationFunction | null = null;
   private isUpdatingDependents = false;
   private isInitializing = false;
-
-  private hasComputedVars(): boolean {
-    return Array.from(this.variables.values()).some(
-      (v) => v.role === "computed"
-    );
-  }
 
   isStepMode(): boolean {
     return this.semantics?.mode === "step";
@@ -461,7 +455,6 @@ class ComputationStore {
     if (!this.variables.has(id)) {
       this.variables.set(id, {
         value: variableDefinition?.value ?? undefined,
-        role: variableDefinition?.role ?? "constant",
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
         units: variableDefinition?.units,
@@ -480,55 +473,41 @@ class ComputationStore {
         svgMode: variableDefinition?.svgMode,
         defaultCSS: variableDefinition?.defaultCSS,
         hoverCSS: variableDefinition?.hoverCSS,
-        interaction: variableDefinition?.interaction,
+        input: variableDefinition?.input,
       });
     }
   }
 
   @action
-  setVariableRole(id: string, role: IRole) {
+  setVariableInput(id: string, input: "drag" | "inline" | undefined) {
     const variable = this.variables.get(id);
     if (!variable) {
       return;
     }
 
-    if (variable.role === role) {
+    if (variable.input === input) {
       return;
     }
 
-    variable.role = role;
+    variable.input = input;
 
-    // Get the environment variable if it exists
-    if (this.environment?.variables) {
-      const envVar = this.environment.variables[id];
-      // Check if envVar is an object (not a number) before accessing properties
-      if (
-        envVar &&
-        typeof envVar !== "number" &&
-        envVar.role === "input" &&
-        !variable.range
-      ) {
-        variable.range = envVar.range || [-10, 10];
+    // Get the environment variable if it exists and set default range for drag input
+    if (input === "drag" && !variable.range) {
+      if (this.environment?.variables) {
+        const envVar = this.environment.variables[id];
+        if (envVar && typeof envVar !== "number" && envVar.range) {
+          variable.range = envVar.range;
+        } else {
+          variable.range = [-10, 10];
+        }
+      } else {
+        variable.range = [-10, 10];
       }
-    } else if (role === "input" && !variable.range) {
-      // Only set default range if no range is already defined
-      variable.range = [-10, 10];
     }
 
     this.variableRolesChanged++;
 
-    // Check if we have computed variables and expressions to evaluate
-    const hasComputedVars = this.hasComputedVars();
-
-    if (hasComputedVars && this.symbolicFunctions.length > 0) {
-      // Re-evaluate all expressions when variable types change
-      this.setComputation(this.symbolicFunctions, this.manualFunctions);
-    } else if (!hasComputedVars) {
-      // Clear evaluation function if no computed variables
-      this.evaluationFunction = null;
-    }
-
-    // Update all computed variables
+    // Update computed values
     this.updateAllComputedVars();
   }
 
@@ -548,10 +527,11 @@ class ComputationStore {
           .map(([symbol, v]) => [symbol, v.value as number | number[]])
       );
       const results = this.evaluationFunction(values);
-      // Update all computed variables with their computed values (numeric or array)
-      for (const [symbol, variable] of this.variables.entries()) {
-        if (variable.role === "computed") {
-          const result = results[symbol];
+      // Update variables with values from the manual function
+      // The manual function determines which variables are "computed" by mutating them
+      for (const [symbol, result] of Object.entries(results)) {
+        const variable = this.variables.get(symbol);
+        if (variable) {
           if (typeof result === "number" && !isNaN(result)) {
             variable.value = result;
           } else if (Array.isArray(result)) {
@@ -571,7 +551,7 @@ class ComputationStore {
       variables: Array.from(this.variables.entries()).map(([id, v]) => ({
         id,
         value: v.value,
-        role: v.role,
+        input: v.input,
       })),
       hasFunction: !!this.evaluationFunction,
       engine: this.engine,

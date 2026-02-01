@@ -112,7 +112,6 @@ async function initializeInstance(
     if (Object.keys(normalizedVariables).length > 0) {
       Object.entries(normalizedVariables).forEach(([varId, variable]) => {
         computationStore.addVariable(varId, variable);
-        computationStore.setVariableRole(varId, variable.role);
         if (variable.value !== undefined) {
           if (variable.dataType === "set" && Array.isArray(variable.value)) {
             computationStore.setSetValue(varId, variable.value);
@@ -189,7 +188,7 @@ async function initializeInstance(
         const computationVariable = computationStore.variables.get(varId);
 
         return {
-          role: variable.role,
+          input: variable.input,
           value: computationVariable?.value ?? variable.value ?? 0,
           dataType: variable.dataType,
           dimensions: variable.dimensions,
@@ -205,7 +204,8 @@ async function initializeInstance(
       },
       setVariable: (name: string, value: number) => {
         const variable = normalizedVariables[name];
-        if (variable && variable.role !== "computed") {
+        // Allow setting value for any variable (manual function determines what's computed)
+        if (variable) {
           computationStore.setValue(name, value);
           return true;
         }

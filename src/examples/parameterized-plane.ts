@@ -19,31 +19,28 @@ export const parameterizedPlane = `const config = {
   ],
   variables: {
     x: {
-      role: "computed",
       name: "x-coordinate",
       precision: 2
     },
     y: {
-      role: "computed",
       name: "y-coordinate",
       precision: 2
     },
     z: {
-      role: "computed",
       name: "z-coordinate",
       precision: 2
     },
     t: {
-      role: "input",
+      input: "drag",
       default: 0,
-      range: [-10, 10],
+      range: [-15, 15],
       step: 0.1,
       name: "Parameter t"
     },
     w: {
-      role: "input",
+      input: "drag",
       default: 0,
-      range: [-10, 10],
+      range: [-15, 15],
       step: 0.1,
       name: "Parameter w"
     }
@@ -57,7 +54,6 @@ export const parameterizedPlane = `const config = {
       "plane-equation": "{x} + {y} + {z} = 1"
     }
   },
-
   controls: [
     {
       id: "tSlider",
@@ -72,7 +68,6 @@ export const parameterizedPlane = `const config = {
       orientation: "horizontal"
     }
   ],
-
   visualizations: [
     {
       type: "plot3d",
