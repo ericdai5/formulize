@@ -21,8 +21,7 @@ interface FormulizeProps {
  * Inner component that renders the playground canvas and debug tools.
  * Gets stores from FormulizeProvider context.
  */
-const PlaygroundCanvasInner = observer(
-  ({ onRenderError }: { onRenderError?: (error: string | null) => void }) => {
+const PlaygroundCanvasInner = observer(() => {
     const context = useFormulize();
     const [showNodeVisibilitySidebar, setShowNodeVisibilitySidebar] =
       useState<boolean>(false);
@@ -35,7 +34,6 @@ const PlaygroundCanvasInner = observer(
     const computationStore = context?.computationStore;
     const executionStore = context?.executionStore;
     const currentConfig = context?.config;
-    const error = context?.error ?? null;
 
     // Update configKey when config changes to force re-render of Canvas
     useEffect(() => {
@@ -44,13 +42,6 @@ const PlaygroundCanvasInner = observer(
         setConfigKey((prev) => prev + 1);
       }
     }, [currentConfig]);
-
-    // Notify parent of error changes
-    useEffect(() => {
-      if (onRenderError) {
-        onRenderError(error);
-      }
-    }, [error, onRenderError]);
 
     // Check if step mode is available (for interpreter button)
     const isStepMode = computationStore?.isStepMode() ?? false;
@@ -178,7 +169,7 @@ const PlaygroundCanvas: React.FC<FormulizeProps> = ({
 }) => {
   return (
     <FormulizeProvider config={formulizeConfig} onError={onRenderError}>
-      <PlaygroundCanvasInner onRenderError={onRenderError} />
+      <PlaygroundCanvasInner />
     </FormulizeProvider>
   );
 };
