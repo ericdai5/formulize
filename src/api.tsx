@@ -141,27 +141,37 @@ export default function APIPage() {
         } overflow-hidden flex flex-col`}
       >
         <div className="min-w-[400px] h-full flex flex-col">
-          <div className="p-4 border-b border-slate-200 flex-shrink-0">
+          <div className="p-2.5 border-b border-slate-200 flex-shrink-0">
             <div className="flex items-center justify-between">
               <ExampleSwitcher
                 onConfigSelect={setSelectedTemplate}
                 activeConfigKey={selectedTemplate}
               />
-              <div className="flex items-center border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <button
-                  onClick={goToPrevious}
-                  className="p-2.5 hover:bg-slate-50 transition-colors border-r border-slate-200"
-                  title="Previous Example"
-                >
-                  <ChevronLeft className="w-4 h-4 text-slate-600" />
-                </button>
-                <button
-                  onClick={goToNext}
-                  className="p-2.5 hover:bg-slate-50 transition-colors"
-                  title="Next Example"
-                >
-                  <ChevronRight className="w-4 h-4 text-slate-600" />
-                </button>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <button
+                    onClick={goToPrevious}
+                    className="p-2.5 hover:bg-slate-50 transition-colors border-r border-slate-200"
+                    title="Previous Example"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-slate-600" />
+                  </button>
+                  <button
+                    onClick={goToNext}
+                    className="p-2.5 hover:bg-slate-50 transition-colors"
+                    title="Next Example"
+                  >
+                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                  </button>
+                </div>
+                <IconButton
+                  size="lg"
+                  icon={PanelRightOpen}
+                  alt="Toggle Editor"
+                  onClick={() => setIsRendered(!isRendered)}
+                  title="Toggle Code Editor"
+                  tooltipPosition="right"
+                />
               </div>
             </div>
           </div>
@@ -184,15 +194,18 @@ export default function APIPage() {
           formulizeConfig={config || undefined}
           onRenderError={handleRenderError}
         />
-        <div className="absolute top-4 left-4 z-30">
-          <IconButton
-            size="lg"
-            icon={isRendered ? PanelRightOpen : PanelRightClose}
-            alt="Toggle Editor"
-            onClick={() => setIsRendered(!isRendered)}
-            title="Toggle Code Editor"
-          />
-        </div>
+        {!isRendered && (
+          <div className="absolute top-2.5 left-2.5 z-30">
+            <IconButton
+              size="lg"
+              icon={PanelRightClose}
+              alt="Toggle Editor"
+              onClick={() => setIsRendered(!isRendered)}
+              title="Toggle Code Editor"
+              tooltipPosition="right"
+            />
+          </div>
+        )}
         <div className="absolute bottom-4 right-4 z-30">
           <IconButton
             size="lg"
@@ -204,7 +217,6 @@ export default function APIPage() {
           />
         </div>
       </div>
-
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
