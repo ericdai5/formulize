@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { FormulizeProvider } from "../core";
 import { useFormulize } from "../core/hooks";
 import { FormulizeConfig } from "../index.ts";
 import { debugStore } from "../store/debug";
@@ -11,21 +10,19 @@ import Toolbar from "./toolbar";
 import DebugModal from "./interpreter";
 import NodeVisibilitySidebar from "./node-visibility-sidebar";
 import TreeInspectorSidebar from "./tree-inspector-sidebar";
-
-interface FormulizeProps {
-  formulizeConfig?: FormulizeConfig;
-  onRenderError?: (error: string | null) => void;
-}
+import VariablesSidebar from "./variables-sidebar";
 
 /**
- * Inner component that renders the playground canvas and debug tools.
- * Gets stores from FormulizeProvider context.
+ * PlaygroundCanvas component that renders the canvas and debug tools.
+ * Must be used within a FormulizeProvider.
  */
-const PlaygroundCanvasInner = observer(() => {
+const PlaygroundCanvas = observer(() => {
     const context = useFormulize();
     const [showNodeVisibilitySidebar, setShowNodeVisibilitySidebar] =
       useState<boolean>(false);
     const [showTreeInspectorSidebar, setShowTreeInspectorSidebar] =
+      useState<boolean>(false);
+    const [showVariablesSidebar, setShowVariablesSidebar] =
       useState<boolean>(false);
     const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
     const [configKey, setConfigKey] = useState<number>(0);
@@ -56,14 +53,14 @@ const PlaygroundCanvasInner = observer(() => {
     // Guard: context must be available
     if (!context || !computationStore || !executionStore) {
       return (
-        <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200 flex items-center justify-center">
+        <div className="formula-renderer overflow-hidden w-full h-full flex items-center justify-center">
           <div className="text-slate-500">Loading...</div>
         </div>
       );
     }
 
     return (
-      <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
+      <div className="formula-renderer overflow-hidden w-full h-full">
         <div className="flex flex-row w-full h-full">
           {/* Main content area */}
           <div className="flex-1 flex flex-col h-full relative min-w-0">
@@ -74,9 +71,13 @@ const PlaygroundCanvasInner = observer(() => {
               onToggleTreeInspector={() =>
                 setShowTreeInspectorSidebar((prev) => !prev)
               }
+              onToggleVariables={() =>
+                setShowVariablesSidebar((prev) => !prev)
+              }
               onToggleInterpreter={() => setShowDebugModal((prev) => !prev)}
               isNodeVisibilityOpen={showNodeVisibilitySidebar}
               isTreeInspectorOpen={showTreeInspectorSidebar}
+              isVariablesOpen={showVariablesSidebar}
               isInterpreterOpen={showDebugModal}
               showInterpreterButton={isStepMode}
             />
@@ -148,6 +149,11 @@ const PlaygroundCanvasInner = observer(() => {
             onClose={() => setShowTreeInspectorSidebar(false)}
             config={currentConfig ?? null}
           />
+          {/* Variables store sidebar */}
+          <VariablesSidebar
+            isOpen={showVariablesSidebar}
+            onClose={() => setShowVariablesSidebar(false)}
+          />
           {/* Interpreter sidebar */}
           <DebugModal
             isOpen={showDebugModal}
@@ -158,20 +164,5 @@ const PlaygroundCanvasInner = observer(() => {
     );
   }
 );
-
-/**
- * PlaygroundCanvas component - wraps content with FormulizeProvider.
- * The provider handles creating the Formulize instance and stores.
- */
-const PlaygroundCanvas: React.FC<FormulizeProps> = ({
-  formulizeConfig,
-  onRenderError,
-}) => {
-  return (
-    <FormulizeProvider config={formulizeConfig} onError={onRenderError}>
-      <PlaygroundCanvasInner />
-    </FormulizeProvider>
-  );
-};
 
 export default PlaygroundCanvas;

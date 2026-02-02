@@ -72,7 +72,7 @@ const InlineVariableInner = observer(
 
       const value = variable.value;
       const units = variable.units;
-      const precision = variable.precision ?? 2;
+      const precision = variable.precision;
 
       // Format value
       let formattedValue = "";

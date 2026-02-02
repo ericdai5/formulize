@@ -7,6 +7,7 @@ import { Handle, Position } from "@xyflow/react";
 
 import { useFormulize } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
+import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { buildDebugStyles } from "../../util/debug-styles";
 import { useVariableDrag } from "../../util/use-variable-drag";
 import { VAR_CLASSES } from "../css-classes";
@@ -29,8 +30,6 @@ const HANDLE_STYLE = {
   height: 1,
 };
 
-// Default precision for inline inputs
-const DEFAULT_INLINE_PRECISION = 2;
 
 // Inline editable input component for variables with input: "inline"
 const InlineInput = observer(
@@ -52,7 +51,7 @@ const InlineInput = observer(
 
     const currentValue =
       typeof variable.value === "number" ? variable.value : 0;
-    const displayPrecision = variable.precision ?? DEFAULT_INLINE_PRECISION;
+    const displayPrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
 
     // Format value with precision for display
     const formatValue = useCallback(
@@ -212,7 +211,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
         );
       }
     } else if (typeof value === "number" && value !== null) {
-      const displayPrecision = precision ?? (Number.isInteger(value) ? 0 : 2);
+      const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
       mainDisplayText = value.toFixed(displayPrecision);
       displayComponent = (
         <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />

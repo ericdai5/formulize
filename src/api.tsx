@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
+import { observer } from "mobx-react-lite";
 
 import {
   ChevronLeft,
@@ -9,16 +11,18 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 
+import { FormulizeProvider } from "./core";
 import { examples as formulaExamples } from "./examples";
 import { FormulizeConfig } from "./formulize";
 import Editor from "./internal/api-code-editor";
 import ExampleSwitcher from "./internal/example-switcher";
 import PlaygroundCanvas from "./internal/playground";
+import { debugStore } from "./store/debug";
 import IconButton from "./ui/icon-button";
 import Modal from "./ui/modal";
 import { executeUserCode } from "./util/code-executor";
 
-export default function APIPage() {
+const APIPage = observer(() => {
   const navigate = useNavigate();
   const { exampleId } = useParams<{ exampleId: string }>();
 
@@ -36,8 +40,6 @@ export default function APIPage() {
     return exampleKeys[0];
   }, [exampleId, exampleKeys]);
 
-  const [code, setCode] = useState<string>("");
-  const codeByTemplateRef = useRef<Record<string, string>>({});
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<FormulizeConfig | null>(null);
@@ -94,39 +96,24 @@ export default function APIPage() {
     }
   }, []);
 
-  // Update formulize input when selectedTemplate changes
+  // Update debugStore when selectedTemplate changes
   useEffect(() => {
     if (selectedTemplate && formulaExamples[selectedTemplate]) {
-      // Check if we have saved code for this template, otherwise use the default example
-      const savedCode = codeByTemplateRef.current[selectedTemplate];
-      const newFormula = savedCode || formulaExamples[selectedTemplate];
-
-      setCode(newFormula);
+      debugStore.setSelectedTemplate(
+        selectedTemplate,
+        formulaExamples[selectedTemplate]
+      );
     }
   }, [selectedTemplate]);
 
-  // Execute code when code changes
+  // Execute code when debugStore.code changes (observer triggers re-render)
+  const code = debugStore.code;
   useEffect(() => {
     executeCode(code);
   }, [code, executeCode]);
 
-  // Save code changes for the current template
-  const handleCodeChange = useCallback(
-    (newCode: string) => {
-      setCode(newCode);
-      if (selectedTemplate) {
-        codeByTemplateRef.current = {
-          ...codeByTemplateRef.current,
-          [selectedTemplate]: newCode,
-        };
-      }
-    },
-    [selectedTemplate]
-  );
-
   // Memoized callback to prevent FormulizeProvider re-initialization on parent re-renders
   const handleRenderError = useCallback((formulizeError: string | null) => {
-    // If there's a formulize error, it takes precedence over code execution errors
     if (formulizeError) {
       setError(formulizeError);
     }
@@ -136,8 +123,8 @@ export default function APIPage() {
     <div className="relative h-full flex">
       {/* Editor Panel */}
       <div
-        className={`transition-all duration-300 ease-in-out border-r border-slate-200 ${
-          isRendered ? "w-1/3" : "w-0"
+        className={`transition-all duration-300 ease-in-out ${
+          isRendered ? "w-1/3 border-r border-slate-200" : "w-0"
         } overflow-hidden flex flex-col`}
       >
         <div className="min-w-[400px] h-full flex flex-col">
@@ -177,8 +164,8 @@ export default function APIPage() {
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             <Editor
-              code={code}
-              onChange={handleCodeChange}
+              code={debugStore.code}
+              onChange={(newCode) => debugStore.setCode(newCode)}
               onRender={() => {}}
               error={error}
             />
@@ -190,10 +177,12 @@ export default function APIPage() {
       <div
         className={`relative flex-1 transition-all duration-300 ease-in-out`}
       >
-        <PlaygroundCanvas
-          formulizeConfig={config || undefined}
-          onRenderError={handleRenderError}
-        />
+        <FormulizeProvider
+          config={config || undefined}
+          onError={handleRenderError}
+        >
+          <PlaygroundCanvas />
+        </FormulizeProvider>
         {!isRendered && (
           <div className="absolute top-2.5 left-2.5 z-30">
             <IconButton
@@ -234,4 +223,6 @@ export default function APIPage() {
       </Modal>
     </div>
   );
-}
+});
+
+export default APIPage;

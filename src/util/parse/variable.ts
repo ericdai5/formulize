@@ -1,6 +1,7 @@
 import { VAR_CLASSES } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
+import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
   Accent,
@@ -142,7 +143,7 @@ const renderNestedVariable = (
   const variable = computationStore.variables.get(symbolValue);
   if (variable) {
     value = typeof variable.value === "number" ? variable.value : undefined;
-    variablePrecision = variable.precision ?? defaultPrecision;
+    variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
     latexDisplay = variable.latexDisplay ?? "name";
   }
   // Show value when active, symbol when not active
@@ -385,7 +386,7 @@ export interface ProcessVariablesResult {
  */
 export const processVariables = (
   formula: AugmentedFormula,
-  defaultPrecision: number = 2,
+  defaultPrecision: number = INPUT_VARIABLE_DEFAULT.PRECISION,
   computationStore: ComputationStore,
   executionStore: ExecutionStore
 ): ProcessVariablesResult => {
@@ -413,7 +414,7 @@ export const processVariables = (
             typeof variable.value === "number" ? variable.value : undefined;
           isDraggable = variable.input === "drag";
           // Use the variable's precision if defined, otherwise use default
-          variablePrecision = variable.precision ?? defaultPrecision;
+          variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
           // Use the variable's display property if defined, otherwise default to "name"
           display = variable.latexDisplay ?? "name";
           // Get custom CSS if defined
