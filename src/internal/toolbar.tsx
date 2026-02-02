@@ -46,9 +46,9 @@ const Toolbar = ({
       <IconButton
         size="lg"
         icon={Braces}
-        alt="Variables Store"
+        alt="Variable Editor"
         onClick={onToggleVariables}
-        title="Variables Store"
+        title="Variable Editor"
         isActive={isVariablesOpen}
       />
       {showInterpreterButton && (
