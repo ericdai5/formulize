@@ -6,7 +6,6 @@ import { observer } from "mobx-react-lite";
 import {
   ChevronLeft,
   ChevronRight,
-  Info,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
@@ -19,7 +18,6 @@ import ExampleSwitcher from "./internal/example-switcher";
 import PlaygroundCanvas from "./internal/playground";
 import { debugStore } from "./store/debug";
 import IconButton from "./ui/icon-button";
-import Modal from "./ui/modal";
 import { executeUserCode } from "./util/code-executor";
 
 const APIPage = observer(() => {
@@ -43,7 +41,6 @@ const APIPage = observer(() => {
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<FormulizeConfig | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const currentIndex = useMemo(
     () => (selectedTemplate ? exampleKeys.indexOf(selectedTemplate) : -1),
@@ -195,32 +192,7 @@ const APIPage = observer(() => {
             />
           </div>
         )}
-        <div className="absolute bottom-4 right-4 z-30">
-          <IconButton
-            size="lg"
-            strokeWidth={1.5}
-            icon={Info}
-            alt="Credits"
-            onClick={() => setIsModalOpen(true)}
-            title="Credits"
-          />
-        </div>
       </div>
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Built by HCI @ Penn"
-        maxWidth="max-w-md"
-      >
-        <div className="p-6">
-          <ul className="space-y-3 text-lg">
-            <li>Eric Dai</li>
-            <li>Zain Khan</li>
-            <li>Andrew Head</li>
-            <li>Jeff Tao</li>
-          </ul>
-        </div>
-      </Modal>
     </div>
   );
 });
