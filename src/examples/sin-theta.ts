@@ -31,10 +31,8 @@ export const sinTheta = `const config = {
     }
   },
   semantics: {
-    manual: {
-      "sin-theta": function(vars) {
-        vars.y = vars.c * Math.sin(vars["\\\\theta"]);
-      }
+    manual: function(vars) {
+      vars.y = vars.c * Math.sin(vars["\\\\theta"]);
     }
   },
 
