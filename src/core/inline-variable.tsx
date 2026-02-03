@@ -28,7 +28,7 @@ interface InlineVariableProps {
  * Get the appropriate CSS class for variable styling based on input type
  */
 const getVariableClass = (input?: string): string => {
-  if (input === "drag") {
+  if (input === "drag" || input === "inline") {
     return VAR_CLASSES.INPUT;
   }
   return VAR_CLASSES.BASE;

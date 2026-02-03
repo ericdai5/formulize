@@ -42,7 +42,7 @@ export const fittsLaw = `const config = {
     xAxisVar: "W",
     xRange: [0.1, 10],
     yAxisLabel: "T",
-    yAxisVar: "T",
+    yAxisVar: "T_1",
     yRange: [0, 3],
     graphs: [
       {

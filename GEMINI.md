@@ -95,7 +95,7 @@ A LaTeX expression to highlight in the formula. This should be a valid LaTeX sub
 expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m}";
 
 // Highlight the gradient calculation
-expression: "-2x(y - w_t \\cdot x)";
+expression: "-2x(y - w_t \\\\cdot x)";
 
 // Highlight the full expression
 expression: "\\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2";
