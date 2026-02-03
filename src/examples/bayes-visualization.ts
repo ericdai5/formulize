@@ -58,12 +58,12 @@ export const bayesWithCustomVisualization = `const config = {
       }
     },
     semantics: {
-      expressions: {
-        "bayes-theorem": "{P(B \\\\mid A)} = ({P(A \\\\mid B)} * {P(B)}) / {P(A)}",
-        "conditional-probability": "{P(A \\\\mid B)} = {P(A \\\\cap B)} / {P(B)}",
-        "a-and-not-b": "{P(A \\\\cap \\\\neg B)} = {P(A)} - {P(A \\\\cap B)}",
-        "b-and-not-a": "{P(B \\\\cap \\\\neg A)} = {P(B)} - {P(A \\\\cap B)}",
-        "not-a-and-not-b": "{P(\\\\neg A \\\\cap \\\\neg B)} = 1 - {P(A)} - {P(B)} + {P(A \\\\cap B)}"
+      manual: function(vars) {
+        vars["P(A \\\\mid B)"] = vars["P(A \\\\cap B)"] / vars["P(B)"];
+        vars["P(B \\\\mid A)"] = (vars["P(A \\\\mid B)"] * vars["P(B)"]) / vars["P(A)"];
+        vars["P(A \\\\cap \\\\neg B)"] = vars["P(A)"] - vars["P(A \\\\cap B)"];
+        vars["P(B \\\\cap \\\\neg A)"] = vars["P(B)"] - vars["P(A \\\\cap B)"];
+        vars["P(\\\\neg A \\\\cap \\\\neg B)"] = 1 - vars["P(A)"] - vars["P(B)"] + vars["P(A \\\\cap B)"];
       }
     },
     visualizations: [

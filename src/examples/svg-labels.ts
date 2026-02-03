@@ -2,7 +2,7 @@ export const svgKineticEnergy2D = `const config = {
   formulas: [
     {
       id: "kinetic-energy",
-      latex: "K = \\\\frac{1}{2}mv^2"
+      latex: "K = \\\\frac{1}{2} \\\\times m \\\\times v^2"
     }
   ],
   variables: {
@@ -19,6 +19,7 @@ export const svgKineticEnergy2D = `const config = {
       units: "kg",
       name: "Mass",
       labelDisplay: "svg",
+      latexDisplay: "value",
       svgPath: "/mass.svg",
       svgSize: { width: 24, height: 24 }
     },
@@ -30,23 +31,37 @@ export const svgKineticEnergy2D = `const config = {
       units: "m/s",
       name: "Velocity",
       labelDisplay: "svg",
+      latexDisplay: "value",
       svgPath: "/velocity.svg",
       svgSize: { width: 24, height: 24 }
     }
   },
   semantics: {
-    manual: function(vars) {
+    manual: function(vars, data3d, data2d) {
       vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
+      data2d("energy", {x: vars.v, y: vars.K});
     }
   },
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "v",
-      yAxis: "K",
-      lines: [
+      xAxisLabel: "v",
+      xAxisVar: "v",
+      xRange: [0, 100],
+      yAxisLabel: "K",
+      yAxisVar: "K",
+      yRange: [0, 5000],
+      graphs: [
         {
-          name: "Kinetic Energy Formula",
+          type: "line",
+          id: "energy",
+          parameter: "v",
+          interaction: ["vertical-drag", "m"]
+        },
+        {
+          type: "point",
+          id: "energy",
+          interaction: ["horizontal-drag", "v"]
         }
       ]
     }

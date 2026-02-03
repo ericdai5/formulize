@@ -46,12 +46,11 @@ export const parameterizedPlane = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
-    expressions: {
-      "x-parameterization": "{x} = 1 - {t} - {w}",
-      "y-parameterization": "{y} = {t}",
-      "z-parameterization": "{z} = {w}",
-      "plane-equation": "{x} + {y} + {z} = 1"
+    manual: function(vars, data3d) {
+      vars.x = 1 - vars.t - vars.w;
+      vars.y = vars.t;
+      vars.z = vars.w;
+      data3d("plane", {x: vars.x, y: vars.y, z: vars.z});
     }
   },
   controls: [
@@ -73,36 +72,24 @@ export const parameterizedPlane = `const config = {
       type: "plot3d",
       id: "parameterizedPlane3D",
       title: "Parameterized Plane: x + y + z = 1",
-      xAxis: "x",
       xRange: [-15, 15],
-      yAxis: "y",
       yRange: [-15, 15],
-      zVar: "z",
       zRange: [-15, 15],
-      plotType: "surface",
-
-      showColorbar: true,
-      showCurrentPointInLegend: true,
-      surfaces: [
+      graphs: [
         {
-          id: "plane-equation",
-          color: "rgba(128, 0, 128, 0.6)",
-          opacity: 0.6,
-          showInLegend: true,
-          showColorbar: false
-        }
-      ],
-      points: [
+          type: "surface",
+          id: "plane",
+          parameters: ["t", "w"],
+          name: "Parameterized Plane",
+          color: "Purple",
+          opacity: 0.3,
+        },
         {
+          type: "point",
+          id: "plane",
           name: "Current Point (x, y, z)",
-          x: "x",
-          y: "y", 
-          z: "z",
-          color: "red",
-          size: 8,
-          showInLegend: true
         }
       ]
-    },
+    }
   ]
 };`;

@@ -62,19 +62,36 @@ const config = {
     }
   },
   semantics: {
-    manual: function(vars) {
+    manual: function(vars, data3d, data2d) {
       vars.w = vars.A * Math.sin(2 * Math.PI * vars.f * vars.t + vars.phi);
+      data2d("wave", {x: vars.t, y: vars.w});
     }
   },
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "t",
+      xAxisLabel: "t",
+      xAxisVar: "t",
       xRange: [0, 10],
       xGrid: "show",
-      yAxis: "w",
+      yAxisLabel: "w",
+      yAxisVar: "w",
       yRange: [-6, 6],
       yGrid: "show",
+      graphs: [
+        {
+          type: "line",
+          id: "wave",
+          parameter: "t",
+          samples: 500,
+          interaction: ["vertical-drag", "A"]
+        },
+        {
+          type: "point",
+          id: "wave",
+          interaction: ["horizontal-drag", "t"]
+        }
+      ]
     }
   ],
   fontSize: 1.5

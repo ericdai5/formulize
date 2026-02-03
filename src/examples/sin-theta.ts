@@ -9,7 +9,7 @@ export const sinTheta = `const config = {
     y: {
       precision: 2,
       latexDisplay: "name",
-      labelDisplay: "none"
+      labelDisplay: "value"
     },
     c: {
       input: "drag",
@@ -23,36 +23,46 @@ export const sinTheta = `const config = {
     },
     "\\\\theta": {
       default: 0,
-      range: [-2 * Math.PI, 2 * Math.PI],
+      range: [0, 13],
       step: 0.01,
       name: "x",
       latexDisplay: "name",
-      labelDisplay: "none"
+      labelDisplay: "value"
     }
   },
   semantics: {
-    manual: function(vars) {
+    manual: function(vars, data3d, data2d) {
       vars.y = vars.c * Math.sin(vars["\\\\theta"]);
+      data2d("sine", {x: vars["\\\\theta"], y: vars.y});
     }
   },
 
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "\\\\theta",
+      xAxisLabel: "\\\\theta",
+      xAxisVar: "\\\\theta",
       xRange: [0, 13],
       xAxisPos: "center",
       xGrid: "hide",
-      yAxis: "y",
+      yAxisLabel: "y",
+      yAxisVar: "y",
       yRange: [-2, 2],
       yLabelPos: "top",
       yAxisInterval: 0.5,
       width: 600,
       height: 300,
-      interaction: ["vertical-drag", "c"],
-      lines: [
+      graphs: [
         {
-          name: "sin(θ)",
+          type: "line",
+          id: "sine",
+          parameter: "\\\\theta",
+          interaction: ["vertical-drag", "c"]
+        },
+        {
+          type: "point",
+          id: "sine",
+          interaction: ["horizontal-drag", "\\\\theta"]
         }
       ]
     }

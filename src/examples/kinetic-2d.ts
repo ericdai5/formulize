@@ -26,15 +26,33 @@ export const kinetic2D = `const config = {
     }
   },
   semantics: {
-    manual: function(vars) {
+    manual: function(vars, data2d) {
       vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
+      data2d("energy", {x: vars.v, y: vars.K});
     }
   },
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "v",
-      yAxis: "K",
+      xAxisLabel: "v (m/s)",
+      xAxisVar: "v",
+      yAxisLabel: "K (J)",
+      yAxisVar: "K",
+      xRange: [0, 100],
+      yRange: [0, 5000],
+      graphs: [
+        {
+          type: "line",
+          id: "energy",
+          parameter: "v", 
+          interaction: ["vertical-drag", "m"]
+        },
+        {
+          type: "point",
+          id: "energy",
+          interaction: ["horizontal-drag", "v"]
+        }
+      ]
     }
   ],
   fontSize: 1.5,

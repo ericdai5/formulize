@@ -13,7 +13,7 @@ export const quadratic2D = `const config = {
     x: {
       input: "drag",
       default: 0,
-      range: [-10, 10],
+      range: [-5, 5],
       step: 0.1,
       name: "x"
     },
@@ -40,8 +40,9 @@ export const quadratic2D = `const config = {
     }
   },
   semantics: {
-    expressions: {
-      "quadratic-equation": "{y} = {a} * {x} * {x} + {b} * {x} + {c}"
+    manual: function(vars, data3d, data2d) {
+      vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
+      data2d("quadratic", {x: vars.x, y: vars.y});
     }
   },
 
@@ -50,16 +51,23 @@ export const quadratic2D = `const config = {
       type: "plot2d",
       id: "quadraticPlot",
       title: "Quadratic Function",
-      xAxis: "x",
+      xAxisLabel: "x",
+      xAxisVar: "x",
+      yAxisLabel: "y",
+      yAxisVar: "y",
       xRange: [-5, 5],
-      yAxis: "y",
       yRange: [-10, 10],
-
-      lines: [
+      graphs: [
         {
-          color: "#ef4444",
-          name: "Quadratic",
-          showInLegend: true
+          type: "line",
+          id: "quadratic",
+          parameter: "x",
+          interaction: ["vertical-drag", "c"]
+        },
+        {
+          type: "point",
+          id: "quadratic",
+          interaction: ["horizontal-drag", "x"]
         }
       ]
     }

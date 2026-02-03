@@ -23,10 +23,18 @@ export const parametric3D = `const config = {
   ],
   variables: {
     x: {
+      input: "drag",
+      default: 0,
+      range: [-5, 5],
+      step: 0.1,
       name: "x-coordinate",
       precision: 1
     },
     y: {
+      input: "drag",
+      default: 0,
+      range: [-5, 5],
+      step: 0.1,
       name: "y-coordinate",
       precision: 1
     },
@@ -37,63 +45,60 @@ export const parametric3D = `const config = {
     t: {
       input: "drag",
       default: 0,
-      range: [-2, 2],
+      range: [-3, 3],
       step: 0.1,
       name: "Parameter t"
-    }
+    },
   },
   semantics: {
-    engine: "symbolic-algebra",
-    expressions: {
-      "x-and-t": "{x} = {t}",
-      "y-and-t": "{y} = 1 - 2 * {t}",
-      "z-and-t": "{z} = {t}",
-      "x-plus-y-plus-z-equals-1": "{x} + {y} + {z} = 1",
-      "x-and-z": "{x} - {z} = 0"
+    manual: function(vars, data3d) {
+      vars.z = 1 - vars.x - vars.y;
+      data3d("plane1", {x: vars.x, y: vars.y, z: vars.z});
+      vars.z = vars.x;
+      data3d("plane2", {x: vars.x, y: vars.y, z: vars.z});
+      vars.x = vars.t;
+      vars.y = 1 - 2 * vars.t;
+      vars.z = vars.t;
+      data3d("line", {x: vars.x, y: vars.y, z: vars.z});
     }
   },
-
   visualizations: [
     {
       type: "plot3d",
       id: "parametricPlane3D",
-      title: "3D Parametric Surfaces",
-      xAxis: "x",
-      xRange: [-10, 10],
-      yAxis: "y",
-      yRange: [-10, 10],
-      zVar: "z",
-      zRange: [-10, 10],
-      plotType: "surface",
-
-      showColorbar: true,
-      showCurrentPointInLegend: true,
-      surfaces: [
+      title: "3D Parametric Line on Intersecting Planes",
+      xRange: [-5, 5],
+      yRange: [-5, 5],
+      zRange: [-5, 5],
+      graphs: [
         {
-          id: "x-plus-y-plus-z-equals-1",
+          type: "surface",
+          id: "plane1",
+          parameters: ["x", "y"],
+          name: "Plane x+y+z=1",
+          opacity: 0.5,
           color: "purple",
-          opacity: 0.3,
-          showInLegend: true,
-          showColorbar: false
         },
         {
-          id: "x-and-z",
+          type: "surface",
+          id: "plane2",
+          parameters: ["x", "y"],
+          name: "Plane x=z",
+          opacity: 0.5,
           color: "green",
-          opacity: 0.3,
-          showInLegend: true,
-          showColorbar: false
-        }
-      ],
-      lines: [
+        },
         {
+          type: "line",
+          id: "line",
+          parameter: "t",
           name: "Intersection Line",
-          surfaceIntersection: {
-            surface1: "x-plus-y-plus-z-equals-1",
-            surface2: "x-and-z"
-          },
+          width: 6,
           color: "yellow",
-          width: 4,
-          showInLegend: true
+        },
+        {
+          type: "point",
+          id: "line",
+          name: "Current Position",
         }
       ]
     }

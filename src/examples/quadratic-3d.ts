@@ -40,8 +40,9 @@ export const quadratic3D = `const config = {
     }
   },
   semantics: {
-    manual: function(vars) {
+    manual: function(vars, data3d) {
       vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
+      data3d("quadratic", {x: vars.x, y: vars.c, z: vars.y});
     }
   },
 
@@ -50,20 +51,20 @@ export const quadratic3D = `const config = {
       type: "plot3d",
       id: "quadratic3DSurface",
       title: "3D Quadratic Surface: y = ax² + bx + c",
-      xAxis: "x",
       xRange: [-5, 5],
-      yAxis: "c",
       yRange: [-5, 5],
-      zVar: "y",
       zRange: [-20, 40],
-      plotType: "surface",
-
-      surfaces: [
+      graphs: [
         {
-          id: "quadratic-equation-3d",
-          color: "Viridis",
-          opacity: 0.7,
-          showInLegend: true
+          type: "surface",
+          id: "quadratic",
+          name: "Quadratic Surface",
+          parameters: ["x", "c"],
+        },
+        {
+          type: "point",
+          name: "Current Point",
+          id: "quadratic",
         }
       ]
     }

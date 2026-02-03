@@ -34,8 +34,9 @@ export const gravitationalPotential = `const config = {
     }
   },
   semantics: {
-    expressions: {
-      "gravitational-potential": "{U} = {m} * {g} * {h}"
+    manual: function(vars, data3d, data2d) {
+      vars.U = vars.m * vars.g * vars.h;
+      data2d("potential", {x: vars.h, y: vars.U});
     }
   },
 
@@ -44,16 +45,27 @@ export const gravitationalPotential = `const config = {
       type: "plot2d",
       id: "potentialEnergyPlot",
       title: "Potential Energy vs. Height",
-      xAxis: "h",
+      xAxisLabel: "h",
+      xAxisVar: "h",
       xRange: [0, 100],
-      yAxis: "U",
+      yAxisLabel: "U",
+      yAxisVar: "U",
       yRange: [0, 10000],
-
-      lines: [
+      graphs: [
         {
+          type: "line",
+          id: "potential",
+          parameter: "h",
+          range: [0, 100],
           color: "#10b981",
           name: "Potential Energy",
-          showInLegend: true
+          interaction: ["vertical-drag", "m"]
+        },
+        {
+          type: "point",
+          id: "potential",
+          color: "#10b981",
+          interaction: ["horizontal-drag", "h"]
         }
       ]
     }

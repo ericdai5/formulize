@@ -95,22 +95,35 @@ export const svgIntegration = `const config = {
     }
   },
   semantics: {
-    manual: function(vars) {
+    manual: function(vars, data3d, data2d) {
       vars.N = vars.N_0 * Math.exp(-vars["\\\\lambda"] * vars.t);
+      data2d("decay", {x: vars.t, y: vars.N});
     }
   },
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "t",
+      xAxisLabel: "t",
+      xAxisVar: "t",
       xRange: [0, 50],
       xGrid: "show",
-      yAxis: "N",
+      yAxisLabel: "N",
+      yAxisVar: "N",
       yRange: [0, 1100],
       yGrid: "show",
-      lines: [
+      graphs: [
         {
+          type: "line",
+          id: "decay",
+          parameter: "t",
           color: "#7FFF00",
+          interaction: ["vertical-drag", "N_0"]
+        },
+        {
+          type: "point",
+          id: "decay",
+          color: "#7FFF00",
+          interaction: ["horizontal-drag", "t"]
         }
       ]
     }
