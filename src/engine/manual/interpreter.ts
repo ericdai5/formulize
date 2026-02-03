@@ -274,6 +274,30 @@ export const initializeInterpreter = (
         interpreter.createNativeFunction(step)
       );
 
+      // Set up data2d() and data3d() functions as no-ops for the interpreter
+      // These are used for visualization data collection in computation.ts,
+      // but in the step-through interpreter they should execute atomically
+      // without creating additional interpreter steps
+      const data2d = function (_id: unknown, _values: unknown) {
+        // No-op for interpreter - actual data collection happens in computation store
+        return undefined;
+      };
+      interpreter.setProperty(
+        globalObject,
+        "data2d",
+        interpreter.createNativeFunction(data2d)
+      );
+
+      const data3d = function (_id: unknown, _values: unknown) {
+        // No-op for interpreter - actual data collection happens in computation store
+        return undefined;
+      };
+      interpreter.setProperty(
+        globalObject,
+        "data3d",
+        interpreter.createNativeFunction(data3d)
+      );
+
       // Also provide the getVariablesJSON function for debugging
       const getVariablesJSON = function () {
         return JSON.stringify(values);
