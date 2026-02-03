@@ -27,7 +27,7 @@ export const RadioControl = observer<RadioControlProps>(({ control }) => {
 
     const [min, max] = variableData.range;
     const step = variableData.step || 1;
-    const precision = variableData.precision ?? (step < 1 ? 1 : 0);
+    const precision = variableData.precision;
 
     const options = [];
     for (let value = min; value <= max; value += step) {

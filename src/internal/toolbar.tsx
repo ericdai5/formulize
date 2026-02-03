@@ -1,4 +1,4 @@
-import { Footprints, ListTree, SquareStack } from "lucide-react";
+import { Braces, Footprints, ListTree, SquareStack } from "lucide-react";
 
 import IconButton from "../ui/icon-button";
 
@@ -6,9 +6,11 @@ interface ToolbarProps {
   onToggleNodeVisibility: () => void;
   onToggleTreeInspector: () => void;
   onToggleInterpreter: () => void;
+  onToggleVariables: () => void;
   isNodeVisibilityOpen?: boolean;
   isTreeInspectorOpen?: boolean;
   isInterpreterOpen?: boolean;
+  isVariablesOpen?: boolean;
   showInterpreterButton?: boolean;
 }
 
@@ -16,9 +18,11 @@ const Toolbar = ({
   onToggleNodeVisibility,
   onToggleTreeInspector,
   onToggleInterpreter,
+  onToggleVariables,
   isNodeVisibilityOpen = false,
   isTreeInspectorOpen = false,
   isInterpreterOpen = false,
+  isVariablesOpen = false,
   showInterpreterButton = false,
 }: ToolbarProps) => {
   return (
@@ -38,6 +42,14 @@ const Toolbar = ({
         onClick={onToggleTreeInspector}
         title="Latex Tree"
         isActive={isTreeInspectorOpen}
+      />
+      <IconButton
+        size="lg"
+        icon={Braces}
+        alt="Variable Editor"
+        onClick={onToggleVariables}
+        title="Variable Editor"
+        isActive={isVariablesOpen}
       />
       {showInterpreterButton && (
         <IconButton

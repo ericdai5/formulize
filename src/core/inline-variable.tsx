@@ -3,11 +3,11 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { getInputVariableState } from "../util/parse/variable";
 import { VAR_CLASSES } from "../internal/css-classes";
 import { ComputationStore } from "../store/computation";
-import { useFormulize } from "./hooks";
+import { getInputVariableState } from "../util/parse/variable";
 import { useMathJax } from "../util/use-mathjax";
+import { useFormulize } from "./hooks";
 
 type DisplayMode = "symbol" | "value" | "both" | "withUnits";
 
@@ -25,17 +25,13 @@ interface InlineVariableProps {
 }
 
 /**
- * Get the appropriate CSS class for variable styling based on role
+ * Get the appropriate CSS class for variable styling based on input type
  */
-const getVariableClass = (role?: string): string => {
-  switch (role) {
-    case "input":
-      return VAR_CLASSES.INPUT;
-    case "computed":
-      return VAR_CLASSES.COMPUTED;
-    default:
-      return VAR_CLASSES.BASE;
+const getVariableClass = (input?: string): string => {
+  if (input === "drag") {
+    return VAR_CLASSES.INPUT;
   }
+  return VAR_CLASSES.BASE;
 };
 
 /**
@@ -67,7 +63,7 @@ const InlineVariableInner = observer(
     // Get hover state for this variable
     const isHovered = computationStore.hoverStates.get(id) ?? false;
     const variable = getVariable();
-    const variableClass = getVariableClass(variable?.role);
+    const variableClass = getVariableClass(variable?.input);
 
     // Build LaTeX string based on display mode
     const buildLatex = useCallback((): string | null => {
@@ -76,7 +72,7 @@ const InlineVariableInner = observer(
 
       const value = variable.value;
       const units = variable.units;
-      const precision = variable.precision ?? 2;
+      const precision = variable.precision;
 
       // Format value
       let formattedValue = "";
@@ -112,10 +108,10 @@ const InlineVariableInner = observer(
         const variable = computationStore.variables.get(id);
         if (!variable) return;
 
-        const isInput = variable.role === "input";
+        const isDraggable = variable.input === "drag";
 
         // Make the whole container interactive
-        container.style.cursor = isInput ? "ns-resize" : "default";
+        container.style.cursor = isDraggable ? "ns-resize" : "default";
 
         // Mouse enter - set hover state
         container.addEventListener("mouseenter", () => {
@@ -126,8 +122,8 @@ const InlineVariableInner = observer(
           computationStore.setVariableHover(id, false);
         });
 
-        // Add drag-to-change for input variables
-        if (isInput) {
+        // Add drag-to-change for draggable variables
+        if (isDraggable) {
           let isDragging = false;
           let startY = 0;
           let startValue = 0;
@@ -246,9 +242,7 @@ const InlineVariableInner = observer(
       const disposer = reaction(
         () => {
           const variable = computationStore.variables.get(id);
-          return variable
-            ? { value: variable.value, role: variable.role }
-            : null;
+          return variable ? { value: variable.value, input: variable.input } : null;
         },
         () => {
           renderVariable();

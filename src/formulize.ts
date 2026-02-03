@@ -44,21 +44,19 @@ function setupComputationEngine(
   environment: IEnvironment,
   computationStore: ComputationStore
 ) {
-  // Auto-detect engine if not specified
+  // Infer engine from semantics: expressions → symbolic-algebra, manual → manual
+  const hasExpressions =
+    environment.semantics?.expressions &&
+    Object.keys(environment.semantics.expressions).length > 0;
+  const hasManual = !!environment.semantics?.manual;
   let engine: "symbolic-algebra" | "manual" = "manual"; // default
-  if (environment.semantics?.engine) {
-    engine = environment.semantics.engine as "symbolic-algebra" | "manual";
-  } else {
-    // Auto-detect: if computation.manual exists, use manual engine
-    const hasComputationManual =
-      environment.semantics?.manual &&
-      typeof environment.semantics.manual === "function";
-    if (hasComputationManual) {
-      engine = "manual";
-    }
+  if (hasExpressions) {
+    engine = "symbolic-algebra";
+  } else if (hasManual) {
+    engine = "manual";
   }
   computationStore.setEngine(engine);
-  computationStore.setSemantics(environment.semantics || { engine });
+  computationStore.setSemantics(environment.semantics || {});
 }
 
 // Validate environment configuration
@@ -104,9 +102,6 @@ async function initializeInstance(
     computationStore.reset();
     computationStore.setVariableRolesChanged(0);
 
-    // Set initialization flag to prevent premature evaluations
-    computationStore.setInitializing(true);
-
     // Clear all individual formula stores
     formulaStoreManager.clearAllStores();
 
@@ -114,7 +109,6 @@ async function initializeInstance(
     if (Object.keys(normalizedVariables).length > 0) {
       Object.entries(normalizedVariables).forEach(([varId, variable]) => {
         computationStore.addVariable(varId, variable);
-        computationStore.setVariableRole(varId, variable.role);
         if (variable.value !== undefined) {
           if (variable.dataType === "set" && Array.isArray(variable.value)) {
             computationStore.setSetValue(varId, variable.value);
@@ -149,27 +143,20 @@ async function initializeInstance(
       ? Object.values(environment.semantics.expressions)
       : [];
 
-    // Extract manual function from computation.manual
-    const manualFunctions: IManual[] =
-      environment.semantics?.manual &&
-      typeof environment.semantics.manual === "function"
-        ? [environment.semantics.manual]
-        : [];
+    // Extract manual function from semantics.manual
+    const manual: IManual | null = environment.semantics?.manual ?? null;
 
     // Store formulas in computation store for rendering
     computationStore.setFormulas(environment.formulas);
 
     // Set up expressions and enable evaluation
-    if (symbolicFunctions.length > 0 || manualFunctions.length > 0) {
-      await computationStore.setComputation(symbolicFunctions, manualFunctions);
+    if (symbolicFunctions.length > 0 || manual) {
+      await computationStore.setComputation(symbolicFunctions, manual);
     }
 
-    // Clear initialization flag to enable normal evaluation
-    computationStore.setInitializing(false);
-
-    // Trigger initial evaluation now that everything is set up (skip in step mode)
+    // Trigger initial computation (skip in step mode)
     if (!computationStore.isStepMode()) {
-      computationStore.updateAllComputedVars();
+      computationStore.runComputation();
     }
 
     // Store the id for setVariable method to use
@@ -191,7 +178,7 @@ async function initializeInstance(
         const computationVariable = computationStore.variables.get(varId);
 
         return {
-          role: variable.role,
+          input: variable.input,
           value: computationVariable?.value ?? variable.value ?? 0,
           dataType: variable.dataType,
           dimensions: variable.dimensions,
@@ -207,7 +194,8 @@ async function initializeInstance(
       },
       setVariable: (name: string, value: number) => {
         const variable = normalizedVariables[name];
-        if (variable && variable.role !== "computed") {
+        // Allow setting value for any variable (manual function determines what's computed)
+        if (variable) {
           computationStore.setValue(name, value);
           return true;
         }

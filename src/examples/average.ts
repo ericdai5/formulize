@@ -36,7 +36,6 @@ export const average = `const config = {
     },
   },
   semantics: {
-    engine: "manual",
     mode: "step",
     manual: function(vars) {
       var xValues = vars.X;
@@ -54,7 +53,7 @@ export const average = `const config = {
       average = sum / n;
       average = Math.round(average * 100) / 100;
       step({ description: "Divide $sum = " + sum + "$ by $n = " + n + "$ to get average.", values: [["\\\\bar{X}", average]] });
-      return average;
+      vars["\\\\bar{X}"] = average;
     },
   },
   fontSize: 1.5

@@ -7,19 +7,18 @@ export const kinetic2D = `const config = {
   ],
   variables: {
     K: {
-      role: "computed",
       name: "Kinetic Energy",
       precision: 2
     },
     m: {
-      role: "input",
+      input: "drag",
       default: 1,
       range: [0.1, 10],
       step: 1,
       name: "Mass"
     },
     v: {
-      role: "input",
+      input: "drag",
       default: 2,
       range: [0.1, 100],
       step: 1,
@@ -27,19 +26,33 @@ export const kinetic2D = `const config = {
     }
   },
   semantics: {
-    engine: "manual",
-    expressions: {
-      "kinetic-energy": "{K} = 0.5 * {m} * {v} * {v}"
-    },
-    manual: function({ m, v }) {
-      return 0.5 * m * Math.pow(v, 2);
+    manual: function(vars, data2d) {
+      vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
+      data2d("energy", {x: vars.v, y: vars.K});
     }
   },
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "v",
-      yAxis: "K",
+      xAxisLabel: "v (m/s)",
+      xAxisVar: "v",
+      yAxisLabel: "K (J)",
+      yAxisVar: "K",
+      xRange: [0, 100],
+      yRange: [0, 5000],
+      graphs: [
+        {
+          type: "line",
+          id: "energy",
+          parameter: "v", 
+          interaction: ["vertical-drag", "m"]
+        },
+        {
+          type: "point",
+          id: "energy",
+          interaction: ["horizontal-drag", "v"]
+        }
+      ]
     }
   ],
   fontSize: 1.5,

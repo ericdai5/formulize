@@ -6,7 +6,7 @@ import VisualizationRenderer from "../../visualizations/visualization";
 
 // Custom Visualization Node Component
 const VisualizationNode = observer(({ data }: { data: any }) => {
-  const { visualization, environment } = data;
+  const { visualization } = data;
 
   if (!visualization) {
     return (
@@ -37,7 +37,6 @@ const VisualizationNode = observer(({ data }: { data: any }) => {
       <div className="nodrag rounded-2xl">
         <VisualizationRenderer
           visualization={visualization}
-          environment={environment}
         />
       </div>
     </div>

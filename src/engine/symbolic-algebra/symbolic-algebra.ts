@@ -306,9 +306,10 @@ export function computeWithSymbolicEngine(
     // Create translation map for all variables
     const translationMap = createVariableTranslationMap(allVariableNames);
 
-    // Get all computed variables
+    // Get all non-input variables (these are computed by the symbolic engine)
+    // Variables with input: "drag" are user inputs
     const computedVars = Object.entries(storeVariables)
-      .filter(([, varDef]) => varDef.role === "computed")
+      .filter(([, varDef]) => !varDef.input)
       .map(([varName]) => varName);
 
     // No computed variables, nothing to compute

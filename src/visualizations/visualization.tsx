@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-import { FormulizeConfig } from "..";
 import { IVisualization } from "../types/visualization";
 import Canvas from "./custom/canvas";
 import Plot2D from "./plot2d/plot-2d";
@@ -31,8 +30,7 @@ const PlotWrapper: React.FC<{
 
 const VisualizationRenderer: React.FC<{
   visualization: IVisualization;
-  environment?: FormulizeConfig;
-}> = ({ visualization, environment }) => {
+}> = ({ visualization }) => {
   const [renderKey, setRenderKey] = useState(Date.now());
   const configString = JSON.stringify(visualization);
   useEffect(() => {
@@ -53,7 +51,6 @@ const VisualizationRenderer: React.FC<{
         <Plot3D
           key={`plot3d-${renderKey}`}
           config={visualization}
-          environment={environment}
         />
       </PlotWrapper>
     );

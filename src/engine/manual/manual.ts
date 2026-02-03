@@ -2,45 +2,70 @@
  * Manual Computation Engine for Formulize
  *
  * This module provides manual computation capability allowing authors to define
- * custom JavaScript functions for computing computed variables.
+ * custom JavaScript functions for computing variables via mutation.
  *
  * @module engine/manual
  */
 import { IManual } from "../../types/computation";
+import {
+  IData2D,
+  IData2DFn,
+  IData3D,
+  IData3DFn,
+  IDataPoint,
+} from "../../types/graph";
 import { IValue, IVariable } from "../../types/variable";
+
+/**
+ * Result from manual engine execution including variable values and graph dataPoints.
+ * @property {Record<string, IValue>} values - Computed variable values after execution
+ * @property {Map<string, IDataPoint[]>} dataPointMap - dataPoints captured by data2d/data3d calls, keyed by graph ID
+ */
+export interface IManualEngineResult {
+  values: Record<string, IValue>;
+  dataPointMap: Map<string, IDataPoint[]>;
+}
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-function getComputedVariableNames(
-  variables: Record<string, IVariable>
-): string[] {
-  return Object.entries(variables)
-    .filter(([, varDef]) => varDef.role === "computed")
-    .map(([varName]) => varName);
-}
-
-function createValueAccessor(
+/**
+ * Creates a Proxy that allows direct mutation of variable values.
+ * Reading `vars.K` returns `variables.K.value`
+ * Writing `vars.K = 10` directly sets `variables.K.value = 10`
+ */
+function createValueProxy(
   variables: Record<string, IVariable>
 ): Record<string, any> {
-  const vars: Record<string, any> = {};
-  for (const [key, variable] of Object.entries(variables)) {
-    if (
-      variable &&
-      typeof variable === "object" &&
-      "value" in variable &&
-      variable.value !== undefined
-    ) {
-      // Value can be either a number or an array (for sets)
-      vars[key] = variable.value;
+  return new Proxy(
+    {},
+    {
+      get(_target, prop: string) {
+        return variables[prop]?.value;
+      },
+      set(_target, prop: string, value) {
+        if (variables[prop]) {
+          variables[prop].value = value;
+        }
+        return true;
+      },
+      // Support Object.keys(), Object.entries(), etc.
+      ownKeys() {
+        return Object.keys(variables);
+      },
+      getOwnPropertyDescriptor(_target, prop: string) {
+        if (prop in variables) {
+          return {
+            enumerable: true,
+            configurable: true,
+            value: variables[prop]?.value,
+          };
+        }
+        return undefined;
+      },
     }
-  }
-  return vars;
-}
-
-function isValidNumericResult(value: unknown): value is number {
-  return value !== undefined && typeof value === "number" && isFinite(value);
+  );
 }
 
 // ============================================================================
@@ -65,29 +90,15 @@ function collectResults(
 
 function executeComputationManual(
   manualFn: IManual,
-  variables: Record<string, IVariable>
+  variables: Record<string, IVariable>,
+  data3dFn: IData3DFn,
+  data2dFn: IData2DFn
 ): void {
-  // Create value accessor with all variable values
-  const vars = createValueAccessor(variables);
-  // Execute the manual function
-  const returnValue = manualFn(vars);
-  // Sync back all changed values from vars to variables
-  for (const [varName, value] of Object.entries(vars)) {
-    if (
-      variables[varName] &&
-      (typeof value === "number" || Array.isArray(value))
-    ) {
-      variables[varName].value = value;
-    }
-  }
-  // If manual function returns a value, also sync it to computed variables
-  if (isValidNumericResult(returnValue)) {
-    for (const variable of Object.values(variables)) {
-      if (variable.role === "computed") {
-        variable.value = returnValue;
-      }
-    }
-  }
+  // Create proxy that directly mutates variable values
+  const vars = createValueProxy(variables);
+  // Execute the manual function - mutations go directly to variables
+  // Pass data3d and data2d functions for visualization data collection
+  manualFn(vars, data3dFn, data2dFn);
 }
 
 // ============================================================================
@@ -95,38 +106,60 @@ function executeComputationManual(
 // ============================================================================
 
 /**
- * Computes the formula with the given variable values using custom JavaScript functions.
+ * Computes the formula with the given variable values using a custom JavaScript function.
  * Variables should already be normalized (typically from the computation store).
+ * The manual function mutates the vars object directly to set computed values.
  *
  * @param variables - Record of variable definitions with current values
- * @param computationManual - The computation-level manual function
+ * @param manual - The manual function to execute
+ * @returns Object containing computed values and collected graph dataPoints
  */
 export function computeWithManualEngine(
   variables: Record<string, IVariable>,
-  computationManual?: IManual
-): Record<string, IValue> {
+  manual?: IManual
+): IManualEngineResult {
+  // Collect graph dataPoints during execution
+  const dataPointMap = new Map<string, IDataPoint[]>();
+  // Create data3d function for 3D visualization data
+  // Usage: data3d("id", {x, y, z})
+  const data3dFn: IData3DFn = (id: string, values: IData3D) => {
+    let dataPoints = dataPointMap.get(id);
+    if (!dataPoints) {
+      dataPoints = [];
+      dataPointMap.set(id, dataPoints);
+    }
+    dataPoints.push({ x: values.x, y: values.y, z: values.z });
+  };
+  // Create data2d function for 2D visualization data
+  // Usage: data2d("id", {x, y})
+  const data2dFn: IData2DFn = (id: string, values: IData2D) => {
+    let dataPoints = dataPointMap.get(id);
+    if (!dataPoints) {
+      dataPoints = [];
+      dataPointMap.set(id, dataPoints);
+    }
+    dataPoints.push({ x: values.x, y: values.y });
+  };
+  const emptyResult: IManualEngineResult = {
+    values: {},
+    dataPointMap: new Map(),
+  };
   try {
     if (!variables || Object.keys(variables).length === 0) {
       console.warn("⚠️ No variables provided");
-      return {};
+      return emptyResult;
     }
-
-    // Extract computed variables
-    const computedVars = getComputedVariableNames(variables);
-    if (computedVars.length === 0) {
-      console.warn("⚠️ No computed variables found");
-      return {};
+    if (!manual) {
+      console.warn("⚠️ No manual function provided for computation");
+      return emptyResult;
     }
-
-    if (!computationManual || typeof computationManual !== "function") {
-      console.warn("⚠️ No manual function provided in computation config");
-      return {};
-    }
-
-    executeComputationManual(computationManual, variables);
-    return collectResults(variables);
+    executeComputationManual(manual, variables, data3dFn, data2dFn);
+    return {
+      values: collectResults(variables),
+      dataPointMap,
+    };
   } catch (error) {
     console.error("Error computing with manual engine:", error);
-    return {};
+    return emptyResult;
   }
 }

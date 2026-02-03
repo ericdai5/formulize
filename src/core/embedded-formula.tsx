@@ -3,11 +3,14 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { getInputVariableState, processLatexContent } from "../util/parse/variable";
 import { ComputationStore } from "../store/computation";
 import { ExecutionStore } from "../store/execution";
-import { useFormulize } from "./hooks";
+import {
+  getInputVariableState,
+  processLatexContent,
+} from "../util/parse/variable";
 import { useMathJax } from "../util/use-mathjax";
+import { useFormulize } from "./hooks";
 
 interface EmbeddedFormulaProps {
   /** Formula ID to render (looks up from environment) */
@@ -97,7 +100,7 @@ const EmbeddedFormulaInner = observer(
 
         variableIds.forEach((varId) => {
           const variable = computationStore.variables.get(varId);
-          const isInput = variable?.role === "input";
+          const isDraggable = variable?.input === "drag";
           const elements = container.querySelectorAll(`#${CSS.escape(varId)}`);
 
           elements.forEach((element) => {
@@ -112,8 +115,8 @@ const EmbeddedFormulaInner = observer(
               computationStore.setVariableHover(varId, false);
             });
 
-            // Add drag-to-change for input variables
-            if (isInput) {
+            // Add drag-to-change for draggable variables
+            if (isDraggable) {
               el.style.cursor = "ns-resize";
 
               let isDragging = false;
@@ -325,7 +328,7 @@ const EmbeddedFormulaInner = observer(
     const handleClick = useCallback(
       (e: React.MouseEvent) => {
         if (!allowPinning) return;
-        // Don't toggle if clicking on a variable (they have their own interactions)
+        // Don't toggle if clicking on a variable (they have their own input handlers)
         const target = e.target as HTMLElement;
         if (target.closest(".var-input, .var-computed, .var-base")) {
           return;

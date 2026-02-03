@@ -7,69 +7,57 @@ export const lossFunction = `const config = {
   ],
   variables: {
     "J(\\\\theta)": {
-      role: "computed",
       name: "Loss Function"
     },
     m: {
-      role: "input",
       default: 3,
       latexDisplay: "value",
       labelDisplay: "none",
       precision: 0,
     },
     "y^{(i)}": {
-      role: "input",
       name: "i-th actual value",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     "\\\\hat{y}^{(i)}": {
-      role: "input",
       name: "i-th predicted value",
       latexDisplay: "name",
       labelDisplay: "value",
     },
     y: {
-      role: "input",
       default: [2.5, 3.0, 7.0],
       name: "Actual values"
     },
     "\\\\hat{y}": {
-      role: "input",
       default: [2.0, 4.0, 5.0],
       name: "Predicted values"
     },
     "\\\\lambda": {
-      role: "input",
       default: 0.1,
       name: "Regularization parameter",
       latexDisplay: "value",
     },
     "\\\\theta_j": {
-      role: "input",
       name: "Parameter j of the model",
     },
     "\\\\theta": {
-      role: "input",
       default: [0.5, -1.0],
       name: "Parameters of the model",
     },
     K: {
-      role: "input",
       name: "Number of features",
       default: 2,
       latexDisplay: "value",
       precision: 0,
     },
     i: {
-      role: "input",
       name: "Index i",
       default: 1,
       latexDisplay: "value",
       precision: 0,
     },
     j: {
-      role: "input",
       name: "Index j",
       default: 1,
       latexDisplay: "value",
@@ -77,7 +65,6 @@ export const lossFunction = `const config = {
     }
   },
   semantics: {
-    engine: "manual",
     mode: "step",
     manual: function(vars) {
       var m = vars.m;
@@ -113,7 +100,7 @@ export const lossFunction = `const config = {
       step({ description: "Total Regularization Penalty", values: [["\\\\lambda", lambda]], expression: "\\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2" });
       var loss = mse + reg_term;
       step({ description: "Final Total Loss $J(\\\\theta)$:", values: [["J(\\\\theta)", loss]], expression: "\\\\frac{1}{m} \\\\sum_{i=1}^{m} \\\\left( y^{(i)} - \\\\hat{y}^{(i)} \\\\right)^2 + \\\\lambda \\\\sum_{j=1}^{K} \\\\left\\\\| \\\\theta_j \\\\right\\\\|^2" });
-      return loss;
+      vars["J(\\\\theta)"] = loss;
     },
   },
   fontSize: 1.5

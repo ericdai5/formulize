@@ -2,32 +2,34 @@ import { useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { FormulizeProvider } from "../core";
+import { Info } from "lucide-react";
+
 import { useFormulize } from "../core/hooks";
 import { FormulizeConfig } from "../index.ts";
 import { debugStore } from "../store/debug";
+import IconButton from "../ui/icon-button";
+import Modal from "../ui/modal";
 import Canvas from "./canvas.tsx";
 import Toolbar from "./toolbar";
 import DebugModal from "./interpreter";
 import NodeVisibilitySidebar from "./node-visibility-sidebar";
 import TreeInspectorSidebar from "./tree-inspector-sidebar";
-
-interface FormulizeProps {
-  formulizeConfig?: FormulizeConfig;
-  onRenderError?: (error: string | null) => void;
-}
+import VariablesSidebar from "./variables-sidebar";
 
 /**
- * Inner component that renders the playground canvas and debug tools.
- * Gets stores from FormulizeProvider context.
+ * PlaygroundCanvas component that renders the canvas and debug tools.
+ * Must be used within a FormulizeProvider.
  */
-const PlaygroundCanvasInner = observer(() => {
+const PlaygroundCanvas = observer(() => {
     const context = useFormulize();
     const [showNodeVisibilitySidebar, setShowNodeVisibilitySidebar] =
       useState<boolean>(false);
     const [showTreeInspectorSidebar, setShowTreeInspectorSidebar] =
       useState<boolean>(false);
+    const [showVariablesSidebar, setShowVariablesSidebar] =
+      useState<boolean>(false);
     const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
+    const [isCreditsModalOpen, setIsCreditsModalOpen] = useState<boolean>(false);
     const [configKey, setConfigKey] = useState<number>(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const prevConfigRef = useRef<FormulizeConfig | null>(null);
@@ -56,14 +58,14 @@ const PlaygroundCanvasInner = observer(() => {
     // Guard: context must be available
     if (!context || !computationStore || !executionStore) {
       return (
-        <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200 flex items-center justify-center">
+        <div className="formula-renderer overflow-hidden w-full h-full flex items-center justify-center">
           <div className="text-slate-500">Loading...</div>
         </div>
       );
     }
 
     return (
-      <div className="formula-renderer overflow-hidden w-full h-full border-r border-slate-200">
+      <div className="formula-renderer overflow-hidden w-full h-full">
         <div className="flex flex-row w-full h-full">
           {/* Main content area */}
           <div className="flex-1 flex flex-col h-full relative min-w-0">
@@ -74,9 +76,13 @@ const PlaygroundCanvasInner = observer(() => {
               onToggleTreeInspector={() =>
                 setShowTreeInspectorSidebar((prev) => !prev)
               }
+              onToggleVariables={() =>
+                setShowVariablesSidebar((prev) => !prev)
+              }
               onToggleInterpreter={() => setShowDebugModal((prev) => !prev)}
               isNodeVisibilityOpen={showNodeVisibilitySidebar}
               isTreeInspectorOpen={showTreeInspectorSidebar}
+              isVariablesOpen={showVariablesSidebar}
               isInterpreterOpen={showDebugModal}
               showInterpreterButton={isStepMode}
             />
@@ -93,6 +99,17 @@ const PlaygroundCanvasInner = observer(() => {
                   executionStore={executionStore}
                 />
               </div>
+            </div>
+            {/* Credits button - positioned in main content area */}
+            <div className="absolute bottom-4 right-4 z-30">
+              <IconButton
+                size="lg"
+                strokeWidth={1.5}
+                icon={Info}
+                alt="Credits"
+                onClick={() => setIsCreditsModalOpen(true)}
+                title="Credits"
+              />
             </div>
           </div>
           {/* Node visibility sidebar */}
@@ -148,30 +165,36 @@ const PlaygroundCanvasInner = observer(() => {
             onClose={() => setShowTreeInspectorSidebar(false)}
             config={currentConfig ?? null}
           />
+          {/* Variables store sidebar */}
+          <VariablesSidebar
+            isOpen={showVariablesSidebar}
+            onClose={() => setShowVariablesSidebar(false)}
+          />
           {/* Interpreter sidebar */}
           <DebugModal
             isOpen={showDebugModal}
             onClose={() => setShowDebugModal(false)}
           />
         </div>
+        {/* Credits Modal */}
+        <Modal
+          isOpen={isCreditsModalOpen}
+          onClose={() => setIsCreditsModalOpen(false)}
+          title="Built by HCI @ Penn"
+          maxWidth="max-w-md"
+        >
+          <div className="p-6">
+            <ul className="space-y-3 text-lg">
+              <li>Eric Dai</li>
+              <li>Zain Khan</li>
+              <li>Andrew Head</li>
+              <li>Jeff Tao</li>
+            </ul>
+          </div>
+        </Modal>
       </div>
     );
   }
 );
-
-/**
- * PlaygroundCanvas component - wraps content with FormulizeProvider.
- * The provider handles creating the Formulize instance and stores.
- */
-const PlaygroundCanvas: React.FC<FormulizeProps> = ({
-  formulizeConfig,
-  onRenderError,
-}) => {
-  return (
-    <FormulizeProvider config={formulizeConfig} onError={onRenderError}>
-      <PlaygroundCanvasInner />
-    </FormulizeProvider>
-  );
-};
 
 export default PlaygroundCanvas;

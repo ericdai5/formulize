@@ -24,8 +24,8 @@ const TreeInspectorSidebar: React.FC<TreeInspectorSidebarProps> = ({
 
   return (
     <div
-      className={`h-full bg-white border-l border-slate-200 flex flex-col transition-all duration-300 ease-in-out ${
-        isOpen ? "w-80" : "w-0"
+      className={`h-full bg-white flex flex-col transition-all duration-300 ease-in-out ${
+        isOpen ? "w-80 border-l border-slate-200" : "w-0"
       } overflow-hidden`}
     >
       {/* Header */}

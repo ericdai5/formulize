@@ -360,7 +360,7 @@ const CanvasFlow = observer(
             ([id, variable]) => ({
               id,
               value: variable.value,
-              precision: variable.precision || 2,
+              precision: variable.precision,
             })
           ),
         () => {

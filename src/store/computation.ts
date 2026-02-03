@@ -5,7 +5,8 @@ import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-a
 import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
-import { IRole, IValue, IVariable } from "../types/variable";
+import { IDataPoint } from "../types/graph";
+import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
 import { AugmentedFormula } from "../util/parse/formula-tree";
 
 export type EvaluationFunctionInput = Record<string, number | number[]>;
@@ -62,7 +63,7 @@ class ComputationStore {
   accessor formulas: IFormula[] = [];
 
   @observable
-  accessor manualFunctions: IManual[] = [];
+  accessor manual: IManual | null = null;
 
   @observable
   accessor environment: IEnvironment | null = null;
@@ -88,14 +89,6 @@ class ComputationStore {
   accessor injectedHoverCSS = new Map<string, string>();
 
   private evaluationFunction: EvaluationFunction | null = null;
-  private isUpdatingDependents = false;
-  private isInitializing = false;
-
-  private hasComputedVars(): boolean {
-    return Array.from(this.variables.values()).some(
-      (v) => v.role === "computed"
-    );
-  }
 
   isStepMode(): boolean {
     return this.semantics?.mode === "step";
@@ -103,6 +96,18 @@ class ComputationStore {
 
   get evaluateFormula(): EvaluationFunction | null {
     return this.evaluationFunction;
+  }
+
+  /**
+   * Create a snapshot copy of all variables for sampling/computation.
+   * Uses toJS to create deep copies that won't affect the original observables.
+   */
+  getVariablesSnapshot(): Record<string, IVariable> {
+    const snapshot: Record<string, IVariable> = {};
+    for (const [varName, variable] of this.variables.entries()) {
+      snapshot[varName] = { ...toJS(variable) };
+    }
+    return snapshot;
   }
 
   @action
@@ -113,11 +118,6 @@ class ComputationStore {
   @action
   setEngine(engine: "symbolic-algebra" | "manual") {
     this.engine = engine;
-  }
-
-  @action
-  setInitializing(initializing: boolean) {
-    this.isInitializing = initializing;
   }
 
   @action
@@ -135,7 +135,7 @@ class ComputationStore {
     this.environment = null;
     this.symbolicFunctions = [];
     this.formulas = [];
-    this.manualFunctions = [];
+    this.manual = null;
     this.evaluationFunction = null;
     // Remove custom CSS style element
     const styleElement = document.getElementById("custom-var-styles");
@@ -209,8 +209,8 @@ class ComputationStore {
   }
 
   @action
-  setManualFunctions(manual: IManual[]): void {
-    this.manualFunctions = manual;
+  setManual(manual: IManual | null): void {
+    this.manual = manual;
   }
 
   @action
@@ -240,9 +240,8 @@ class ComputationStore {
       return false;
     }
     variable.value = value;
-    if (!this.isUpdatingDependents && !this.isInitializing) {
-      this.updateAllComputedVars();
-    }
+    // Re-run computation to update dependent variables
+    this.runComputation();
   }
 
   @action
@@ -251,11 +250,9 @@ class ComputationStore {
     if (!variable) {
       return false;
     }
-    variable.value = set; // Use unified value field
-    // Trigger re-evaluation of computed variables (including sets via manual functions)
-    if (!this.isUpdatingDependents && !this.isInitializing) {
-      this.updateAllComputedVars();
-    }
+    variable.value = set;
+    // Re-run computation to update dependent variables
+    this.runComputation();
     return true;
   }
 
@@ -372,12 +369,9 @@ class ComputationStore {
 
   // Set up all expressions for computation
   @action
-  async setComputation(
-    expressions: string[],
-    manual: ((vars: Record<string, IValue>) => IValue | void)[]
-  ) {
+  async setComputation(expressions: string[], manual?: IManual | null) {
     this.setSymbolicFunctions(expressions);
-    this.setManualFunctions(manual);
+    this.setManual(manual ?? null);
     // Set up the evaluation function to handle all expressions
     if (this.engine === "symbolic-algebra" && this.semantics) {
       this.evaluationFunction =
@@ -385,10 +379,6 @@ class ComputationStore {
     } else if (this.engine === "manual" && this.semantics) {
       // For manual engine, create an evaluator using manual functions
       this.evaluationFunction = this.createManualEvaluator();
-    }
-    // Initial evaluation of all computed variables (skip in step mode)
-    if (!this.isStepMode()) {
-      this.updateAllComputedVars();
     }
   }
 
@@ -426,33 +416,22 @@ class ComputationStore {
   }
 
   // Create an evaluation function for manual engine using manual functions
+  // The manual function directly mutates the store's observable variables via proxy
   private createManualEvaluator(): EvaluationFunction {
-    return (variables) => {
+    return () => {
       if (!this.environment) return {};
-      // Create variables with updated values from computation store
-      const updatedVariables: Record<string, IVariable> = {};
+      // Pass the store's observable variables directly (same references)
+      // The proxy in manual.ts will mutate them, triggering MobX reactivity
+      const storeVariables: Record<string, IVariable> = {};
       for (const [varName, variable] of this.variables.entries()) {
-        updatedVariables[varName] = {
-          ...variable,
-          value: variables[varName] ?? variable.value,
-        };
+        storeVariables[varName] = variable; // Same reference, not a copy
       }
       // Get computation-level manual function
       const computationManual = this.semantics?.manual;
-      const result = computeWithManualEngine(
-        updatedVariables,
-        computationManual
-      );
-
-      // After manual execution, sync back any set changes from manual functions
-      for (const [varName, variable] of Object.entries(updatedVariables)) {
-        const computationVar = this.variables.get(varName);
-        if (computationVar && Array.isArray(variable.value)) {
-          computationVar.value = variable.value;
-        }
-      }
-
-      return result;
+      // Run the manual function - it mutates variables directly via proxy
+      computeWithManualEngine(storeVariables, computationManual);
+      // No need to sync back or return values - mutations happen directly
+      return {};
     };
   }
 
@@ -461,12 +440,12 @@ class ComputationStore {
     if (!this.variables.has(id)) {
       this.variables.set(id, {
         value: variableDefinition?.value ?? undefined,
-        role: variableDefinition?.role ?? "constant",
         dataType: variableDefinition?.dataType,
         dimensions: variableDefinition?.dimensions,
         units: variableDefinition?.units,
         name: variableDefinition?.name,
-        precision: variableDefinition?.precision,
+        precision:
+          variableDefinition?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
         step: variableDefinition?.step,
@@ -480,89 +459,52 @@ class ComputationStore {
         svgMode: variableDefinition?.svgMode,
         defaultCSS: variableDefinition?.defaultCSS,
         hoverCSS: variableDefinition?.hoverCSS,
-        interaction: variableDefinition?.interaction,
+        input: variableDefinition?.input,
       });
     }
   }
 
   @action
-  setVariableRole(id: string, role: IRole) {
+  setVariableInput(id: string, input: "drag" | "inline" | undefined) {
     const variable = this.variables.get(id);
     if (!variable) {
       return;
     }
 
-    if (variable.role === role) {
+    if (variable.input === input) {
       return;
     }
 
-    variable.role = role;
+    variable.input = input;
 
-    // Get the environment variable if it exists
-    if (this.environment?.variables) {
-      const envVar = this.environment.variables[id];
-      // Check if envVar is an object (not a number) before accessing properties
-      if (
-        envVar &&
-        typeof envVar !== "number" &&
-        envVar.role === "input" &&
-        !variable.range
-      ) {
-        variable.range = envVar.range || [-10, 10];
+    // Get the environment variable if it exists and set default range for drag input
+    if (input === "drag" && !variable.range) {
+      if (this.environment?.variables) {
+        const envVar = this.environment.variables[id];
+        if (envVar && typeof envVar !== "number" && envVar.range) {
+          variable.range = envVar.range;
+        } else {
+          variable.range = [-10, 10];
+        }
+      } else {
+        variable.range = [-10, 10];
       }
-    } else if (role === "input" && !variable.range) {
-      // Only set default range if no range is already defined
-      variable.range = [-10, 10];
     }
 
     this.variableRolesChanged++;
-
-    // Check if we have computed variables and expressions to evaluate
-    const hasComputedVars = this.hasComputedVars();
-
-    if (hasComputedVars && this.symbolicFunctions.length > 0) {
-      // Re-evaluate all expressions when variable types change
-      this.setComputation(this.symbolicFunctions, this.manualFunctions);
-    } else if (!hasComputedVars) {
-      // Clear evaluation function if no computed variables
-      this.evaluationFunction = null;
-    }
-
-    // Update all computed variables
-    this.updateAllComputedVars();
   }
 
+  /**
+   * Trigger computation by running the manual function.
+   * The manual function directly mutates observable variables via proxy.
+   */
   @action
-  updateAllComputedVars() {
+  runComputation() {
     if (!this.evaluationFunction) return;
     try {
-      this.isUpdatingDependents = true;
-      // Include both numeric and array values for manual engine support
-      const values: EvaluationFunctionInput = Object.fromEntries(
-        Array.from(this.variables.entries())
-          .filter(
-            ([, v]) =>
-              v.value !== undefined &&
-              (typeof v.value === "number" || Array.isArray(v.value))
-          )
-          .map(([symbol, v]) => [symbol, v.value as number | number[]])
-      );
-      const results = this.evaluationFunction(values);
-      // Update all computed variables with their computed values (numeric or array)
-      for (const [symbol, variable] of this.variables.entries()) {
-        if (variable.role === "computed") {
-          const result = results[symbol];
-          if (typeof result === "number" && !isNaN(result)) {
-            variable.value = result;
-          } else if (Array.isArray(result)) {
-            variable.value = result;
-          }
-        }
-      }
+      this.evaluationFunction({});
     } catch (error) {
-      console.error("Error updating computed variables:", error);
-    } finally {
-      this.isUpdatingDependents = false;
+      console.error("Error running computation:", error);
     }
   }
 
@@ -571,13 +513,242 @@ class ComputationStore {
       variables: Array.from(this.variables.entries()).map(([id, v]) => ({
         id,
         value: v.value,
-        role: v.role,
+        input: v.input,
       })),
       hasFunction: !!this.evaluationFunction,
       engine: this.engine,
       symbolicFunctions: this.symbolicFunctions,
     };
   }
+
+  // ============= Graph Data Collection =============
+
+  /**
+   * Extract a 2D point from dataPoints map.
+   * @param dataPointMap - Map of graph ID to data points
+   * @param graphId - The graph ID to look up
+   * @returns The first valid {x, y} point or null
+   */
+  private extractPoint2D(
+    dataPointMap: Map<string, IDataPoint[]>,
+    graphId: string
+  ): { x: number; y: number } | null {
+    const dataPoints = dataPointMap.get(graphId);
+    if (!dataPoints || dataPoints.length === 0) return null;
+    const { x, y } = dataPoints[0];
+    if (
+      typeof x === "number" &&
+      typeof y === "number" &&
+      isFinite(x) &&
+      isFinite(y)
+    ) {
+      return { x, y };
+    }
+    return null;
+  }
+
+  /**
+   * Extract a 3D point from dataPoints map.
+   * @param dataPoints - Map of graph ID to data points
+   * @param graphId - The graph ID to look up
+   * @returns The first valid {x, y, z} point or null
+   */
+  private extractPoint3D(
+    dataPointMap: Map<string, IDataPoint[]>,
+    graphId: string
+  ): { x: number; y: number; z: number } | null {
+    const dataPoints = dataPointMap.get(graphId);
+    if (!dataPoints || dataPoints.length === 0) return null;
+    const { x, y, z } = dataPoints[0];
+    if (
+      typeof x === "number" &&
+      typeof y === "number" &&
+      typeof z === "number" &&
+      isFinite(x) &&
+      isFinite(y) &&
+      isFinite(z)
+    ) {
+      return { x, y, z };
+    }
+    return null;
+  }
+
+  /**
+   * Run manual function with given variables and extract a 2D point.
+   * @param variables - Variable values to use
+   * @param graphId - Graph ID to match data2d() calls
+   * @returns The {x, y} point or null
+   */
+  private computeAndExtract2D(
+    variables: Record<string, IVariable>,
+    graphId: string
+  ): { x: number; y: number } | null {
+    const manual = this.semantics?.manual;
+    if (!manual || typeof manual !== "function") return null;
+    const result = computeWithManualEngine(variables, manual);
+    return this.extractPoint2D(result.dataPointMap, graphId);
+  }
+
+  /**
+   * Run manual function with given variables and extract a 3D point.
+   * @param variables - Variable values to use
+   * @param graphId - Graph ID to match data3d() calls
+   * @returns The {x, y, z} point or null
+   */
+  private computeAndExtract3D(
+    variables: Record<string, IVariable>,
+    graphId: string
+  ): { x: number; y: number; z: number } | null {
+    const manual = this.semantics?.manual;
+    if (!manual || typeof manual !== "function") return null;
+    const result = computeWithManualEngine(variables, manual);
+    return this.extractPoint3D(result.dataPointMap, graphId);
+  }
+
+  /**
+   * Generic helper to sample the manual function across a parameter range.
+   * Varies a single parameter across its range and collects points using the provided extractor.
+   *
+   * @param parameter - The variable to vary during sampling
+   * @param range - The range to sample [min, max]
+   * @param samples - Number of samples
+   * @param graphId - Graph ID to match data calls
+   * @param extractor - Function to extract point from variables (computeAndExtract2D or computeAndExtract3D)
+   * @returns Array of extracted points
+   */
+  private sampleWithParameter<T>(
+    parameter: string,
+    range: [number, number],
+    samples: number,
+    graphId: string,
+    extractor: (
+      variables: Record<string, IVariable>,
+      graphId: string
+    ) => T | null
+  ): T[] {
+    const [min, max] = range;
+    const step = (max - min) / samples;
+    const points: T[] = [];
+    const baseVariables = this.getVariablesSnapshot();
+    for (let i = 0; i <= samples; i++) {
+      const paramValue = min + i * step;
+      baseVariables[parameter] = {
+        ...baseVariables[parameter],
+        value: paramValue,
+      };
+      const point = extractor(baseVariables, graphId);
+      if (point) points.push(point);
+    }
+    return points;
+  }
+
+  /**
+   * Run the manual function once with current values to get the current 2D point.
+   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   *
+   * @param graphId - Graph ID to match data2d() calls
+   * @returns The current {x, y} point or null
+   */
+  sample2DPoint(graphId: string): { x: number; y: number } | null {
+    return this.computeAndExtract2D(this.getVariablesSnapshot(), graphId);
+  }
+
+  /**
+   * Run the manual function once with current values to get the current 3D point.
+   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   *
+   * @param graphId - Graph ID to match graph() calls
+   * @returns The current {x, y, z} point or null
+   */
+  sample3DPoint(graphId: string): { x: number; y: number; z: number } | null {
+    return this.computeAndExtract3D(this.getVariablesSnapshot(), graphId);
+  }
+
+  /**
+   * Sample the manual function across a parameter range to collect 2D line data.
+   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   *
+   * @param parameter - The variable to vary during sampling
+   * @param range - The range to sample [min, max]
+   * @param samples - Number of samples (default 100)
+   * @param graphId - Graph ID to match data2d() calls
+   * @returns Array of {x, y} points
+   */
+  sample2DLine(
+    parameter: string,
+    range: [number, number],
+    samples: number = 100,
+    graphId: string
+  ): { x: number; y: number }[] {
+    return this.sampleWithParameter(
+      parameter,
+      range,
+      samples,
+      graphId,
+      this.computeAndExtract2D.bind(this)
+    );
+  }
+
+  /**
+   * Sample the manual function across a parameter range to collect 3D line data.
+   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   *
+   * @param parameter - The variable to vary during sampling
+   * @param range - The range to sample [min, max]
+   * @param samples - Number of samples (default 100)
+   * @param graphId - Graph ID to match graph() calls
+   * @returns Array of {x, y, z} points
+   */
+  sample3DLine(
+    parameter: string,
+    range: [number, number],
+    samples: number = 100,
+    graphId: string
+  ): { x: number; y: number; z: number }[] {
+    return this.sampleWithParameter(
+      parameter,
+      range,
+      samples,
+      graphId,
+      this.computeAndExtract3D.bind(this)
+    );
+  }
+
+  /**
+   * Sample the manual function across a 2D parameter grid to collect surface data.
+   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   *
+   * @param parameters - The two variables to vary during sampling [param1, param2]
+   * @param ranges - The ranges for each parameter [[min1, max1], [min2, max2]]
+   * @param samples - Number of samples per dimension (default 50)
+   * @param graphId - Graph ID to match graph() calls
+   * @returns Array of {x, y, z} points
+   */
+  sampleSurface(
+    parameters: [string, string],
+    ranges: [[number, number], [number, number]],
+    samples: number = 50,
+    graphId: string
+  ): { x: number; y: number; z: number }[] {
+    const [param1, param2] = parameters;
+    const [[min1, max1], [min2, max2]] = ranges;
+    const step1 = (max1 - min1) / samples;
+    const step2 = (max2 - min2) / samples;
+    const points: { x: number; y: number; z: number }[] = [];
+    const baseVariables = this.getVariablesSnapshot();
+    for (let i = 0; i <= samples; i++) {
+      const value1 = min1 + i * step1;
+      for (let j = 0; j <= samples; j++) {
+        const value2 = min2 + j * step2;
+        baseVariables[param1] = { ...baseVariables[param1], value: value1 };
+        baseVariables[param2] = { ...baseVariables[param2], value: value2 };
+        const point = this.computeAndExtract3D(baseVariables, graphId);
+        if (point) points.push(point);
+      }
+    }
+    return points;
+  }
+
   // Get resolved variables as a plain object for external use
   // This is the total collection of variables after the system
   // has processed the user-written variables settings.

@@ -7,20 +7,19 @@ export const kinetic3D = `const config = {
   ],
   variables: {
     K: {
-      role: "computed",
       units: "J",
       name: "Kinetic Energy",
       precision: 2
     },
     m: {
-      role: "input",
+      input: "drag",
       default: 2,
       range: [0.5, 5],
       units: "kg",
       name: "Mass"
     },
     v: {
-      role: "input",
+      input: "drag",
       default: 3,
       range: [0.5, 10],
       units: "m/s",
@@ -28,33 +27,31 @@ export const kinetic3D = `const config = {
     }
   },
   semantics: {
-    engine: "symbolic-algebra",
-    expressions: {
-      "kinetic-energy-3d": "{K} = 0.5 * {m} * {v} * {v}"
+    manual: function(vars, data3d) {
+      vars.K = 0.5 * vars.m * vars.v * vars.v;
+      data3d("energy", {x: vars.m, y: vars.v, z: vars.K});
     }
   },
-  
+
   visualizations: [
     {
       type: "plot3d",
       id: "energy3DPlot",
       title: "3D Kinetic Energy Surface",
-      xAxis: "m",
       xRange: [0.5, 5],
-      yAxis: "v",
       yRange: [0.5, 10],
-      zVar: "K",
       zRange: [0, 250],
-      plotType: "surface",
-
-      surfaces: [
+      graphs: [
         {
-          id: "kinetic-energy-3d",
-          color: "Viridis",
-          opacity: 0.7,
-          showInLegend: true
+          type: "surface",
+          id: "energy",
+          parameters: ["m", "v"],
+        },
+        {
+          type: "point",
+          id: "energy",
         }
       ]
-    },
+    }
   ]
 };`;

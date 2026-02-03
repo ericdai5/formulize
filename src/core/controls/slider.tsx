@@ -3,6 +3,7 @@ import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react-lite";
 
 import { ISliderControl } from "../../types/control";
+import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { useFormulize } from "../hooks";
 
 interface SliderProps {
@@ -58,7 +59,7 @@ const Slider = observer(({ control }: SliderProps) => {
 
   const formatValue = useCallback(
     (value: number) => {
-      const precision = variable?.precision ?? (step && step < 1 ? 2 : 1);
+      const precision = variable?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
       return value.toFixed(precision);
     },
     [variable?.precision, step]
