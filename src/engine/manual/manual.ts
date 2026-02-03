@@ -2,12 +2,29 @@
  * Manual Computation Engine for Formulize
  *
  * This module provides manual computation capability allowing authors to define
- * custom JavaScript functions for computing computed variables.
+ * custom JavaScript functions for computing variables via mutation.
  *
  * @module engine/manual
  */
 import { IManual } from "../../types/computation";
+import {
+  IData2D,
+  IData2DFn,
+  IData3D,
+  IData3DFn,
+  IDataPoint,
+} from "../../types/graph";
 import { IValue, IVariable } from "../../types/variable";
+
+/**
+ * Result from manual engine execution including variable values and graph dataPoints.
+ * @property {Record<string, IValue>} values - Computed variable values after execution
+ * @property {Map<string, IDataPoint[]>} dataPointMap - dataPoints captured by data2d/data3d calls, keyed by graph ID
+ */
+export interface IManualEngineResult {
+  values: Record<string, IValue>;
+  dataPointMap: Map<string, IDataPoint[]>;
+}
 
 // ============================================================================
 // Helpers
@@ -73,12 +90,15 @@ function collectResults(
 
 function executeComputationManual(
   manualFn: IManual,
-  variables: Record<string, IVariable>
+  variables: Record<string, IVariable>,
+  data3dFn: IData3DFn,
+  data2dFn: IData2DFn
 ): void {
   // Create proxy that directly mutates variable values
   const vars = createValueProxy(variables);
   // Execute the manual function - mutations go directly to variables
-  manualFn(vars);
+  // Pass data3d and data2d functions for visualization data collection
+  manualFn(vars, data3dFn, data2dFn);
 }
 
 // ============================================================================
@@ -86,38 +106,60 @@ function executeComputationManual(
 // ============================================================================
 
 /**
- * Computes the formula with the given variable values using custom JavaScript functions.
+ * Computes the formula with the given variable values using a custom JavaScript function.
  * Variables should already be normalized (typically from the computation store).
+ * The manual function mutates the vars object directly to set computed values.
  *
  * @param variables - Record of variable definitions with current values
- * @param computationManual - The computation-level manual function
+ * @param manual - The manual function to execute
+ * @returns Object containing computed values and collected graph dataPoints
  */
 export function computeWithManualEngine(
   variables: Record<string, IVariable>,
-  computationManual?: IManual
-): Record<string, IValue> {
+  manual?: IManual
+): IManualEngineResult {
+  // Collect graph dataPoints during execution
+  const dataPointMap = new Map<string, IDataPoint[]>();
+  // Create data3d function for 3D visualization data
+  // Usage: data3d("id", {x, y, z})
+  const data3dFn: IData3DFn = (id: string, values: IData3D) => {
+    let dataPoints = dataPointMap.get(id);
+    if (!dataPoints) {
+      dataPoints = [];
+      dataPointMap.set(id, dataPoints);
+    }
+    dataPoints.push({ x: values.x, y: values.y, z: values.z });
+  };
+  // Create data2d function for 2D visualization data
+  // Usage: data2d("id", {x, y})
+  const data2dFn: IData2DFn = (id: string, values: IData2D) => {
+    let dataPoints = dataPointMap.get(id);
+    if (!dataPoints) {
+      dataPoints = [];
+      dataPointMap.set(id, dataPoints);
+    }
+    dataPoints.push({ x: values.x, y: values.y });
+  };
+  const emptyResult: IManualEngineResult = {
+    values: {},
+    dataPointMap: new Map(),
+  };
   try {
     if (!variables || Object.keys(variables).length === 0) {
       console.warn("⚠️ No variables provided");
-      return {};
+      return emptyResult;
     }
-
-    // Extract computed variables
-    const computedVars = getComputedVariableNames(variables);
-    if (computedVars.length === 0) {
-      console.warn("⚠️ No computed variables found");
-      return {};
+    if (!manual) {
+      console.warn("⚠️ No manual function provided for computation");
+      return emptyResult;
     }
-
-    if (!computationManual || typeof computationManual !== "function") {
-      console.warn("⚠️ No manual function provided in computation config");
-      return {};
-    }
-
-    executeComputationManual(computationManual, variables);
-    return collectResults(variables);
+    executeComputationManual(manual, variables, data3dFn, data2dFn);
+    return {
+      values: collectResults(variables),
+      dataPointMap,
+    };
   } catch (error) {
     console.error("Error computing with manual engine:", error);
-    return {};
+    return emptyResult;
   }
 }

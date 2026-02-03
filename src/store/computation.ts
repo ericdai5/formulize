@@ -5,6 +5,7 @@ import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-a
 import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
+import { IDataPoint } from "../types/graph";
 import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
 import { AugmentedFormula } from "../util/parse/formula-tree";
 
@@ -95,6 +96,18 @@ class ComputationStore {
 
   get evaluateFormula(): EvaluationFunction | null {
     return this.evaluationFunction;
+  }
+
+  /**
+   * Create a snapshot copy of all variables for sampling/computation.
+   * Uses toJS to create deep copies that won't affect the original observables.
+   */
+  getVariablesSnapshot(): Record<string, IVariable> {
+    const snapshot: Record<string, IVariable> = {};
+    for (const [varName, variable] of this.variables.entries()) {
+      snapshot[varName] = { ...toJS(variable) };
+    }
+    return snapshot;
   }
 
   @action
@@ -507,6 +520,235 @@ class ComputationStore {
       symbolicFunctions: this.symbolicFunctions,
     };
   }
+
+  // ============= Graph Data Collection =============
+
+  /**
+   * Extract a 2D point from dataPoints map.
+   * @param dataPointMap - Map of graph ID to data points
+   * @param graphId - The graph ID to look up
+   * @returns The first valid {x, y} point or null
+   */
+  private extractPoint2D(
+    dataPointMap: Map<string, IDataPoint[]>,
+    graphId: string
+  ): { x: number; y: number } | null {
+    const dataPoints = dataPointMap.get(graphId);
+    if (!dataPoints || dataPoints.length === 0) return null;
+    const { x, y } = dataPoints[0];
+    if (
+      typeof x === "number" &&
+      typeof y === "number" &&
+      isFinite(x) &&
+      isFinite(y)
+    ) {
+      return { x, y };
+    }
+    return null;
+  }
+
+  /**
+   * Extract a 3D point from dataPoints map.
+   * @param dataPoints - Map of graph ID to data points
+   * @param graphId - The graph ID to look up
+   * @returns The first valid {x, y, z} point or null
+   */
+  private extractPoint3D(
+    dataPointMap: Map<string, IDataPoint[]>,
+    graphId: string
+  ): { x: number; y: number; z: number } | null {
+    const dataPoints = dataPointMap.get(graphId);
+    if (!dataPoints || dataPoints.length === 0) return null;
+    const { x, y, z } = dataPoints[0];
+    if (
+      typeof x === "number" &&
+      typeof y === "number" &&
+      typeof z === "number" &&
+      isFinite(x) &&
+      isFinite(y) &&
+      isFinite(z)
+    ) {
+      return { x, y, z };
+    }
+    return null;
+  }
+
+  /**
+   * Run manual function with given variables and extract a 2D point.
+   * @param variables - Variable values to use
+   * @param graphId - Graph ID to match data2d() calls
+   * @returns The {x, y} point or null
+   */
+  private computeAndExtract2D(
+    variables: Record<string, IVariable>,
+    graphId: string
+  ): { x: number; y: number } | null {
+    const manual = this.semantics?.manual;
+    if (!manual || typeof manual !== "function") return null;
+    const result = computeWithManualEngine(variables, manual);
+    return this.extractPoint2D(result.dataPointMap, graphId);
+  }
+
+  /**
+   * Run manual function with given variables and extract a 3D point.
+   * @param variables - Variable values to use
+   * @param graphId - Graph ID to match data3d() calls
+   * @returns The {x, y, z} point or null
+   */
+  private computeAndExtract3D(
+    variables: Record<string, IVariable>,
+    graphId: string
+  ): { x: number; y: number; z: number } | null {
+    const manual = this.semantics?.manual;
+    if (!manual || typeof manual !== "function") return null;
+    const result = computeWithManualEngine(variables, manual);
+    return this.extractPoint3D(result.dataPointMap, graphId);
+  }
+
+  /**
+   * Generic helper to sample the manual function across a parameter range.
+   * Varies a single parameter across its range and collects points using the provided extractor.
+   *
+   * @param parameter - The variable to vary during sampling
+   * @param range - The range to sample [min, max]
+   * @param samples - Number of samples
+   * @param graphId - Graph ID to match data calls
+   * @param extractor - Function to extract point from variables (computeAndExtract2D or computeAndExtract3D)
+   * @returns Array of extracted points
+   */
+  private sampleWithParameter<T>(
+    parameter: string,
+    range: [number, number],
+    samples: number,
+    graphId: string,
+    extractor: (
+      variables: Record<string, IVariable>,
+      graphId: string
+    ) => T | null
+  ): T[] {
+    const [min, max] = range;
+    const step = (max - min) / samples;
+    const points: T[] = [];
+    const baseVariables = this.getVariablesSnapshot();
+    for (let i = 0; i <= samples; i++) {
+      const paramValue = min + i * step;
+      baseVariables[parameter] = {
+        ...baseVariables[parameter],
+        value: paramValue,
+      };
+      const point = extractor(baseVariables, graphId);
+      if (point) points.push(point);
+    }
+    return points;
+  }
+
+  /**
+   * Run the manual function once with current values to get the current 2D point.
+   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   *
+   * @param graphId - Graph ID to match data2d() calls
+   * @returns The current {x, y} point or null
+   */
+  sample2DPoint(graphId: string): { x: number; y: number } | null {
+    return this.computeAndExtract2D(this.getVariablesSnapshot(), graphId);
+  }
+
+  /**
+   * Run the manual function once with current values to get the current 3D point.
+   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   *
+   * @param graphId - Graph ID to match graph() calls
+   * @returns The current {x, y, z} point or null
+   */
+  sample3DPoint(graphId: string): { x: number; y: number; z: number } | null {
+    return this.computeAndExtract3D(this.getVariablesSnapshot(), graphId);
+  }
+
+  /**
+   * Sample the manual function across a parameter range to collect 2D line data.
+   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   *
+   * @param parameter - The variable to vary during sampling
+   * @param range - The range to sample [min, max]
+   * @param samples - Number of samples (default 100)
+   * @param graphId - Graph ID to match data2d() calls
+   * @returns Array of {x, y} points
+   */
+  sample2DLine(
+    parameter: string,
+    range: [number, number],
+    samples: number = 100,
+    graphId: string
+  ): { x: number; y: number }[] {
+    return this.sampleWithParameter(
+      parameter,
+      range,
+      samples,
+      graphId,
+      this.computeAndExtract2D.bind(this)
+    );
+  }
+
+  /**
+   * Sample the manual function across a parameter range to collect 3D line data.
+   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   *
+   * @param parameter - The variable to vary during sampling
+   * @param range - The range to sample [min, max]
+   * @param samples - Number of samples (default 100)
+   * @param graphId - Graph ID to match graph() calls
+   * @returns Array of {x, y, z} points
+   */
+  sample3DLine(
+    parameter: string,
+    range: [number, number],
+    samples: number = 100,
+    graphId: string
+  ): { x: number; y: number; z: number }[] {
+    return this.sampleWithParameter(
+      parameter,
+      range,
+      samples,
+      graphId,
+      this.computeAndExtract3D.bind(this)
+    );
+  }
+
+  /**
+   * Sample the manual function across a 2D parameter grid to collect surface data.
+   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   *
+   * @param parameters - The two variables to vary during sampling [param1, param2]
+   * @param ranges - The ranges for each parameter [[min1, max1], [min2, max2]]
+   * @param samples - Number of samples per dimension (default 50)
+   * @param graphId - Graph ID to match graph() calls
+   * @returns Array of {x, y, z} points
+   */
+  sampleSurface(
+    parameters: [string, string],
+    ranges: [[number, number], [number, number]],
+    samples: number = 50,
+    graphId: string
+  ): { x: number; y: number; z: number }[] {
+    const [param1, param2] = parameters;
+    const [[min1, max1], [min2, max2]] = ranges;
+    const step1 = (max1 - min1) / samples;
+    const step2 = (max2 - min2) / samples;
+    const points: { x: number; y: number; z: number }[] = [];
+    const baseVariables = this.getVariablesSnapshot();
+    for (let i = 0; i <= samples; i++) {
+      const value1 = min1 + i * step1;
+      for (let j = 0; j <= samples; j++) {
+        const value2 = min2 + j * step2;
+        baseVariables[param1] = { ...baseVariables[param1], value: value1 };
+        baseVariables[param2] = { ...baseVariables[param2], value: value2 };
+        const point = this.computeAndExtract3D(baseVariables, graphId);
+        if (point) points.push(point);
+      }
+    }
+    return points;
+  }
+
   // Get resolved variables as a plain object for external use
   // This is the total collection of variables after the system
   // has processed the user-written variables settings.
