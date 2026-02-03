@@ -5,7 +5,7 @@ import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-a
 import { IManual, ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
-import { IValue, IVariable } from "../types/variable";
+import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
 import { AugmentedFormula } from "../util/parse/formula-tree";
 
 export type EvaluationFunctionInput = Record<string, number | number[]>;
@@ -62,7 +62,7 @@ class ComputationStore {
   accessor formulas: IFormula[] = [];
 
   @observable
-  accessor manualFunctions: IManual[] = [];
+  accessor manual: IManual | null = null;
 
   @observable
   accessor environment: IEnvironment | null = null;
@@ -88,8 +88,6 @@ class ComputationStore {
   accessor injectedHoverCSS = new Map<string, string>();
 
   private evaluationFunction: EvaluationFunction | null = null;
-  private isUpdatingDependents = false;
-  private isInitializing = false;
 
   isStepMode(): boolean {
     return this.semantics?.mode === "step";
@@ -110,11 +108,6 @@ class ComputationStore {
   }
 
   @action
-  setInitializing(initializing: boolean) {
-    this.isInitializing = initializing;
-  }
-
-  @action
   reset() {
     this.variables.clear();
     this.hoverStates.clear();
@@ -129,7 +122,7 @@ class ComputationStore {
     this.environment = null;
     this.symbolicFunctions = [];
     this.formulas = [];
-    this.manualFunctions = [];
+    this.manual = null;
     this.evaluationFunction = null;
     // Remove custom CSS style element
     const styleElement = document.getElementById("custom-var-styles");
@@ -203,8 +196,8 @@ class ComputationStore {
   }
 
   @action
-  setManualFunctions(manual: IManual[]): void {
-    this.manualFunctions = manual;
+  setManual(manual: IManual | null): void {
+    this.manual = manual;
   }
 
   @action
@@ -234,9 +227,8 @@ class ComputationStore {
       return false;
     }
     variable.value = value;
-    if (!this.isUpdatingDependents && !this.isInitializing) {
-      this.updateAllComputedVars();
-    }
+    // Re-run computation to update dependent variables
+    this.runComputation();
   }
 
   @action
@@ -245,11 +237,9 @@ class ComputationStore {
     if (!variable) {
       return false;
     }
-    variable.value = set; // Use unified value field
-    // Trigger re-evaluation of computed variables (including sets via manual functions)
-    if (!this.isUpdatingDependents && !this.isInitializing) {
-      this.updateAllComputedVars();
-    }
+    variable.value = set;
+    // Re-run computation to update dependent variables
+    this.runComputation();
     return true;
   }
 
@@ -366,12 +356,9 @@ class ComputationStore {
 
   // Set up all expressions for computation
   @action
-  async setComputation(
-    expressions: string[],
-    manual: ((vars: Record<string, IValue>) => IValue | void)[]
-  ) {
+  async setComputation(expressions: string[], manual?: IManual | null) {
     this.setSymbolicFunctions(expressions);
-    this.setManualFunctions(manual);
+    this.setManual(manual ?? null);
     // Set up the evaluation function to handle all expressions
     if (this.engine === "symbolic-algebra" && this.semantics) {
       this.evaluationFunction =
@@ -379,10 +366,6 @@ class ComputationStore {
     } else if (this.engine === "manual" && this.semantics) {
       // For manual engine, create an evaluator using manual functions
       this.evaluationFunction = this.createManualEvaluator();
-    }
-    // Initial evaluation of all computed variables (skip in step mode)
-    if (!this.isStepMode()) {
-      this.updateAllComputedVars();
     }
   }
 
@@ -420,33 +403,22 @@ class ComputationStore {
   }
 
   // Create an evaluation function for manual engine using manual functions
+  // The manual function directly mutates the store's observable variables via proxy
   private createManualEvaluator(): EvaluationFunction {
-    return (variables) => {
+    return () => {
       if (!this.environment) return {};
-      // Create variables with updated values from computation store
-      const updatedVariables: Record<string, IVariable> = {};
+      // Pass the store's observable variables directly (same references)
+      // The proxy in manual.ts will mutate them, triggering MobX reactivity
+      const storeVariables: Record<string, IVariable> = {};
       for (const [varName, variable] of this.variables.entries()) {
-        updatedVariables[varName] = {
-          ...variable,
-          value: variables[varName] ?? variable.value,
-        };
+        storeVariables[varName] = variable; // Same reference, not a copy
       }
       // Get computation-level manual function
       const computationManual = this.semantics?.manual;
-      const result = computeWithManualEngine(
-        updatedVariables,
-        computationManual
-      );
-
-      // After manual execution, sync back any set changes from manual functions
-      for (const [varName, variable] of Object.entries(updatedVariables)) {
-        const computationVar = this.variables.get(varName);
-        if (computationVar && Array.isArray(variable.value)) {
-          computationVar.value = variable.value;
-        }
-      }
-
-      return result;
+      // Run the manual function - it mutates variables directly via proxy
+      computeWithManualEngine(storeVariables, computationManual);
+      // No need to sync back or return values - mutations happen directly
+      return {};
     };
   }
 
@@ -459,7 +431,8 @@ class ComputationStore {
         dimensions: variableDefinition?.dimensions,
         units: variableDefinition?.units,
         name: variableDefinition?.name,
-        precision: variableDefinition?.precision,
+        precision:
+          variableDefinition?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
         step: variableDefinition?.step,
@@ -506,43 +479,19 @@ class ComputationStore {
     }
 
     this.variableRolesChanged++;
-
-    // Update computed values
-    this.updateAllComputedVars();
   }
 
+  /**
+   * Trigger computation by running the manual function.
+   * The manual function directly mutates observable variables via proxy.
+   */
   @action
-  updateAllComputedVars() {
+  runComputation() {
     if (!this.evaluationFunction) return;
     try {
-      this.isUpdatingDependents = true;
-      // Include both numeric and array values for manual engine support
-      const values: EvaluationFunctionInput = Object.fromEntries(
-        Array.from(this.variables.entries())
-          .filter(
-            ([, v]) =>
-              v.value !== undefined &&
-              (typeof v.value === "number" || Array.isArray(v.value))
-          )
-          .map(([symbol, v]) => [symbol, v.value as number | number[]])
-      );
-      const results = this.evaluationFunction(values);
-      // Update variables with values from the manual function
-      // The manual function determines which variables are "computed" by mutating them
-      for (const [symbol, result] of Object.entries(results)) {
-        const variable = this.variables.get(symbol);
-        if (variable) {
-          if (typeof result === "number" && !isNaN(result)) {
-            variable.value = result;
-          } else if (Array.isArray(result)) {
-            variable.value = result;
-          }
-        }
-      }
+      this.evaluationFunction({});
     } catch (error) {
-      console.error("Error updating computed variables:", error);
-    } finally {
-      this.isUpdatingDependents = false;
+      console.error("Error running computation:", error);
     }
   }
 

@@ -102,9 +102,6 @@ async function initializeInstance(
     computationStore.reset();
     computationStore.setVariableRolesChanged(0);
 
-    // Set initialization flag to prevent premature evaluations
-    computationStore.setInitializing(true);
-
     // Clear all individual formula stores
     formulaStoreManager.clearAllStores();
 
@@ -146,27 +143,20 @@ async function initializeInstance(
       ? Object.values(environment.semantics.expressions)
       : [];
 
-    // Extract manual function from computation.manual
-    const manualFunctions: IManual[] =
-      environment.semantics?.manual &&
-      typeof environment.semantics.manual === "function"
-        ? [environment.semantics.manual]
-        : [];
+    // Extract manual function from semantics.manual
+    const manual: IManual | null = environment.semantics?.manual ?? null;
 
     // Store formulas in computation store for rendering
     computationStore.setFormulas(environment.formulas);
 
     // Set up expressions and enable evaluation
-    if (symbolicFunctions.length > 0 || manualFunctions.length > 0) {
-      await computationStore.setComputation(symbolicFunctions, manualFunctions);
+    if (symbolicFunctions.length > 0 || manual) {
+      await computationStore.setComputation(symbolicFunctions, manual);
     }
 
-    // Clear initialization flag to enable normal evaluation
-    computationStore.setInitializing(false);
-
-    // Trigger initial evaluation now that everything is set up (skip in step mode)
+    // Trigger initial computation (skip in step mode)
     if (!computationStore.isStepMode()) {
-      computationStore.updateAllComputedVars();
+      computationStore.runComputation();
     }
 
     // Store the id for setVariable method to use
