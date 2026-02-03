@@ -5,7 +5,7 @@ export const INPUT_VARIABLE_DEFAULT = {
   MAX_VALUE: 10 as number,
   STEP_SIZE: 0.5 as number,
   VALUE: 1 as number, // Default to 1 (safer than 0 for division/log operations)
-  PRECISION: 1 as number, // Default precision (decimal places)
+  PRECISION: 2 as number, // Default precision (decimal places)
 };
 
 export type IValue = number | (string | number)[];

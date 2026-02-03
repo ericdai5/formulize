@@ -414,7 +414,8 @@ export const processVariables = (
             typeof variable.value === "number" ? variable.value : undefined;
           isDraggable = variable.input === "drag";
           // Use the variable's precision if defined, otherwise use default
-          variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+          variablePrecision =
+            variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
           // Use the variable's display property if defined, otherwise default to "name"
           display = variable.latexDisplay ?? "name";
           // Get custom CSS if defined
@@ -718,10 +719,10 @@ export const processLatexContent = (
     if (formulaId) {
       computationStore.setFormulaTree(formulaId, result.tree);
     }
-    console.log(
-      `[processLatexContent] Final LaTeX for "${formulaId || "unknown"}":`,
-      result.latex
-    );
+    // console.log(
+    //   `[processLatexContent] Final LaTeX for "${formulaId || "unknown"}":`,
+    //   result.latex
+    // );
     return result.latex;
   } catch (error) {
     console.warn("Failed to process latex content:", error);
