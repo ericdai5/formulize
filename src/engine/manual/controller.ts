@@ -286,17 +286,17 @@ export class Controller {
     // Reset variables with default values in computation store to their original values from environment
     // Variables computed by manual function will be recomputed
     // Use setValueInStepMode action to comply with MobX strict mode
-    if (environment?.variables) {
-      for (const [varId, varDef] of Object.entries(environment.variables)) {
-        if (
-          computationStore.variables.has(varId) &&
-          typeof varDef === "object" &&
-          varDef.default !== undefined
-        ) {
-          computationStore.setValueInStepMode(varId, varDef.default);
-        }
-      }
-    }
+    // if (environment?.variables) {
+    //   for (const [varId, varDef] of Object.entries(environment.variables)) {
+    //     if (
+    //       computationStore.variables.has(varId) &&
+    //       typeof varDef === "object" &&
+    //       varDef.default !== undefined
+    //     ) {
+    //       computationStore.setValueInStepMode(varId, varDef.default);
+    //     }
+    //   }
+    // }
 
     if (!code.trim()) {
       ctx.setError(ERROR_MESSAGES.NO_CODE);
