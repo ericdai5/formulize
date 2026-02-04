@@ -24,7 +24,7 @@ export type { InterpreterControlProps } from "./core";
 export { useFormulize } from "./core/hooks";
 
 // Export step function for manual computation breakpoints
-export { step } from "./engine/manual/controller";
+export { step } from "./engine/controller";
 
 // Export computation API - factory function and type for scoped stores
 export { createComputationStore, ComputationStore } from "./store/computation";
@@ -51,14 +51,13 @@ export {
 export {
   Formula as FormulaGenerator,
   Variable,
-  Semantics,
   mergeVariables,
   mergeFormulas,
 } from "./util/generators";
 export type { LoopRange, LoopSpec, LoopContext } from "./util/generators";
 
 // Export types
-export type { ISemantics } from "./types/computation";
+export type { ISemantics, ISemanticsContext } from "./types/computation";
 export type { IEnvironment } from "./types/environment";
 export type { IFormula } from "./types/formula";
 export type {

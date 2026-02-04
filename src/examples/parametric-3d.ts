@@ -50,17 +50,15 @@ export const parametric3D = `const config = {
       name: "Parameter t"
     },
   },
-  semantics: {
-    manual: function(vars, data3d) {
-      vars.z = 1 - vars.x - vars.y;
-      data3d("plane1", {x: vars.x, y: vars.y, z: vars.z});
-      vars.z = vars.x;
-      data3d("plane2", {x: vars.x, y: vars.y, z: vars.z});
-      vars.x = vars.t;
-      vars.y = 1 - 2 * vars.t;
-      vars.z = vars.t;
-      data3d("line", {x: vars.x, y: vars.y, z: vars.z});
-    }
+  semantics: function({ vars, data3d }) {
+    vars.z = 1 - vars.x - vars.y;
+    data3d("plane1", {x: vars.x, y: vars.y, z: vars.z});
+    vars.z = vars.x;
+    data3d("plane2", {x: vars.x, y: vars.y, z: vars.z});
+    vars.x = vars.t;
+    vars.y = 1 - 2 * vars.t;
+    vars.z = vars.t;
+    data3d("line", {x: vars.x, y: vars.y, z: vars.z});
   },
   visualizations: [
     {

@@ -63,15 +63,13 @@ export const setOperations = `const config = {
       color: "#ef4444"
     }
   ],
-  semantics: {
-    manual: (vars) => {
-      // Set intersection: P = M ∩ B
-      const M = vars.M;
-      const B = vars.B;
-      vars.P = M.filter(item => B.includes(item));
-      // Set union: U = M ∪ B
-      vars.U = [...new Set([...M, ...B])];
-    }
+  semantics: ({ vars }) => {
+    // Set intersection: P = M ∩ B
+    const M = vars.M;
+    const B = vars.B;
+    vars.P = M.filter(item => B.includes(item));
+    // Set union: U = M ∪ B
+    vars.U = [...new Set([...M, ...B])];
   },
   fontSize: 1.5
 };`;

@@ -39,11 +39,9 @@ export const quadratic3D = `const config = {
       name: "Coefficient c"
     }
   },
-  semantics: {
-    manual: function(vars, data3d) {
-      vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
-      data3d("quadratic", {x: vars.x, y: vars.c, z: vars.y});
-    }
+  semantics: function({ vars, data3d }) {
+    vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
+    data3d("quadratic", {x: vars.x, y: vars.c, z: vars.y});
   },
 
   visualizations: [

@@ -4,8 +4,8 @@ import { makeAutoObservable } from "mobx";
 
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
-import { JSInterpreter } from "../engine/manual/interpreter";
-import { Step } from "../engine/manual/step";
+import { JSInterpreter } from "../engine/interpreter";
+import { Step } from "../engine/step";
 import { IEnvironment } from "../types/environment";
 import { IInterpreterStep, IObject, IStep } from "../types/step";
 

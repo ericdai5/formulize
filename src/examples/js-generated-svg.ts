@@ -61,11 +61,9 @@ const config = {
       units: "s",
     }
   },
-  semantics: {
-    manual: function(vars, data3d, data2d) {
-      vars.w = vars.A * Math.sin(2 * Math.PI * vars.f * vars.t + vars.phi);
-      data2d("wave", {x: vars.t, y: vars.w});
-    }
+  semantics: function({ vars, data2d }) {
+    vars.w = vars.A * Math.sin(2 * Math.PI * vars.f * vars.t + vars.phi);
+    data2d("wave", {x: vars.t, y: vars.w});
   },
   visualizations: [
     {

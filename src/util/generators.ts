@@ -311,38 +311,6 @@ export const Variable = {
 };
 
 // ============================================================================
-// Semantics Generators
-// ============================================================================
-
-export const Semantics = {
-  /**
-   * Generate expression mappings by iterating over specified ranges.
-   *
-   * @param spec - Object defining loop variables and their ranges
-   * @param generator - Function that generates [formulaId, expression] pairs
-   * @returns Object of expressions
-   *
-   * @example
-   * Semantics.expressions({ i: [1, 4] }, ({ i }) => [
-   *   `z_${i}`,
-   *   `{z_${i}} = {w_${i}} * {x} + {b_${i}}`
-   * ])
-   */
-  expressions<T extends LoopSpec>(
-    spec: T,
-    generator: (context: LoopContext<T>, index: number) => [string, string]
-  ): Record<string, string> {
-    const combinations = generateCombinations(spec);
-    const result: Record<string, string> = {};
-    combinations.forEach((ctx, index) => {
-      const [id, expression] = generator(ctx, index);
-      result[id] = expression;
-    });
-    return result;
-  },
-};
-
-// ============================================================================
 // Utility Functions
 // ============================================================================
 

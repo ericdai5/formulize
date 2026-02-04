@@ -23,7 +23,7 @@ import {
   toPrevBlock,
   toPrevView,
   toStep,
-} from "../engine/manual/execute";
+} from "../engine/execute";
 import Button from "../ui/button";
 import Select from "../ui/select";
 

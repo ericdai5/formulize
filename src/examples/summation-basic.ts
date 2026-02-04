@@ -30,38 +30,36 @@ export const summationBasic = `const config = {
       labelDisplay: "value",
     }
   },
-  semantics: {
-    mode: "step",
-    manual: function(vars) {
-      var xValues = vars.X;
-      var pxValues = vars["P(x)"];
-      var expectedValue = vars.E;
-      for (var i = 0; i < xValues.length; i++) {
-        var xi = xValues[i];
-        var probability = pxValues[i];
-        if (i === 0) {
-          step({ description: "Get a value x from X", values: [["x", xi], ["X", xValues]] });
-          step({ description: "Get a value P(x) from P(x)", values: [["P(x)", probability]] });
-        }
-        var currExpected = Math.round(xi * probability * 100) / 100;
-        if (i === 0) {
-          step({ description: "This evaluates to:", values: [["x", xi], ["P(x)", probability]] });
-        }
-        expectedValue = Math.round((expectedValue + currExpected) * 100) / 100;
-        switch (i) {
-          case 0:
-            step({ description: "add up term into E", values: [["E", expectedValue]] });
-            break;
-          case 1:
-            step({ description: "add next term...", values: [["E", expectedValue]] });
-            break;
-          case xValues.length - 1:
-            step({ description: "finish accumulating weighted sum", values: [["E", expectedValue]] });
-            break;
-        }
+  stepping: true,
+  semantics: function({ vars, step }) {
+    var xValues = vars.X;
+    var pxValues = vars["P(x)"];
+    var expectedValue = vars.E;
+    for (var i = 0; i < xValues.length; i++) {
+      var xi = xValues[i];
+      var probability = pxValues[i];
+      if (i === 0) {
+        step({ description: "Get a value x from X", values: [["x", xi], ["X", xValues]] });
+        step({ description: "Get a value P(x) from P(x)", values: [["P(x)", probability]] });
       }
-      vars.E = expectedValue;
-    },
+      var currExpected = Math.round(xi * probability * 100) / 100;
+      if (i === 0) {
+        step({ description: "This evaluates to:", values: [["x", xi], ["P(x)", probability]] });
+      }
+      expectedValue = Math.round((expectedValue + currExpected) * 100) / 100;
+      switch (i) {
+        case 0:
+          step({ description: "add up term into E", values: [["E", expectedValue]] });
+          break;
+        case 1:
+          step({ description: "add next term...", values: [["E", expectedValue]] });
+          break;
+        case xValues.length - 1:
+          step({ description: "finish accumulating weighted sum", values: [["E", expectedValue]] });
+          break;
+      }
+    }
+    vars.E = expectedValue;
   },
   fontSize: 1.5
 };`;

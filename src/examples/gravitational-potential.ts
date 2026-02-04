@@ -33,11 +33,9 @@ export const gravitationalPotential = `const config = {
       name: "Height"
     }
   },
-  semantics: {
-    manual: function(vars, data3d, data2d) {
-      vars.U = vars.m * vars.g * vars.h;
-      data2d("potential", {x: vars.h, y: vars.U});
-    }
+  semantics: function({ vars, data2d }) {
+    vars.U = vars.m * vars.g * vars.h;
+    data2d("potential", {x: vars.h, y: vars.U});
   },
 
   visualizations: [

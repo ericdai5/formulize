@@ -30,7 +30,6 @@ const HANDLE_STYLE = {
   height: 1,
 };
 
-
 // Inline editable input component for variables with input: "inline"
 const InlineInput = observer(
   ({
@@ -51,7 +50,8 @@ const InlineInput = observer(
 
     const currentValue =
       typeof variable.value === "number" ? variable.value : 0;
-    const displayPrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+    const displayPrecision =
+      variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
 
     // Format value with precision for display
     const formatValue = useCallback(
@@ -293,7 +293,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       <div className="flex flex-col items-center gap-1">
         <div
           ref={
-            input === "drag" && !isSetVariable && !isInlineInput && !isStepModeActive
+            input === "drag" &&
+            !isSetVariable &&
+            !isInlineInput &&
+            !isStepModeActive
               ? valueDragRef
               : null
           }
