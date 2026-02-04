@@ -18,12 +18,11 @@
  *   ],
  *   variables: {
  *     c: 299792458,
- *     ...Variable.grid("w", 3, 4, { role: "input", range: [-1, 1] }),
+ *     ...Variable.grid("w", 3, 4, { interaction: "drag", range: [-1, 1] }),
  *   },
  * };
  * ```
  */
-
 import { IFormula } from "../types/formula";
 import { IVariableUserInput, IVariablesUserInput } from "../types/variable";
 
@@ -66,7 +65,12 @@ function expandRange(range: LoopRange): number[] {
     // [1, n] inclusive
     return Array.from({ length: range }, (_, i) => i + 1);
   }
-  if (Array.isArray(range) && range.length === 2 && typeof range[0] === "number" && typeof range[1] === "number") {
+  if (
+    Array.isArray(range) &&
+    range.length === 2 &&
+    typeof range[0] === "number" &&
+    typeof range[1] === "number"
+  ) {
     // [start, end] inclusive - but need to check if it's a tuple or explicit array
     // If it looks like [1, 5] we treat as range, otherwise as explicit values
     const [start, end] = range;
@@ -151,7 +155,11 @@ export const Formula = {
    * @example
    * Formula.template("kinetic_${n}", "K_{${n}} = \\frac{1}{2}m_{${n}}v_{${n}}^2", { n: 1 })
    */
-  template(id: string, latex: string, values: Record<string, string | number>): IFormula {
+  template(
+    id: string,
+    latex: string,
+    values: Record<string, string | number>
+  ): IFormula {
     let processedId = id;
     let processedLatex = latex;
     for (const [key, value] of Object.entries(values)) {
@@ -186,7 +194,7 @@ export const Variable = {
    * // Generate weight variables
    * Variable.loop({ i: [1, 4], j: [1, 3] }, ({ i, j }) => [
    *   `w_${i}_${j}`,
-   *   { role: "input", default: Math.random() - 0.5, range: [-2, 2] }
+   *   { interaction: "drag", default: Math.random() - 0.5, range: [-2, 2] }
    * ])
    */
   loop<T extends LoopSpec>(
@@ -216,13 +224,13 @@ export const Variable = {
    *
    * @example
    * // Generate 4x3 weight matrix
-   * Variable.grid("w", 4, 3, { role: "input", range: [-1, 1] })
+   * Variable.grid("w", 4, 3, { interaction: "drag", range: [-1, 1] })
    * // Produces: { w_1_1: {...}, w_1_2: {...}, ..., w_4_3: {...} }
    *
    * @example
    * // With random initialization
    * Variable.grid("w", 4, 3, {
-   *   role: "input",
+   *   interaction: "drag",
    *   range: [-1, 1],
    *   default: () => Math.random() * 2 - 1
    * })
@@ -243,7 +251,9 @@ export const Variable = {
       for (const j of colRange) {
         const id = `${prefix}_${i}_${j}`;
         const defaultValue =
-          typeof config.default === "function" ? config.default() : config.default;
+          typeof config.default === "function"
+            ? config.default()
+            : config.default;
         result[id] = {
           ...config,
           default: defaultValue,
@@ -264,7 +274,7 @@ export const Variable = {
    *
    * @example
    * // Generate input vector
-   * Variable.vector("x", 3, { role: "input", default: 0.5 })
+   * Variable.vector("x", 3, { interaction: "drag", default: 0.5 })
    * // Produces: { x_1: {...}, x_2: {...}, x_3: {...} }
    */
   vector(
@@ -280,7 +290,9 @@ export const Variable = {
     for (const i of indices) {
       const id = `${prefix}_${i}`;
       const defaultValue =
-        typeof config.default === "function" ? config.default() : config.default;
+        typeof config.default === "function"
+          ? config.default()
+          : config.default;
       result[id] = {
         ...config,
         default: defaultValue,
@@ -299,38 +311,6 @@ export const Variable = {
 };
 
 // ============================================================================
-// Semantics Generators
-// ============================================================================
-
-export const Semantics = {
-  /**
-   * Generate expression mappings by iterating over specified ranges.
-   *
-   * @param spec - Object defining loop variables and their ranges
-   * @param generator - Function that generates [formulaId, expression] pairs
-   * @returns Object of expressions
-   *
-   * @example
-   * Semantics.expressions({ i: [1, 4] }, ({ i }) => [
-   *   `z_${i}`,
-   *   `{z_${i}} = {w_${i}} * {x} + {b_${i}}`
-   * ])
-   */
-  expressions<T extends LoopSpec>(
-    spec: T,
-    generator: (context: LoopContext<T>, index: number) => [string, string]
-  ): Record<string, string> {
-    const combinations = generateCombinations(spec);
-    const result: Record<string, string> = {};
-    combinations.forEach((ctx, index) => {
-      const [id, expression] = generator(ctx, index);
-      result[id] = expression;
-    });
-    return result;
-  },
-};
-
-// ============================================================================
 // Utility Functions
 // ============================================================================
 
@@ -338,7 +318,9 @@ export const Semantics = {
  * Merge multiple variable objects into one.
  * Later objects override earlier ones for duplicate keys.
  */
-export function mergeVariables(...sources: IVariablesUserInput[]): IVariablesUserInput {
+export function mergeVariables(
+  ...sources: IVariablesUserInput[]
+): IVariablesUserInput {
   return Object.assign({}, ...sources);
 }
 

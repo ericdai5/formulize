@@ -2,56 +2,64 @@ export const svgKineticEnergy2D = `const config = {
   formulas: [
     {
       id: "kinetic-energy",
-      latex: "K = \\\\frac{1}{2}mv^2"
+      latex: "K = \\\\frac{1}{2} \\\\times m \\\\times v^2"
     }
   ],
   variables: {
     K: {
-      role: "computed",
       units: "J",
       name: "Kinetic Energy",
       precision: 2,
     },
     m: {
-      role: "input",
+      input: "drag",
       default: 1,
       range: [0.1, 10],
       step: 1,
       units: "kg",
       name: "Mass",
       labelDisplay: "svg",
+      latexDisplay: "value",
       svgPath: "/mass.svg",
       svgSize: { width: 24, height: 24 }
     },
     v: {
-      role: "input",
+      input: "drag",
       default: 2,
       range: [0.1, 100],
       step: 1,
       units: "m/s",
       name: "Velocity",
       labelDisplay: "svg",
+      latexDisplay: "value",
       svgPath: "/velocity.svg",
       svgSize: { width: 24, height: 24 }
     }
   },
-  semantics: {
-    engine: "manual",
-    expressions: {
-      "kinetic-energy": "{K} = 0.5 * {m} * {v} * {v}"
-    },
-    manual: function({ m, v }) {
-      return 0.5 * m * Math.pow(v, 2);
-    }
+  semantics: function({ vars, data2d }) {
+    vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
+    data2d("energy", {x: vars.v, y: vars.K});
   },
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "v",
-      yAxis: "K",
-      lines: [
+      xAxisLabel: "v",
+      xAxisVar: "v",
+      xRange: [0, 100],
+      yAxisLabel: "K",
+      yAxisVar: "K",
+      yRange: [0, 5000],
+      graphs: [
         {
-          name: "Kinetic Energy Formula",
+          type: "line",
+          id: "energy",
+          parameter: "v",
+          interaction: ["vertical-drag", "m"]
+        },
+        {
+          type: "point",
+          id: "energy",
+          interaction: ["horizontal-drag", "v"]
         }
       ]
     }

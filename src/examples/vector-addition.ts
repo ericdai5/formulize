@@ -7,21 +7,21 @@ export const vectorAddition = `const config = {
   ],
   variables: {
     k_1: {
-      role: "input",
+      input: "drag",
       default: 1,
       range: [-3, 3],
       step: 0.1,
       precision: 1
     },
     k_2: {
-      role: "input",
+      input: "drag",
       default: 1,
       range: [-3, 3],
       step: 0.1,
       precision: 1
     },
     a_x: {
-      role: "input",
+      input: "drag",
       default: 2,
       range: [-10, 10],
       step: 0.5,
@@ -30,7 +30,7 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     a_y: {
-      role: "input",
+      input: "drag",
       default: 2,
       range: [-10, 10],
       step: 0.5,
@@ -39,7 +39,7 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     b_x: {
-      role: "input",
+      input: "drag",
       default: -1,
       range: [-10, 10],
       step: 0.5,
@@ -48,7 +48,7 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     b_y: {
-      role: "input",
+      input: "drag",
       default: -1,
       range: [-10, 10],
       step: 0.5,
@@ -57,23 +57,19 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
     c_x: {
-      role: "computed",
       precision: 1,
       latexDisplay: "value",
       labelDisplay: "name"
     },
     c_y: {
-      role: "computed",
       precision: 1,
       latexDisplay: "value",
       labelDisplay: "name"
     },
   },
-  semantics: {
-    engine: "symbolic-algebra",
-    expressions: {
-      "vector-addition": "[{c_x}, {c_y}] = {k_1} * [{a_x}, {a_y}] + {k_2} * [{b_x}, {b_y}]"
-    }
+  semantics: function({ vars }) {
+    vars.c_x = vars.k_1 * vars.a_x + vars.k_2 * vars.b_x;
+    vars.c_y = vars.k_1 * vars.a_y + vars.k_2 * vars.b_y;
   },
   fontSize: 1.5,
   
@@ -84,7 +80,6 @@ export const vectorAddition = `const config = {
       title: "Vector Addition Visualization",
       xRange: [-5, 5],
       yRange: [-5, 5],
-
       vectors: [
         {
           shape: "arrow",

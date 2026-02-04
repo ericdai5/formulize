@@ -1,8 +1,8 @@
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-import { IButtonControl } from "../../types/control";
 import Latex from "../../internal/latex";
+import { IButtonControl } from "../../types/control";
 import { useFormulize } from "../hooks";
 
 interface ButtonControlProps {
@@ -46,8 +46,7 @@ export const ButtonControl = observer<ButtonControlProps>(({ control }) => {
             }
           }
 
-          // Trigger recomputation of computed variables
-          computationStore.updateAllComputedVars();
+          computationStore.runComputation();
         });
       } catch (error) {
         console.error("Error executing button code:", error);

@@ -11,28 +11,26 @@ export const setOperations = `const config = {
   ],
   variables: {
     M: {
-      role: "input",
+      input: "drag",
       default: ["elephant", "platypus", "kangaroo", "dog", "giraffe"],
       name: "Mammals",
       description: "Set of mammals",
       labelDisplay: "value"
     },
     B: {
-      role: "input",
+      input: "drag",
       default: ["platypus", "duck", "goose", "parrot", "flamingo"],
       name: "Billed Animals",
       description: "Set of animals with bills",
       labelDisplay: "value"
     },
     P: {
-      role: "computed",
       default: [],
       name: "Platypus",
       description: "Intersection of mammals and billed animals",
       labelDisplay: "value"
     },
     U: {
-      role: "computed",
       default: [],
       name: "All Animals",
       description: "Union of mammals and billed animals",
@@ -65,16 +63,13 @@ export const setOperations = `const config = {
       color: "#ef4444"
     }
   ],
-  semantics: {
-    engine: "manual",
-    manual: (vars) => {
-      // Set intersection: P = M ∩ B
-      const M = vars.M;
-      const B = vars.B;
-      vars.P = M.filter(item => B.includes(item));
-      // Set union: U = M ∪ B
-      vars.U = [...new Set([...M, ...B])];
-    }
+  semantics: ({ vars }) => {
+    // Set intersection: P = M ∩ B
+    const M = vars.M;
+    const B = vars.B;
+    vars.P = M.filter(item => B.includes(item));
+    // Set union: U = M ∪ B
+    vars.U = [...new Set([...M, ...B])];
   },
   fontSize: 1.5
 };`;

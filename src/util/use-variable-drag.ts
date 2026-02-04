@@ -5,14 +5,14 @@ import { ComputationStore } from "../store/computation";
 
 interface UseVariableDragProps {
   varId: string;
-  role: "input" | "output";
+  isDraggable: boolean;
   hasDropdownOptions?: boolean;
   computationStore?: ComputationStore | null;
 }
 
 export const useVariableDrag = ({
   varId,
-  role,
+  isDraggable,
   hasDropdownOptions,
   computationStore,
 }: UseVariableDragProps) => {
@@ -21,7 +21,7 @@ export const useVariableDrag = ({
     const element = nodeRef.current;
     // Early return if computationStore is not available
     if (!computationStore) return;
-    if (!element || role !== "input" || hasDropdownOptions) return;
+    if (!element || !isDraggable || hasDropdownOptions) return;
     let isDragging = false;
     let startY = 0;
     const variableState = getInputVariableState(varId, computationStore);
@@ -71,7 +71,7 @@ export const useVariableDrag = ({
       document.removeEventListener("mousemove", handleMouseMove, true);
       document.removeEventListener("mouseup", handleMouseUp, true);
     };
-  }, [varId, role, hasDropdownOptions, computationStore]);
+  }, [varId, isDraggable, hasDropdownOptions, computationStore]);
 
   return nodeRef;
 };

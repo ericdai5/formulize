@@ -1,6 +1,6 @@
 import beautify from "js-beautify";
 
-import { IEnvironment } from "../../types/environment";
+import { IEnvironment } from "../types/environment";
 
 // ============================================================================
 // Types and Interfaces
@@ -26,15 +26,15 @@ export function extractManual(environment: IEnvironment | null): ExtractResult {
     };
   }
 
-  // Environment loaded but no manual function found in semantics config
-  if (!environment.semantics?.manual) {
+  // Environment loaded but no semantics function found
+  if (!environment.semantics) {
     return {
       code: null,
-      error: "No manual function found in semantics config",
+      error: "No semantics function found in config",
     };
   }
 
-  const func = environment.semantics.manual;
+  const func = environment.semantics;
   const functionString = func.toString();
   let functionBody = "";
   try {

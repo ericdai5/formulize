@@ -25,7 +25,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const showBorders = debugStore.showVariableBorders;
   const showShadow = debugStore.showVariableShadow;
   const variable = computationStore.variables.get(varId);
-  const role = variable?.role === "input" ? "input" : "output";
+  const isDraggable = variable?.input === "drag";
   const hasDropdownOptions = !!(
     Array.isArray(variable?.value) || variable?.options
   );
@@ -33,7 +33,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
 
   const nodeRef = useVariableDrag({
     varId,
-    role: isSetVariable ? "output" : role, // Set variables are not draggable
+    isDraggable: isSetVariable ? false : isDraggable, // Set variables are not draggable
     hasDropdownOptions: hasDropdownOptions || isSetVariable,
     computationStore: computationStore,
   });
@@ -46,11 +46,11 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     computationStore.setVariableHover(varId, false);
   };
 
-  // Only show draggable cursor for input variables without dropdown and not set variables
-  // Set variables get pointer cursor for click interaction
+  // Only show draggable cursor for draggable variables without dropdown and not set variables
+  // Set variables get pointer cursor for click input
   const cursor = isSetVariable
     ? "pointer"
-    : role === "input" && !hasDropdownOptions
+    : isDraggable && !hasDropdownOptions
       ? "ns-resize"
       : "default";
 

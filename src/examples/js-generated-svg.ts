@@ -8,7 +8,7 @@ const config = {
   ],
   variables: {
     A: {
-      role: "input",
+      input: "drag",
       default: 2,
       name: "Amplitude",
       range: [0.5, 5],
@@ -21,7 +21,7 @@ const config = {
       svgSize: { width: 40, height: 40 }
     },
     f: {
-      role: "input",
+      input: "drag",
       default: 1,
       name: "Frequency",
       range: [-3, 3],
@@ -34,7 +34,7 @@ const config = {
       svgSize: { width: 40, height: 40 }
     },
     phi: {
-      role: "input",
+      input: "drag",
       default: 0,
       name: "Phase",
       range: [-6.28, 6.28],
@@ -47,13 +47,12 @@ const config = {
       svgSize: { width: 40, height: 40 }
     },
     w: {
-      role: "computed",
       name: "Wave Value",
       units: "m",
       precision: 2,
     },
     t: {
-      role: "input",
+      input: "drag",
       default: 0,
       name: "Time",
       range: [0, 10],
@@ -62,24 +61,35 @@ const config = {
       units: "s",
     }
   },
-  semantics: {
-    engine: "manual",
-    expressions: {
-      "wave-equation": "{w} = {A} * sin(2 * pi * {f} * {t} + {phi})"
-    },
-    manual: function({ A, f, t, phi }) {
-      return A * Math.sin(2 * Math.PI * f * t + phi);
-    }
+  semantics: function({ vars, data2d }) {
+    vars.w = vars.A * Math.sin(2 * Math.PI * vars.f * vars.t + vars.phi);
+    data2d("wave", {x: vars.t, y: vars.w});
   },
   visualizations: [
     {
       type: "plot2d",
-      xAxis: "t",
+      xAxisLabel: "t",
+      xAxisVar: "t",
       xRange: [0, 10],
       xGrid: "show",
-      yAxis: "w",
+      yAxisLabel: "w",
+      yAxisVar: "w",
       yRange: [-6, 6],
       yGrid: "show",
+      graphs: [
+        {
+          type: "line",
+          id: "wave",
+          parameter: "t",
+          samples: 500,
+          interaction: ["vertical-drag", "A"]
+        },
+        {
+          type: "point",
+          id: "wave",
+          interaction: ["horizontal-drag", "t"]
+        }
+      ]
     }
   ],
   fontSize: 1.5

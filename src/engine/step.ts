@@ -1,7 +1,7 @@
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
-import { IObject, IInterpreterStep } from "../../types/step";
-import { highlightCode } from "../../util/codemirror";
+import { IInterpreterStep, IObject } from "../types/step";
+import { highlightCode } from "../util/codemirror";
 import { JSInterpreter, StackFrame } from "./interpreter";
 import { VariableExtractor } from "./variable-extractor";
 
@@ -54,7 +54,8 @@ export class Step {
         for (const itemConfig of object.items) {
           if (itemConfig.viewId !== viewId) continue;
           // If index is specified, only match that specific step
-          if (itemConfig.index !== undefined && itemConfig.index !== stepIdx) continue;
+          if (itemConfig.index !== undefined && itemConfig.index !== stepIdx)
+            continue;
           // Create the extension item with the data
           const item: IObject["items"][number] = {
             viewId: itemConfig.viewId,
@@ -96,19 +97,14 @@ export class Step {
       for (let i = 1; i < history.length; i++) {
         const prevStep = history[i - 1];
         const currentStep = history[i];
-
         const prevItems = prevStep.extensions?.[extensionKey];
         if (!Array.isArray(prevItems)) continue;
-
         // Filter for persistent items from previous step
         const persistentItems = prevItems.filter(
           (item) => item.persistence === true
         );
-
         if (persistentItems.length === 0) continue;
-
         if (!currentStep.extensions) currentStep.extensions = {};
-
         const currentItems = currentStep.extensions[extensionKey];
         if (Array.isArray(currentItems)) {
           // Prepend persistent items to current items (avoid duplicates)

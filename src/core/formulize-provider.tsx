@@ -4,8 +4,8 @@ import { observer } from "mobx-react-lite";
 
 import beautify from "js-beautify";
 
-import { refresh } from "../engine/manual/execute";
-import { extractManual } from "../engine/manual/extract";
+import { refresh } from "../engine/execute";
+import { extractManual } from "../engine/extract";
 import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
 import { MathJaxLoader } from "../internal/mathjax-loader";
 import { FormulizeContext, FormulizeContextValue } from "./hooks/use-formulize";
@@ -66,9 +66,9 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
             instance.executionStore.setCode(result.code);
             instance.executionStore.setEnvironment(config);
             // Format user-facing code
-            // Note: If extractManual returned code, config.semantics.manual must exist
-            const manualFunction = config.semantics!.manual!;
-            const functionString = manualFunction.toString();
+            // Note: If extractManual returned code, config.semantics must exist
+            const semanticFunction = config.semantics!;
+            const functionString = semanticFunction.toString();
             const formattedCode = beautify.js(functionString, {
               indent_size: 2,
               space_in_empty_paren: false,

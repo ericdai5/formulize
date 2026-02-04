@@ -7,7 +7,6 @@
 import { ComputationStore, createComputationStore } from "./store/computation";
 import { ExecutionStore, createExecutionStore } from "./store/execution";
 import { FormulaStore, formulaStoreManager } from "./store/formulas";
-import { IManual } from "./types/computation";
 import { IEnvironment } from "./types/environment";
 import { IVariable } from "./types/variable";
 import { normalizeVariables } from "./util/normalize-variables";
@@ -28,15 +27,6 @@ export interface FormulizeInstance {
   setVariable: (name: string, value: number) => boolean;
   update: (config: FormulizeConfig) => Promise<FormulizeInstance>;
   destroy: () => void;
-  getFormulaStore: (index: number) => FormulaStore | null; // Get by array index
-  getFormulaStoreById: (id: string) => FormulaStore | null; // Get by id
-  getFormulaByIndex: (index: number) => string | null; // Get by array index
-  getFormulaById: (id: string) => string | null; // Get by id
-  getAllFormulaStores: () => FormulaStore[];
-  getAllFormulas: () => string[];
-  getFormulaStoreCount: () => number;
-  resetFormulaState: () => void;
-  getFormulaExpression: (id: string) => string | null;
 }
 
 // Set up computation engine configuration
@@ -44,21 +34,7 @@ function setupComputationEngine(
   environment: IEnvironment,
   computationStore: ComputationStore
 ) {
-  // Auto-detect engine if not specified
-  let engine: "symbolic-algebra" | "manual" = "manual"; // default
-  if (environment.semantics?.engine) {
-    engine = environment.semantics.engine as "symbolic-algebra" | "manual";
-  } else {
-    // Auto-detect: if computation.manual exists, use manual engine
-    const hasComputationManual =
-      environment.semantics?.manual &&
-      typeof environment.semantics.manual === "function";
-    if (hasComputationManual) {
-      engine = "manual";
-    }
-  }
-  computationStore.setEngine(engine);
-  computationStore.setSemantics(environment.semantics || { engine });
+  computationStore.setSemantics(environment.semantics ?? null);
 }
 
 // Validate environment configuration
@@ -93,6 +69,7 @@ async function initializeInstance(
       semantics: config.semantics,
       visualizations: config.visualizations,
       controls: config.controls,
+      stepping: config.stepping,
       fontSize: config.fontSize,
       labelFontSize: config.labelFontSize,
       labelNodeStyle: config.labelNodeStyle,
@@ -104,8 +81,8 @@ async function initializeInstance(
     computationStore.reset();
     computationStore.setVariableRolesChanged(0);
 
-    // Set initialization flag to prevent premature evaluations
-    computationStore.setInitializing(true);
+    // Set stepping mode from config
+    computationStore.setStepping(config.stepping === true);
 
     // Clear all individual formula stores
     formulaStoreManager.clearAllStores();
@@ -114,7 +91,6 @@ async function initializeInstance(
     if (Object.keys(normalizedVariables).length > 0) {
       Object.entries(normalizedVariables).forEach(([varId, variable]) => {
         computationStore.addVariable(varId, variable);
-        computationStore.setVariableRole(varId, variable.role);
         if (variable.value !== undefined) {
           if (variable.dataType === "set" && Array.isArray(variable.value)) {
             computationStore.setSetValue(varId, variable.value);
@@ -128,7 +104,6 @@ async function initializeInstance(
     // Now create individual formula stores for each formula
     // With variable trees available
     const formulaStores: FormulaStore[] = [];
-
     environment.formulas.forEach((formula) => {
       const store = formulaStoreManager.createStore(
         formula.id,
@@ -144,32 +119,17 @@ async function initializeInstance(
     // Store the formulas from the environment in the computation store
     computationStore.setEnvironment(environment);
 
-    // Extract computation expressions from computation.expressions
-    const symbolicFunctions: string[] = environment.semantics?.expressions
-      ? Object.values(environment.semantics.expressions)
-      : [];
-
-    // Extract manual function from computation.manual
-    const manualFunctions: IManual[] =
-      environment.semantics?.manual &&
-      typeof environment.semantics.manual === "function"
-        ? [environment.semantics.manual]
-        : [];
-
     // Store formulas in computation store for rendering
     computationStore.setFormulas(environment.formulas);
 
-    // Set up expressions and enable evaluation
-    if (symbolicFunctions.length > 0 || manualFunctions.length > 0) {
-      await computationStore.setComputation(symbolicFunctions, manualFunctions);
+    // Set up semantics function and enable evaluation
+    if (environment.semantics) {
+      await computationStore.setComputation();
     }
 
-    // Clear initialization flag to enable normal evaluation
-    computationStore.setInitializing(false);
-
-    // Trigger initial evaluation now that everything is set up (skip in step mode)
+    // Trigger initial computation (skip in step mode)
     if (!computationStore.isStepMode()) {
-      computationStore.updateAllComputedVars();
+      computationStore.runComputation();
     }
 
     // Store the id for setVariable method to use
@@ -186,12 +146,10 @@ async function initializeInstance(
         if (!variable) {
           throw new Error(`Variable '${name}' not found`);
         }
-
         const varId = name;
         const computationVariable = computationStore.variables.get(varId);
-
         return {
-          role: variable.role,
+          input: variable.input,
           value: computationVariable?.value ?? variable.value ?? 0,
           dataType: variable.dataType,
           dimensions: variable.dimensions,
@@ -207,7 +165,8 @@ async function initializeInstance(
       },
       setVariable: (name: string, value: number) => {
         const variable = normalizedVariables[name];
-        if (variable && variable.role !== "computed") {
+        // Allow setting value for any variable (manual function determines what's computed)
+        if (variable) {
           computationStore.setValue(name, value);
           return true;
         }
@@ -221,44 +180,7 @@ async function initializeInstance(
         );
       },
       destroy: () => {
-        // Clear all individual formula stores
         formulaStoreManager.clearAllStores();
-      },
-      // Multi-formula management methods
-      getFormulaStore: (index: number) => {
-        const formula = environment.formulas[index];
-        if (!formula) return null;
-        return formulaStoreManager.getStore(formula.id);
-      },
-      getFormulaStoreById: (id: string) => {
-        return formulaStoreManager.getStore(id);
-      },
-      getFormulaByIndex: (index: number) => {
-        const formula = environment.formulas[index];
-        if (!formula) return null;
-        const store = formulaStoreManager.getStore(formula.id);
-        return store ? store.latexWithoutStyling : null;
-      },
-      getFormulaById: (id: string) => {
-        const store = formulaStoreManager.getStore(id);
-        return store ? store.latexWithoutStyling : null;
-      },
-      getAllFormulaStores: () => {
-        return formulaStoreManager.allStores;
-      },
-      getAllFormulas: () => {
-        return computationStore.formulas.map((f) => f.latex);
-      },
-      getFormulaStoreCount: () => {
-        return formulaStoreManager.getStoreCount();
-      },
-      resetFormulaState: () => {
-        // Clear all individual stores
-        formulaStoreManager.clearAllStores();
-      },
-      // Formula expression access
-      getFormulaExpression: (id: string) => {
-        return environment.semantics?.expressions?.[id] ?? null;
       },
     };
     return instance;
@@ -280,34 +202,6 @@ async function create(config: FormulizeConfig): Promise<FormulizeInstance> {
 // Export the Formulize API
 const Formulize = {
   create,
-
-  getFormulaStoreById: (id: string): FormulaStore | null => {
-    return formulaStoreManager.getStore(id);
-  },
-
-  getFormulaById: (id: string): string | null => {
-    const store = formulaStoreManager.getStore(id);
-    return store ? store.latexWithoutStyling : null;
-  },
-
-  getAllFormulaStores: (): FormulaStore[] => {
-    return formulaStoreManager.allStores;
-  },
-
-  getFormulaStoreCount: (): number => {
-    return formulaStoreManager.getStoreCount();
-  },
-
-  resetFormulaState: () => {
-    formulaStoreManager.clearAllStores();
-  },
-
-  getFormulaExpression: (
-    environment: IEnvironment,
-    id: string
-  ): string | null => {
-    return environment.semantics?.expressions?.[id] ?? null;
-  },
 };
 
 export default Formulize;

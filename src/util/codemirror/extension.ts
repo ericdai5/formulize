@@ -101,3 +101,42 @@ export const arrowGutter = gutter({
 
 // Extension that includes both line marker and arrow gutter functionality
 export const debugExtensions = [lineMarkerField, arrowGutterField, arrowGutter];
+
+// ==================== Variable Highlight Extension ====================
+
+// Create effect for highlighting a variable range
+export const highlightVariableRange = StateEffect.define<{
+  from: number;
+  to: number;
+} | null>();
+
+// State field to manage variable highlight decoration
+export const variableHighlightField = StateField.define<DecorationSet>({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, tr) {
+    decorations = decorations.map(tr.changes);
+    for (const effect of tr.effects) {
+      if (effect.is(highlightVariableRange)) {
+        if (effect.value === null) {
+          decorations = Decoration.none;
+        } else {
+          const { from, to } = effect.value;
+          const mark = Decoration.mark({
+            attributes: {
+              style:
+                "background-color: #cffafe; border-radius: 2px;", // light cyan highlight
+            },
+          }).range(from, to);
+          decorations = Decoration.set([mark]);
+        }
+      }
+    }
+    return decorations;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+// Extension for variable highlighting
+export const variableHighlightExtension = [variableHighlightField];

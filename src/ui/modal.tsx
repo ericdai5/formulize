@@ -1,4 +1,5 @@
 import React from "react";
+
 import { X } from "lucide-react";
 
 import IconButton from "./icon-button";
@@ -9,6 +10,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   maxWidth?: string;
+  noBackdrop?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -17,14 +19,20 @@ const Modal: React.FC<ModalProps> = ({
   title,
   children,
   maxWidth = "max-w-4xl",
+  noBackdrop = false,
 }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
+      {!noBackdrop && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50"
+          onClick={onClose}
+        />
+      )}
       <div
-        className={`relative bg-white rounded-lg shadow-xl ${maxWidth} w-full mx-4 max-h-[80vh] overflow-hidden`}
+        className={`relative bg-white border border-slate-200 rounded-lg shadow-xl ${maxWidth} w-full mx-4 max-h-[80vh] overflow-hidden`}
       >
         <div className="flex items-center justify-between p-4 border-b">
           {title && <h2 className="text-lg">{title}</h2>}

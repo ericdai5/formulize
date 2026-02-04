@@ -1,4 +1,5 @@
 import { ComputationStore } from "../../store/computation";
+import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";
 
 export interface PlotDimensions {
@@ -32,7 +33,7 @@ export function getVariablePrecision(
   computationStore: ComputationStore
 ): number {
   const variable = getVariable(variableName, computationStore);
-  return variable?.precision ?? 2;
+  return variable?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
 }
 
 /**
