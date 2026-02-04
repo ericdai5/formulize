@@ -45,7 +45,7 @@ export const parameterizedPlane = `const config = {
       name: "Parameter w"
     }
   },
-  semantics: function(vars, data3d) {
+  semantics: function({ vars, data3d }) {
     vars.x = 1 - vars.t - vars.w;
     vars.y = vars.t;
     vars.z = vars.w;

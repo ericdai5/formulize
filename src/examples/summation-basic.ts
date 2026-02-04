@@ -31,7 +31,7 @@ export const summationBasic = `const config = {
     }
   },
   stepping: true,
-  semantics: function(vars, data3d, data2d, step) {
+  semantics: function({ vars, step }) {
     var xValues = vars.X;
     var pxValues = vars["P(x)"];
     var expectedValue = vars.E;

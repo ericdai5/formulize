@@ -39,7 +39,7 @@ export const quadratic2D = `const config = {
       name: "Coefficient c"
     }
   },
-  semantics: function(vars, data3d, data2d) {
+  semantics: function({ vars, data2d }) {
     vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
     data2d("quadratic", {x: vars.x, y: vars.y});
   },

@@ -199,9 +199,16 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // Check if we have graphs early (needed for drag check)
     const hasGraphs = graphs && graphs.length > 0;
 
-    // Don't full-redraw during local plot drag - DOM manipulation handles updates
-    if (isLocalDragRef.current) {
+    // Only skip redraw during an ACTIVE drag (when both ref and store confirm dragging)
+    // This allows redraws when external updates happen (e.g., stopwatch reset) even if
+    // a point is in a focused state after a previous interaction
+    if (isLocalDragRef.current && computationStore.isDragging) {
       return;
+    }
+    // Reset stale refs if drag has ended but refs weren't properly cleared
+    if (isLocalDragRef.current && !computationStore.isDragging) {
+      isLocalDragRef.current = false;
+      isDraggingRef.current = false;
     }
 
     // Clean up any stale global event listeners from previous renders
@@ -528,9 +535,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         };
 
         const endDrag = () => {
-          if (isDraggingRef.current) {
-            isDraggingRef.current = false;
-            isLocalDragRef.current = false;
+          // Always reset isLocalDragRef to ensure reaction tracks variables properly
+          // even if isDraggingRef was somehow already false
+          const wasDragging = isDraggingRef.current;
+          isDraggingRef.current = false;
+          isLocalDragRef.current = false;
+
+          if (wasDragging) {
             dragPointX = null; // Reset tracked point position
             dragStartMousePos = null; // Reset relative drag tracking
             dragStartValue = null;
@@ -1135,19 +1146,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     const disposer = reaction(
       () => {
-        // Skip tracking entirely during local plot drag - we handle updates via DOM manipulation
-        if (isLocalDragRef.current) {
-          // Return a minimal tracked value - just isDraggingRef.current to know when drag ends
-          return { _localDrag: true, _isDragging: computationStore.isDragging };
-        }
-
-        // Track all variable values and hover states for live updates
+        // ALWAYS track all variables to maintain proper MobX dependency tracking
+        // This ensures the reaction fires when any variable changes, even after local drag ends
         const allVariables: Record<string, number | boolean | string> = {};
         for (const [id, variable] of computationStore.variables.entries()) {
           const value = variable.value;
           allVariables[id] = typeof value === "number" ? value : 0;
-          allVariables[`${id}_hover`] =
-            computationStore.hoverStates.get(id) || false;
         }
 
         // Also track active variables and history index if execution store exists
@@ -1164,19 +1168,27 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // Track historyIndex to re-render when stepping through history
           allVariables._historyIndex = executionStore.historyIndex;
         }
-
-        return allVariables;
+        // Always track isDragging for proper state management
+        allVariables._isDragging = computationStore.isDragging;
+        // Include local drag state as a marker (not for MobX tracking, just for effect logic)
+        // We read the ref here to include it in the returned data
+        const localDragActive = isLocalDragRef.current;
+        return { ...allVariables, _isLocalDrag: localDragActive };
       },
-      (data) => {
-        // If tracking returned localDrag marker, only redraw when drag ends
-        if (data && typeof data === "object" && "_localDrag" in data) {
-          if (!data._isDragging) {
-            // Reset local drag ref before calling drawPlot to ensure it executes
-            isLocalDragRef.current = false;
-            isDraggingRef.current = false;
-            drawPlot();
-          }
+      (data: Record<string, unknown>) => {
+        const isLocalDrag = data._isLocalDrag as boolean;
+        const isDragging = data._isDragging as boolean;
+
+        // During active local drag, skip redraw - DOM manipulation handles updates
+        if (isLocalDrag && isDragging) {
           return;
+        }
+
+        // If local drag just ended (marker says local but store says not dragging),
+        // ensure refs are reset
+        if (isLocalDrag && !isDragging) {
+          isLocalDragRef.current = false;
+          isDraggingRef.current = false;
         }
 
         // Safeguard: If local drag ref is stuck true but computationStore says we're not dragging,

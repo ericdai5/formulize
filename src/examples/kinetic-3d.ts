@@ -26,7 +26,7 @@ export const kinetic3D = `const config = {
       name: "Velocity"
     }
   },
-  semantics: function(vars, data3d) {
+  semantics: function({ vars, data3d }) {
     vars.K = 0.5 * vars.m * vars.v * vars.v;
     data3d("energy", {x: vars.m, y: vars.v, z: vars.K});
   },

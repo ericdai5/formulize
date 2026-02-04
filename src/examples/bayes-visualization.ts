@@ -57,7 +57,7 @@ export const bayesWithCustomVisualization = `const config = {
         name: "P(A)"
       }
     },
-    semantics: function(vars) {
+    semantics: function({ vars }) {
       const EPS = 1e-6;
       
       // Compute P(A|B) only when P(B) > EPS to avoid division by zero

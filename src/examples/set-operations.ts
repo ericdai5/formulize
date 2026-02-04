@@ -63,7 +63,7 @@ export const setOperations = `const config = {
       color: "#ef4444"
     }
   ],
-  semantics: (vars) => {
+  semantics: ({ vars }) => {
     // Set intersection: P = M ∩ B
     const M = vars.M;
     const B = vars.B;

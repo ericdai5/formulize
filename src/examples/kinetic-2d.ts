@@ -25,7 +25,7 @@ export const kinetic2D = `const config = {
       name: "Velocity"
     }
   },
-  semantics: function(vars, data3d, data2d) {
+  semantics: function({ vars, data2d }) {
     vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
     data2d("energy", {x: vars.v, y: vars.K});
   },

@@ -57,7 +57,7 @@ export {
 export type { LoopRange, LoopSpec, LoopContext } from "./util/generators";
 
 // Export types
-export type { ISemantics } from "./types/computation";
+export type { ISemantics, ISemanticsContext } from "./types/computation";
 export type { IEnvironment } from "./types/environment";
 export type { IFormula } from "./types/formula";
 export type {

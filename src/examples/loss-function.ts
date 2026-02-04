@@ -65,7 +65,7 @@ export const lossFunction = `const config = {
     }
   },
   stepping: true,
-  semantics: function(vars, data3d, data2d, step) {
+  semantics: function({ vars, step }) {
     var m = vars.m;
     var y_data = vars.y;
     var yHat_data = vars["\\\\hat{y}"];

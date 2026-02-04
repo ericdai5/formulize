@@ -93,7 +93,7 @@ export const matrixMultiplication = `const config = {
       }
     }
   ],
-  semantics: (vars) => {
+  semantics: ({ vars }) => {
     // Matrix A
     const a11 = vars["a_{11}"] || 0;
     const a12 = vars["a_{12}"] || 0;

@@ -50,7 +50,7 @@ export const parametric3D = `const config = {
       name: "Parameter t"
     },
   },
-  semantics: function(vars, data3d) {
+  semantics: function({ vars, data3d }) {
     vars.z = 1 - vars.x - vars.y;
     data3d("plane1", {x: vars.x, y: vars.y, z: vars.z});
     vars.z = vars.x;

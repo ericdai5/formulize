@@ -94,7 +94,7 @@ export const svgIntegration = `const config = {
       svgMode: "replace"
     }
   },
-  semantics: function(vars, data3d, data2d) {
+  semantics: function({ vars, data2d }) {
     vars.N = vars.N_0 * Math.exp(-vars["\\\\lambda"] * vars.t);
     data2d("decay", {x: vars.t, y: vars.N});
   },

@@ -97,9 +97,14 @@ function executeSemanticFunction(
 ): void {
   // Create proxy that directly mutates variable values
   const vars = createValueProxy(variables);
-  // Execute the semantic function - mutations go directly to variables
-  // Pass data3d, data2d, and step functions
-  semanticFn(vars, data3dFn, data2dFn, stepFn);
+  // Execute the semantic function with context object
+  // Users destructure what they need: ({ vars, data2d }) => { ... }
+  semanticFn({
+    vars,
+    data2d: data2dFn,
+    data3d: data3dFn,
+    step: stepFn,
+  });
 }
 
 // ============================================================================

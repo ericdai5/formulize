@@ -30,7 +30,7 @@ export const sinTheta = `const config = {
       labelDisplay: "value"
     }
   },
-  semantics: function(vars, data3d, data2d) {
+  semantics: function({ vars, data2d }) {
     vars.y = vars.c * Math.sin(vars["\\\\theta"]);
     data2d("sine", {x: vars["\\\\theta"], y: vars.y});
   },
