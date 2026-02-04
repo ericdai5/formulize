@@ -5,8 +5,8 @@ import { observer } from "mobx-react-lite";
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
-import { refresh, stepForward, toIndex } from "../engine/manual/execute";
-import { isAtBlock } from "../engine/manual/interpreter";
+import { refresh, stepForward, toIndex } from "../engine/execute";
+import { isAtBlock } from "../engine/interpreter";
 import { CodeMirrorSetup, CodeMirrorStyle } from "../util/codemirror";
 import {
   addArrowMarker,

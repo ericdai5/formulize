@@ -24,8 +24,6 @@ import { FormulaStore } from "../store/formulas";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
 import { IVisualization } from "../types/visualization";
-import { CanvasControls } from "./canvas-controls";
-import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 import { computeLabelVariableEdges } from "../util/canvas/edges";
 import {
   addLabelNodes as addLabelNodesUtil,
@@ -44,6 +42,8 @@ import {
   useAddVariableNodes,
   useUpdateVariableNodes,
 } from "../util/canvas/variable-nodes";
+import { CanvasControls } from "./canvas-controls";
+import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 
 interface CanvasProps {
   formulaStore?: FormulaStore;

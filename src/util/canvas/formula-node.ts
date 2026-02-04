@@ -8,9 +8,6 @@ export interface FormulaNodeData {
   id?: string;
   environment?: {
     fontSize?: number;
-    semantics?: {
-      mode?: string;
-    };
     formulaNodeStyle?: React.CSSProperties;
   };
   showDragHandle?: boolean;

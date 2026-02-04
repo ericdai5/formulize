@@ -57,28 +57,26 @@ export const bayesWithCustomVisualization = `const config = {
         name: "P(A)"
       }
     },
-    semantics: {
-      manual: function(vars) {
-        const EPS = 1e-6;
-        
-        // Compute P(A|B) only when P(B) > EPS to avoid division by zero
-        if (vars["P(B)"] > EPS) {
-          vars["P(A \\\\mid B)"] = vars["P(A \\\\cap B)"] / vars["P(B)"];
-        } else {
-          vars["P(A \\\\mid B)"] = 0;
-        }
-        
-        // Compute P(B|A) only when P(A) > EPS to avoid division by zero
-        if (vars["P(A)"] > EPS) {
-          vars["P(B \\\\mid A)"] = (vars["P(A \\\\mid B)"] * vars["P(B)"]) / vars["P(A)"];
-        } else {
-          vars["P(B \\\\mid A)"] = 0;
-        }
-        
-        vars["P(A \\\\cap \\\\neg B)"] = vars["P(A)"] - vars["P(A \\\\cap B)"];
-        vars["P(B \\\\cap \\\\neg A)"] = vars["P(B)"] - vars["P(A \\\\cap B)"];
-        vars["P(\\\\neg A \\\\cap \\\\neg B)"] = 1 - vars["P(A)"] - vars["P(B)"] + vars["P(A \\\\cap B)"];
+    semantics: function(vars) {
+      const EPS = 1e-6;
+      
+      // Compute P(A|B) only when P(B) > EPS to avoid division by zero
+      if (vars["P(B)"] > EPS) {
+        vars["P(A \\\\mid B)"] = vars["P(A \\\\cap B)"] / vars["P(B)"];
+      } else {
+        vars["P(A \\\\mid B)"] = 0;
       }
+      
+      // Compute P(B|A) only when P(A) > EPS to avoid division by zero
+      if (vars["P(A)"] > EPS) {
+        vars["P(B \\\\mid A)"] = (vars["P(A \\\\mid B)"] * vars["P(B)"]) / vars["P(A)"];
+      } else {
+        vars["P(B \\\\mid A)"] = 0;
+      }
+      
+      vars["P(A \\\\cap \\\\neg B)"] = vars["P(A)"] - vars["P(A \\\\cap B)"];
+      vars["P(B \\\\cap \\\\neg A)"] = vars["P(B)"] - vars["P(A \\\\cap B)"];
+      vars["P(\\\\neg A \\\\cap \\\\neg B)"] = 1 - vars["P(A)"] - vars["P(B)"] + vars["P(A \\\\cap B)"];
     },
     visualizations: [
       {

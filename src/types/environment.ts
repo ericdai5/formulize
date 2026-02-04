@@ -7,9 +7,10 @@ import { IVisualization } from "./visualization";
 export interface IEnvironment {
   formulas: IFormula[];
   variables: IVariablesUserInput;
-  semantics: ISemantics;
+  semantics?: ISemantics;
   visualizations?: IVisualization[];
   controls?: IControls[];
+  stepping?: boolean; // Enable step mode for step-through debugging of semantics function
   fontSize?: number; // Font size multiplier (0.5 to 3.0) - will be formatted as "Xem" (default: 2)
   labelFontSize?: number; // Font size multiplier for labels (0.5 to 3.0) - will be formatted as "Xem"
   labelNodeStyle?: React.CSSProperties; // Custom CSS styles for label nodes

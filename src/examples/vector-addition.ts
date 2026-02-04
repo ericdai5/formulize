@@ -67,11 +67,9 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
   },
-  semantics: {
-    manual: function(vars) {
-      vars.c_x = vars.k_1 * vars.a_x + vars.k_2 * vars.b_x;
-      vars.c_y = vars.k_1 * vars.a_y + vars.k_2 * vars.b_y;
-    }
+  semantics: function(vars) {
+    vars.c_x = vars.k_1 * vars.a_x + vars.k_2 * vars.b_x;
+    vars.c_y = vars.k_1 * vars.a_y + vars.k_2 * vars.b_y;
   },
   fontSize: 1.5,
   

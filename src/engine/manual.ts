@@ -1,23 +1,23 @@
 /**
- * Manual Computation Engine for Formulize
+ * Computation Engine for Formulize
  *
- * This module provides manual computation capability allowing authors to define
+ * This module provides computation capability allowing authors to define
  * custom JavaScript functions for computing variables via mutation.
  *
  * @module engine/manual
  */
-import { IManual } from "../../types/computation";
+import { ISemantics } from "../types/computation";
 import {
   IData2D,
   IData2DFn,
   IData3D,
   IData3DFn,
   IDataPoint,
-} from "../../types/graph";
-import { IValue, IVariable } from "../../types/variable";
+} from "../types/graph";
+import { IValue, IVariable } from "../types/variable";
 
 /**
- * Result from manual engine execution including variable values and graph dataPoints.
+ * Result from engine execution including variable values and graph dataPoints.
  * @property {Record<string, IValue>} values - Computed variable values after execution
  * @property {Map<string, IDataPoint[]>} dataPointMap - dataPoints captured by data2d/data3d calls, keyed by graph ID
  */
@@ -85,20 +85,21 @@ function collectResults(
 }
 
 // ============================================================================
-// Computation-level Manual Function Execution
+// Semantic Function Execution
 // ============================================================================
 
-function executeComputationManual(
-  manualFn: IManual,
+function executeSemanticFunction(
+  semanticFn: ISemantics,
   variables: Record<string, IVariable>,
   data3dFn: IData3DFn,
-  data2dFn: IData2DFn
+  data2dFn: IData2DFn,
+  stepFn: (config: any, blockId?: string) => void
 ): void {
   // Create proxy that directly mutates variable values
   const vars = createValueProxy(variables);
-  // Execute the manual function - mutations go directly to variables
-  // Pass data3d and data2d functions for visualization data collection
-  manualFn(vars, data3dFn, data2dFn);
+  // Execute the semantic function - mutations go directly to variables
+  // Pass data3d, data2d, and step functions
+  semanticFn(vars, data3dFn, data2dFn, stepFn);
 }
 
 // ============================================================================
@@ -108,15 +109,15 @@ function executeComputationManual(
 /**
  * Computes the formula with the given variable values using a custom JavaScript function.
  * Variables should already be normalized (typically from the computation store).
- * The manual function mutates the vars object directly to set computed values.
+ * The semantic function mutates the vars object directly to set computed values.
  *
  * @param variables - Record of variable definitions with current values
- * @param manual - The manual function to execute
+ * @param semanticFn - The semantic function to execute
  * @returns Object containing computed values and collected graph dataPoints
  */
 export function computeWithManualEngine(
   variables: Record<string, IVariable>,
-  manual?: IManual
+  semanticFn?: ISemantics
 ): IManualEngineResult {
   // Collect graph dataPoints during execution
   const dataPointMap = new Map<string, IDataPoint[]>();
@@ -149,17 +150,19 @@ export function computeWithManualEngine(
       console.warn("⚠️ No variables provided");
       return emptyResult;
     }
-    if (!manual) {
-      console.warn("⚠️ No manual function provided for computation");
+    if (!semanticFn) {
+      console.warn("⚠️ No semantic function provided for computation");
       return emptyResult;
     }
-    executeComputationManual(manual, variables, data3dFn, data2dFn);
+    // No-op step function for normal (non-interpreter) execution
+    const step = () => {};
+    executeSemanticFunction(semanticFn, variables, data3dFn, data2dFn, step);
     return {
       values: collectResults(variables),
       dataPointMap,
     };
   } catch (error) {
-    console.error("Error computing with manual engine:", error);
+    console.error("Error computing with semantic function:", error);
     return emptyResult;
   }
 }

@@ -28,18 +28,16 @@ export const task2training = `const config = {
       name: "Y-intercept"
     }
   },
-  semantics: {
-    mode: "step",
-    manual: function(vars) {
-      var x = vars.x;
-      var m = vars.m;
-      var b = vars.b;
-      var mx = m * x;
-      step({ description: "Compute $mx = " + m + " \\\\cdot " + x + " = " + mx + "$", values: [["m", m], ["x", x]] });
-      var y = mx + b;
-      step({ description: "Add $b$: $y = " + mx + " + " + b + " = " + y + "$", values: [["y", y]] });
-      vars.y = y;
-    }
+  stepping: true,
+  semantics: function(vars, data3d, data2d, step) {
+    var x = vars.x;
+    var m = vars.m;
+    var b = vars.b;
+    var mx = m * x;
+    step({ description: "Compute $mx = " + m + " \\\\cdot " + x + " = " + mx + "$", values: [["m", m], ["x", x]] });
+    var y = mx + b;
+    step({ description: "Add $b$: $y = " + mx + " + " + b + " = " + y + "$", values: [["y", y]] });
+    vars.y = y;
   },
   fontSize: 1.5
 };`;

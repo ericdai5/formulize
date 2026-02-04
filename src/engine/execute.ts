@@ -1,6 +1,6 @@
-import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
-import { IEnvironment } from "../../types/environment";
+import { ComputationStore } from "../store/computation";
+import { ExecutionStore } from "../store/execution";
+import { IEnvironment } from "../types/environment";
 import { Controller } from "./controller";
 
 export function refresh(

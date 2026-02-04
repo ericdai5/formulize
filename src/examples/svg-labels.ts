@@ -36,11 +36,9 @@ export const svgKineticEnergy2D = `const config = {
       svgSize: { width: 24, height: 24 }
     }
   },
-  semantics: {
-    manual: function(vars, data3d, data2d) {
-      vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
-      data2d("energy", {x: vars.v, y: vars.K});
-    }
+  semantics: function(vars, data3d, data2d) {
+    vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
+    data2d("energy", {x: vars.v, y: vars.K});
   },
   visualizations: [
     {

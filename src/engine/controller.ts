@@ -1,11 +1,11 @@
 import { EditorView } from "@codemirror/view";
 
-import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
-import { IArrayControl } from "../../types/control";
-import { IEnvironment } from "../../types/environment";
-import { IInterpreterStep, IStep, IStepInput } from "../../types/step";
-import { applyCue, clearAllCues } from "../../util/step-handler";
+import { ComputationStore } from "../store/computation";
+import { ExecutionStore } from "../store/execution";
+import { IArrayControl } from "../types/control";
+import { IEnvironment } from "../types/environment";
+import { IInterpreterStep, IStep, IStepInput } from "../types/step";
+import { applyCue, clearAllCues } from "../util/step-handler";
 import { ERROR_MESSAGES } from "./constants";
 import { JSInterpreter, initializeInterpreter, isAtBlock } from "./interpreter";
 import { Step } from "./step";

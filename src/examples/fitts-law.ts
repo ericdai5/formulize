@@ -28,13 +28,11 @@ export const fittsLaw = `const config = {
       name: "Width"
     }
   },
-  semantics: {
-    manual: function(vars, data3d, data2d) {
-      vars.T_1 = vars.a + vars.b * Math.log((2 * vars.D) / vars.W);
-      vars.T_2 = vars.a + vars.c * Math.log((2 * vars.D) / vars.W);
-      data2d("fitts_1", {x: vars.W, y: vars.T_1});
-      data2d("fitts_2", {x: vars.W, y: vars.T_2});
-    }
+  semantics: function(vars, data3d, data2d) {
+    vars.T_1 = vars.a + vars.b * Math.log((2 * vars.D) / vars.W);
+    vars.T_2 = vars.a + vars.c * Math.log((2 * vars.D) / vars.W);
+    data2d("fitts_1", {x: vars.W, y: vars.T_1});
+    data2d("fitts_2", {x: vars.W, y: vars.T_2});
   },
   visualizations: [{
     type: "plot2d",

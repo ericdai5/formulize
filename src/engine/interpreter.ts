@@ -7,8 +7,8 @@ import {
   IView,
   IInterpreterStep,
   IStep,
-} from "../../types/step";
-import { IValue } from "../../types/variable";
+} from "../types/step";
+import { IValue } from "../types/variable";
 
 // Comprehensive interface for JS-Interpreter
 interface JSInterpreter {

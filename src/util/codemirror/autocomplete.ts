@@ -328,13 +328,7 @@ export function jsPatternCompletions(
       label: "IEnvironment",
       type: "interface",
       info: "Environment interface",
-      apply: "{\n  formulas: [],\n  variables: {},\n  semantics: {}\n}",
-    },
-    {
-      label: "ISemantics",
-      type: "interface",
-      info: "Semantics interface",
-      apply: '{\n  engine: ""\n}',
+      apply: "{\n  formulas: [],\n  variables: {},\n  semantics: function(vars) {}\n}",
     },
   ];
 

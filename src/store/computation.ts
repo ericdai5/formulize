@@ -1,8 +1,7 @@
 import { action, observable, toJS } from "mobx";
 
-import { computeWithManualEngine } from "../engine/manual/manual";
-import { computeWithSymbolicEngine } from "../engine/symbolic-algebra/symbolic-algebra";
-import { IManual, ISemantics } from "../types/computation";
+import { computeWithManualEngine } from "../engine/manual";
+import { ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
@@ -51,19 +50,10 @@ class ComputationStore {
   accessor formulaTrees = new Map<string, AugmentedFormula>();
 
   @observable
-  accessor engine: "symbolic-algebra" | "manual" = "manual";
-
-  @observable
   accessor semantics: ISemantics | null = null;
 
   @observable
-  accessor symbolicFunctions: string[] = [];
-
-  @observable
   accessor formulas: IFormula[] = [];
-
-  @observable
-  accessor manual: IManual | null = null;
 
   @observable
   accessor environment: IEnvironment | null = null;
@@ -88,10 +78,19 @@ class ComputationStore {
   @observable
   accessor injectedHoverCSS = new Map<string, string>();
 
+  // Step mode - when enabled, labels show step values instead of live computed values
+  @observable
+  accessor stepping: boolean = false;
+
   private evaluationFunction: EvaluationFunction | null = null;
 
   isStepMode(): boolean {
-    return this.semantics?.mode === "step";
+    return this.stepping;
+  }
+
+  @action
+  setStepping(enabled: boolean) {
+    this.stepping = enabled;
   }
 
   get evaluateFormula(): EvaluationFunction | null {
@@ -116,11 +115,6 @@ class ComputationStore {
   }
 
   @action
-  setEngine(engine: "symbolic-algebra" | "manual") {
-    this.engine = engine;
-  }
-
-  @action
   reset() {
     this.variables.clear();
     this.hoverStates.clear();
@@ -133,9 +127,9 @@ class ComputationStore {
     this.injectedHoverCSS.clear();
     this.formulaTrees.clear();
     this.environment = null;
-    this.symbolicFunctions = [];
     this.formulas = [];
-    this.manual = null;
+    this.semantics = null;
+    this.stepping = false;
     this.evaluationFunction = null;
     // Remove custom CSS style element
     const styleElement = document.getElementById("custom-var-styles");
@@ -199,18 +193,8 @@ class ComputationStore {
   }
 
   @action
-  setSymbolicFunctions(expressions: string[]) {
-    this.symbolicFunctions = expressions;
-  }
-
-  @action
   setFormulas(formulas: IFormula[]) {
     this.formulas = formulas;
-  }
-
-  @action
-  setManual(manual: IManual | null): void {
-    this.manual = manual;
   }
 
   @action
@@ -367,57 +351,18 @@ class ComputationStore {
     this.refreshCallback = callback;
   }
 
-  // Set up all expressions for computation
+  // Set up the semantics function for computation
   @action
-  async setComputation(expressions: string[], manual?: IManual | null) {
-    this.setSymbolicFunctions(expressions);
-    this.setManual(manual ?? null);
-    // Set up the evaluation function to handle all expressions
-    if (this.engine === "symbolic-algebra" && this.semantics) {
-      this.evaluationFunction =
-        this.createMultiExpressionEvaluator(expressions);
-    } else if (this.engine === "manual" && this.semantics) {
-      // For manual engine, create an evaluator using manual functions
-      this.evaluationFunction = this.createManualEvaluator();
+  async setComputation() {
+    // Set up the evaluation function if semantics is defined
+    if (this.semantics) {
+      this.evaluationFunction = this.createEvaluator();
     }
   }
 
-  // Create an evaluation function that handles multiple expressions
-  private createMultiExpressionEvaluator(
-    expressions: string[]
-  ): EvaluationFunction {
-    return (inputValues: EvaluationFunctionInput) => {
-      // Use expressions if available
-      if (!expressions || expressions.length === 0) {
-        console.warn("No expressions available for symbolic algebra engine");
-        return {};
-      }
-      // Evaluate using the symbolic algebra engine with the computation store variables
-      try {
-        const storeVariables = this.getVariables();
-        // Filter to only numeric values for the symbolic algebra engine
-        const numericInputValues: Record<string, number> = {};
-        for (const [key, value] of Object.entries(inputValues)) {
-          if (typeof value === "number") {
-            numericInputValues[key] = value;
-          }
-        }
-        const symbolResult = computeWithSymbolicEngine(
-          expressions,
-          storeVariables,
-          numericInputValues
-        );
-        return symbolResult;
-      } catch (error) {
-        console.error("❌ Error in multi-expression evaluation:", error);
-        return {};
-      }
-    };
-  }
-
-  // Create an evaluation function for manual engine using manual functions
-  // The manual function directly mutates the store's observable variables via proxy
-  private createManualEvaluator(): EvaluationFunction {
+  // Create an evaluation function using the semantics function
+  // The function directly mutates the store's observable variables via proxy
+  private createEvaluator(): EvaluationFunction {
     return () => {
       if (!this.environment) return {};
       // Pass the store's observable variables directly (same references)
@@ -426,10 +371,8 @@ class ComputationStore {
       for (const [varName, variable] of this.variables.entries()) {
         storeVariables[varName] = variable; // Same reference, not a copy
       }
-      // Get computation-level manual function
-      const computationManual = this.semantics?.manual;
-      // Run the manual function - it mutates variables directly via proxy
-      computeWithManualEngine(storeVariables, computationManual);
+      // Run the semantics function - it mutates variables directly via proxy
+      computeWithManualEngine(storeVariables, this.semantics ?? undefined);
       // No need to sync back or return values - mutations happen directly
       return {};
     };
@@ -516,8 +459,6 @@ class ComputationStore {
         input: v.input,
       })),
       hasFunction: !!this.evaluationFunction,
-      engine: this.engine,
-      symbolicFunctions: this.symbolicFunctions,
     };
   }
 
@@ -574,7 +515,7 @@ class ComputationStore {
   }
 
   /**
-   * Run manual function with given variables and extract a 2D point.
+   * Run semantics function with given variables and extract a 2D point.
    * @param variables - Variable values to use
    * @param graphId - Graph ID to match data2d() calls
    * @returns The {x, y} point or null
@@ -583,14 +524,13 @@ class ComputationStore {
     variables: Record<string, IVariable>,
     graphId: string
   ): { x: number; y: number } | null {
-    const manual = this.semantics?.manual;
-    if (!manual || typeof manual !== "function") return null;
-    const result = computeWithManualEngine(variables, manual);
+    if (!this.semantics || typeof this.semantics !== "function") return null;
+    const result = computeWithManualEngine(variables, this.semantics);
     return this.extractPoint2D(result.dataPointMap, graphId);
   }
 
   /**
-   * Run manual function with given variables and extract a 3D point.
+   * Run semantics function with given variables and extract a 3D point.
    * @param variables - Variable values to use
    * @param graphId - Graph ID to match data3d() calls
    * @returns The {x, y, z} point or null
@@ -599,14 +539,13 @@ class ComputationStore {
     variables: Record<string, IVariable>,
     graphId: string
   ): { x: number; y: number; z: number } | null {
-    const manual = this.semantics?.manual;
-    if (!manual || typeof manual !== "function") return null;
-    const result = computeWithManualEngine(variables, manual);
+    if (!this.semantics || typeof this.semantics !== "function") return null;
+    const result = computeWithManualEngine(variables, this.semantics);
     return this.extractPoint3D(result.dataPointMap, graphId);
   }
 
   /**
-   * Generic helper to sample the manual function across a parameter range.
+   * Generic helper to sample the semantic function across a parameter range.
    * Varies a single parameter across its range and collects points using the provided extractor.
    *
    * @param parameter - The variable to vary during sampling
@@ -643,7 +582,7 @@ class ComputationStore {
   }
 
   /**
-   * Run the manual function once with current values to get the current 2D point.
+   * Run the semantic function once with current values to get the current 2D point.
    * Reads x, y values from the dataPoints (from explicit data2d() calls).
    *
    * @param graphId - Graph ID to match data2d() calls
@@ -654,7 +593,7 @@ class ComputationStore {
   }
 
   /**
-   * Run the manual function once with current values to get the current 3D point.
+   * Run the semantic function once with current values to get the current 3D point.
    * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
    *
    * @param graphId - Graph ID to match graph() calls
@@ -665,7 +604,7 @@ class ComputationStore {
   }
 
   /**
-   * Sample the manual function across a parameter range to collect 2D line data.
+   * Sample the semantic function across a parameter range to collect 2D line data.
    * Reads x, y values from the dataPoints (from explicit data2d() calls).
    *
    * @param parameter - The variable to vary during sampling
@@ -690,7 +629,7 @@ class ComputationStore {
   }
 
   /**
-   * Sample the manual function across a parameter range to collect 3D line data.
+   * Sample the semantic function across a parameter range to collect 3D line data.
    * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
    *
    * @param parameter - The variable to vary during sampling
@@ -715,7 +654,7 @@ class ComputationStore {
   }
 
   /**
-   * Sample the manual function across a 2D parameter grid to collect surface data.
+   * Sample the semantic function across a 2D parameter grid to collect surface data.
    * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
    *
    * @param parameters - The two variables to vary during sampling [param1, param2]

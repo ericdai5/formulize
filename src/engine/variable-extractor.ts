@@ -1,4 +1,4 @@
-import { extractVariableNames } from "../../util/acorn";
+import { extractVariableNames } from "../util/acorn";
 import { DEBUG_VARIABLE_NAMES } from "./constants";
 import {
   JSInterpreter,

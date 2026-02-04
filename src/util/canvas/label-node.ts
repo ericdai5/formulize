@@ -1,8 +1,8 @@
 import { Node } from "@xyflow/react";
 
+import { VAR_SELECTORS } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";
-import { VAR_SELECTORS } from "../../internal/css-classes";
 import {
   NODE_TYPES,
   findFormulaNodeById,

@@ -1,6 +1,6 @@
 import { Edge, Node } from "@xyflow/react";
 
-import { unescapeLatex } from "../../engine/manual/controller";
+import { unescapeLatex } from "../../engine/controller";
 import { findExpression } from "../parse/formula-tree";
 import { ComputationStore } from "../../store/computation";
 import { ExecutionStore } from "../../store/execution";

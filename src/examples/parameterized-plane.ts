@@ -45,13 +45,11 @@ export const parameterizedPlane = `const config = {
       name: "Parameter w"
     }
   },
-  semantics: {
-    manual: function(vars, data3d) {
-      vars.x = 1 - vars.t - vars.w;
-      vars.y = vars.t;
-      vars.z = vars.w;
-      data3d("plane", {x: vars.x, y: vars.y, z: vars.z});
-    }
+  semantics: function(vars, data3d) {
+    vars.x = 1 - vars.t - vars.w;
+    vars.y = vars.t;
+    vars.z = vars.w;
+    data3d("plane", {x: vars.x, y: vars.y, z: vars.z});
   },
   controls: [
     {
