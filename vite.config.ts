@@ -82,7 +82,6 @@ export default defineConfig({
         "@codemirror/view",
         "@uiw/react-codemirror",
         // Other heavy deps
-        "js-interpreter",
         "lodash",
         "lucide-react",
       ],
@@ -111,7 +110,6 @@ export default defineConfig({
           "@codemirror/state": "CodeMirrorState",
           "@codemirror/view": "CodeMirrorView",
           "@uiw/react-codemirror": "ReactCodeMirror",
-          "js-interpreter": "JsInterpreter",
           lodash: "lodash",
           "lucide-react": "LucideReact",
         },

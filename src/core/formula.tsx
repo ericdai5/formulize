@@ -446,7 +446,8 @@ const FormulaCanvasInner = observer(
               // after they're measured, then make them visible
             }, 50); // Shorter debounce for more responsive updates
           }
-        }
+        },
+        { fireImmediately: true } // Fire immediately to handle initial state
       );
 
       return () => {
