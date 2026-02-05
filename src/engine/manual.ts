@@ -14,7 +14,14 @@ import {
   IData3DFn,
   IDataPoint,
 } from "../types/graph";
+import { ICollectedStep, IStepInput, IView } from "../types/step";
 import { IValue, IVariable } from "../types/variable";
+
+/**
+ * Function signature for step collection during semantics execution.
+ * Matches the step() API signature used in semantics functions.
+ */
+export type IStepFn = (input: IStepInput, id?: string) => void;
 
 /**
  * Result from engine execution including variable values and graph dataPoints.
@@ -95,7 +102,7 @@ function executeSemanticFunction(
   variables: Record<string, IVariable>,
   data3dFn: IData3DFn,
   data2dFn: IData2DFn,
-  stepFn: (config: any, blockId?: string) => void
+  stepFn: IStepFn
 ): void {
   // Create proxy that directly mutates variable values
   const vars = createValueProxy(variables);
@@ -114,20 +121,68 @@ function executeSemanticFunction(
 // ============================================================================
 
 /**
+ * Helper to check if input is a single view (has 'description' property)
+ */
+function isSingleView(input: IStepInput): input is IView {
+  return typeof input === "object" && "description" in input;
+}
+
+/**
+ * Create a step collector function that collects steps during semantics execution.
+ * This follows the reactive data collection pattern similar to data2d/data3d.
+ *
+ * @param stepList - The array to collect steps into
+ * @returns A step function that can be called from semantics
+ */
+function createStepCollector(stepList: ICollectedStep[]): IStepFn {
+  return (input: IStepInput, id?: string) => {
+    if (isSingleView(input)) {
+      // Single view mode - applies to all formulas
+      // Use empty string key "" to indicate "all formulas"
+      stepList.push({
+        index: stepList.length,
+        id,
+        description: input.description,
+        values: input.values,
+        expression: input.expression,
+        formulas: { "": input },
+      });
+    } else {
+      // Multi-formula mode - input is Record<string, IView>
+      // For multi-formula steps, we still create a single collected step
+      // but store the per-formula views in the formulas field
+      const firstView = Object.values(input)[0];
+      stepList.push({
+        index: stepList.length,
+        id,
+        description: firstView?.description ?? "",
+        values: firstView?.values,
+        expression: firstView?.expression,
+        formulas: input as Record<string, IView>,
+      });
+    }
+  };
+}
+
+/**
  * Computes the formula with the given variable values using a custom JavaScript function.
  * Variables should already be normalized (typically from the computation store).
  * The semantic function mutates the vars object directly to set computed values.
  *
  * @param variables - Record of variable definitions with current values
  * @param semanticFn - The semantic function to execute
- * @returns Object containing computed values and collected graph dataPoints
+ * @param collectSteps - Whether to collect step() calls (default: false for backward compatibility)
+ * @returns Object containing computed values, collected graph dataPoints, and step list
  */
 export function computeWithManualEngine(
   variables: Record<string, IVariable>,
-  semanticFn?: ISemantics
+  semanticFn?: ISemantics,
+  collectSteps: boolean = false
 ): IManualEngineResult {
   // Collect graph dataPoints during execution
   const dataPointMap = new Map<string, IDataPoint[]>();
+  // Collect steps during execution (when enabled)
+  const stepList: ICollectedStep[] = [];
   // Create data3d function for 3D visualization data
   // Usage: data3d("id", {x, y, z})
   const data3dFn: IData3DFn = (id: string, values: IData3D) => {
@@ -151,6 +206,7 @@ export function computeWithManualEngine(
   const emptyResult: IManualEngineResult = {
     values: {},
     dataPointMap: new Map(),
+    stepList: [],
   };
   try {
     if (!variables || Object.keys(variables).length === 0) {
@@ -161,12 +217,15 @@ export function computeWithManualEngine(
       console.warn("⚠️ No semantic function provided for computation");
       return emptyResult;
     }
-    // No-op step function for normal (non-interpreter) execution
-    const step = () => {};
-    executeSemanticFunction(semanticFn, variables, data3dFn, data2dFn, step);
+    // Create step function - either collector or no-op based on collectSteps flag
+    const stepFn: IStepFn = collectSteps
+      ? createStepCollector(stepList)
+      : () => {};
+    executeSemanticFunction(semanticFn, variables, data3dFn, data2dFn, stepFn);
     return {
       values: collectResults(variables),
       dataPointMap,
+      stepList,
     };
   } catch (error) {
     console.error("Error computing with semantic function:", error);

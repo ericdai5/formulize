@@ -168,6 +168,18 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   const { name, precision, labelDisplay, input } = variable;
   const isStepModeActive = computationStore.isStepMode();
+  const isInputVariable = input === "drag" || input === "inline";
+
+  // In step mode, hide non-active variables UNLESS they are input variables
+  // Input variables must always be visible for user interaction
+  if (isStepModeActive && !isVariableActive && !isInputVariable) return null;
+
+  // In step mode, use the isolated stepValues for display (faster rendering)
+  // For input variables, always use their actual value (not step value)
+  // In normal mode, use the variable's value from the main variables map
+  const value = isStepModeActive && !isInputVariable
+    ? computationStore.getDisplayValue(varId)
+    : variable.value;
 
   // Determine what to display based on labelDisplay setting and input mode
   let mainDisplayText = varId; // default to name
@@ -213,6 +225,13 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       displayComponent = (
         <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
       );
+    } else if (isStepModeActive && isVariableActive) {
+      // In step mode, active variables should always show something
+      // even if the value is temporarily unavailable - show a placeholder
+      mainDisplayText = "\\cdots";
+      displayComponent = (
+        <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+      );
     } else {
       // If labelDisplay is "value" but no value is set, hide the label node
       return null;
@@ -236,28 +255,36 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   // Determine interactive variable styling based on input type and context
   const getInteractiveClass = () => {
-    if (computationStore.isStepMode()) {
-      return "step-cue"; // Step mode styling
+    const classes: string[] = [];
+
+    // Input variables always get the INPUT class for proper styling
+    if (isInputVariable) {
+      classes.push(VAR_CLASSES.INPUT);
     }
 
-    if (input === "drag") {
-      // Draggable variables get the input class
-      return VAR_CLASSES.INPUT;
+    // In step mode, active variables get step-cue styling (including input variables)
+    if (isStepModeActive && isVariableActive) {
+      classes.push("step-cue");
     }
 
-    return VAR_CLASSES.BASE;
+    // Default base class if no other classes applied
+    if (classes.length === 0) {
+      classes.push(VAR_CLASSES.BASE);
+    }
+
+    return classes.join(" ");
   };
 
   const interactiveClass = getInteractiveClass();
-  const isSetVariable = Array.isArray(variable.value);
-  // Don't enable drag for inline input variables or in step mode
+  const isSetVariable = Array.isArray(value);
+  // Enable drag for input variables even in step mode (so users can change values)
   const isDraggableVar =
-    input === "drag" && !isSetVariable && !isInlineInput && !isStepModeActive;
+    input === "drag" && !isSetVariable && !isInlineInput;
   const cursor = isDraggableVar ? "grab" : "default";
   const valueCursor =
     isSetVariable && !isStepModeActive
       ? "pointer"
-      : input === "drag" && !isStepModeActive && !isInlineInput
+      : input === "drag" && !isInlineInput
         ? "ns-resize"
         : "default";
 
@@ -290,10 +317,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       <div className="flex flex-col items-center gap-1">
         <div
           ref={
-            input === "drag" &&
-            !isSetVariable &&
-            !isInlineInput &&
-            !isStepModeActive
+            input === "drag" && !isSetVariable && !isInlineInput
               ? valueDragRef
               : null
           }

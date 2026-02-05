@@ -38,7 +38,6 @@ export interface IStep {
  * @property values - Array of [varId, value] tuples mapping variable IDs to runtime values
  * @property expression - Optional expression scope for bounding box highlighting
  * @property formulas - Optional per-formula views for multi-formula steps
- * @property points2d - Map of graph ID to 2D point captured at this step (for step-dependent visualization)
  */
 export interface ICollectedStep {
   index: number;
@@ -47,6 +46,5 @@ export interface ICollectedStep {
   values?: Array<[string, IValue]>;
   expression?: string;
   formulas?: Record<string, IView>;
-  points2d?: Record<string, { x: number; y: number }>;
 }
 

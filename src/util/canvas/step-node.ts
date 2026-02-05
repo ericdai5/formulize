@@ -453,7 +453,9 @@ export function addstepNodes({
   let stepNodeIndex = 0;
 
   // Iterate over each formula step
-  for (const [viewFormulaId, view] of Object.entries(step?.formulas ?? {})) {
+  // For ICollectedStep, formulas is optional Record<string, IView>
+  const formulas: Record<string, IView> = step?.formulas ?? {};
+  for (const [viewFormulaId, view] of Object.entries(formulas)) {
     // Empty string viewFormulaId means "apply to all formulas"
     const isAllFormulas = viewFormulaId === "";
 
@@ -510,9 +512,62 @@ export function addstepNodes({
     allStepEdges.push(...stepEdges);
     stepNodeIndex += stepNodes.length;
   }
+  // Get existing step nodes to check if we need to recreate
+  const existingStepNodes = currentNodes.filter(
+    (node) => node.type === NODE_TYPES.STEP
+  );
+  const existingExpressionNodes = currentNodes.filter(
+    (node) => node.type === NODE_TYPES.EXPRESSION
+  );
+  // Check if step nodes can be updated in place (same structure, only content changed)
+  // We compare activeVarIds to determine structural equality
+  const sameStructure =
+    existingStepNodes.length === allstepNodes.length &&
+    existingStepNodes.every((existingNode, index) => {
+      const newNode = allstepNodes[index];
+      if (!newNode) {
+        return false;
+      }
+      // Only compare activeVarIds for structure - description can change
+      const existingVarIds = (existingNode.data.activeVarIds as string[]) || [];
+      const newVarIds = (newNode.data.activeVarIds as string[]) || [];
+      const sameVarIds =
+        existingVarIds.length === newVarIds.length &&
+        existingVarIds.every((id, i) => id === newVarIds[i]);
+      return sameVarIds;
+    });
+  const canReuseExpressionNodes =
+    existingExpressionNodes.length === allExpressionNodes.length;
 
   // Add nodes to the canvas
   if (allstepNodes.length > 0) {
+    if (sameStructure && canReuseExpressionNodes) {
+      // Same structure - UPDATE existing nodes' data instead of recreating
+      // This prevents flash/flicker when only descriptions change
+      setNodes((currentNodes) => {
+        return currentNodes.map((node) => {
+          if (node.type === NODE_TYPES.STEP) {
+            // Find the corresponding new step node
+            const existingIndex = existingStepNodes.findIndex(
+              (n) => n.id === node.id
+            );
+            const newNode = allstepNodes[existingIndex];
+            if (newNode && node.data.description !== newNode.data.description) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  description: newNode.data.description,
+                },
+              };
+            }
+          }
+          return node;
+        });
+      });
+      return;
+    }
+
     setNodes((currentNodes) => {
       const filteredNodes = currentNodes.filter(
         (node) =>

@@ -61,9 +61,9 @@ export interface I2DLine extends I2DConfigBase {
  * @property interaction - Drag interaction: ["horizontal-drag" | "vertical-drag", variableName]
  * @property stepId - Optional step ID that controls when this point appears during stepping.
  *                    When set, the point only appears after the step() call with matching id has been reached.
- * @property persistence - Controls point visibility during stepping:
- *                         'accumulate' (default) = point stays visible after its step
- *                         'once' = point only visible at that exact step
+ * @property persistence - Controls point visibility during stepping (default: true):
+ *                         true = point stays visible after its step (accumulate)
+ *                         false = point only visible at that exact step
  */
 export interface I2DPoint extends I2DConfigBase {
   type: "point";
@@ -72,7 +72,7 @@ export interface I2DPoint extends I2DConfigBase {
   showLabel?: boolean;
   interaction?: ["horizontal-drag" | "vertical-drag", string];
   stepId?: string;
-  persistence?: "accumulate" | "once";
+  persistence?: boolean;
 }
 
 export type I2DConfig = I2DLine | I2DPoint;

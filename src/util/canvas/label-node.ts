@@ -2,7 +2,7 @@ import { Node } from "@xyflow/react";
 
 import { VAR_SELECTORS } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
+import { ICollectedStep } from "../../types/step";
 import {
   NODE_TYPES,
   findFormulaNodeById,
@@ -358,22 +358,69 @@ export const updateLabelNodes = ({
   );
 
   if (existingVariableNodes.length === 0) return;
+
+  // Get existing label nodes for this formula
+  const existingLabelNodes = currentNodes.filter(
+    (node) =>
+      node.type === NODE_TYPES.LABEL && node.data.formulaId === formulaId
+  );
+  const existingLabelVarIds = new Set(
+    existingLabelNodes.map((node) => node.data.varId as string)
+  );
+
+  // Calculate which labels should exist based on current activeVariables
+  // We need to process the formula to determine this
+  const nonLabelNodes = currentNodes.filter(
+    (node) => node.type !== NODE_TYPES.LABEL
+  );
+  const { labelNodes: newLabelNodes, variableNodeUpdates } =
+    processVariableElementsForLabels(
+      formulaElement!,
+      formulaNode,
+      formulaId,
+      nonLabelNodes,
+      viewport,
+      computationStore,
+      activeVariables,
+      currentStep
+    );
+  const newLabelVarIds = new Set(
+    newLabelNodes.map((node) => node.data.varId as string)
+  );
+
+  // Check if the set of active variables has changed
+  const sameActiveSet =
+    existingLabelVarIds.size === newLabelVarIds.size &&
+    [...existingLabelVarIds].every((id) => newLabelVarIds.has(id));
+
+  if (sameActiveSet) {
+    // Same active variables - no need to recreate labels
+    // Just update variable node placements if needed
+    if (variableNodeUpdates.length > 0) {
+      setNodes((currentNodes) => {
+        return updateLabelPlacement(currentNodes, variableNodeUpdates);
+      });
+    }
+    return;
+  }
+
+  // Active variables changed - need to add/remove labels
   setNodes((currentNodes) => {
-    // Remove existing label nodes only
+    // Keep non-label nodes
     const nonLabelNodes = currentNodes.filter(
       (node) => node.type !== NODE_TYPES.LABEL
     );
-    // Use helper to create label nodes based on current activeVariables
-    const { labelNodes, variableNodeUpdates } =
-      processVariableElementsForLabels(
-        formulaElement!,
-        formulaNode,
-        formulaId,
-        nonLabelNodes,
-        viewport,
-        computationStore,
-        executionStore
-      );
+
+    // Keep existing labels that are still needed
+    const keptLabels = existingLabelNodes.filter((node) =>
+      newLabelVarIds.has(node.data.varId as string)
+    );
+
+    // Find newly needed labels (not in existing)
+    const labelsToAdd = newLabelNodes.filter(
+      (node) => !existingLabelVarIds.has(node.data.varId as string)
+    );
+
     // Apply variable node updates (labelPlacement)
     const updatedNodes = updateLabelPlacement(nonLabelNodes, variableNodeUpdates);
 

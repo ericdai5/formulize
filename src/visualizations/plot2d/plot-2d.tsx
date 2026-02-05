@@ -39,6 +39,7 @@ interface GraphLineData {
 
 // Graph-based point data structure
 interface GraphPointData {
+  graphId: string;
   name: string;
   point: DataPoint;
   color: string;
@@ -46,6 +47,8 @@ interface GraphPointData {
   showInLegend: boolean;
   showLabel: boolean;
   interaction?: ["horizontal-drag" | "vertical-drag", string];
+  stepId?: string;
+  persistence?: boolean;
 }
 
 /**
@@ -116,6 +119,7 @@ function calculateGraphData(
       const point = computationStore.sample2DPoint(graphId);
       if (point) {
         pointResults.push({
+          graphId,
           name: displayName,
           point,
           color,
@@ -317,6 +321,50 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     if (hasGraphs) {
       const graphResults = calculateGraphData(graphs, computationStore);
 
+      // Separate regular points from step-dependent points
+      const regularPoints: GraphPointData[] = [];
+      const stepPoints: Array<{
+        config: GraphPointData;
+        accumulatedPoints: DataPoint[];
+      }> = [];
+
+      for (const pointData of graphResults.points) {
+        if (!pointData.stepId) {
+          // No stepId - always visible as a single point
+          regularPoints.push(pointData);
+        } else if (computationStore.stepping) {
+          // Has stepId and in stepping mode - collect accumulated points from dataPointMap
+          const steps = computationStore.steps;
+          const currentStepIndex = computationStore.currentStepIndex;
+          const graphId = pointData.graphId;
+          const allPoints = (computationStore.stepDataPointMap.get(graphId) ??
+            []) as unknown as DataPoint[];
+
+          // Count how many steps with matching stepId are in range [0, currentStepIndex]
+          let matchingStepCount = 0;
+          for (let i = 0; i <= currentStepIndex && i < steps.length; i++) {
+            if (steps[i].id === pointData.stepId) {
+              matchingStepCount++;
+            }
+          }
+
+          // Get accumulated points based on step progress
+          const accumulatedPoints: DataPoint[] =
+            pointData.persistence === false
+              ? // Only show the current step's point (no persistence)
+                matchingStepCount > 0 && allPoints[matchingStepCount - 1]
+                ? [allPoints[matchingStepCount - 1]]
+                : []
+              : // Default (true): show all points up to current step
+                allPoints.slice(0, matchingStepCount);
+
+          if (accumulatedPoints.length > 0) {
+            stepPoints.push({ config: pointData, accumulatedPoints });
+          }
+        }
+        // If has stepId but not in stepping mode, point is not visible
+      }
+
       // Generate unique clipPath id for graph lines
       const graphClipId = `graph-clip-${Math.random().toString(36).slice(2)}`;
 
@@ -353,7 +401,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       });
 
       // Store point data for rendering after interaction layer
-      const graphPointsData = graphResults.points;
+      const graphPointsData = regularPoints;
 
       // Add drag interaction for graph-based visualization
       // Find the first line config to use its parameter/interaction for dragging
