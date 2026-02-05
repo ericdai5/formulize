@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
@@ -98,14 +98,17 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
       refresh(instance.computationStore);
     }, [instance]);
 
-    const contextValue: FormulizeContextValue = {
-      instance,
-      config: config || null,
-      isLoading,
-      error,
-      computationStore: instance?.computationStore ?? null,
-      reinitialize,
-    };
+    const contextValue: FormulizeContextValue = useMemo(
+      () => ({
+        instance,
+        config: config || null,
+        isLoading,
+        error,
+        computationStore: instance?.computationStore ?? null,
+        reinitialize,
+      }),
+      [instance, config, isLoading, error, reinitialize]
+    );
 
     return (
       <FormulizeContext.Provider value={contextValue}>
