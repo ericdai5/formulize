@@ -1,10 +1,9 @@
 import { Edge, Node } from "@xyflow/react";
 
 import { unescapeLatex } from "../../engine/controller";
-import { findExpression } from "../parse/formula-tree";
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
 import { IView } from "../../types/step";
+import { findExpression } from "../parse/formula-tree";
 import {
   NODE_TYPES,
   getFormulaElement,
@@ -413,7 +412,6 @@ export interface AddstepNodesParams {
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   setEdges: (edges: Edge[] | ((edges: Edge[]) => Edge[])) => void;
   formulaId?: string; // Optional: specific formula ID (for FormulaComponent)
-  executionStore: ExecutionStore;
   computationStore: ComputationStore;
 }
 
@@ -428,14 +426,12 @@ export function addstepNodes({
   setNodes,
   setEdges,
   formulaId,
-  executionStore,
   computationStore,
 }: AddstepNodesParams): void {
   const currentNodes = getNodes();
   const viewport = getViewport?.() || { zoom: 1, x: 0, y: 0 };
-
-  // Get current step from the scoped execution store
-  const step = executionStore.currentStep;
+  // Get current step from computation store
+  const step = computationStore.currentStep;
   if (!step || !step.formulas || Object.keys(step.formulas).length === 0) {
     // Remove step and expression nodes if no current step
     setNodes((currentNodes) =>
@@ -457,7 +453,9 @@ export function addstepNodes({
   let stepNodeIndex = 0;
 
   // Iterate over each formula step
-  for (const [viewFormulaId, view] of Object.entries(step?.formulas ?? {})) {
+  // For ICollectedStep, formulas is optional Record<string, IView>
+  const formulas: Record<string, IView> = step?.formulas ?? {};
+  for (const [viewFormulaId, view] of Object.entries(formulas)) {
     // Empty string viewFormulaId means "apply to all formulas"
     const isAllFormulas = viewFormulaId === "";
 
@@ -514,9 +512,62 @@ export function addstepNodes({
     allStepEdges.push(...stepEdges);
     stepNodeIndex += stepNodes.length;
   }
+  // Get existing step nodes to check if we need to recreate
+  const existingStepNodes = currentNodes.filter(
+    (node) => node.type === NODE_TYPES.STEP
+  );
+  const existingExpressionNodes = currentNodes.filter(
+    (node) => node.type === NODE_TYPES.EXPRESSION
+  );
+  // Check if step nodes can be updated in place (same structure, only content changed)
+  // We compare activeVarIds to determine structural equality
+  const sameStructure =
+    existingStepNodes.length === allstepNodes.length &&
+    existingStepNodes.every((existingNode, index) => {
+      const newNode = allstepNodes[index];
+      if (!newNode) {
+        return false;
+      }
+      // Only compare activeVarIds for structure - description can change
+      const existingVarIds = (existingNode.data.activeVarIds as string[]) || [];
+      const newVarIds = (newNode.data.activeVarIds as string[]) || [];
+      const sameVarIds =
+        existingVarIds.length === newVarIds.length &&
+        existingVarIds.every((id, i) => id === newVarIds[i]);
+      return sameVarIds;
+    });
+  const canReuseExpressionNodes =
+    existingExpressionNodes.length === allExpressionNodes.length;
 
   // Add nodes to the canvas
   if (allstepNodes.length > 0) {
+    if (sameStructure && canReuseExpressionNodes) {
+      // Same structure - UPDATE existing nodes' data instead of recreating
+      // This prevents flash/flicker when only descriptions change
+      setNodes((currentNodes) => {
+        return currentNodes.map((node) => {
+          if (node.type === NODE_TYPES.STEP) {
+            // Find the corresponding new step node
+            const existingIndex = existingStepNodes.findIndex(
+              (n) => n.id === node.id
+            );
+            const newNode = allstepNodes[existingIndex];
+            if (newNode && node.data.description !== newNode.data.description) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  description: newNode.data.description,
+                },
+              };
+            }
+          }
+          return node;
+        });
+      });
+      return;
+    }
+
     setNodes((currentNodes) => {
       const filteredNodes = currentNodes.filter(
         (node) =>

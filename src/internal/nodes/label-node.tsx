@@ -140,16 +140,16 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId, formulaId } = data;
   const context = useFormulize();
   const computationStore = context?.computationStore;
-  const executionStore = context?.executionStore;
   const labelFontSize = computationStore?.environment?.labelFontSize;
 
   // Must call all hooks before conditional returns
   const variable = computationStore?.variables.get(varId);
   // activeVariables is a Map<formulaId, Set<varId>>
   // Empty string key '' means "all formulas"
-  const allFormulasVars = executionStore?.activeVariables.get("") ?? new Set();
+  const activeVariables = computationStore?.getActiveVariables() ?? new Map();
+  const allFormulasVars = activeVariables.get("") ?? new Set();
   const thisFormulaVars = formulaId
-    ? executionStore?.activeVariables.get(formulaId) ?? new Set()
+    ? activeVariables.get(formulaId) ?? new Set()
     : new Set();
   const isVariableActive =
     allFormulasVars.has(varId) || thisFormulaVars.has(varId);
@@ -163,12 +163,23 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   });
 
   // All conditional returns must happen after all hooks are called
-  if (!computationStore || !executionStore) return null;
+  if (!computationStore) return null;
   if (!variable) return null;
-  if (computationStore.isStepMode() && !isVariableActive) return null;
 
-  const { name, value, precision, labelDisplay, input } = variable;
+  const { name, precision, labelDisplay, input } = variable;
   const isStepModeActive = computationStore.isStepMode();
+  const isInputVariable = input === "drag" || input === "inline";
+
+  // In step mode, hide non-active variables UNLESS they are input variables
+  // Input variables must always be visible for user interaction
+  if (isStepModeActive && !isVariableActive && !isInputVariable) return null;
+
+  // In step mode, use the isolated stepValues for display (faster rendering)
+  // For input variables, always use their actual value (not step value)
+  // In normal mode, use the variable's value from the main variables map
+  const value = isStepModeActive && !isInputVariable
+    ? computationStore.getDisplayValue(varId)
+    : variable.value;
 
   // Determine what to display based on labelDisplay setting and input mode
   let mainDisplayText = varId; // default to name
@@ -186,12 +197,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     labelDisplay === "value" ||
     false // inline input deprecated
   ) {
-    if (Array.isArray(variable?.value)) {
+    if (Array.isArray(value)) {
       // Handle set values - convert all elements to strings for display
-      const setElements = variable.value.map((el) => String(el));
-      const isStringArray = variable.value.every(
-        (el) => typeof el === "string"
-      );
+      const setElements = value.map((el) => String(el));
+      const isStringArray = value.every((el) => typeof el === "string");
 
       if (setElements.length > 0) {
         if (isStringArray) {
@@ -213,6 +222,13 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     } else if (typeof value === "number" && value !== null) {
       const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
       mainDisplayText = value.toFixed(displayPrecision);
+      displayComponent = (
+        <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+      );
+    } else if (isStepModeActive && isVariableActive) {
+      // In step mode, active variables should always show something
+      // even if the value is temporarily unavailable - show a placeholder
+      mainDisplayText = "\\cdots";
       displayComponent = (
         <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
       );
@@ -239,28 +255,36 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   // Determine interactive variable styling based on input type and context
   const getInteractiveClass = () => {
-    if (computationStore.isStepMode()) {
-      return "step-cue"; // Step mode styling
+    const classes: string[] = [];
+
+    // Input variables always get the INPUT class for proper styling
+    if (isInputVariable) {
+      classes.push(VAR_CLASSES.INPUT);
     }
 
-    if (input === "drag") {
-      // Draggable variables get the input class
-      return VAR_CLASSES.INPUT;
+    // In step mode, active variables get step-cue styling (including input variables)
+    if (isStepModeActive && isVariableActive) {
+      classes.push("step-cue");
     }
 
-    return VAR_CLASSES.BASE;
+    // Default base class if no other classes applied
+    if (classes.length === 0) {
+      classes.push(VAR_CLASSES.BASE);
+    }
+
+    return classes.join(" ");
   };
 
   const interactiveClass = getInteractiveClass();
-  const isSetVariable = Array.isArray(variable.value);
-  // Don't enable drag for inline input variables or in step mode
+  const isSetVariable = Array.isArray(value);
+  // Enable drag for input variables even in step mode (so users can change values)
   const isDraggableVar =
-    input === "drag" && !isSetVariable && !isInlineInput && !isStepModeActive;
+    input === "drag" && !isSetVariable && !isInlineInput;
   const cursor = isDraggableVar ? "grab" : "default";
   const valueCursor =
     isSetVariable && !isStepModeActive
       ? "pointer"
-      : input === "drag" && !isStepModeActive && !isInlineInput
+      : input === "drag" && !isInlineInput
         ? "ns-resize"
         : "default";
 
@@ -293,10 +317,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       <div className="flex flex-col items-center gap-1">
         <div
           ref={
-            input === "drag" &&
-            !isSetVariable &&
-            !isInlineInput &&
-            !isStepModeActive
+            input === "drag" && !isSetVariable && !isInlineInput
               ? valueDragRef
               : null
           }

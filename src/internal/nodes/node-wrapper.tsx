@@ -2,7 +2,7 @@ import React from "react";
 
 import { GripHorizontal } from "lucide-react";
 
-import { InterpreterControl } from "../../core/interpreter-control";
+import { StepControl } from "../../core/step-control";
 
 interface NodeWrapperProps {
   children: React.ReactNode;
@@ -23,9 +23,9 @@ export const NodeWrapper = ({ children }: NodeWrapperProps) => {
   );
 };
 
-// Wrapped InterpreterControl for use as a React Flow node
-export const InterpreterControlNode = () => (
+// Wrapped StepControl for use as a React Flow node
+export const StepControlNode = () => (
   <NodeWrapper>
-    <InterpreterControl />
+    <StepControl />
   </NodeWrapper>
 );

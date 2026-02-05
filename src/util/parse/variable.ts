@@ -1,6 +1,5 @@
 import { VAR_CLASSES } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
@@ -35,8 +34,8 @@ interface NestedVariableConfig {
   defaultPrecision: number;
   /** Computation store (required) */
   computationStore: ComputationStore;
-  /** Execution store (required) */
-  executionStore: ExecutionStore;
+  /** Active variables map (required) */
+  activeVariables: Map<string, Set<string>>;
 }
 
 /**
@@ -50,7 +49,7 @@ const processNestedVariable = (
   node: AugmentedFormulaNode,
   config: NestedVariableConfig
 ): string => {
-  const { defaultPrecision, computationStore, executionStore } = config;
+  const { defaultPrecision, computationStore, activeVariables } = config;
 
   const processNode = (node: AugmentedFormulaNode): string => {
     // Handle symbol nodes
@@ -62,7 +61,7 @@ const processNestedVariable = (
           symbol.value,
           defaultPrecision,
           computationStore,
-          executionStore
+          activeVariables
         );
       }
       return symbol.value;
@@ -79,7 +78,7 @@ const processNestedVariable = (
           accentLatex,
           defaultPrecision,
           computationStore,
-          executionStore
+          activeVariables
         );
       }
       // Otherwise, process the base recursively
@@ -104,7 +103,7 @@ const processNestedVariable = (
           groupLatex,
           defaultPrecision,
           computationStore,
-          executionStore
+          activeVariables
         );
       }
       if (computationStore.variables.has(groupLatexNoSpaces)) {
@@ -112,7 +111,7 @@ const processNestedVariable = (
           groupLatexNoSpaces,
           defaultPrecision,
           computationStore,
-          executionStore
+          activeVariables
         );
       }
       // Otherwise, process children recursively
@@ -134,7 +133,7 @@ const renderNestedVariable = (
   symbolValue: string,
   defaultPrecision: number,
   computationStore: ComputationStore,
-  executionStore: ExecutionStore
+  activeVariables: Map<string, Set<string>>
 ): string => {
   let value: number | undefined = undefined;
   let variablePrecision = defaultPrecision;
@@ -150,7 +149,7 @@ const renderNestedVariable = (
   // activeVariables is a Map<formulaId, Set<varId>>
   // Check if variable is active in any formula's set
   let isActive = false;
-  for (const varSet of executionStore.activeVariables.values()) {
+  for (const varSet of activeVariables.values()) {
     if (varSet.has(symbolValue)) {
       isActive = true;
       break;
@@ -381,14 +380,14 @@ export interface ProcessVariablesResult {
  * @param formula - The augmented formula to process
  * @param defaultPrecision - Default precision for numeric display
  * @param computationStore - The computation store to use (required)
- * @param executionStore - The execution store to use (required)
+ * @param activeVariables - The active variables map (required)
  * @returns Object containing processed LaTeX and tokens array
  */
 export const processVariables = (
   formula: AugmentedFormula,
   defaultPrecision: number = INPUT_VARIABLE_DEFAULT.PRECISION,
   computationStore: ComputationStore,
-  executionStore: ExecutionStore
+  activeVariables: Map<string, Set<string>>
 ): ProcessVariablesResult => {
   // Reset cssId counter for this formula
   resetCssIdCounter();
@@ -434,7 +433,7 @@ export const processVariables = (
       const processedBody = processNestedVariable(variableNode.body, {
         defaultPrecision,
         computationStore,
-        executionStore,
+        activeVariables,
       });
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
@@ -692,19 +691,19 @@ export const findVariableByElement = (
  * @param latex - The LaTeX string to process
  * @param defaultPrecision - Default precision for numeric display
  * @param computationStore - The computation store to use (required)
- * @param executionStore - The execution store to use (required)
  * @param formulaId - Optional formula ID for storing tokens
  */
 export const processLatexContent = (
   latex: string,
   defaultPrecision: number,
   computationStore: ComputationStore,
-  executionStore: ExecutionStore,
   formulaId?: string
 ): string => {
   try {
     // Get variable patterns from computation store
     const variables = Array.from(computationStore.variables.keys());
+    // Get active variables for visual cues
+    const activeVariables = computationStore.getActiveVariables();
     // Parse variable patterns into trees for grouping
     const variableTrees = parseVariableStrings(variables);
     // Create formula tree with variables grouped, passing original symbols
@@ -713,7 +712,7 @@ export const processLatexContent = (
       formula,
       defaultPrecision,
       computationStore,
-      executionStore
+      activeVariables
     );
     // Store the formula tree with cssId values for DOM element lookup
     if (formulaId) {

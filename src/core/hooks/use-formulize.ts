@@ -2,7 +2,6 @@ import { createContext, useContext } from "react";
 
 import { FormulizeConfig, FormulizeInstance } from "../../formulize";
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
 
 export interface FormulizeContextValue {
   instance: FormulizeInstance | null;
@@ -10,8 +9,7 @@ export interface FormulizeContextValue {
   isLoading: boolean;
   error: string | null;
   computationStore: ComputationStore | null;
-  executionStore: ExecutionStore | null;
-  /** Reinitialize the interpreter with current variable values */
+  /** Reinitialize steps by re-running the semantics function */
   reinitialize: () => void;
 }
 

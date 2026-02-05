@@ -19,7 +19,6 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { ComputationStore } from "../store/computation";
-import { ExecutionStore } from "../store/execution";
 import { FormulaStore } from "../store/formulas";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
@@ -50,17 +49,10 @@ interface CanvasProps {
   controls?: IControls[];
   environment?: IEnvironment;
   computationStore: ComputationStore;
-  executionStore: ExecutionStore;
 }
 
 const CanvasFlow = observer(
-  ({
-    formulaStore,
-    controls,
-    environment,
-    computationStore,
-    executionStore,
-  }: CanvasProps) => {
+  ({ formulaStore, controls, environment, computationStore }: CanvasProps) => {
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -105,22 +97,26 @@ const CanvasFlow = observer(
      * @param varId - The variable ID to check
      * @returns true if the label should be visible, false otherwise
      */
-    const shouldLabelBeVisible = useCallback((varId: string): boolean => {
-      // If not in step mode, always show labels
-      if (!computationStore.isStepMode()) {
-        return true;
-      }
-
-      // In step mode, only show labels for active variables
-      // activeVariables is a Map<formulaId, Set<varId>>
-      // For canvas.tsx (multi-formula canvas), check all formula sets
-      for (const varSet of executionStore.activeVariables.values()) {
-        if (varSet.has(varId)) {
+    const shouldLabelBeVisible = useCallback(
+      (varId: string): boolean => {
+        // If not in step mode, always show labels
+        if (!computationStore.isStepMode()) {
           return true;
         }
-      }
-      return false;
-    }, []);
+
+        // In step mode, only show labels for active variables
+        // activeVariables is a Map<formulaId, Set<varId>>
+        // For canvas.tsx (multi-formula canvas), check all formula sets
+        const activeVariables = computationStore.getActiveVariables();
+        for (const varSet of activeVariables.values()) {
+          if (varSet.has(varId)) {
+            return true;
+          }
+        }
+        return false;
+      },
+      [computationStore]
+    );
 
     /**
      * Create edges between label nodes and their corresponding variable nodes
@@ -192,7 +188,6 @@ const CanvasFlow = observer(
             environment,
             id,
             computationStore,
-            executionStore,
           },
           draggable: true,
           dragHandle: ".formula-drag-handle",
@@ -231,17 +226,9 @@ const CanvasFlow = observer(
         getViewport,
         setNodes,
         setEdges,
-        executionStore,
         computationStore,
       });
-    }, [
-      getNodes,
-      getViewport,
-      setNodes,
-      setEdges,
-      executionStore,
-      computationStore,
-    ]);
+    }, [getNodes, getViewport, setNodes, setEdges, computationStore]);
 
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {
@@ -250,9 +237,8 @@ const CanvasFlow = observer(
         getViewport,
         setNodes,
         computationStore,
-        executionStore,
       });
-    }, [getNodes, getViewport, setNodes, computationStore, executionStore]);
+    }, [getNodes, getViewport, setNodes, computationStore]);
 
     // Function to adjust label positions after they're rendered and measured
     const adjustLabelPositions = useCallback(() => {
@@ -443,9 +429,9 @@ const CanvasFlow = observer(
           isStepMode: computationStore.isStepMode(),
           // Track activeVariables by serializing the Map to detect changes
           activeVariables: Array.from(
-            executionStore.activeVariables.entries()
+            computationStore.getActiveVariables().entries()
           ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
-          currentStep: executionStore.currentStep,
+          currentStep: computationStore.currentStep,
         }),
         () => {
           if (nodesInitialized && variableNodesAddedRef.current) {
@@ -520,7 +506,7 @@ const CanvasFlow = observer(
           // Position step nodes to avoid label collisions, then make them visible
           if (
             stepNodes.length > 0 &&
-            executionStore.currentStep &&
+            computationStore.currentStep &&
             !stepNodeRepositionedRef.current
           ) {
             stepNodeRepositionedRef.current = true;

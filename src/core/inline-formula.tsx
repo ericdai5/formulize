@@ -4,7 +4,6 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { ComputationStore } from "../store/computation";
-import { ExecutionStore } from "../store/execution";
 import {
   getInputVariableState,
   processLatexContent,
@@ -33,12 +32,10 @@ const InlineFormulaInner = observer(
     id,
     scale = 1,
     computationStore,
-    executionStore,
   }: {
     id: string;
     scale?: number;
     computationStore: ComputationStore;
-    executionStore: ExecutionStore;
   }) => {
     const containerRef = useRef<HTMLSpanElement>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
@@ -70,12 +67,7 @@ const InlineFormulaInner = observer(
         // Process LaTeX to add interactive variable CSS classes
         let processedLatex: string;
         try {
-          processedLatex = processLatexContent(
-            latex,
-            2,
-            computationStore,
-            executionStore
-          );
+          processedLatex = processLatexContent(latex, 2, computationStore);
         } catch (e) {
           console.warn(
             "InlineFormula: LaTeX processing failed, using raw latex"
@@ -114,7 +106,6 @@ const InlineFormulaInner = observer(
       getFormulaLatex,
       mathJaxLoaded,
       computationStore,
-      executionStore,
       scale,
     ]);
 
@@ -281,10 +272,9 @@ export const InlineFormula: React.FC<InlineFormulaProps> = observer(
     const instance = context?.instance;
     const isLoading = context?.isLoading ?? true;
     const computationStore = context?.computationStore;
-    const executionStore = context?.executionStore;
 
     // Show placeholder while loading or no context
-    if (isLoading || !instance || !computationStore || !executionStore) {
+    if (isLoading || !instance || !computationStore) {
       return (
         <span
           className={`inline-formula ${className}`}
@@ -304,7 +294,6 @@ export const InlineFormula: React.FC<InlineFormulaProps> = observer(
           id={id}
           scale={scale}
           computationStore={computationStore}
-          executionStore={executionStore}
         />
       </span>
     );

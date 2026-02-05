@@ -70,7 +70,11 @@ const InlineVariableInner = observer(
       const variable = getVariable();
       if (!variable) return null;
 
-      const value = variable.value;
+      // In step mode, use the isolated stepValues for display
+      const isStepMode = computationStore.isStepMode();
+      const value = isStepMode
+        ? computationStore.getDisplayValue(id)
+        : variable.value;
       const units = variable.units;
       const precision = variable.precision;
 
@@ -128,7 +132,6 @@ const InlineVariableInner = observer(
           let startY = 0;
           let startValue = 0;
           let lastClampedValue = 0;
-          let reinitializeTimeout: ReturnType<typeof setTimeout> | null = null;
 
           const variableState = getInputVariableState(id, computationStore);
           if (!variableState) return;
@@ -164,15 +167,6 @@ const InlineVariableInner = observer(
                 if (typeof varDef === "object") {
                   varDef.default = lastClampedValue;
                 }
-                // Clear any pending reinitialization
-                if (reinitializeTimeout) {
-                  clearTimeout(reinitializeTimeout);
-                }
-                // Debounce reinitialization to wait for user to finish dragging
-                reinitializeTimeout = setTimeout(() => {
-                  context?.reinitialize();
-                  reinitializeTimeout = null;
-                }, 300); // Wait 300ms after last drag before reinitializing
               }
             }
           };
@@ -196,7 +190,7 @@ const InlineVariableInner = observer(
           container.addEventListener("mousedown", handleMouseDown);
         }
       },
-      [id, computationStore, config, context]
+      [id, computationStore, config]
     );
 
     // Render the variable with MathJax
@@ -242,7 +236,11 @@ const InlineVariableInner = observer(
       const disposer = reaction(
         () => {
           const variable = computationStore.variables.get(id);
-          return variable ? { value: variable.value, input: variable.input } : null;
+          // Also observe stepValuesVersion to re-render when step values change
+          const stepVersion = computationStore.stepValuesVersion;
+          return variable
+            ? { value: variable.value, input: variable.input, stepVersion }
+            : null;
         },
         () => {
           renderVariable();

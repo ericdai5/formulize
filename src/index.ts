@@ -18,19 +18,14 @@ export {
   VisualizationComponent,
   FormulizeProvider,
   EmbeddedFormula,
-  InterpreterControl,
+  StepControl,
 } from "./core";
-export type { InterpreterControlProps } from "./core";
+export type { StepControlProps } from "./core";
 export { useFormulize } from "./core/hooks";
 
-// Export step function for manual computation breakpoints
-export { step } from "./engine/controller";
-
 // Export computation API - factory function and type for scoped stores
+// Step functionality is now integrated into ComputationStore
 export { createComputationStore, ComputationStore } from "./store/computation";
-
-// Export execution store for interpreter state management - factory function and type for scoped stores
-export { createExecutionStore, ExecutionStore } from "./store/execution";
 
 // Export custom visualization registration functions
 export {
@@ -70,12 +65,11 @@ export type {
 export type { IVisualization } from "./types/visualization";
 export type {
   IPlot2D,
-  IStepPoint,
   I2DConfig,
   I2DLine,
   I2DPoint,
 } from "./types/plot2d";
-export type { IInterpreterStep } from "./types/step";
+export type { ICollectedStep, IView, IStepInput } from "./types/step";
 export type { IPlot3D } from "./types/plot3d";
 export type { ICustom, IContext } from "./types/custom";
 export type { IControls } from "./types/control";

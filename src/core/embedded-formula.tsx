@@ -4,7 +4,6 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { ComputationStore } from "../store/computation";
-import { ExecutionStore } from "../store/execution";
 import {
   getInputVariableState,
   processLatexContent,
@@ -53,7 +52,6 @@ const EmbeddedFormulaInner = observer(
     className = "",
     style = {},
     computationStore,
-    executionStore,
   }: {
     id: string;
     directLatex?: string;
@@ -65,7 +63,6 @@ const EmbeddedFormulaInner = observer(
     className?: string;
     style?: React.CSSProperties;
     computationStore: ComputationStore;
-    executionStore: ExecutionStore;
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
@@ -202,12 +199,7 @@ const EmbeddedFormulaInner = observer(
         // Process LaTeX to add interactive variable CSS classes
         let processedLatex: string;
         try {
-          processedLatex = processLatexContent(
-            latex,
-            2,
-            computationStore,
-            executionStore
-          );
+          processedLatex = processLatexContent(latex, 2, computationStore);
         } catch (e) {
           console.warn(
             "EmbeddedFormula: LaTeX processing failed, using raw latex"
@@ -237,7 +229,6 @@ const EmbeddedFormulaInner = observer(
       scale,
       attachVariableInteractionListeners,
       computationStore,
-      executionStore,
     ]);
 
     // Initial render and re-render when expansion or pinned state changes
@@ -404,10 +395,9 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
     const context = useFormulize();
     const isLoading = context?.isLoading ?? true;
     const computationStore = context?.computationStore;
-    const executionStore = context?.executionStore;
 
     // Show placeholder while loading or no context
-    if (isLoading || !computationStore || !executionStore) {
+    if (isLoading || !computationStore) {
       return (
         <span
           className={`embedded-formula ${className}`}
@@ -430,7 +420,6 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
         className={className}
         style={style}
         computationStore={computationStore}
-        executionStore={executionStore}
       />
     );
   }
