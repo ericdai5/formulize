@@ -54,7 +54,6 @@ This is a **Formula Editor** built with React + TypeScript + Vite that provides 
 - **Math Rendering**: KaTeX, MathJax, better-react-mathjax
 - **Code Editor**: CodeMirror 6 with JavaScript language support
 - **Visualization**: D3.js, Plotly.js for 2D/3D plotting
-- **JavaScript Execution**: JS-Interpreter for manual step-through mode
 
 ### Key Application Modes
 
