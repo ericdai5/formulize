@@ -54,13 +54,13 @@ npm install plotly.js-dist d3
 **Code Editor (Optional - for step-through debugging):**
 
 ```bash
-npm install codemirror @codemirror/autocomplete @codemirror/lang-javascript @codemirror/language @codemirror/legacy-modes @codemirror/state @codemirror/view @uiw/react-codemirror js-interpreter
+npm install codemirror @codemirror/autocomplete @codemirror/lang-javascript @codemirror/language @codemirror/legacy-modes @codemirror/state @codemirror/view @uiw/react-codemirror
 ```
 
 **All-in-one installation:**
 
 ```bash
-npm install formulize-math react react-dom mobx mobx-react-lite mobx-state-tree mathjax-full better-react-mathjax katex mathjs @xyflow/react lucide-react lodash plotly.js-dist d3 codemirror @codemirror/autocomplete @codemirror/lang-javascript @codemirror/language @codemirror/legacy-modes @codemirror/state @codemirror/view @uiw/react-codemirror js-interpreter
+npm install formulize-math react react-dom mobx mobx-react-lite mobx-state-tree mathjax-full better-react-mathjax katex mathjs @xyflow/react lucide-react lodash plotly.js-dist d3 codemirror @codemirror/autocomplete @codemirror/lang-javascript @codemirror/language @codemirror/legacy-modes @codemirror/state @codemirror/view @uiw/react-codemirror
 ```
 
 Don't forget to import the CSS:

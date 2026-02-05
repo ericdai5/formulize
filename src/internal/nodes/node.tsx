@@ -4,10 +4,10 @@ import "@xyflow/react/dist/style.css";
 import ControlNode from "./control-node";
 import ExpressionNode from "./expression-node";
 import FormulaNode from "./formula-node";
-import { InterpreterControlNode } from "./node-wrapper";
 import LabelNode from "./label-node";
-import VariableNode from "./variable-node";
+import { StepControlNode } from "./node-wrapper";
 import StepNode from "./step-node";
+import VariableNode from "./variable-node";
 import VisualizationNode from "./visualization-node";
 
 // Define custom node types
@@ -15,7 +15,7 @@ export const nodeTypes: NodeTypes = {
   formula: FormulaNode,
   control: ControlNode,
   controlPanel: ControlNode, // Legacy support
-  interpreterControl: InterpreterControlNode,
+  interpreterControl: StepControlNode,
   variable: VariableNode,
   label: LabelNode,
   step: StepNode,

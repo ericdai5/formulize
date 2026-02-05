@@ -2,9 +2,8 @@ import type { MutableRefObject } from "react";
 
 import { Node, useReactFlow } from "@xyflow/react";
 
-import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
 import { VAR_SELECTORS } from "../../internal/css-classes";
+import { ComputationStore } from "../../store/computation";
 import {
   processVariableElementsForLabels,
   updateLabelPlacement,
@@ -260,7 +259,6 @@ export function addVariableNodesForFormula({
   formulaId,
   containerElement,
   computationStore,
-  executionStore,
 }: {
   getNodes: () => Node[];
   getViewport: () => { zoom: number; x: number; y: number };
@@ -270,7 +268,6 @@ export function addVariableNodesForFormula({
   formulaId: string;
   containerElement?: Element | null;
   computationStore: ComputationStore;
-  executionStore: ExecutionStore;
 }): void {
   withVarNodeContext(
     getNodes,
@@ -299,6 +296,10 @@ export function addVariableNodesForFormula({
       if (varNodes.length === 0) {
         return;
       }
+
+      // Get active variables from computation store
+      const activeVariables = computationStore.getActiveVariables();
+
       setNodes((currentNodes) => {
         const baseNodes = currentNodes.filter(
           (node) =>
@@ -313,7 +314,7 @@ export function addVariableNodesForFormula({
             nodesWithVariables,
             viewport,
             computationStore,
-            executionStore
+            activeVariables
           );
         const updatedVarNodes = updateLabelPlacement(
           varNodes,

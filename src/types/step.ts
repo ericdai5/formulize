@@ -1,16 +1,6 @@
 import { IValue } from "./variable";
 
 /**
- * A highlight of the code
- * @property start - The start index of the highlight
- * @property end - The end index of the highlight
- */
-export interface IHighlight {
-  start: number;
-  end: number;
-}
-
-/**
  * A single formula's view data
  * @property description - The description text to display
  * @property values - Array of [varId, value] tuples mapping LaTeX variable IDs to runtime values
@@ -40,39 +30,21 @@ export interface IStep {
 }
 
 /**
- * Configuration for an extension object type that defines items to be added
- * based on viewId matching and optional persistence.
+ * A collected step from reactive data collection during semantics execution.
+ * Used by the new reactive step system (similar to plot2d/plot3d pattern).
+ * @property index - Execution order (0, 1, 2...)
+ * @property id - Optional step identifier (from second parameter of step() call)
+ * @property description - The description text to display
+ * @property values - Array of [varId, value] tuples mapping variable IDs to runtime values
+ * @property expression - Optional expression scope for bounding box highlighting
+ * @property formulas - Optional per-formula views for multi-formula steps
  */
-export interface IObject {
-  /** The extension key (e.g., "stepPoints") */
-  key: string;
-  /** Array of item configs, each with viewId, persistence, and data */
-  items: Array<{
-    viewId: string;
-    /** Optional step index to target a specific step instead of all steps with matching viewId */
-    index?: number;
-    persistence?: boolean;
-    /** The data to store */
-    data: Record<string, unknown>;
-  }>;
+export interface ICollectedStep {
+  index: number;
+  id?: string;
+  description: string;
+  values?: Array<[string, IValue]>;
+  expression?: string;
+  formulas?: Record<string, IView>;
 }
 
-/**
- * A step in the execution of the code
- * @property index - The interpreter step number
- * @property highlight - The highlight of the code
- * @property variables - The variables in the step
- * @property stackTrace - The stack trace of the step
- * @property timestamp - The timestamp of the step
- * @property step - The user created step
- * @property extensions - Generic storage for visualization extensions (keyed by extension type, each containing an array of items)
- */
-export interface IInterpreterStep {
-  index: number;
-  highlight: IHighlight;
-  variables: Record<string, unknown>;
-  stackTrace: string[];
-  timestamp: number;
-  step?: IStep;
-  extensions?: Record<string, IObject["items"]>;
-}

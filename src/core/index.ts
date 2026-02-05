@@ -4,5 +4,5 @@ export { InlineFormula } from "./inline-formula";
 export { InlineVariable } from "./inline-variable";
 export { EmbeddedFormula } from "./embedded-formula";
 export { VisualizationComponent } from "./visualization-component";
-export { InterpreterControl } from "./interpreter-control";
-export type { InterpreterControlProps } from "./interpreter-control";
+export { StepControl } from "./step-control";
+export type { StepControlProps } from "./step-control";

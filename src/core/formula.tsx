@@ -24,6 +24,7 @@ import FormulaNode from "../internal/nodes/formula-node";
 import LabelNode from "../internal/nodes/label-node";
 import StepNode from "../internal/nodes/step-node";
 import VariableNode from "../internal/nodes/variable-node";
+import { ComputationStore } from "../store/computation";
 import { computeEdgesForFormula } from "../util/canvas/edges";
 import {
   adjustLabelPositions as adjustLabelPositionsUtil,
@@ -43,8 +44,6 @@ import {
   addVariableNodesForFormula,
   updateVarNodes,
 } from "../util/canvas/variable-nodes";
-import { ComputationStore } from "../store/computation";
-import { ExecutionStore } from "../store/execution";
 import { useFormulize } from "./hooks";
 
 const nodeTypes = {
@@ -65,16 +64,10 @@ interface FormulaCanvasInnerProps {
   id: string;
   formulas: Array<{ id: string; latex: string }>;
   computationStore: ComputationStore;
-  executionStore: ExecutionStore;
 }
 
 const FormulaCanvasInner = observer(
-  ({
-    id,
-    formulas,
-    computationStore,
-    executionStore,
-  }: FormulaCanvasInnerProps) => {
+  ({ id, formulas, computationStore }: FormulaCanvasInnerProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [canvasVisible, setCanvasVisible] = React.useState(false);
@@ -127,15 +120,13 @@ const FormulaCanvasInner = observer(
           return true;
         }
         // In step mode, only show labels for active variables
-        // activeVariables is a Map<formulaId, Set<varId>>
-        // Check if variable is in the "all formulas" set or this specific formula's set
-        const allFormulasVars =
-          executionStore.activeVariables.get("") ?? new Set();
-        const thisFormulaVars =
-          executionStore.activeVariables.get(id) ?? new Set();
+        // Get fresh activeVariables from store
+        const activeVariables = computationStore.getActiveVariables();
+        const allFormulasVars = activeVariables.get("") ?? new Set();
+        const thisFormulaVars = activeVariables.get(id) ?? new Set();
         return allFormulasVars.has(varId) || thisFormulaVars.has(varId);
       },
-      [computationStore, executionStore, id]
+      [computationStore, id]
     );
 
     // Function to adjust label positions after they're rendered and measured
@@ -163,9 +154,8 @@ const FormulaCanvasInner = observer(
         formulaId: id,
         containerElement: containerRef.current,
         computationStore,
-        executionStore,
       });
-    }, [getNodes, getViewport, id, setNodes, computationStore, executionStore]);
+    }, [getNodes, getViewport, id, setNodes, computationStore]);
 
     // Function to add step nodes for step-through visualization
     const addstepNodes = useCallback(() => {
@@ -174,10 +164,9 @@ const FormulaCanvasInner = observer(
         setNodes,
         setEdges,
         formulaId: id,
-        executionStore,
         computationStore,
       });
-    }, [getNodes, id, setNodes, setEdges, executionStore, computationStore]);
+    }, [getNodes, id, setNodes, setEdges, computationStore]);
 
     // Function to update variable node dimensions (e.g., after CSS class changes)
     const updateVariableNodes = useCallback(() => {
@@ -232,8 +221,7 @@ const FormulaCanvasInner = observer(
         variableNodesAddedRef,
         formulaId: id,
         containerElement: containerRef.current,
-        computationStore: computationStore,
-        executionStore: executionStore,
+        computationStore,
       });
     }, [
       id,
@@ -243,7 +231,6 @@ const FormulaCanvasInner = observer(
       nodesInitialized,
       setNodes,
       computationStore,
-      executionStore,
     ]);
 
     // Initialize the canvas with the formula node
@@ -286,15 +273,7 @@ const FormulaCanvasInner = observer(
       };
 
       initializeCanvas();
-    }, [
-      getFormula,
-      id,
-      setNodes,
-      setEdges,
-      formulas,
-      computationStore,
-      executionStore,
-    ]);
+    }, [getFormula, id, setNodes, setEdges, formulas, computationStore]);
 
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
@@ -380,7 +359,7 @@ const FormulaCanvasInner = observer(
           // Position step nodes to avoid label collisions, then make them visible
           if (
             stepNodes.length > 0 &&
-            executionStore.currentStep &&
+            computationStore.currentStep &&
             !stepNodeRepositionedRef.current
           ) {
             stepNodeRepositionedRef.current = true;
@@ -417,7 +396,7 @@ const FormulaCanvasInner = observer(
       setNodes,
       id,
       fitView,
-      executionStore.currentStep,
+      computationStore.currentStep,
     ]);
 
     // Update labels when step mode or active variables change
@@ -428,10 +407,15 @@ const FormulaCanvasInner = observer(
         () => ({
           isStepMode: computationStore.isStepMode(),
           // Track activeVariables by serializing the Map to detect changes
+          // This is what determines which labels to show
           activeVariables: Array.from(
-            executionStore.activeVariables.entries()
+            computationStore.getActiveVariables().entries()
           ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
-          currentStep: executionStore.currentStep,
+          // Only track step description and index for step node updates
+          // NOT tracking full currentStep (which includes values) to avoid
+          // unnecessary rerenders when only values change during drag
+          stepDescription: computationStore.currentStep?.description,
+          stepIndex: computationStore.currentStepIndex,
         }),
         () => {
           if (nodesInitialized && variableNodesAddedRef.current) {
@@ -462,7 +446,8 @@ const FormulaCanvasInner = observer(
               // after they're measured, then make them visible
             }, 50); // Shorter debounce for more responsive updates
           }
-        }
+        },
+        { fireImmediately: true } // Fire immediately to handle initial state
       );
 
       return () => {
@@ -471,6 +456,10 @@ const FormulaCanvasInner = observer(
           clearTimeout(timeoutId);
         }
       };
+      // Note: We intentionally exclude computationStore.currentStep from deps because
+      // the MobX reaction tracks it internally. Including it would cause the
+      // useEffect to re-run and dispose the reaction before timeouts can fire.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       nodesInitialized,
       updateVariableNodes,
@@ -480,7 +469,7 @@ const FormulaCanvasInner = observer(
       adjustLabelPositions,
       fitView,
       computationStore,
-      executionStore,
+      computationStore,
       id,
     ]);
 
@@ -608,7 +597,6 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
     const isLoading = context?.isLoading ?? true;
     const config = context?.config;
     const computationStore = context?.computationStore;
-    const executionStore = context?.executionStore;
 
     // Get formulas from context config (scoped per FormulizeProvider)
     const formulas = config?.formulas || [];
@@ -623,7 +611,7 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
     };
 
     // Show loading state while Formulize is initializing or no context
-    if (isLoading || !instance || !computationStore || !executionStore) {
+    if (isLoading || !instance || !computationStore) {
       return (
         <div
           className={`formula-component ${className}`}
@@ -647,7 +635,6 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
             id={id}
             formulas={formulas}
             computationStore={computationStore}
-            executionStore={executionStore}
           />
         </ReactFlowProvider>
       </div>

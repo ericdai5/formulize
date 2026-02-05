@@ -2,14 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import beautify from "js-beautify";
-
-import { refresh } from "../engine/execute";
-import { extractManual } from "../engine/extract";
+import { refresh } from "../engine/controller";
 import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
 import { MathJaxLoader } from "../internal/mathjax-loader";
-import { FormulizeContext, FormulizeContextValue } from "./hooks/use-formulize";
 import { useMathJax } from "../util/use-mathjax";
+import { FormulizeContext, FormulizeContextValue } from "./hooks/use-formulize";
 
 interface FormulizeProviderProps {
   config?: FormulizeConfig;
@@ -57,41 +54,18 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
           }
 
           // Create new Formulize instance
-          const instance = await Formulize.create(config);
-          instanceRef.current = instance;
+          const newInstance = await Formulize.create(config);
+          instanceRef.current = newInstance;
 
-          // Extract and store the code in executionStore
-          const result = extractManual(config);
-          if (result.code && instance.executionStore) {
-            instance.executionStore.setCode(result.code);
-            instance.executionStore.setEnvironment(config);
-            // Format user-facing code
-            // Note: If extractManual returned code, config.semantics must exist
-            const semanticFunction = config.semantics!;
-            const functionString = semanticFunction.toString();
-            const formattedCode = beautify.js(functionString, {
-              indent_size: 2,
-              space_in_empty_paren: false,
-              preserve_newlines: true,
-              max_preserve_newlines: 2,
-              brace_style: "collapse",
-              keep_array_indentation: false,
-            });
-            // Initialize the interpreter (this calls reset() which clears userCode)
-            if (instance.computationStore) {
-              refresh(
-                result.code,
-                config,
-                instance.executionStore,
-                instance.computationStore
-              );
-            }
-            // Set userCode AFTER refresh() since refresh() calls reset() which clears userCode
-            instance.executionStore.setUserCode(formattedCode);
+          // Initialize steps if stepping mode is enabled
+          if (config.stepping && newInstance.computationStore) {
+            newInstance.computationStore.setStepping(true);
+            refresh(newInstance.computationStore);
           }
-          setInstance(instance);
+
+          setInstance(newInstance);
           if (onReady) {
-            onReady(instance);
+            onReady(newInstance);
           }
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : String(err);
@@ -118,19 +92,11 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
     }, [config, onError, onReady, mathJaxLoaded]);
 
     const reinitialize = useCallback(() => {
-      if (!instance?.executionStore || !instance?.computationStore || !config) {
+      if (!instance?.computationStore) {
         return;
       }
-      const result = extractManual(config);
-      if (result.code) {
-        refresh(
-          result.code,
-          config,
-          instance.executionStore,
-          instance.computationStore
-        );
-      }
-    }, [instance, config]);
+      refresh(instance.computationStore);
+    }, [instance]);
 
     const contextValue: FormulizeContextValue = {
       instance,
@@ -138,7 +104,6 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
       isLoading,
       error,
       computationStore: instance?.computationStore ?? null,
-      executionStore: instance?.executionStore ?? null,
       reinitialize,
     };
 

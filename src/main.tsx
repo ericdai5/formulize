@@ -2,22 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
-import * as acorn from "acorn";
-
 import App from "./app.tsx";
 import "./index.css";
-
-// Make acorn globally available for JS-Interpreter with proper default options
-const acornWithDefaults = {
-  ...acorn,
-  defaultOptions: { ecmaVersion: 5 },
-  parse: (code: string, options = {}) => {
-    return acorn.parse(code, { ecmaVersion: 5, ...options });
-  },
-};
-
-(window as unknown as { acorn: typeof acornWithDefaults }).acorn =
-  acornWithDefaults;
 
 // Only enable react-scan in development
 if (import.meta.env.DEV) {

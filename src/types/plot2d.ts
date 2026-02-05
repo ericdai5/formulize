@@ -54,11 +54,16 @@ export interface I2DLine extends I2DConfigBase {
 /**
  * Point graph: shows the current point without sampling (0 parameters).
  * The manual function must call data2d(id, {x, y}) to provide coordinates.
- * @property: type - The type of object to graph
- * @property: color - Marker color
- * @property: size - Marker size
- * @property: showLabel - Whether to show label
- * @property: interaction - Drag interaction: ["horizontal-drag" | "vertical-drag", variableName]
+ * @property type - The type of object to graph
+ * @property color - Marker color
+ * @property size - Marker size
+ * @property showLabel - Whether to show label
+ * @property interaction - Drag interaction: ["horizontal-drag" | "vertical-drag", variableName]
+ * @property stepId - Optional step ID that controls when this point appears during stepping.
+ *                    When set, the point only appears after the step() call with matching id has been reached.
+ * @property persistence - Controls point visibility during stepping (default: true):
+ *                         true = point stays visible after its step (accumulate)
+ *                         false = point only visible at that exact step
  */
 export interface I2DPoint extends I2DConfigBase {
   type: "point";
@@ -66,50 +71,36 @@ export interface I2DPoint extends I2DConfigBase {
   size?: number;
   showLabel?: boolean;
   interaction?: ["horizontal-drag" | "vertical-drag", string];
+  stepId?: string;
+  persistence?: boolean;
 }
 
 export type I2DConfig = I2DLine | I2DPoint;
 
 /**
- * @property: xValue - The x-value expression (can be a variable name or expression).
- * @property: yValue - The y-value expression (can be a variable name or expression).
- * @property: persistence - Whether the point persists across updates or is removed.
- * @property: color - The color of the point.
- * @property: size - The size of the point.
- * @property: label - The label to display.
- */
-export interface IStepPoint {
-  xValue: string;
-  yValue: string;
-  persistence?: boolean;
-  color?: string;
-  size?: number;
-  label?: string;
-}
-
-/**
- * @property: type - The type of the plot.
- * @property: id - The id of the plot.
- * @property: title - The title of the plot.
- * @property: xAxisLabel - The label for the x-axis (cosmetic only, does not affect graphing).
- * @property: xAxisVar - The variable to bind to x-axis for hover highlighting (optional)
- * @property: xRange - The range of the x-axis.
- * @property: xAxisInterval - The interval of the x-axis.
- * @property: xAxisPos - The position of the x-axis. "center" = x-axis at y=0, "edge" = x-axis at bottom
- * @property: xGrid - The grid visibility for the x-axis.
- * @property: yAxisLabel - The label for the y-axis (cosmetic only, does not affect graphing).
- * @property: yAxisVar - The variable to bind to y-axis for hover highlighting (optional)
- * @property: yRange - The range of the y-axis.
- * @property: yAxisInterval - The interval of the y-axis.
- * @property: yAxisPos - The position of the y-axis.
- * @property: yGrid - The grid visibility for the y-axis.
- * @property: vectors - The vectors for the plot.
- * @property: graphs - Graph-based visualizations using data collected by graph() calls in manual functions.
- * @property: width - The width of the plot.
- * @property: height - The height of the plot.
- * @property: tickFontSize - The font size of the ticks.
- * @property: interaction - The interaction of the plot.
- * @property: stepPoints - The step points for the plot. Render points at specific steps/steps. Key format: "stepId" or "stepId.pointId" for multiple points per step
+ * Plot2D visualization configuration.
+ * @property type - The type of the plot.
+ * @property id - The id of the plot.
+ * @property title - The title of the plot.
+ * @property xAxisLabel - The label for the x-axis (cosmetic only, does not affect graphing).
+ * @property xAxisVar - The variable to bind to x-axis for hover highlighting (optional)
+ * @property xRange - The range of the x-axis.
+ * @property xAxisInterval - The interval of the x-axis.
+ * @property xAxisPos - The position of the x-axis. "center" = x-axis at y=0, "edge" = x-axis at bottom
+ * @property xGrid - The grid visibility for the x-axis.
+ * @property yAxisLabel - The label for the y-axis (cosmetic only, does not affect graphing).
+ * @property yAxisVar - The variable to bind to y-axis for hover highlighting (optional)
+ * @property yRange - The range of the y-axis.
+ * @property yAxisInterval - The interval of the y-axis.
+ * @property yAxisPos - The position of the y-axis.
+ * @property yGrid - The grid visibility for the y-axis.
+ * @property vectors - The vectors for the plot.
+ * @property graphs - Graph-based visualizations using data collected by data2d() calls.
+ *                    Points with stepId will only appear during stepping when that step is reached.
+ * @property width - The width of the plot.
+ * @property height - The height of the plot.
+ * @property tickFontSize - The font size of the ticks.
+ * @property interaction - The interaction of the plot.
  */
 export interface IPlot2D {
   type: "plot2d";
@@ -135,5 +126,4 @@ export interface IPlot2D {
   height?: number | string;
   tickFontSize?: number;
   interaction?: ["horizontal-drag" | "vertical-drag", string];
-  stepPoints?: Record<string, IStepPoint | IStepPoint[]>;
 }

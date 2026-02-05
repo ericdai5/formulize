@@ -34,7 +34,6 @@ const PlaygroundCanvas = observer(() => {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevConfigRef = useRef<FormulizeConfig | null>(null);
   const computationStore = context?.computationStore;
-  const executionStore = context?.executionStore;
   const currentConfig = context?.config;
 
   // Update configKey when config changes to force re-render of Canvas
@@ -56,7 +55,7 @@ const PlaygroundCanvas = observer(() => {
   }, [showDebugModal, isStepMode]);
 
   // Guard: context must be available
-  if (!context || !computationStore || !executionStore) {
+  if (!context || !computationStore) {
     return (
       <div className="formula-renderer overflow-hidden w-full h-full flex items-center justify-center">
         <div className="text-slate-500">Loading...</div>
@@ -94,7 +93,6 @@ const PlaygroundCanvas = observer(() => {
                 controls={currentConfig?.controls}
                 environment={currentConfig || undefined}
                 computationStore={computationStore}
-                executionStore={executionStore}
               />
             </div>
           </div>

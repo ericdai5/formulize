@@ -16,7 +16,6 @@ import {
 import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { AxisLabels } from "./axis-labels";
 import { PLOT2D_DEFAULTS } from "./defaults";
-import { STEP_POINTS_EXTENSION_KEY, StepPointsRenderer } from "./step-points";
 import { calculatePlotDimensions } from "./utils";
 import { getAllVectorVariables, renderVectors } from "./vectors";
 
@@ -40,6 +39,7 @@ interface GraphLineData {
 
 // Graph-based point data structure
 interface GraphPointData {
+  graphId: string;
   name: string;
   point: DataPoint;
   color: string;
@@ -47,6 +47,8 @@ interface GraphPointData {
   showInLegend: boolean;
   showLabel: boolean;
   interaction?: ["horizontal-drag" | "vertical-drag", string];
+  stepId?: string;
+  persistence?: boolean;
 }
 
 /**
@@ -110,11 +112,14 @@ function calculateGraphData(
         size = 6,
         showLabel = true,
         interaction,
+        stepId,
+        persistence,
       } = pointConfig;
       // Run once with current values to get the current point
       const point = computationStore.sample2DPoint(graphId);
       if (point) {
         pointResults.push({
+          graphId,
           name: displayName,
           point,
           color,
@@ -122,6 +127,8 @@ function calculateGraphData(
           showInLegend,
           showLabel,
           interaction,
+          stepId,
+          persistence,
         });
       }
     }
@@ -133,13 +140,9 @@ function calculateGraphData(
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   const context = useFormulize();
   const computationStore = context?.computationStore;
-  const executionStore = context?.executionStore;
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const axisLabelInfoRef = useRef<AxisLabelInfo>({});
-  const stepPointsRendererRef = useRef<StepPointsRenderer>(
-    new StepPointsRenderer()
-  );
   // Track if drag is happening on THIS plot (to distinguish from formula variable drag)
   const isLocalDragRef = useRef(false);
   // Track focus state for graph interaction (persists across re-renders)
@@ -169,7 +172,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     width = PLOT2D_DEFAULTS.width,
     height = PLOT2D_DEFAULTS.height,
     interaction,
-    stepPoints,
   } = config;
 
   // Get axis labels from config (purely cosmetic, don't affect graphing)
@@ -238,10 +240,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     if (!svgRef.current) return;
 
-    // Check if we have vectors, graphs, or step points
+    // Check if we have vectors or graphs
     const hasVectors = vectors && vectors.length > 0;
-    const hasStepPoints = !!stepPoints && !!executionStore;
-    if (!hasVectors && !hasGraphs && !hasStepPoints) return;
+    if (!hasVectors && !hasGraphs) return;
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
@@ -320,6 +321,50 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     if (hasGraphs) {
       const graphResults = calculateGraphData(graphs, computationStore);
 
+      // Separate regular points from step-dependent points
+      const regularPoints: GraphPointData[] = [];
+      const stepPoints: Array<{
+        config: GraphPointData;
+        accumulatedPoints: DataPoint[];
+      }> = [];
+
+      for (const pointData of graphResults.points) {
+        if (!pointData.stepId) {
+          // No stepId - always visible as a single point
+          regularPoints.push(pointData);
+        } else if (computationStore.stepping) {
+          // Has stepId and in stepping mode - collect accumulated points from dataPointMap
+          const steps = computationStore.steps;
+          const currentStepIndex = computationStore.currentStepIndex;
+          const graphId = pointData.graphId;
+          const allPoints = (computationStore.stepDataPointMap.get(graphId) ??
+            []) as unknown as DataPoint[];
+
+          // Count how many steps with matching stepId are in range [0, currentStepIndex]
+          let matchingStepCount = 0;
+          for (let i = 0; i <= currentStepIndex && i < steps.length; i++) {
+            if (steps[i].id === pointData.stepId) {
+              matchingStepCount++;
+            }
+          }
+
+          // Get accumulated points based on step progress
+          const accumulatedPoints: DataPoint[] =
+            pointData.persistence === false
+              ? // Only show the current step's point (no persistence)
+                matchingStepCount > 0 && allPoints[matchingStepCount - 1]
+                ? [allPoints[matchingStepCount - 1]]
+                : []
+              : // Default (true): show all points up to current step
+                allPoints.slice(0, matchingStepCount);
+
+          if (accumulatedPoints.length > 0) {
+            stepPoints.push({ config: pointData, accumulatedPoints });
+          }
+        }
+        // If has stepId but not in stepping mode, point is not visible
+      }
+
       // Generate unique clipPath id for graph lines
       const graphClipId = `graph-clip-${Math.random().toString(36).slice(2)}`;
 
@@ -356,7 +401,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       });
 
       // Store point data for rendering after interaction layer
-      const graphPointsData = graphResults.points;
+      const graphPointsData = regularPoints;
 
       // Add drag interaction for graph-based visualization
       // Find the first line config to use its parameter/interaction for dragging
@@ -1094,21 +1139,32 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           }
         });
       }
+
+      // Render accumulated step points (points with stepId that collect from multiple steps)
+      stepPoints.forEach(({ config, accumulatedPoints }, stepPointIndex) => {
+        const { color, size = 6 } = config;
+
+        accumulatedPoints.forEach((pt, ptIndex) => {
+          if (pt.x >= xMin && pt.x <= xMax && pt.y >= yMin && pt.y <= yMax) {
+            svg
+              .append("circle")
+              .attr(
+                "class",
+                `step-point step-point-${stepPointIndex}-${ptIndex}`
+              )
+              .attr("cx", xScale(pt.x))
+              .attr("cy", yScale(pt.y))
+              .attr("r", size)
+              .attr("fill", color)
+              .attr("stroke", "#fff")
+              .attr("stroke-width", 2)
+              .attr("opacity", 0.9);
+          }
+        });
+      });
     }
 
     // Note: Hover lines for variables removed - labels are now purely cosmetic
-
-    // Render step points from extensions (values resolved in useEffect)
-    if (stepPoints && executionStore) {
-      stepPointsRendererRef.current.render(
-        svg,
-        xScale,
-        yScale,
-        [xMin, xMax],
-        [yMin, yMax],
-        executionStore
-      );
-    }
   }, [
     vectors,
     graphs,
@@ -1132,9 +1188,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     xGrid,
     yGrid,
     interaction,
-    stepPoints,
     computationStore,
-    executionStore,
   ]);
 
   // Set up reaction to re-render when any variable changes
@@ -1154,22 +1208,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           allVariables[id] = typeof value === "number" ? value : 0;
         }
 
-        // Also track active variables and history index if execution store exists
-        if (executionStore) {
-          // Serialize activeVariables Map for change detection
-          allVariables._activeVars = Array.from(
-            executionStore.activeVariables.entries()
-          )
-            .map(
-              ([formulaId, varSet]) =>
-                `${formulaId}:${Array.from(varSet).join(",")}`
-            )
-            .join(";");
-          // Track historyIndex to re-render when stepping through history
-          allVariables._historyIndex = executionStore.historyIndex;
-        }
         // Always track isDragging for proper state management
         allVariables._isDragging = computationStore.isDragging;
+        // Track step state for step-dependent point visibility
+        allVariables._stepping = computationStore.stepping;
+        allVariables._currentStepIndex = computationStore.currentStepIndex;
+        allVariables._stepsLength = computationStore.steps.length;
         // Include local drag state as a marker (not for MobX tracking, just for effect logic)
         // We read the ref here to include it in the returned data
         const localDragActive = isLocalDragRef.current;
@@ -1209,7 +1253,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     );
 
     return () => disposer();
-  }, [drawPlot, interaction, graphs, computationStore, executionStore]);
+  }, [drawPlot, interaction, graphs, computationStore]);
 
   // Clean up global event listeners on unmount
   useEffect(() => {
@@ -1227,79 +1271,6 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   useEffect(() => {
     drawPlot();
   }, [config, drawPlot]);
-
-  // Re-draw when execution store resets (step points are managed by the system)
-  useEffect(() => {
-    if (!executionStore) return;
-    const disposer = reaction(
-      () => executionStore.resetCount,
-      () => {
-        drawPlot();
-      },
-      { fireImmediately: true }
-    );
-    return () => disposer();
-  }, [executionStore, drawPlot]);
-
-  // Register step points by resolving variable names from step.variables
-  useEffect(() => {
-    if (!stepPoints || !executionStore || executionStore.history.length === 0) {
-      return;
-    }
-
-    const items: Array<{
-      viewId: string;
-      index?: number;
-      persistence?: boolean;
-      data: Record<string, unknown>;
-    }> = [];
-
-    for (const [viewId, pointsConfig] of Object.entries(stepPoints)) {
-      const pointsArray = Array.isArray(pointsConfig)
-        ? pointsConfig
-        : [pointsConfig];
-
-      for (const pointConfig of pointsArray) {
-        // Iterate ALL steps to find each occurrence of this viewId
-        for (let i = 0; i < executionStore.history.length; i++) {
-          const step = executionStore.history[i];
-          if (step.step?.id !== viewId) continue;
-
-          const xValue = step.variables[pointConfig.xValue];
-          const yValue = step.variables[pointConfig.yValue];
-
-          if (typeof xValue !== "number" || typeof yValue !== "number") {
-            continue;
-          }
-
-          items.push({
-            viewId,
-            index: i,
-            persistence: pointConfig.persistence,
-            data: {
-              xValue,
-              yValue,
-              color: pointConfig.color,
-              size: pointConfig.size,
-              label: pointConfig.label,
-            },
-          });
-        }
-      }
-    }
-
-    if (items.length > 0) {
-      executionStore.addObject({
-        key: STEP_POINTS_EXTENSION_KEY,
-        items,
-      });
-    }
-  }, [
-    stepPoints,
-    executionStore,
-    executionStore?.history.length,
-    executionStore?.resetCount,
-  ]);
 
   // Guard: computationStore must be provided - placed after all hooks
   if (!computationStore) {

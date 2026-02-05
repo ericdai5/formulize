@@ -5,6 +5,7 @@ import { ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
+import { ICollectedStep, IView } from "../types/step";
 import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
 import { AugmentedFormula } from "../util/parse/formula-tree";
 
@@ -82,6 +83,43 @@ class ComputationStore {
   @observable
   accessor stepping: boolean = false;
 
+  // ============= Step Store Properties =============
+
+  /** All collected steps from the latest semantics execution */
+  @observable
+  accessor steps: ICollectedStep[] = [];
+
+  /** Current step index being viewed (0-based) */
+  @observable
+  accessor currentStepIndex: number = 0;
+
+  /** Error message if step collection failed */
+  @observable
+  accessor stepError: string | null = null;
+
+  /**
+   * Separate storage for step mode values - completely isolated from main variables.
+   * Only components observing stepValues will re-render when step values change.
+   * This is similar to how plot data (lines, surfaces) is stored separately.
+   */
+  @observable
+  accessor stepValues = new Map<string, IValue>();
+
+  /**
+   * Version counter for step values - incremented when stepValues changes.
+   * Components can observe this to know when to re-read stepValues.
+   */
+  @observable
+  accessor stepValuesVersion: number = 0;
+
+  /**
+   * Data points collected during step sampling.
+   * Maps graph ID to array of {x, y} points in execution order.
+   * Used by visualizations to show accumulated points based on step progress.
+   */
+  @observable
+  accessor stepDataPointMap = new Map<string, IDataPoint[]>();
+
   private evaluationFunction: EvaluationFunction | null = null;
 
   isStepMode(): boolean {
@@ -93,8 +131,298 @@ class ComputationStore {
     this.stepping = enabled;
   }
 
+  // ============= Step Store Computed Getters =============
+
+  /** Get the current step being viewed */
+  get currentStep(): ICollectedStep | undefined {
+    return this.steps[this.currentStepIndex];
+  }
+
+  /** Get the total number of collected steps */
+  get totalSteps(): number {
+    return this.steps.length;
+  }
+
+  /** Check if we're at the first step */
+  get isAtStart(): boolean {
+    return this.currentStepIndex === 0;
+  }
+
+  /** Check if we're at the last step */
+  get isAtEnd(): boolean {
+    return this.currentStepIndex >= this.steps.length - 1;
+  }
+
+  /** Get progress as a percentage (0-100) */
+  get stepProgress(): number {
+    if (this.steps.length === 0) return 0;
+    return ((this.currentStepIndex + 1) / this.steps.length) * 100;
+  }
+
+  // ============= Step Store Actions =============
+
+  /**
+   * Set the collected steps from semantics execution.
+   * Resets the current step index to 0 and updates stepValues immediately.
+   */
+  @action
+  setSteps(steps: ICollectedStep[]): void {
+    this.steps = steps;
+    this.currentStepIndex = 0;
+    this.stepError = null;
+    // Update stepValues immediately to keep state consistent
+    this.updateStepValues();
+  }
+
+  /**
+   * Navigate to the next step.
+   * Does nothing if already at the last step.
+   */
+  @action
+  nextStep(): void {
+    if (this.currentStepIndex < this.steps.length - 1) {
+      this.currentStepIndex++;
+    }
+  }
+
+  /**
+   * Navigate to the previous step.
+   * Does nothing if already at the first step.
+   */
+  @action
+  prevStep(): void {
+    if (this.currentStepIndex > 0) {
+      this.currentStepIndex--;
+    }
+  }
+
+  /**
+   * Navigate to a specific step by index.
+   * Clamps the index to valid range.
+   */
+  @action
+  goToStep(index: number): void {
+    if (this.steps.length === 0) return;
+    this.currentStepIndex = Math.max(0, Math.min(index, this.steps.length - 1));
+  }
+
+  /**
+   * Go to the first step.
+   */
+  @action
+  goToStart(): void {
+    this.currentStepIndex = 0;
+  }
+
+  /**
+   * Go to the last step.
+   */
+  @action
+  goToEnd(): void {
+    if (this.steps.length > 0) {
+      this.currentStepIndex = this.steps.length - 1;
+    }
+  }
+
+  /**
+   * Set an error message for step collection.
+   */
+  @action
+  setStepError(error: string | null): void {
+    this.stepError = error;
+  }
+
+  /**
+   * Reset step-related state only.
+   */
+  @action
+  resetSteps(): void {
+    this.steps = [];
+    this.currentStepIndex = 0;
+    this.stepping = false;
+    this.stepError = null;
+    this.stepValues.clear();
+    this.stepValuesVersion++;
+  }
+
+  /**
+   * Get the view for a specific formula from the current step.
+   * Returns the view for the given formulaId, or the default view (empty string key).
+   *
+   * @param formulaId - The formula ID to get the view for
+   * @returns The view for the formula, or undefined if not found
+   */
+  getViewForFormula(formulaId: string): IView | undefined {
+    const step = this.currentStep;
+    if (!step) return undefined;
+
+    // If step has per-formula views, use the specific one or fallback to default
+    if (step.formulas) {
+      return step.formulas[formulaId] ?? step.formulas[""];
+    }
+
+    // Otherwise, return a view constructed from the step's top-level properties
+    return {
+      description: step.description,
+      values: step.values,
+      expression: step.expression,
+    };
+  }
+
+  /**
+   * Get all variable values from the current step.
+   * Merges values from all formula views if multi-formula step.
+   *
+   * @returns Map of variable ID to value
+   */
+  getCurrentStepValues(): Map<string, IValue> {
+    const values = new Map<string, IValue>();
+    const step = this.currentStep;
+    if (!step) return values;
+
+    // Collect values from top-level step
+    if (step.values) {
+      for (const [varId, value] of step.values) {
+        values.set(varId, value);
+      }
+    }
+
+    // Also collect from per-formula views if present
+    if (step.formulas) {
+      for (const view of Object.values(step.formulas)) {
+        if (view.values) {
+          for (const [varId, value] of view.values) {
+            values.set(varId, value);
+          }
+        }
+      }
+    }
+
+    return values;
+  }
+
+  /**
+   * Get active variable IDs grouped by formula from the current step.
+   * Used for applying visual cues to updated variables.
+   *
+   * @returns Map of formula ID to Set of variable IDs
+   */
+  getActiveVariables(): Map<string, Set<string>> {
+    const activeVarsMap = new Map<string, Set<string>>();
+    const step = this.currentStep;
+    if (!step) return activeVarsMap;
+
+    if (step.formulas) {
+      // Multi-formula step: group by formula ID
+      for (const [formulaId, view] of Object.entries(step.formulas)) {
+        if (view.values && view.values.length > 0) {
+          const varIds = new Set(view.values.map(([varId]) => varId));
+          activeVarsMap.set(formulaId, varIds);
+        }
+      }
+    } else if (step.values && step.values.length > 0) {
+      // Single formula step: use empty string key for "all formulas"
+      const varIds = new Set(step.values.map(([varId]) => varId));
+      activeVarsMap.set("", varIds);
+    }
+
+    return activeVarsMap;
+  }
+
   get evaluateFormula(): EvaluationFunction | null {
     return this.evaluationFunction;
+  }
+
+  // ============= Step Values (Isolated Rendering) =============
+
+  /**
+   * Get the display value for a variable.
+   * In step mode, returns the value from stepValues (isolated step data).
+   * In normal mode, returns the value from the main variables map.
+   *
+   * @param varId - The variable ID
+   * @returns The value to display, or undefined if not found
+   */
+  getDisplayValue(varId: string): IValue | undefined {
+    if (this.stepping) {
+      if (this.stepValues.has(varId)) {
+        return this.stepValues.get(varId);
+      }
+    }
+    return this.variables.get(varId)?.value;
+  }
+
+  /**
+   * Update stepValues from the current step's data.
+   * This is called when navigating steps or when input changes in step mode.
+   * Only updates the stepValues map - does NOT touch the main variables map.
+   */
+  @action
+  updateStepValues(): void {
+    const step = this.currentStep;
+    if (!step) {
+      this.stepValues.clear();
+      this.stepValuesVersion++;
+      return;
+    }
+
+    // Clear and rebuild stepValues from current step
+    this.stepValues.clear();
+
+    // Collect values from top-level step
+    if (step.values) {
+      for (const [varId, value] of step.values) {
+        this.stepValues.set(varId, value);
+      }
+    }
+
+    // Also collect from per-formula views if present
+    if (step.formulas) {
+      for (const view of Object.values(step.formulas)) {
+        if (view.values) {
+          for (const [varId, value] of view.values) {
+            this.stepValues.set(varId, value);
+          }
+        }
+      }
+    }
+
+    this.stepValuesVersion++;
+  }
+
+  /**
+   * Sample the current step and update stepValues.
+   * Used when input variables change in step mode.
+   * This re-runs the semantics to get fresh values for the current step.
+   */
+  @action
+  refreshCurrentStepValues(): void {
+    if (!this.semantics || typeof this.semantics !== "function") {
+      return;
+    }
+
+    try {
+      // Sample all steps with current input values
+      const steps = this.sampleSteps();
+
+      // Update steps array (this keeps total count accurate)
+      this.steps = steps;
+
+      // Clamp current index if needed
+      if (steps.length === 0) {
+        this.currentStepIndex = 0;
+      } else if (this.currentStepIndex >= steps.length) {
+        this.currentStepIndex = steps.length - 1;
+      }
+
+      // Update stepValues from the current step
+      this.updateStepValues();
+    } catch (error) {
+      console.error("[refreshCurrentStepValues] Error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.stepError = errorMessage;
+    }
   }
 
   /**
@@ -129,8 +457,15 @@ class ComputationStore {
     this.environment = null;
     this.formulas = [];
     this.semantics = null;
-    this.stepping = false;
     this.evaluationFunction = null;
+    // Reset step-related state
+    this.steps = [];
+    this.currentStepIndex = 0;
+    this.stepping = false;
+    this.stepError = null;
+    this.stepValues.clear();
+    this.stepValuesVersion++;
+    this.stepDataPointMap.clear();
     // Remove custom CSS style element
     const styleElement = document.getElementById("custom-var-styles");
     if (styleElement) {
@@ -223,9 +558,22 @@ class ComputationStore {
     if (!variable) {
       return false;
     }
+
+    // Skip if value hasn't changed (avoid redundant updates)
+    if (variable.value === value) {
+      return true;
+    }
+
     variable.value = value;
-    // Re-run computation to update dependent variables
-    this.runComputation();
+
+    if (this.stepping) {
+      // In step mode: refresh step values (isolated from main variables)
+      // This re-samples the semantics and updates stepValues only
+      this.refreshCurrentStepValues();
+    } else {
+      // Normal mode: re-run computation to update dependent variables
+      this.runComputation();
+    }
   }
 
   @action
@@ -235,19 +583,25 @@ class ComputationStore {
       return false;
     }
     variable.value = set;
-    // Re-run computation to update dependent variables
-    this.runComputation();
+
+    if (this.stepping) {
+      // In step mode: refresh step values (isolated from main variables)
+      this.refreshCurrentStepValues();
+    } else {
+      // Normal mode: re-run computation to update dependent variables
+      this.runComputation();
+    }
     return true;
   }
 
+  /**
+   * Set a step value directly in the stepValues map.
+   * Used by the Controller when applying step state.
+   * Does NOT touch the main variables map.
+   */
   @action
-  setValueInStepMode(id: string, value: IValue): boolean {
-    const variable = this.variables.get(id);
-    if (!variable) {
-      return false;
-    }
-    variable.value = value as IValue;
-    return true;
+  setStepValue(id: string, value: IValue): void {
+    this.stepValues.set(id, value);
   }
 
   @action
@@ -460,6 +814,27 @@ class ComputationStore {
       })),
       hasFunction: !!this.evaluationFunction,
     };
+  }
+
+  // ============= Step Data Collection =============
+
+  /**
+   * Run the semantics function once with current values and collect all step() calls.
+   * This follows the reactive data collection pattern similar to sample2DPoint/sample3DPoint.
+   * Also stores the dataPointMap for step-dependent point visualization.
+   *
+   * @returns Array of collected steps from the semantics execution
+   */
+  @action
+  sampleSteps(): ICollectedStep[] {
+    if (!this.semantics || typeof this.semantics !== "function") {
+      return [];
+    }
+    const variables = this.getVariablesSnapshot();
+    const result = computeWithManualEngine(variables, this.semantics, true);
+    // Store dataPointMap for step-dependent visualizations
+    this.stepDataPointMap = result.dataPointMap;
+    return result.stepList;
   }
 
   // ============= Graph Data Collection =============

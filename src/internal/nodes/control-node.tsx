@@ -1,6 +1,5 @@
 import { observer } from "mobx-react-lite";
 
-import ArrayControl from "../../core/controls/array";
 import ButtonControl from "../../core/controls/button";
 import CheckboxControl from "../../core/controls/checkbox";
 import RadioControl from "../../core/controls/radio";
@@ -16,7 +15,6 @@ const ControlNode = observer(({ data }: { data: any }) => {
       <div className="control-node border bg-white border-slate-200 rounded-3xl p-4">
         <div className="nodrag">
           {control.type === "slider" && <Slider control={control} />}
-          {control.type === "array" && <ArrayControl control={control} />}
           {control.type === "set" && <SetControl control={control} />}
           {control.type === "checkbox" && <CheckboxControl control={control} />}
           {control.type === "radio" && <RadioControl control={control} />}

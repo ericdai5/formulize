@@ -5,7 +5,6 @@
  * as described in the Formulize API Documentation.
  */
 import { ComputationStore, createComputationStore } from "./store/computation";
-import { ExecutionStore, createExecutionStore } from "./store/execution";
 import { FormulaStore, formulaStoreManager } from "./store/formulas";
 import { IEnvironment } from "./types/environment";
 import { IVariable } from "./types/variable";
@@ -22,7 +21,6 @@ export type FormulizeConfig = IEnvironment;
 export interface FormulizeInstance {
   environment: IEnvironment;
   computationStore: ComputationStore;
-  executionStore: ExecutionStore;
   getVariable: (name: string) => IVariable;
   setVariable: (name: string, value: number) => boolean;
   update: (config: FormulizeConfig) => Promise<FormulizeInstance>;
@@ -53,8 +51,7 @@ function validateEnvironment(config: FormulizeConfig) {
  */
 async function initializeInstance(
   config: FormulizeConfig,
-  computationStore: ComputationStore,
-  executionStore: ExecutionStore
+  computationStore: ComputationStore
 ): Promise<FormulizeInstance> {
   try {
     // Validate the config
@@ -77,7 +74,7 @@ async function initializeInstance(
     };
 
     // Reset all state to ensure we start fresh
-    // Clear computation store variables and state
+    // Clear computation store variables and state (includes step state)
     computationStore.reset();
     computationStore.setVariableRolesChanged(0);
 
@@ -136,7 +133,6 @@ async function initializeInstance(
     const instance: FormulizeInstance = {
       environment: environment,
       computationStore,
-      executionStore,
       getVariable: (name: string): IVariable => {
         // Find the variable by name
         if (Object.keys(normalizedVariables).length === 0) {
@@ -173,14 +169,11 @@ async function initializeInstance(
         return false;
       },
       update: async (updatedConfig: FormulizeConfig) => {
-        return await initializeInstance(
-          updatedConfig,
-          computationStore,
-          executionStore
-        );
+        return await initializeInstance(updatedConfig, computationStore);
       },
       destroy: () => {
         formulaStoreManager.clearAllStores();
+        computationStore.resetSteps();
       },
     };
     return instance;
@@ -195,8 +188,7 @@ async function initializeInstance(
  */
 async function create(config: FormulizeConfig): Promise<FormulizeInstance> {
   const computationStore = createComputationStore();
-  const executionStore = createExecutionStore();
-  return initializeInstance(config, computationStore, executionStore);
+  return initializeInstance(config, computationStore);
 }
 
 // Export the Formulize API
