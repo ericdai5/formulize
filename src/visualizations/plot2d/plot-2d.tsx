@@ -607,10 +607,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           const focusState = focusStateRef.current;
 
           // Reset all lines and points first
-          graphResults.lines.forEach((_, i) => {
+          graphResults.lines.forEach((lineData, i) => {
             svg
               .select(`path.graph-line-${i}`)
-              .attr("stroke-width", 2)
+              .attr("stroke-width", lineData.lineWidth ?? 2)
               .attr("filter", null);
           });
           graphPointsData.forEach((_, i) => {
