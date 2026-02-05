@@ -18,7 +18,6 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const context = useFormulize();
   const computationStore = context?.computationStore;
-  const executionStore = context?.executionStore;
 
   // All hooks must be called before any conditional returns
   const [isInitialized, setIsInitialized] = useState(false);
@@ -42,14 +41,13 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     const dataWithStores: FormulaNodeData = {
       ...data,
       computationStore: computationStore ?? undefined,
-      executionStore: executionStore ?? undefined,
     };
     await renderFormulaWithMathJax(
       nodeRef.current,
       dataWithStores,
       isInitialized
     );
-  }, [data, computationStore, executionStore, isInitialized]);
+  }, [data, computationStore, isInitialized]);
 
   useEffect(() => {
     if (isInitialized) {
@@ -58,7 +56,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   }, [isInitialized, renderFormula]);
 
   useEffect(() => {
-    if (!computationStore || !executionStore) return;
+    if (!computationStore) return;
     const disposer = reaction(
       () => ({
         variables: Array.from(computationStore.variables.entries()).map(
@@ -72,7 +70,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
         // Re-render when active variables change (for index variable display)
         // Serialize activeVariables Map for change detection
         activeVariables: Array.from(
-          executionStore.activeVariables.entries()
+          computationStore.getActiveVariables().entries()
         ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
       }),
       () => {
@@ -82,7 +80,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
       }
     );
     return () => disposer();
-  }, [computationStore, executionStore, isInitialized, renderFormula]);
+  }, [computationStore, isInitialized, renderFormula]);
 
   // React to hover state changes and update DOM directly
   useEffect(() => {
@@ -109,7 +107,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   }, [computationStore, data.id]);
 
   // All conditional returns must happen after all hooks are called
-  if (!computationStore || !executionStore) return null;
+  if (!computationStore) return null;
 
   const customStyle = computationStore.environment?.formulaNodeStyle
     ? toJS(computationStore.environment.formulaNodeStyle)

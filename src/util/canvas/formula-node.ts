@@ -1,6 +1,5 @@
-import { processLatexContent } from "../parse/variable";
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
+import { processLatexContent } from "../parse/variable";
 import { injectVariableSVGs } from "../svg/svg-processor";
 
 export interface FormulaNodeData {
@@ -12,7 +11,6 @@ export interface FormulaNodeData {
   };
   showDragHandle?: boolean;
   computationStore?: ComputationStore;
-  executionStore?: ExecutionStore;
 }
 
 /**
@@ -29,8 +27,8 @@ export async function renderFormulaWithMathJax(
 ): Promise<void> {
   if (!container || !isInitialized) return;
 
-  const { latex, id: formulaId, environment, computationStore, executionStore } = data;
-  if (!computationStore || !executionStore) {
+  const { latex, id: formulaId, environment, computationStore } = data;
+  if (!computationStore) {
     return;
   }
 
@@ -54,7 +52,6 @@ export async function renderFormulaWithMathJax(
         latex,
         2,
         computationStore,
-        executionStore,
         formulaId
       );
     } catch (latexError) {

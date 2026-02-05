@@ -1,13 +1,11 @@
 import { observer } from "mobx-react-lite";
 
 import {
-  IArrayControl,
   ICheckboxControl,
   IControls,
   ISetControl,
   ISliderControl,
 } from "../../types/control";
-import ArrayControl from "./array";
 import CheckboxControl from "./checkbox";
 import SetControl from "./set";
 import Slider from "./slider";
@@ -27,9 +25,6 @@ const ControlPanel = observer(({ controls }: ControlPanelProps) => {
     switch (control.type) {
       case "slider":
         return <Slider key={key} control={control as ISliderControl} />;
-
-      case "array":
-        return <ArrayControl key={key} control={control as IArrayControl} />;
 
       case "set":
         return <SetControl key={key} control={control as ISetControl} />;

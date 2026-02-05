@@ -129,7 +129,6 @@ export interface AddLabelNodesParams {
   getViewport: () => { zoom: number; x: number; y: number };
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   computationStore: ComputationStore;
-  executionStore: ExecutionStore;
 }
 
 export interface AdjustLabelPositionsParams {
@@ -144,7 +143,6 @@ export interface UpdateLabelNodesParams {
   formulaId: string;
   containerElement?: Element | null;
   computationStore: ComputationStore;
-  executionStore: ExecutionStore;
 }
 
 /**
@@ -188,7 +186,8 @@ export const processVariableElementsForLabels = (
   currentNodes: Node[],
   viewport: { zoom: number; x: number; y: number },
   computationStore: ComputationStore,
-  executionStore: ExecutionStore
+  activeVariables: Map<string, Set<string>>,
+  currentStep?: ICollectedStep
 ): {
   labelNodes: Node[];
   variableNodeUpdates: Array<{
@@ -206,7 +205,7 @@ export const processVariableElementsForLabels = (
   // 1. The step has an empty string key (applies to all formulas), OR
   // 2. The step has a key that matches this formula's id
   if (computationStore.isStepMode()) {
-    const step = executionStore.currentStep;
+    const step = currentStep;
     if (step?.formulas) {
       const formulaIds = Object.keys(step.formulas);
       // If step has specific formulaIds (not just empty string for "all"),
@@ -233,11 +232,16 @@ export const processVariableElementsForLabels = (
     const variable = computationStore.variables.get(cssId);
     // Don't create label node if labelDisplay is "none"
     if (variable?.labelDisplay === "none") return;
+    // In step mode, check stepValues for the display value
+    // Otherwise, use the variable's value
+    const displayValue = computationStore.isStepMode()
+      ? computationStore.getDisplayValue(cssId)
+      : variable?.value;
     // Only create label node if there's either a label OR a value
     const hasValue =
-      variable?.value !== undefined &&
-      variable?.value !== null &&
-      (typeof variable.value === "number" ? !isNaN(variable.value) : true);
+      displayValue !== undefined &&
+      displayValue !== null &&
+      (typeof displayValue === "number" ? !isNaN(displayValue) : true);
     const hasName = variable?.name;
     // For labelDisplay === "value", we must have a valid value to show
     // For other displays, we can show just the name
@@ -246,8 +250,8 @@ export const processVariableElementsForLabels = (
     // Check if this label should be visible using the same logic as LabelNode component
     // activeVariables is a Map<formulaId, Set<varId>>
     // Empty string key '' means "all formulas"
-    const allFormulasVars = executionStore.activeVariables.get("") ?? new Set();
-    const thisFormulaVars = executionStore.activeVariables.get(id) ?? new Set();
+    const allFormulasVars = activeVariables.get("") ?? new Set();
+    const thisFormulaVars = activeVariables.get(id) ?? new Set();
     const isVariableActive =
       allFormulasVars.has(cssId) || thisFormulaVars.has(cssId);
     // If in step mode and variable is not active, skip creating this label
@@ -271,7 +275,7 @@ export const processVariableElementsForLabels = (
 
     // Stepnodes are always rendered above the equation.
     // If there is an active view, force labels to be below to avoid edge overlaps.
-    const forcePlacement = executionStore.currentStep ? "below" : undefined;
+    const forcePlacement = currentStep ? "below" : undefined;
 
     const formulaDimensions = getNodeDimensions(formulaNode, {
       width: DEFAULT_DIMENSIONS.formulaWidth,
@@ -322,6 +326,8 @@ export const processVariableElementsForLabels = (
 /**
  * Update label nodes for a single formula.
  * This is used by FormulaComponent when activeVariables change.
+ * Optimized to only add/remove labels when the set of active variables changes,
+ * NOT when values change (values are handled by LabelNode component via MobX).
  */
 export const updateLabelNodes = ({
   getNodes,
@@ -330,10 +336,13 @@ export const updateLabelNodes = ({
   formulaId,
   containerElement,
   computationStore,
-  executionStore,
 }: UpdateLabelNodesParams): void => {
   const currentNodes = getNodes();
   const viewport = getViewport();
+
+  // Get active variables and current step from computation store
+  const activeVariables = computationStore.getActiveVariables();
+  const currentStep = computationStore.currentStep;
   const formulaElement = getFormulaElementFromContainer(
     containerElement,
     currentNodes,
@@ -366,11 +375,9 @@ export const updateLabelNodes = ({
         executionStore
       );
     // Apply variable node updates (labelPlacement)
-    const updatedNodes = updateLabelPlacement(
-      nonLabelNodes,
-      variableNodeUpdates
-    );
-    return [...updatedNodes, ...labelNodes];
+    const updatedNodes = updateLabelPlacement(nonLabelNodes, variableNodeUpdates);
+
+    return [...updatedNodes, ...keptLabels, ...labelsToAdd];
   });
 };
 
@@ -382,7 +389,6 @@ export const addLabelNodes = ({
   getViewport,
   setNodes,
   computationStore,
-  executionStore,
 }: AddLabelNodesParams): void => {
   const currentNodes = getNodes();
   const viewport = getViewport();
@@ -391,6 +397,10 @@ export const addLabelNodes = ({
     nodeId: string;
     labelPlacement: PlacementDirection;
   }> = [];
+
+  // Get active variables and current step from computation store
+  const activeVariables = computationStore.getActiveVariables();
+  const currentStep = computationStore.currentStep;
 
   forEachFormulaNode(currentNodes, (formulaNode, formulaElement, id) => {
     const { labelNodes: formulaLabels, variableNodeUpdates: formulaUpdates } =
@@ -401,7 +411,8 @@ export const addLabelNodes = ({
         currentNodes,
         viewport,
         computationStore,
-        executionStore
+        activeVariables,
+        currentStep
       );
     labelNodes.push(...formulaLabels);
     variableNodeUpdates.push(...formulaUpdates);

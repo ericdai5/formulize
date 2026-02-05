@@ -20,10 +20,12 @@ import { IValue, IVariable } from "../types/variable";
  * Result from engine execution including variable values and graph dataPoints.
  * @property {Record<string, IValue>} values - Computed variable values after execution
  * @property {Map<string, IDataPoint[]>} dataPointMap - dataPoints captured by data2d/data3d calls, keyed by graph ID
+ * @property {ICollectedStep[]} stepList - Steps collected during execution via step() calls
  */
 export interface IManualEngineResult {
   values: Record<string, IValue>;
   dataPointMap: Map<string, IDataPoint[]>;
+  stepList: ICollectedStep[];
 }
 
 // ============================================================================
@@ -37,7 +39,7 @@ export interface IManualEngineResult {
  */
 function createValueProxy(
   variables: Record<string, IVariable>
-): Record<string, any> {
+): Record<string, IValue | undefined> {
   return new Proxy(
     {},
     {

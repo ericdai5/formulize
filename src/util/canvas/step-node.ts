@@ -1,10 +1,9 @@
 import { Edge, Node } from "@xyflow/react";
 
 import { unescapeLatex } from "../../engine/controller";
-import { findExpression } from "../parse/formula-tree";
 import { ComputationStore } from "../../store/computation";
-import { ExecutionStore } from "../../store/execution";
 import { IView } from "../../types/step";
+import { findExpression } from "../parse/formula-tree";
 import {
   NODE_TYPES,
   getFormulaElement,
@@ -413,7 +412,6 @@ export interface AddstepNodesParams {
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   setEdges: (edges: Edge[] | ((edges: Edge[]) => Edge[])) => void;
   formulaId?: string; // Optional: specific formula ID (for FormulaComponent)
-  executionStore: ExecutionStore;
   computationStore: ComputationStore;
 }
 
@@ -428,14 +426,12 @@ export function addstepNodes({
   setNodes,
   setEdges,
   formulaId,
-  executionStore,
   computationStore,
 }: AddstepNodesParams): void {
   const currentNodes = getNodes();
   const viewport = getViewport?.() || { zoom: 1, x: 0, y: 0 };
-
-  // Get current step from the scoped execution store
-  const step = executionStore.currentStep;
+  // Get current step from computation store
+  const step = computationStore.currentStep;
   if (!step || !step.formulas || Object.keys(step.formulas).length === 0) {
     // Remove step and expression nodes if no current step
     setNodes((currentNodes) =>

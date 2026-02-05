@@ -140,16 +140,16 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId, formulaId } = data;
   const context = useFormulize();
   const computationStore = context?.computationStore;
-  const executionStore = context?.executionStore;
   const labelFontSize = computationStore?.environment?.labelFontSize;
 
   // Must call all hooks before conditional returns
   const variable = computationStore?.variables.get(varId);
   // activeVariables is a Map<formulaId, Set<varId>>
   // Empty string key '' means "all formulas"
-  const allFormulasVars = executionStore?.activeVariables.get("") ?? new Set();
+  const activeVariables = computationStore?.getActiveVariables() ?? new Map();
+  const allFormulasVars = activeVariables.get("") ?? new Set();
   const thisFormulaVars = formulaId
-    ? executionStore?.activeVariables.get(formulaId) ?? new Set()
+    ? activeVariables.get(formulaId) ?? new Set()
     : new Set();
   const isVariableActive =
     allFormulasVars.has(varId) || thisFormulaVars.has(varId);
@@ -163,11 +163,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   });
 
   // All conditional returns must happen after all hooks are called
-  if (!computationStore || !executionStore) return null;
+  if (!computationStore) return null;
   if (!variable) return null;
-  if (computationStore.isStepMode() && !isVariableActive) return null;
 
-  const { name, value, precision, labelDisplay, input } = variable;
+  const { name, precision, labelDisplay, input } = variable;
   const isStepModeActive = computationStore.isStepMode();
 
   // Determine what to display based on labelDisplay setting and input mode
@@ -186,12 +185,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     labelDisplay === "value" ||
     false // inline input deprecated
   ) {
-    if (Array.isArray(variable?.value)) {
+    if (Array.isArray(value)) {
       // Handle set values - convert all elements to strings for display
-      const setElements = variable.value.map((el) => String(el));
-      const isStringArray = variable.value.every(
-        (el) => typeof el === "string"
-      );
+      const setElements = value.map((el) => String(el));
+      const isStringArray = value.every((el) => typeof el === "string");
 
       if (setElements.length > 0) {
         if (isStringArray) {
