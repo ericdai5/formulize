@@ -138,13 +138,17 @@ const renderNestedVariable = (
   let value: number | undefined = undefined;
   let variablePrecision = defaultPrecision;
   let latexDisplay: "name" | "value" = "name";
+  let isDraggable = false;
   // Get the value from the computation store
   const variable = computationStore.variables.get(symbolValue);
   if (variable) {
     value = typeof variable.value === "number" ? variable.value : undefined;
     variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
     latexDisplay = variable.latexDisplay ?? "name";
+    isDraggable = variable.input === "drag" || variable.input === "inline";
   }
+  // Determine CSS class based on input type
+  const cssClass = isDraggable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE;
   // Show value when active, symbol when not active
   // activeVariables is a Map<formulaId, Set<varId>>
   // Check if variable is active in any formula's set
@@ -158,10 +162,10 @@ const renderNestedVariable = (
   const hasValidValue = value !== null && value !== undefined && !isNaN(value);
   // Respect latexDisplay setting - only show value if latexDisplay allows it AND variable is active
   if (isActive && hasValidValue && latexDisplay === "value") {
-    return `\\cssId{${symbolValue}}{\\class{${VAR_CLASSES.INPUT}}{${value!.toFixed(variablePrecision)}}}`;
+    return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${value!.toFixed(variablePrecision)}}}`;
   }
   // Default: show symbol name (for latexDisplay="name" or when not active)
-  return `\\cssId{${symbolValue}}{\\class{${VAR_CLASSES.INPUT}}{${symbolValue}}}`;
+  return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${symbolValue}}}`;
 };
 
 /**

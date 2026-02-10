@@ -172,7 +172,9 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   // In step mode, hide non-active variables UNLESS they are input variables
   // Input variables must always be visible for user interaction
-  if (isStepModeActive && !isVariableActive && !isInputVariable) return null;
+  if (isStepModeActive && !isVariableActive && !isInputVariable) {
+    return null;
+  }
 
   // In step mode, use the isolated stepValues for display (faster rendering)
   // For input variables, always use their actual value (not step value)
@@ -257,19 +259,12 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const getInteractiveClass = () => {
     const classes: string[] = [];
 
-    // Input variables always get the INPUT class for proper styling
-    if (isInputVariable) {
-      classes.push(VAR_CLASSES.INPUT);
-    }
+    // Input variables get INPUT class, others get BASE class
+    classes.push(isInputVariable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE);
 
-    // In step mode, active variables get step-cue styling (including input variables)
+    // In step mode, active variables get step-cue for pulse animation
     if (isStepModeActive && isVariableActive) {
       classes.push("step-cue");
-    }
-
-    // Default base class if no other classes applied
-    if (classes.length === 0) {
-      classes.push(VAR_CLASSES.BASE);
     }
 
     return classes.join(" ");

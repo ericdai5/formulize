@@ -42,7 +42,6 @@ const parseDOMNode = (
   // Compute variableType first from the explicit supported classes
   let variableType: string | null = null;
   if (classes.includes("formula-var-input")) variableType = "input";
-  else if (classes.includes("formula-var-computed")) variableType = "computed";
   else if (classes.includes("formula-var-base")) variableType = "base";
 
   // Derive isVariable from variableType to ensure consistency

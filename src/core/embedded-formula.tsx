@@ -321,7 +321,7 @@ const EmbeddedFormulaInner = observer(
         if (!allowPinning) return;
         // Don't toggle if clicking on a variable (they have their own input handlers)
         const target = e.target as HTMLElement;
-        if (target.closest(".var-input, .var-computed, .var-base")) {
+        if (target.closest(".var-input, .var-base")) {
           return;
         }
         if (abbreviation) {
