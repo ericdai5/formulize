@@ -19,7 +19,6 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { ComputationStore } from "../store/computation";
-import { FormulaStore } from "../store/formulas";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
 import { IVisualization } from "../types/visualization";
@@ -45,14 +44,13 @@ import { CanvasControls } from "./canvas-controls";
 import { nodeTypes as defaultNodeTypes } from "./nodes/node";
 
 interface CanvasProps {
-  formulaStore?: FormulaStore;
   controls?: IControls[];
   environment?: IEnvironment;
   computationStore: ComputationStore;
 }
 
 const CanvasFlow = observer(
-  ({ formulaStore, controls, environment, computationStore }: CanvasProps) => {
+  ({ controls, environment, computationStore }: CanvasProps) => {
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -74,19 +72,11 @@ const CanvasFlow = observer(
 
     // Helper function to get expressions to render from the system
     const getFormula = useCallback((): string[] => {
-      // If a custom formula store is provided, use its formula
-      if (formulaStore) {
-        const storeLatex = formulaStore.latexWithoutStyling;
-        if (storeLatex) {
-          return [storeLatex];
-        }
-      }
-      // Use formulas from computation store
       if (computationStore.formulas.length > 0) {
         return computationStore.formulas.map((f) => f.latex);
       }
       return [];
-    }, [formulaStore, computationStore.formulas]);
+    }, [computationStore.formulas]);
 
     // Initialize React Flow state first
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -269,7 +259,7 @@ const CanvasFlow = observer(
     useEffect(() => {
       const disposer = reaction(
         () => ({
-          formulaStore: formulaStore?.latexWithoutStyling,
+          formulas: computationStore.formulas.map((f) => f.latex),
           controls: controls,
         }),
         () => {
@@ -290,7 +280,7 @@ const CanvasFlow = observer(
       return () => {
         disposer();
       };
-    }, [createNodes, setNodes, setEdges, formulaStore, controls]);
+    }, [createNodes, setNodes, setEdges, computationStore, controls]);
 
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {

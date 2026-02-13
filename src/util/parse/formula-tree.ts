@@ -16,6 +16,12 @@ import {
 // import * as estreePlugin from "prettier/plugins/estree";
 // import katex from "katex";
 
+// Unique ID counter for variable nodes to avoid duplicate keys
+let varIdCounter = 0;
+const generateVarId = (variableLatex: string): string => {
+  return `var-${variableLatex}-${varIdCounter++}`;
+};
+
 // Add this interface near the top of the file after imports
 interface KatexWithInternals {
   __parse: (
@@ -2080,7 +2086,7 @@ const recursivelyFindAndGroupVariableTree = (
     // && !isInEqualityContext(node) // DISABLED: equality context detection
   ) {
     return new Variable(
-      `var-${Date.now()}`,
+      generateVarId(variableLatex),
       node,
       variableLatex,
       originalSymbol
@@ -2138,7 +2144,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeScript.base) // DISABLED: equality context detection
       ) {
         finalBase = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeScript.base,
           variableLatex,
           originalSymbol
@@ -2151,7 +2157,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeScript.sub!) // DISABLED: equality context detection
       ) {
         finalSub = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeScript.sub!,
           variableLatex,
           originalSymbol
@@ -2164,7 +2170,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeScript.sup!) // DISABLED: equality context detection
       ) {
         finalSup = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeScript.sup!,
           variableLatex,
           originalSymbol
@@ -2212,7 +2218,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeFrac.numerator) // DISABLED: equality context detection
       ) {
         finalNumerator = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeFrac.numerator,
           variableLatex,
           originalSymbol
@@ -2224,7 +2230,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeFrac.denominator) // DISABLED: equality context detection
       ) {
         finalDenominator = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeFrac.denominator,
           variableLatex,
           originalSymbol
@@ -2368,7 +2374,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeBox.body) // DISABLED: equality context detection
       ) {
         finalBody = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeBox.body,
           variableLatex,
           originalSymbol
@@ -2401,7 +2407,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeStrike.body) // DISABLED: equality context detection
       ) {
         finalBody = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeStrike.body,
           variableLatex,
           originalSymbol
@@ -2446,7 +2452,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeBrace.base) // DISABLED: equality context detection
       ) {
         finalBase = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeBrace.base,
           variableLatex,
           originalSymbol
@@ -2558,7 +2564,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeRoot.body) // DISABLED: equality context detection
       ) {
         finalBody = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeRoot.body,
           variableLatex,
           originalSymbol
@@ -2571,7 +2577,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeRoot.index!) // DISABLED: equality context detection
       ) {
         finalIndex = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeRoot.index!,
           variableLatex,
           originalSymbol
@@ -2605,7 +2611,7 @@ const recursivelyFindAndGroupVariableTree = (
         // && !isInEqualityContext(nodeAccent.base) // DISABLED: equality context detection
       ) {
         finalBase = new Variable(
-          `var-${Date.now()}`,
+          generateVarId(variableLatex),
           nodeAccent.base,
           variableLatex,
           originalSymbol
@@ -2665,7 +2671,7 @@ const replaceSubsequencesWithVariables = (
 
     // Create the VariableName wrapper
     const variableNode = new Variable(
-      `var-${Date.now()}`,
+      generateVarId(variableLatex),
       groupedBody,
       variableLatex,
       originalSymbol

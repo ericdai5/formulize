@@ -151,7 +151,6 @@ npm run deploy
 The application uses a multi-store MobX architecture with:
 
 - **computationStore** - Variable computation and evaluation
-- **formulaStoreManager** - Individual formula store management
 
 Three computation engines are available:
 
