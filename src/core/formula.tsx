@@ -604,8 +604,6 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
     const containerStyle: React.CSSProperties = {
       width: "100%",
       height: style.height || "auto",
-      border: "1px solid #e2e8f0",
-      borderRadius: "1rem",
       overflow: "hidden",
       ...style,
     };
