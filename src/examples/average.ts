@@ -9,30 +9,20 @@ export const average = `const config = {
     "\\\\bar{X}": {
       default: 0,
       name: "Average",
-      latexDisplay: "name",
-      labelDisplay: "value",
     },
     n: {
       default: 0,
       name: "Count",
-      latexDisplay: "name",
-      labelDisplay: "value",
     },
     i: {
       name: "Index",
-      latexDisplay: "name",
-      labelDisplay: "value",
     },
     X_i: {
       name: "Value at index i",
-      latexDisplay: "name",
-      labelDisplay: "value",
     },
     X: {
       default: [10, 20, 30, 40, 50],
       name: "Data values",
-      latexDisplay: "name",
-      labelDisplay: "value",
     },
   },
   stepping: true,

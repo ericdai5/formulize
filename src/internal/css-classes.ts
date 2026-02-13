@@ -4,7 +4,6 @@
 export const VAR_CLASSES = {
   BASE: "var-base",
   INPUT: "var-input",
-  COMPUTED: "var-computed",
   INDEX: "var-index",
 } as const;
 
@@ -14,10 +13,8 @@ export const VAR_CLASSES = {
 export const VAR_SELECTORS = {
   BASE: `.${VAR_CLASSES.BASE}`,
   INPUT: `.${VAR_CLASSES.INPUT}`,
-  COMPUTED: `.${VAR_CLASSES.COMPUTED}`,
   INDEX: `.${VAR_CLASSES.INDEX}`,
-  ALL: ".var-base, .var-input, .var-computed",
-  INPUT_AND_COMPUTED: ".var-input, .var-computed",
+  ALL: ".var-base, .var-input",
   ANY: '[class*="var-"]',
 } as const;
 

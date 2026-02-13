@@ -461,8 +461,8 @@ const CanvasFlow = observer(
               // Clear edges to prevent stale edge references
               setEdges([]);
 
-              // Update variable nodes first to ensure dimensions are correct
-              // after CSS class changes (e.g., step-cue), then re-add labels and step nodes
+              // Update variable nodes first to ensure dimensions are correct,
+              // then re-add labels and step nodes
               updateVariableNodes();
               window.setTimeout(() => {
                 addLabelNodes();

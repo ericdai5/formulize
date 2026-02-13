@@ -13,14 +13,6 @@
 }
 
 @layer components {
-  .menu-btn {
-    @apply h-8 min-w-8 flex justify-center items-center cursor-pointer hover:bg-slate-100 rounded-md;
-  }
-
-  .cm-editor {
-    @apply h-full text-2xl;
-  }
-
   .cm-line {
     @apply py-2.5 px-1.5 pl-1.5;
   }
@@ -28,10 +20,19 @@
   /* ------------------- Interactive variable styles ------------------- */
 
   .var-base {
-    @apply text-black cursor-default;
+    @apply text-black cursor-default transition-all duration-200;
   }
 
-  /* Unified input variable style - black by default, no special blue styling */
+  .var-base.hovered {
+    @apply text-blue-600 rounded-md scale-110;
+  }
+
+  .var-base.hovered * {
+    color: rgb(37 99 235); /* blue-600 */
+    fill: rgb(37 99 235); /* For SVG-based MathJax rendering */
+  }
+
+  /* Unified input variable style - black by default, blue on hover */
   .var-input {
     @apply text-black rounded-md select-none transition-all duration-200;
   }
@@ -44,31 +45,36 @@
     @apply text-blue-600 rounded-md scale-110;
   }
 
-  /* Dependent variable style */
-  .var-computed {
-    @apply text-black rounded-md select-none transition-all duration-200 cursor-default;
+  .var-input.hovered * {
+    color: rgb(37 99 235); /* blue-600 */
+    fill: rgb(37 99 235); /* For SVG-based MathJax rendering */
   }
 
-  .var-computed.hovered {
-    @apply text-black rounded-md scale-110;
+  /* MathJax-specific overrides to ensure hover colors take precedence */
+  .var-base.hovered mjx-c,
+  .var-base.hovered mjx-mi,
+  .var-base.hovered mjx-mo,
+  .var-base.hovered mjx-mn,
+  .var-input.hovered mjx-c,
+  .var-input.hovered mjx-mi,
+  .var-input.hovered mjx-mo,
+  .var-input.hovered mjx-mn {
+    color: rgb(37 99 235);
   }
 
   /* Specific styling for interactive variables in label nodes */
+  .label-flow-node .var-base,
   .label-flow-node .var-input {
     line-height: 1;
   }
 
-  .label-flow-node .var-computed {
-    line-height: 1;
+  /* Step mode pulse animation - applied on top of var-base or var-input */
+  .step-cue {
+    animation: pulseUpdate 0.4s ease-in-out;
   }
 
+  .label-flow-node .var-base.hovered,
   .label-flow-node .var-input.hovered {
-    line-height: 1;
-    display: inline-block;
-    @apply scale-110;
-  }
-
-  .label-flow-node .var-computed.hovered {
     line-height: 1;
     display: inline-block;
     @apply scale-110;
@@ -83,27 +89,6 @@
     @apply absolute z-50 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-full;
   }
 
-  .dropdown-option {
-    @apply px-3 py-2 text-sm cursor-pointer hover:bg-slate-100 transition-colors duration-150;
-  }
-
-  /* Step mode styles */
-  .step-mode {
-    @apply p-0 bg-transparent text-black;
-  }
-
-  .step-cue {
-    @apply text-blue-500;
-    animation: pulseUpdate 0.4s ease-in-out;
-    animation-fill-mode: both;
-    transform: scale(1);
-  }
-
-  /* Only apply color to descendants, not animation (to avoid compounding scale effect) */
-  .step-cue * {
-    @apply text-blue-500;
-  }
-
   @keyframes pulseUpdate {
     0% {
       transform: scale(1);
@@ -116,43 +101,6 @@
     }
   }
 
-  .interpreter-updated {
-    @apply bg-green-100 border-green-300;
-  }
-
-  .variable-assignment {
-    @apply bg-purple-100 text-purple-800 border border-purple-300 shadow-sm;
-    animation: pulseUpdate 0.4s ease-in-out;
-    animation-fill-mode: both;
-    transform: scale(1);
-  }
-
-  /* Make interpreter CodeMirror non-clickable and green focus */
-  .cm-editor {
-    pointer-events: none; /* Disable all mouse interactions */
-  }
-
-  .cm-editor .cm-content {
-    pointer-events: none; /* Disable content interactions */
-  }
-
-  .cm-editor .cm-scroller {
-    pointer-events: none; /* Disable scroller interactions */
-  }
-
-  .cm-editor.cm-focused {
-    outline: 2px solid #16a34a !important; /* Green focus outline */
-  }
-
-  .cm-editor .cm-selectionBackground {
-    background-color: rgba(
-      22,
-      163,
-      74,
-      0.2
-    ) !important; /* Green selection background */
-  }
-
   /* Hide scrollbar for webkit browsers (Chrome, Safari, Opera) */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -162,33 +110,5 @@
   .scrollbar-hide {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
-  }
-
-  /* Styled range marks for CodeMirror editor */
-  .styled-range-mark {
-    position: relative;
-    pointer-events: none;
-  }
-
-  .styled-range-mark::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    opacity: var(--range-opacity, 0);
-    background-color: var(--range-color, black);
-  }
-
-  .styled-range-mark::after {
-    content: "";
-    position: absolute;
-    z-index: var(--range-z-index, 0);
-    top: var(--range-top, 0);
-    left: 0;
-    width: 100%;
-    height: var(--range-height, 2px);
-    background-color: var(--range-color, black);
   }
 }

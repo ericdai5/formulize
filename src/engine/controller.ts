@@ -27,7 +27,7 @@ const isInFormulaContainer = (
 };
 
 /**
- * Apply a visual cue styling to variables that are being updated in step mode.
+ * Apply a visual cue (pulse animation) to variables that are being updated in step mode.
  * NOTE: This function does NOT clear existing cues - call clearAllCues() first if needed.
  */
 export const applyCue = (updatedVarIds: Set<string>, formulaId?: string) => {
@@ -49,9 +49,7 @@ export const applyCue = (updatedVarIds: Set<string>, formulaId?: string) => {
  * Clear all visual cues from interactive elements
  */
 export const clearAllCues = () => {
-  const interactiveElements = document.querySelectorAll(
-    VAR_SELECTORS.INPUT_AND_COMPUTED
-  );
+  const interactiveElements = document.querySelectorAll(VAR_SELECTORS.ALL);
   interactiveElements.forEach((element) => {
     (element as HTMLElement).classList.remove("step-cue");
   });
