@@ -6,7 +6,11 @@ import { ChevronRight, X } from "lucide-react";
 import { ChevronsDownUp } from "lucide-react";
 import { ChevronsUpDown } from "lucide-react";
 
-import { assertUnreachable, replaceNodes } from "../util/parse/formula-transform";
+import { ComputationStore } from "../store/computation";
+import {
+  assertUnreachable,
+  replaceNodes,
+} from "../util/parse/formula-transform";
 import {
   AugmentedFormulaNode,
   Box,
@@ -16,7 +20,6 @@ import {
   Script,
   Variable,
 } from "../util/parse/formula-tree";
-import { FormulaStore, formulaStoreManager } from "../store/formulas";
 
 import CurlyBraceListOptionIcon from "/CurlyBraceListOption.svg";
 
@@ -33,18 +36,29 @@ const FormulaElementPaneContext = createContext<{
 });
 
 interface FormulaTreePaneProps {
-  formulaStore?: FormulaStore;
-  storeId?: string;
+  computationStore: ComputationStore;
 }
 
 export const FormulaTreePane = observer(
-  ({ formulaStore, storeId }: FormulaTreePaneProps) => {
-    // Get the store either from props or from the manager using storeId or default to first store
-    const store =
-      formulaStore ||
-      (storeId ? formulaStoreManager.getStore(storeId) : null) ||
-      formulaStoreManager.allStores[0] ||
-      null;
+  ({ computationStore }: FormulaTreePaneProps) => {
+    return (
+      <>
+        {computationStore.formulas.map((formula) => (
+          <SingleFormulaTreePane
+            key={formula.id}
+            computationStore={computationStore}
+            formulaId={formula.id}
+          />
+        ))}
+      </>
+    );
+  }
+);
+
+const SingleFormulaTreePane = observer(
+  ({ computationStore, formulaId }: { computationStore: ComputationStore; formulaId: string }) => {
+    // Get the augmented formula from computation store
+    const augmentedFormula = computationStore.getAugmentedFormula(formulaId);
 
     const [collapsed, setCollapsed] = useState<{ [key: string]: boolean }>({});
     const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
@@ -65,11 +79,11 @@ export const FormulaTreePane = observer(
       setSelectedNodes(newSelection);
     };
 
-    if (!store || !store.augmentedFormula) {
+    if (!augmentedFormula || augmentedFormula.children.length === 0) {
       return (
-        <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-sm">
+        <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col overflow-hidden select-none text-sm border-b border-slate-200">
           <div className="flex flex-row justify-between items-center">
-            <h1 className="text-sm">Elements</h1>
+            <h1 className="text-sm">{formulaId}</h1>
           </div>
           <div className="text-gray-500 text-sm">No formula available</div>
         </div>
@@ -77,9 +91,9 @@ export const FormulaTreePane = observer(
     }
 
     return (
-      <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col h-full overflow-hidden select-none text-sm">
+      <div className="pt-3 pl-4 pr-4 pb-4 gap-4 flex flex-col overflow-hidden select-none text-sm border-b border-slate-200">
         <div className="flex flex-row justify-between items-center">
-          <h1 className="text-sm">Elements</h1>
+          <h1 className="text-sm">{formulaId}</h1>
           <div className="flex flex-row">
             <div
               title="Expand all"
@@ -104,7 +118,7 @@ export const FormulaTreePane = observer(
                     node.children.forEach(collapse);
                   }
                 };
-                store.augmentedFormula.children.forEach(collapse);
+                augmentedFormula.children.forEach(collapse);
                 setCollapsed(newCollapsed);
               }}
             >
@@ -124,9 +138,9 @@ export const FormulaTreePane = observer(
               onSelectNode: onSelectNode,
             }}
           >
-            {store.augmentedFormula.children.map((tree) => (
+            {augmentedFormula.children.map((tree) => (
               <div key={tree.id}>
-                <FormulaTree tree={tree} store={store} />
+                <FormulaTree tree={tree} computationStore={computationStore} formulaId={formulaId} />
               </div>
             ))}
           </FormulaElementPaneContext.Provider>
@@ -137,7 +151,7 @@ export const FormulaTreePane = observer(
 );
 
 const FormulaTree = observer(
-  ({ tree, store }: { tree: AugmentedFormulaNode; store: FormulaStore }) => {
+  ({ tree, computationStore, formulaId }: { tree: AugmentedFormulaNode; computationStore: ComputationStore; formulaId: string }) => {
     const { collapsed, onCollapse, selectedNodes } = useContext(
       FormulaElementPaneContext
     );
@@ -163,13 +177,13 @@ const FormulaTree = observer(
             />
           </div>
           <div className="pl-3 p-1 hover:bg-slate-100 rounded-lg w-full">
-            <TreeElement tree={tree} store={store} />
+            <TreeElement tree={tree} computationStore={computationStore} formulaId={formulaId} />
           </div>
         </div>
         <div className="ml-8">
           {!collapsed[tree.id] &&
             tree.children.map((child) => (
-              <FormulaTree tree={child} key={child.id} store={store} />
+              <FormulaTree tree={child} key={child.id} computationStore={computationStore} formulaId={formulaId} />
             ))}
         </div>
       </div>
@@ -179,16 +193,18 @@ const FormulaTree = observer(
 
 const TreeElement = ({
   tree,
-  store,
+  computationStore,
+  formulaId,
 }: {
   tree: AugmentedFormulaNode;
-  store: FormulaStore;
+  computationStore: ComputationStore;
+  formulaId: string;
 }) => {
   switch (tree.type) {
     case "symbol":
-      return <LabeledNode tree={tree} label={tree.value} store={store} />;
+      return <LabeledNode tree={tree} label={tree.value} computationStore={computationStore} formulaId={formulaId} />;
     case "space":
-      return <LabeledNode tree={tree} label="␣" store={store} />;
+      return <LabeledNode tree={tree} label="␣" computationStore={computationStore} formulaId={formulaId} />;
     case "text":
       return (
         <LabeledNode
@@ -202,7 +218,8 @@ const TreeElement = ({
                   : ""
             )
             .join("")}
-          store={store}
+          computationStore={computationStore}
+          formulaId={formulaId}
         />
       );
     case "op":
@@ -210,32 +227,34 @@ const TreeElement = ({
         <LabeledNode
           tree={tree}
           label={String.raw`\${tree.operator}`}
-          store={store}
+          computationStore={computationStore}
+          formulaId={formulaId}
         />
       );
     case "frac":
-      return <LabeledNode tree={tree} label="Fraction" store={store} />;
+      return <LabeledNode tree={tree} label="Fraction" computationStore={computationStore} formulaId={formulaId} />;
     case "script":
-      return <LabeledNode tree={tree} label="Script" store={store} />;
+      return <LabeledNode tree={tree} label="Script" computationStore={computationStore} formulaId={formulaId} />;
     case "root":
-      return <LabeledNode tree={tree} label="Root" store={store} />;
+      return <LabeledNode tree={tree} label="Root" computationStore={computationStore} formulaId={formulaId} />;
     case "group":
-      return <LabeledNode tree={tree} label="Group" store={store} />;
+      return <LabeledNode tree={tree} label="Group" computationStore={computationStore} formulaId={formulaId} />;
     case "array":
-      return <LabeledNode tree={tree} label="Array" store={store} />;
+      return <LabeledNode tree={tree} label="Array" computationStore={computationStore} formulaId={formulaId} />;
     case "brace":
-      return <BraceNode tree={tree} store={store} />;
+      return <BraceNode tree={tree} computationStore={computationStore} formulaId={formulaId} />;
     case "color":
-      return <ColorNode tree={tree} store={store} />;
+      return <ColorNode tree={tree} computationStore={computationStore} formulaId={formulaId} />;
     case "box":
-      return <BoxNode tree={tree} store={store} />;
+      return <BoxNode tree={tree} computationStore={computationStore} formulaId={formulaId} />;
     case "strikethrough":
       return (
         <LabeledNode
           tree={tree}
           label="Strikethrough"
           deletable
-          store={store}
+          computationStore={computationStore}
+          formulaId={formulaId}
         />
       );
     case "variable":
@@ -243,15 +262,16 @@ const TreeElement = ({
         <LabeledNode
           tree={tree}
           label={`Variable: ${(tree as Variable).variableLatex}`}
-          store={store}
+          computationStore={computationStore}
+          formulaId={formulaId}
         />
       );
     case "matrix":
-      return <LabeledNode tree={tree} label="Matrix" store={store} />;
+      return <LabeledNode tree={tree} label="Matrix" computationStore={computationStore} formulaId={formulaId} />;
     case "delimited":
-      return <LabeledNode tree={tree} label="Delimited" store={store} />;
+      return <LabeledNode tree={tree} label="Delimited" computationStore={computationStore} formulaId={formulaId} />;
     case "accent":
-      return <LabeledNode tree={tree} label="Accent" store={store} />;
+      return <LabeledNode tree={tree} label="Accent" computationStore={computationStore} formulaId={formulaId} />;
     default:
       assertUnreachable(tree);
   }
@@ -261,12 +281,14 @@ const LabeledNode = ({
   tree,
   label,
   deletable,
-  store,
+  computationStore,
+  formulaId,
 }: {
   tree: AugmentedFormulaNode;
   label: string;
   deletable?: boolean;
-  store: FormulaStore;
+  computationStore: ComputationStore;
+  formulaId: string;
 }) => {
   const { onSelectNode } = useContext(FormulaElementPaneContext);
 
@@ -282,8 +304,9 @@ const LabeledNode = ({
         className={`${deletable ? "visible" : "hidden"}`}
         onClick={(e) => {
           e.stopPropagation();
-          store.updateFormula(
-            replaceNodes(store.augmentedFormula, (node) => {
+          computationStore.updateFormula(
+            formulaId,
+            replaceNodes(computationStore.getAugmentedFormula(formulaId), (node) => {
               if (node.id === tree.id) {
                 return new Group(tree.id, tree.children);
               }
@@ -298,7 +321,7 @@ const LabeledNode = ({
   );
 };
 
-const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
+const BraceNode = ({ tree, computationStore, formulaId }: { tree: Brace; computationStore: ComputationStore; formulaId: string }) => {
   const { onSelectNode } = useContext(FormulaElementPaneContext);
 
   return (
@@ -307,8 +330,9 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
         className={`flex justify-center items-center cursor-pointer p-0.5 mr-2 hover:bg-gray-200 transition-transform duration-300 ease-in-out ${tree.over ? "rotate-90" : "-rotate-90"}`}
         title={tree.over ? "Make underbrace" : "Make overbrace"}
         onClick={() => {
-          store.updateFormula(
-            replaceNodes(store.augmentedFormula, (node) => {
+          computationStore.updateFormula(
+            formulaId,
+            replaceNodes(computationStore.getAugmentedFormula(formulaId), (node) => {
               if (
                 node.type === "script" &&
                 node.children.find((n) => n.id === tree.id)
@@ -344,8 +368,9 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
           className="visible"
           onClick={(e) => {
             e.stopPropagation();
-            store.updateFormula(
-              replaceNodes(store.augmentedFormula, (node) => {
+            computationStore.updateFormula(
+              formulaId,
+              replaceNodes(computationStore.getAugmentedFormula(formulaId), (node) => {
                 const maybeBraceNode = node.children.find(
                   (n) => n.id === tree.id
                 );
@@ -364,10 +389,10 @@ const BraceNode = ({ tree, store }: { tree: Brace; store: FormulaStore }) => {
   );
 };
 
-const ColorNode = ({ tree, store }: { tree: Color; store: FormulaStore }) => {
-  return <LabeledNode tree={tree} label="Color" deletable store={store} />;
+const ColorNode = ({ tree, computationStore, formulaId }: { tree: Color; computationStore: ComputationStore; formulaId: string }) => {
+  return <LabeledNode tree={tree} label="Color" deletable computationStore={computationStore} formulaId={formulaId} />;
 };
 
-const BoxNode = ({ tree, store }: { tree: Box; store: FormulaStore }) => {
-  return <LabeledNode tree={tree} label="Box" deletable store={store} />;
+const BoxNode = ({ tree, computationStore, formulaId }: { tree: Box; computationStore: ComputationStore; formulaId: string }) => {
+  return <LabeledNode tree={tree} label="Box" deletable computationStore={computationStore} formulaId={formulaId} />;
 };

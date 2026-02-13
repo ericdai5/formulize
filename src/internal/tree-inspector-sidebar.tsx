@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 import { X } from "lucide-react";
 
+import { useFormulize } from "../core/hooks";
 import { FormulizeConfig } from "../formulize";
 import { FormulaTreePane } from "./formula-tree-pane";
 import { MathJaxTreePane } from "./mathjax-tree-pane";
@@ -21,6 +22,8 @@ const TreeInspectorSidebar: React.FC<TreeInspectorSidebarProps> = ({
   config,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>("formula");
+  const context = useFormulize();
+  const computationStore = context?.computationStore;
 
   return (
     <div
@@ -75,8 +78,10 @@ const TreeInspectorSidebar: React.FC<TreeInspectorSidebarProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden min-w-80">
-        {activeTab === "formula" && <FormulaTreePane />}
+      <div className="flex-1 overflow-y-auto min-w-80">
+        {activeTab === "formula" && computationStore && (
+          <FormulaTreePane computationStore={computationStore} />
+        )}
         {activeTab === "variables" && <VariableTreesPane config={config} />}
         {activeTab === "mathjax" && <MathJaxTreePane />}
       </div>

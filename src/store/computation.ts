@@ -7,7 +7,18 @@ import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
 import { ICollectedStep, IView } from "../types/step";
 import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
-import { AugmentedFormula } from "../util/parse/formula-tree";
+import { FormulaLatexRanges } from "../util/parse/formula-text";
+import { canonicalizeFormula } from "../util/parse/formula-transform";
+import {
+  Aligned,
+  AugmentedFormula,
+  Group,
+  RenderSpec,
+  convertLatexToMathML,
+  deriveTreeWithVars,
+  parseVariableStrings,
+  updateFormula as updateFormulaTree,
+} from "../util/parse/formula-tree";
 
 export type EvaluationFunctionInput = Record<string, number | number[]>;
 
@@ -49,6 +60,21 @@ class ComputationStore {
   // Used for DOM element lookup during expression bounding box calculations
   @observable
   accessor formulaTrees = new Map<string, AugmentedFormula>();
+
+  // Per-formula render specifications
+  @observable
+  accessor formulaRenderSpecs = new Map<string, RenderSpec | null>();
+
+  // Per-formula suppress editor update flag
+  @observable
+  accessor formulaSuppressEditorUpdate = new Map<string, boolean>();
+
+  // Per-formula styled ranges override
+  @observable
+  accessor formulaStyledRangesOverride = new Map<
+    string,
+    FormulaLatexRanges | null
+  >();
 
   @observable
   accessor semantics: ISemantics | null = null;
@@ -454,6 +480,9 @@ class ComputationStore {
     this.injectedDefaultCSS.clear();
     this.injectedHoverCSS.clear();
     this.formulaTrees.clear();
+    this.formulaRenderSpecs.clear();
+    this.formulaSuppressEditorUpdate.clear();
+    this.formulaStyledRangesOverride.clear();
     this.environment = null;
     this.formulas = [];
     this.semantics = null;
@@ -499,6 +528,266 @@ class ComputationStore {
   clearFormulaTrees() {
     this.formulaTrees.clear();
   }
+
+  // ============= Formula Store Methods (consolidated from FormulaStore) =============
+
+  /**
+   * Get the render spec for a formula
+   * @param formulaId - The formula ID
+   * @returns The RenderSpec or null if not found
+   */
+  getFormulaRenderSpec(formulaId: string): RenderSpec | null {
+    return this.formulaRenderSpecs.get(formulaId) ?? null;
+  }
+
+  /**
+   * Get the augmented formula for a formula ID
+   * @param formulaId - The formula ID
+   * @returns The AugmentedFormula or a default empty one
+   */
+  getAugmentedFormula(formulaId: string): AugmentedFormula {
+    return this.formulaTrees.get(formulaId) ?? new AugmentedFormula([]);
+  }
+
+  /**
+   * Get the suppress editor update flag for a formula
+   * @param formulaId - The formula ID
+   * @returns Whether editor updates should be suppressed
+   */
+  getSuppressEditorUpdate(formulaId: string): boolean {
+    return this.formulaSuppressEditorUpdate.get(formulaId) ?? false;
+  }
+
+  /**
+   * Get the styled ranges override for a formula
+   * @param formulaId - The formula ID
+   * @returns The styled ranges override or null
+   */
+  getStyledRangesOverride(
+    formulaId: string
+  ): FormulaLatexRanges | null {
+    return this.formulaStyledRangesOverride.get(formulaId) ?? null;
+  }
+
+  /**
+   * Get the LaTeX representation with styling for a formula
+   * @param formulaId - The formula ID
+   * @returns The LaTeX string with styling
+   */
+  getLatexWithStyling(formulaId: string): string {
+    const formula = this.getAugmentedFormula(formulaId);
+    return formula.toLatex("no-id");
+  }
+
+  /**
+   * Get the LaTeX representation without styling for a formula
+   * @param formulaId - The formula ID
+   * @returns The LaTeX string without styling
+   */
+  getLatexWithoutStyling(formulaId: string): string {
+    const formula = this.getAugmentedFormula(formulaId);
+    return formula.toLatex("content-only");
+  }
+
+  /**
+   * Get the styled ranges for a formula
+   * @param formulaId - The formula ID
+   * @returns The styled ranges (override or computed from formula)
+   */
+  getStyledRanges(formulaId: string): FormulaLatexRanges {
+    const override = this.formulaStyledRangesOverride.get(formulaId);
+    if (override) {
+      return override;
+    }
+    const formula = this.getAugmentedFormula(formulaId);
+    return formula.toStyledRanges();
+  }
+
+  /**
+   * Get the align IDs for a formula (for aligned environments)
+   * @param formulaId - The formula ID
+   * @returns 2D array of IDs or null if not an aligned formula
+   */
+  getAlignIds(formulaId: string): string[][] | null {
+    const formula = this.getAugmentedFormula(formulaId);
+    if (formula.children.length !== 1) {
+      return null;
+    }
+    const rootNode = formula.children[0];
+    if (rootNode instanceof Aligned) {
+      return rootNode.body.map((row) => row.map((node) => node.id));
+    }
+    return null;
+  }
+
+  /**
+   * Get the align column IDs for a formula
+   * @param formulaId - The formula ID
+   * @returns 2D array of column IDs or null if not an aligned formula
+   */
+  getAlignColumnIds(formulaId: string): string[][] | null {
+    const formula = this.getAugmentedFormula(formulaId);
+    if (formula.children.length !== 1) {
+      return null;
+    }
+    const rootNode = formula.children[0];
+    if (rootNode instanceof Aligned) {
+      return [
+        ...Array(Math.max(...rootNode.body.map((row) => row.length))).keys(),
+      ].map((col) =>
+        rootNode.body.flatMap((row) => (col < row.length ? [row[col].id] : []))
+      );
+    }
+    return null;
+  }
+
+  /**
+   * Get the align row internal targets for a formula
+   * @param formulaId - The formula ID
+   * @returns Array of row targets or null if not an aligned formula
+   */
+  getAlignRowInternalTargets(
+    formulaId: string
+  ): { id: string; col: number }[][] | null {
+    const formula = this.getAugmentedFormula(formulaId);
+    if (formula.children.length !== 1) {
+      return null;
+    }
+    const rootNode = formula.children[0];
+    if (rootNode instanceof Aligned) {
+      return rootNode.body.map((row) =>
+        row.flatMap((node, col) =>
+          node instanceof Group
+            ? node.body.map((child) => ({ id: child.id, col }))
+            : [{ id: node.id, col }]
+        )
+      );
+    }
+    return null;
+  }
+
+  /**
+   * Get the MathML representation for a formula
+   * @param formulaId - The formula ID
+   * @returns Promise resolving to the MathML string
+   */
+  async getMathML(formulaId: string): Promise<string> {
+    const formula = this.getAugmentedFormula(formulaId);
+    const latex = formula.toLatex("content-only");
+    return convertLatexToMathML(latex);
+  }
+
+  /**
+   * Update a formula with a new AugmentedFormula
+   * @param formulaId - The formula ID
+   * @param newFormula - The new AugmentedFormula
+   */
+  @action
+  updateFormula(formulaId: string, newFormula: AugmentedFormula): void {
+    const currentFormula = this.formulaTrees.get(formulaId);
+    if (currentFormula && currentFormula.equals(newFormula)) {
+      return;
+    }
+    const canonicalized = canonicalizeFormula(newFormula);
+    const { renderSpec } = updateFormulaTree(canonicalized);
+    this.formulaRenderSpecs.set(formulaId, renderSpec);
+    this.formulaTrees.set(formulaId, canonicalized);
+  }
+
+  /**
+   * Restore formula state from LaTeX string
+   * @param formulaId - The formula ID
+   * @param latex - The LaTeX string to parse
+   */
+  @action
+  restoreFormulaState(formulaId: string, latex: string): void {
+    const allVariableSymbols = Array.from(this.variables.keys()).filter(
+      (symbol) => symbol && symbol.length > 0
+    );
+    const variableTrees = parseVariableStrings(allVariableSymbols);
+    const newFormula = deriveTreeWithVars(
+      latex,
+      variableTrees,
+      allVariableSymbols
+    );
+    const { renderSpec } = updateFormulaTree(newFormula);
+    this.formulaRenderSpecs.set(formulaId, renderSpec);
+    this.formulaTrees.set(formulaId, newFormula);
+  }
+
+  /**
+   * Override the styled ranges for a formula
+   * @param formulaId - The formula ID
+   * @param styledRanges - The styled ranges to set (or null to clear)
+   */
+  @action
+  overrideStyledRanges(
+    formulaId: string,
+    styledRanges: FormulaLatexRanges | null
+  ): void {
+    this.formulaStyledRangesOverride.set(formulaId, styledRanges);
+  }
+
+  /**
+   * Set the suppress editor update flag for a formula
+   * @param formulaId - The formula ID
+   * @param suppress - Whether to suppress editor updates
+   */
+  @action
+  setSuppressEditorUpdate(formulaId: string, suppress: boolean): void {
+    this.formulaSuppressEditorUpdate.set(formulaId, suppress);
+  }
+
+  /**
+   * Initialize a formula store for a given ID with optional initial LaTeX
+   * @param formulaId - The formula ID
+   * @param formulaLatex - Optional initial LaTeX string
+   */
+  @action
+  initializeFormula(formulaId: string, formulaLatex?: string): void {
+    if (formulaLatex) {
+      const allVariableSymbols = Array.from(this.variables.keys()).filter(
+        (symbol) => symbol && symbol.length > 0
+      );
+      const variableTrees = parseVariableStrings(allVariableSymbols);
+      const formula = deriveTreeWithVars(
+        formulaLatex,
+        variableTrees,
+        allVariableSymbols
+      );
+      const canonicalFormula = canonicalizeFormula(formula);
+      this.updateFormula(formulaId, canonicalFormula);
+    } else {
+      // Initialize with empty formula
+      this.formulaTrees.set(formulaId, new AugmentedFormula([]));
+      this.formulaRenderSpecs.set(formulaId, null);
+    }
+    this.formulaSuppressEditorUpdate.set(formulaId, false);
+    this.formulaStyledRangesOverride.set(formulaId, null);
+  }
+
+  /**
+   * Remove a formula and all its associated state
+   * @param formulaId - The formula ID to remove
+   */
+  @action
+  removeFormula(formulaId: string): void {
+    this.formulaTrees.delete(formulaId);
+    this.formulaRenderSpecs.delete(formulaId);
+    this.formulaSuppressEditorUpdate.delete(formulaId);
+    this.formulaStyledRangesOverride.delete(formulaId);
+  }
+
+  /**
+   * Check if a formula exists
+   * @param formulaId - The formula ID
+   * @returns Whether the formula exists
+   */
+  hasFormula(formulaId: string): boolean {
+    return this.formulaTrees.has(formulaId);
+  }
+
+  // ============= End Formula Store Methods =============
 
   /**
    * Update fresh dimensions for a variable (called during variable node creation/update)

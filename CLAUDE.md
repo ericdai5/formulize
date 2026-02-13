@@ -34,7 +34,6 @@ This is a **Formula Editor** built with React + TypeScript + Vite that provides 
    - `formulaStore` - Global formula state management
    - `selectionStore` - Canvas selection and interaction
    - `computationStore` - Variable computation and evaluation
-   - `formulaStoreManager` - Manages individual formula stores
 
 3. **Computation Engines** (`src/engine/`):
 

@@ -5,7 +5,6 @@
  * as described in the Formulize API Documentation.
  */
 import { ComputationStore, createComputationStore } from "./store/computation";
-import { FormulaStore, formulaStoreManager } from "./store/formulas";
 import { IEnvironment } from "./types/environment";
 import { IVariable } from "./types/variable";
 import { normalizeVariables } from "./util/normalize-variables";
@@ -81,9 +80,6 @@ async function initializeInstance(
     // Set stepping mode from config
     computationStore.setStepping(config.stepping === true);
 
-    // Clear all individual formula stores
-    formulaStoreManager.clearAllStores();
-
     // Setup variables (if provided)
     if (Object.keys(normalizedVariables).length > 0) {
       Object.entries(normalizedVariables).forEach(([varId, variable]) => {
@@ -97,18 +93,6 @@ async function initializeInstance(
         }
       });
     }
-
-    // Now create individual formula stores for each formula
-    // With variable trees available
-    const formulaStores: FormulaStore[] = [];
-    environment.formulas.forEach((formula) => {
-      const store = formulaStoreManager.createStore(
-        formula.id,
-        formula.latex,
-        computationStore
-      );
-      formulaStores.push(store);
-    });
 
     // Set up the computation engine
     setupComputationEngine(environment, computationStore);
@@ -172,7 +156,6 @@ async function initializeInstance(
         return await initializeInstance(updatedConfig, computationStore);
       },
       destroy: () => {
-        formulaStoreManager.clearAllStores();
         computationStore.resetSteps();
       },
     };
