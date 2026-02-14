@@ -330,7 +330,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
           <div style={{ lineHeight: 1 }}>
             <LatexLabel
               latex={`\\text{${name}}`}
-              fontSize={labelFontSize ? labelFontSize * 0.7 : 0.7}
+              fontSize={labelFontSize ? labelFontSize * 0.67 : 0.67}
             />
           </div>
         )}

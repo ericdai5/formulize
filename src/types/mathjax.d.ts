@@ -1,7 +1,7 @@
 declare global {
   interface Window {
     MathJax: {
-      // Core MathJax v3 functions
+      // Core MathJax v4 functions
       typesetPromise: (elements?: HTMLElement[]) => Promise<void>;
       typeset: (elements?: HTMLElement[]) => void;
 

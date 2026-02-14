@@ -119,9 +119,7 @@ export const MathJaxLoader: React.FC<{ children: React.ReactNode }> = ({
           const script = document.createElement("script");
           script.id = "MathJax-script";
           script.src =
-            "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js";
-          script.integrity =
-            "sha384-AHAnt9ZhGeHIrydA1Kp1L7FN+2UosbF7RQg6C+9Is/a7kDpQ1684C2iH2VWil6r4";
+            "https://cdn.jsdelivr.net/npm/mathjax@4.1.0/es5/tex-chtml.js";
           script.crossOrigin = "anonymous";
           script.async = true;
 
