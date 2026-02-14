@@ -179,9 +179,10 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   // In step mode, use the isolated stepValues for display (faster rendering)
   // For input variables, always use their actual value (not step value)
   // In normal mode, use the variable's value from the main variables map
-  const value = isStepModeActive && !isInputVariable
-    ? computationStore.getDisplayValue(varId)
-    : variable.value;
+  const value =
+    isStepModeActive && !isInputVariable
+      ? computationStore.getDisplayValue(varId)
+      : variable.value;
 
   // Determine what to display based on labelDisplay setting and input mode
   let mainDisplayText = varId; // default to name
@@ -234,8 +235,11 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       displayComponent = (
         <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
       );
+    } else if (name) {
+      // If labelDisplay is "value" but no value, just show the name (handled below)
+      // Don't set displayComponent - let only the name render
     } else {
-      // If labelDisplay is "value" but no value is set, hide the label node
+      // If labelDisplay is "value" but no value is set and no name, hide the label node
       return null;
     }
   } else if (labelDisplay === "svg") {
@@ -273,8 +277,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const interactiveClass = getInteractiveClass();
   const isSetVariable = Array.isArray(value);
   // Enable drag for input variables even in step mode (so users can change values)
-  const isDraggableVar =
-    input === "drag" && !isSetVariable && !isInlineInput;
+  const isDraggableVar = input === "drag" && !isSetVariable && !isInlineInput;
   const cursor = isDraggableVar ? "grab" : "default";
   const valueCursor =
     isSetVariable && !isStepModeActive
@@ -295,7 +298,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
 
   return (
     <div
-      className="label-flow-node text-base text-slate-700"
+      className="label-flow-node text-base"
       style={{
         pointerEvents: "auto",
         width: "auto",
@@ -309,20 +312,27 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
       onMouseEnter={() => computationStore.setVariableHover(varId, true)}
       onMouseLeave={() => computationStore.setVariableHover(varId, false)}
     >
-      <div className="flex flex-col items-center gap-1">
-        <div
-          ref={
-            input === "drag" && !isSetVariable && !isInlineInput
-              ? valueDragRef
-              : null
-          }
-          className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
-          style={{ cursor: valueCursor }}
-        >
-          {displayComponent}
-        </div>
+      <div className="flex flex-col items-center gap-2">
+        {displayComponent && (
+          <div
+            ref={
+              input === "drag" && !isSetVariable && !isInlineInput
+                ? valueDragRef
+                : null
+            }
+            className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
+            style={{ cursor: valueCursor }}
+          >
+            {displayComponent}
+          </div>
+        )}
         {name && (
-          <div className="text-xs text-slate-500 text-center">{name}</div>
+          <div style={{ lineHeight: 1 }}>
+            <LatexLabel
+              latex={`\\text{${name}}`}
+              fontSize={labelFontSize ? labelFontSize * 0.7 : 0.7}
+            />
+          </div>
         )}
       </div>
       {/* Handle for edges to variable nodes positioned above - hidden */}

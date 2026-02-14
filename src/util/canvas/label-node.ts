@@ -244,8 +244,8 @@ export const processVariableElementsForLabels = (
       (typeof displayValue === "number" ? !isNaN(displayValue) : true);
     const hasName = variable?.name;
     // For labelDisplay === "value", we must have a valid value to show
-    // For other displays, we can show just the name
-    if (variable?.labelDisplay === "value" && !hasValue) return;
+    // Unless there's a name, in which case we still render the label
+    if (variable?.labelDisplay === "value" && !hasValue && !hasName) return;
     if (!hasValue && !hasName) return;
     // Check if this label should be visible using the same logic as LabelNode component
     // activeVariables is a Map<formulaId, Set<varId>>
