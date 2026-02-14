@@ -60,8 +60,8 @@ const InlineVariableInner = observer(
       return computationStore.variables.get(id);
     }, [id, computationStore]);
 
-    // Get hover state for this variable
-    const isHovered = computationStore.hoverStates.get(id) ?? false;
+    // Get highlight state for this variable (hovered or dragged)
+    const isHovered = computationStore.isVariableHighlighted(id);
     const variable = getVariable();
     const variableClass = getVariableClass(variable?.input);
 

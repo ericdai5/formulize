@@ -1,4 +1,4 @@
-import { action, observable, toJS } from "mobx";
+import { action, computed, observable, toJS } from "mobx";
 
 import { computeWithManualEngine } from "../engine/manual";
 import { ISemantics } from "../types/computation";
@@ -30,9 +30,13 @@ class ComputationStore {
   @observable
   accessor variables = new Map<string, IVariable>();
 
-  // Observable hover state - only components observing specific keys will re-render
+  // Currently hovered variable IDs (multiple variables can be hovered, e.g., vector x and y)
   @observable
   accessor hoverStates = new Map<string, boolean>();
+
+  // Currently dragged variable IDs (multiple variables can be dragged, e.g., vector x and y)
+  @observable
+  accessor dragStates = new Map<string, boolean>();
 
   // Node hover states for visualization nodes (node ID -> hover state)
   @observable
@@ -88,6 +92,8 @@ class ComputationStore {
   @observable
   accessor variableRolesChanged = 0;
 
+  // Centralized tracker for drag state - blocks hover activation while dragging
+  @observable
   accessor isDragging = false;
 
   // Fresh variable dimensions from DOM measurements (varId -> { x, y, width, height })
@@ -472,6 +478,7 @@ class ComputationStore {
   reset() {
     this.variables.clear();
     this.hoverStates.clear();
+    this.dragStates.clear();
     this.nodeHoverStates.clear();
     this.formulaHoverStates.clear();
     this.formulaNodeMapping.clear();
@@ -563,9 +570,7 @@ class ComputationStore {
    * @param formulaId - The formula ID
    * @returns The styled ranges override or null
    */
-  getStyledRangesOverride(
-    formulaId: string
-  ): FormulaLatexRanges | null {
+  getStyledRangesOverride(formulaId: string): FormulaLatexRanges | null {
     return this.formulaStyledRangesOverride.get(formulaId) ?? null;
   }
 
@@ -899,12 +904,54 @@ class ComputationStore {
   }
 
   @action
-  setVariableHover(id: string, hover: boolean) {
-    this.hoverStates.set(id, hover);
+  setVariableDrag(varId: string, isDragging: boolean) {
+    if (isDragging) {
+      // Clear hover state when drag starts to avoid stale hover after drag ends
+      this.hoverStates.clear();
+      this.dragStates.set(varId, true);
+      this.isDragging = true;
+    } else {
+      this.dragStates.delete(varId);
+      // Update isDragging based on whether any variables are still being dragged
+      this.isDragging = this.dragStates.size > 0;
+    }
   }
 
-  getVariableHover(id: string): boolean {
-    return this.hoverStates.get(id) ?? false;
+  @action
+  setVariableHover(varId: string, isHovered: boolean) {
+    // Block hover changes while dragging to prevent other variables from highlighting
+    if (this.isDragging) {
+      return;
+    }
+    if (isHovered) {
+      this.hoverStates.set(varId, true);
+    } else {
+      this.hoverStates.delete(varId);
+    }
+  }
+
+  // Check if a variable is being dragged
+  isVariableDragging(varId: string): boolean {
+    return this.dragStates.get(varId) ?? false;
+  }
+
+  // Check if a variable is being hovered
+  isVariableHovered(varId: string): boolean {
+    return this.hoverStates.get(varId) ?? false;
+  }
+
+  // Check if a variable should be visually highlighted (drag takes precedence over hover)
+  isVariableHighlighted(varId: string): boolean {
+    return this.dragStates.get(varId) ?? this.hoverStates.get(varId) ?? false;
+  }
+
+  // Get all highlighted variable IDs (drag takes precedence over hover)
+  @computed
+  get highlightedVarIds(): string[] {
+    if (this.dragStates.size > 0) {
+      return Array.from(this.dragStates.keys());
+    }
+    return Array.from(this.hoverStates.keys());
   }
 
   // ============= Bidirectional Hover System =============

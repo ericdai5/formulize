@@ -153,7 +153,8 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     : new Set();
   const isVariableActive =
     allFormulasVars.has(varId) || thisFormulaVars.has(varId);
-  const isHovered = computationStore?.hoverStates.get(varId) ?? false;
+  // Highlighted if mouse is over OR if dragging this variable
+  const isHovered = computationStore?.isVariableHighlighted(varId) ?? false;
 
   const valueDragRef = useVariableDrag({
     varId,

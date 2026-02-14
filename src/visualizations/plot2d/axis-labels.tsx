@@ -2,8 +2,8 @@ import React from "react";
 
 import { observer } from "mobx-react-lite";
 
-import LatexLabel from "../../internal/latex";
 import { useFormulize } from "../../core/hooks";
+import LatexLabel from "../../internal/latex";
 import { type AxisLabelInfo } from "./axes";
 
 interface AxisLabelsProps {

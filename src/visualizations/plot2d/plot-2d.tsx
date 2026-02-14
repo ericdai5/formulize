@@ -1291,16 +1291,16 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         labelInfo={axisLabelInfoRef.current}
         xAxisHovered={
           xAxisVar
-            ? computationStore.hoverStates.get(xAxisVar) || false
+            ? computationStore.isVariableHighlighted(xAxisVar)
             : axisLabelInfoRef.current.xLabel?.allXVariables.some((varId) =>
-                computationStore.hoverStates.get(varId)
+                computationStore.isVariableHighlighted(varId)
               ) || false
         }
         yAxisHovered={
           yAxisVar
-            ? computationStore.hoverStates.get(yAxisVar) || false
+            ? computationStore.isVariableHighlighted(yAxisVar)
             : axisLabelInfoRef.current.yLabel?.allYVariables.some((varId) =>
-                computationStore.hoverStates.get(varId)
+                computationStore.isVariableHighlighted(varId)
               ) || false
         }
       />
