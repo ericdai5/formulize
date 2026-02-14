@@ -29,7 +29,6 @@
 
   .var-base.hovered * {
     color: rgb(37 99 235); /* blue-600 */
-    fill: rgb(37 99 235); /* For SVG-based MathJax rendering */
   }
 
   /* Unified input variable style - black by default, blue on hover */
@@ -47,7 +46,6 @@
 
   .var-input.hovered * {
     color: rgb(37 99 235); /* blue-600 */
-    fill: rgb(37 99 235); /* For SVG-based MathJax rendering */
   }
 
   /* MathJax-specific overrides to ensure hover colors take precedence */
@@ -60,6 +58,7 @@
   .var-input.hovered mjx-mo,
   .var-input.hovered mjx-mn {
     color: rgb(37 99 235);
+    fill: rgb(37 99 235); /* For SVG-based MathJax rendering */
   }
 
   /* Specific styling for interactive variables in label nodes */
