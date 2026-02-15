@@ -2,7 +2,7 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import { useVariableDrag } from "../../util/use-variable-drag";
 import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
@@ -15,7 +15,7 @@ export interface VariableNodeData {
 
 const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const { varId, width, height } = data;
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
   if (!computationStore) {
     return null;

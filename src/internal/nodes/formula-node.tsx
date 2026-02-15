@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import { GripVertical } from "lucide-react";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import {
   FormulaNodeData,
@@ -20,7 +20,7 @@ import {
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   // All hooks must be called before any conditional returns

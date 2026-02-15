@@ -4,8 +4,8 @@ import { observer } from "mobx-react-lite";
 
 import { Info } from "lucide-react";
 
-import { useFormulize } from "../core/hooks";
-import { FormulizeConfig } from "../index.ts";
+import { useStore } from "../core/hooks";
+import { Config } from "../index.ts";
 import { debugStore } from "../store/debug";
 import IconButton from "../ui/icon-button";
 import Modal from "../ui/modal";
@@ -18,10 +18,10 @@ import VariablesSidebar from "./variables-sidebar";
 
 /**
  * PlaygroundCanvas component that renders the canvas and debug tools.
- * Must be used within a FormulizeProvider.
+ * Must be used within a Provider.
  */
 const PlaygroundCanvas = observer(() => {
-  const context = useFormulize();
+  const context = useStore();
   const [showNodeVisibilitySidebar, setShowNodeVisibilitySidebar] =
     useState<boolean>(false);
   const [showTreeInspectorSidebar, setShowTreeInspectorSidebar] =
@@ -32,7 +32,7 @@ const PlaygroundCanvas = observer(() => {
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState<boolean>(false);
   const [configKey, setConfigKey] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const prevConfigRef = useRef<FormulizeConfig | null>(null);
+  const prevConfigRef = useRef<Config | null>(null);
   const computationStore = context?.computationStore;
   const currentConfig = context?.config;
 

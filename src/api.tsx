@@ -10,9 +10,9 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 
-import { FormulizeProvider } from "./core";
+import { Provider } from "./core";
 import { examples as formulaExamples } from "./examples";
-import { FormulizeConfig } from "./formulize";
+import { Config } from "./formulize";
 import Editor from "./internal/api-code-editor";
 import ExampleSwitcher from "./internal/example-switcher";
 import PlaygroundCanvas from "./internal/playground";
@@ -40,7 +40,7 @@ const APIPage = observer(() => {
 
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [config, setConfig] = useState<FormulizeConfig | null>(null);
+  const [config, setConfig] = useState<Config | null>(null);
 
   const currentIndex = useMemo(
     () => (selectedTemplate ? exampleKeys.indexOf(selectedTemplate) : -1),
@@ -109,10 +109,10 @@ const APIPage = observer(() => {
     executeCode(code);
   }, [code, executeCode]);
 
-  // Memoized callback to prevent FormulizeProvider re-initialization on parent re-renders
-  const handleRenderError = useCallback((formulizeError: string | null) => {
-    if (formulizeError) {
-      setError(formulizeError);
+  // Memoized callback to prevent Provider re-initialization on parent re-renders
+  const handleRenderError = useCallback((renderError: string | null) => {
+    if (renderError) {
+      setError(renderError);
     }
   }, []);
 
@@ -174,12 +174,12 @@ const APIPage = observer(() => {
       <div
         className={`relative flex-1 transition-all duration-300 ease-in-out`}
       >
-        <FormulizeProvider
+        <Provider
           config={config || undefined}
           onError={handleRenderError}
         >
           <PlaygroundCanvas />
-        </FormulizeProvider>
+        </Provider>
         {!isRendered && (
           <div className="absolute top-2.5 left-2.5 z-30">
             <IconButton

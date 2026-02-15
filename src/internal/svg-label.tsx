@@ -8,7 +8,7 @@ import type {
 } from "../util/svg/svg-registry";
 import { sanitizeSVG } from "../util/svg/svg-registry";
 import type { IVariable } from "../types/variable";
-import { useFormulize } from "../core/hooks";
+import { useStore } from "../core/hooks";
 
 interface SVGLabelProps {
   svgPath?: string;
@@ -24,8 +24,8 @@ const SVGLabel = observer(
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     // Use context if available, but don't require it
-    const formulizeContext = useFormulize();
-    const computationStore = formulizeContext?.computationStore;
+    const coreContext = useStore();
+    const computationStore = coreContext?.computationStore;
 
     const fontSize = computationStore?.environment?.fontSize || 1;
 

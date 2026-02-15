@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import { Menu } from "lucide-react";
 
 interface HeaderProps {
-  viewMode: "editor" | "formulizeAPI";
-  setViewMode: (mode: "editor" | "formulizeAPI") => void;
+  viewMode: "editor" | "api";
+  setViewMode: (mode: "editor" | "api") => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ viewMode, setViewMode }) => {
@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, setViewMode }) => {
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-slate-900">Formulize</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Math Notation</h1>
           </div>
           <div className="space-y-1">
             <button
@@ -62,12 +62,12 @@ const Header: React.FC<HeaderProps> = ({ viewMode, setViewMode }) => {
             </button>
             <button
               className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                viewMode === "formulizeAPI"
+                viewMode === "api"
                   ? "bg-slate-100 text-slate-900"
                   : "text-gray-700 hover:bg-gray-50"
               }`}
               onClick={() => {
-                setViewMode("formulizeAPI");
+                setViewMode("api");
                 setIsOpen(false);
               }}
             >

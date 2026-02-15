@@ -6,9 +6,9 @@ import "./index.css";
 
 // React Flow styles
 
-// Export main Formulize API
-export { default as Formulize } from "./formulize";
-export type { FormulizeConfig, FormulizeInstance } from "./formulize";
+// Export main Store API
+export { default as Store } from "./formulize";
+export type { Config, Instance } from "./formulize";
 
 // Export new component-based API
 export {
@@ -16,12 +16,12 @@ export {
   InlineFormula,
   InlineVariable,
   VisualizationComponent,
-  FormulizeProvider,
+  Provider,
   EmbeddedFormula,
   StepControl,
 } from "./core";
 export type { StepControlProps } from "./core";
-export { useFormulize } from "./core/hooks";
+export { useStore } from "./core/hooks";
 
 // Export computation API - factory function and type for scoped stores
 // Step functionality is now integrated into ComputationStore

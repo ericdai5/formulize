@@ -3,14 +3,14 @@ import { observer } from "mobx-react-lite";
 
 import Latex from "../../internal/latex";
 import { IButtonControl } from "../../types/control";
-import { useFormulize } from "../hooks";
+import { useStore } from "../hooks";
 
 interface ButtonControlProps {
   control: IButtonControl;
 }
 
 export const ButtonControl = observer<ButtonControlProps>(({ control }) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   // Guard: computationStore must be available

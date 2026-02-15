@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import * as d3 from "d3";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { ComputationStore } from "../../store/computation";
 import {
   type I2DLine,
@@ -138,7 +138,7 @@ function calculateGraphData(
 }
 
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -1278,7 +1278,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   }
 
   return (
-    <div className="formulize-plot2d" style={{ position: "relative" }}>
+    <div className="mn-plot2d" style={{ position: "relative" }}>
       <svg
         ref={svgRef}
         style={{

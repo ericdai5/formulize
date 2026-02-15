@@ -2,13 +2,13 @@
  * Programmatic Formula and Variable Generators
  *
  * General-purpose utilities for generating formulas and variables programmatically.
- * Designed to compose naturally with the declarative FormulizeConfig style.
+ * Designed to compose naturally with the declarative Config style.
  *
  * @example
  * ```typescript
- * import { Formula, Variable } from "formulize-math";
+ * import { Formula, Variable } from "math-notation";
  *
- * const config: FormulizeConfig = {
+ * const config: Config = {
  *   formulas: [
  *     { id: "static", latex: "E = mc^2" },
  *     ...Formula.loop({ i: [1, 3] }, ({ i }) => ({

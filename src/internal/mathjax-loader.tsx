@@ -76,7 +76,7 @@ export const MathJaxLoader: React.FC<{ children: React.ReactNode }> = ({
               window.MathJax.startup.defaultReady();
               window.MathJax.startup.promise.then(() => {
                 console.log(
-                  "MathJax loaded and ready by formulize-math with scale 2.0"
+                  "MathJax loaded and ready by math-notation with scale 2.0"
                 );
                 console.log(
                   "MathJax chtml config:",

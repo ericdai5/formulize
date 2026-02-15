@@ -1,2 +1,2 @@
-export { FormulizeContext, useFormulize } from "./use-formulize";
-export type { FormulizeContextValue } from "./use-formulize";
+export { StoreContext, useStore } from "./use-formulize";
+export type { StoreContextValue } from "./use-formulize";

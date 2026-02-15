@@ -10,7 +10,7 @@ import {
 } from "../util/parse/variable";
 import { updateVariableHoverState } from "../util/scale-wrapper";
 import { useMathJax } from "../util/use-mathjax";
-import { useFormulize } from "./hooks";
+import { useStore } from "./hooks";
 
 interface EmbeddedFormulaProps {
   /** Formula ID to render (looks up from environment) */
@@ -382,7 +382,7 @@ export const EmbeddedFormula: React.FC<EmbeddedFormulaProps> = observer(
     className = "",
     style = {},
   }) => {
-    const context = useFormulize();
+    const context = useStore();
     const isLoading = context?.isLoading ?? true;
     const computationStore = context?.computationStore;
 

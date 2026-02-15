@@ -1414,7 +1414,7 @@ class ComputationStore {
 
 /**
  * Factory function to create a new ComputationStore instance.
- * Used for creating scoped stores per FormulizeProvider.
+ * Used for creating scoped stores per Provider.
  */
 export function createComputationStore(): ComputationStore {
   return new ComputationStore();

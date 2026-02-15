@@ -2,7 +2,7 @@ import React from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import LatexLabel from "../../internal/latex";
 import { type AxisLabelInfo } from "./axes";
 
@@ -14,7 +14,7 @@ interface AxisLabelsProps {
 
 export const AxisLabels: React.FC<AxisLabelsProps> = observer(
   ({ labelInfo, xAxisHovered = false, yAxisHovered = false }) => {
-    const context = useFormulize();
+    const context = useStore();
     const computationStore = context?.computationStore;
 
     if (!computationStore) {

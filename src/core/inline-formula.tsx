@@ -11,7 +11,7 @@ import {
 import { updateVariableHoverState } from "../util/scale-wrapper";
 import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { useMathJax } from "../util/use-mathjax";
-import { useFormulize } from "./hooks";
+import { useStore } from "./hooks";
 
 interface InlineFormulaProps {
   /** Formula ID to render (looks up from environment) */
@@ -251,14 +251,14 @@ const InlineFormulaInner = observer(
  *
  * Usage:
  * ```tsx
- * <FormulizeProvider config={config}>
+ * <Provider config={config}>
  *   <p>The formula <InlineFormula id="kinetic-energy" /> shows energy.</p>
- * </FormulizeProvider>
+ * </Provider>
  * ```
  */
 export const InlineFormula: React.FC<InlineFormulaProps> = observer(
   ({ id, className = "", style = {}, scale = 1 }) => {
-    const context = useFormulize();
+    const context = useStore();
     const instance = context?.instance;
     const isLoading = context?.isLoading ?? true;
     const computationStore = context?.computationStore;

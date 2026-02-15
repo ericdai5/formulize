@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { buildDebugStyles } from "../../util/debug-styles";
@@ -45,7 +45,7 @@ const InlineInput = observer(
     };
     fontSize?: number;
   }) => {
-    const context = useFormulize();
+    const context = useStore();
     const computationStore = context?.computationStore;
 
     const currentValue =
@@ -138,7 +138,7 @@ const InlineInput = observer(
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId, formulaId } = data;
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
   const labelFontSize = computationStore?.environment?.labelFontSize;
 
