@@ -2,14 +2,14 @@ import { observer } from "mobx-react-lite";
 
 import { ICheckboxControl } from "../../types/control";
 import Latex from "../../internal/latex";
-import { useFormulize } from "../hooks";
+import { useStore } from "../hooks";
 
 interface CheckboxControlProps {
   control: ICheckboxControl;
 }
 
 export const CheckboxControl = observer<CheckboxControlProps>(({ control }) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   // Guard: computationStore must be available

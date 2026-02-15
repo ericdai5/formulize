@@ -5,18 +5,22 @@ import { observer } from "mobx-react-lite";
 
 import { GripVertical } from "lucide-react";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import {
   FormulaNodeData,
   renderFormulaWithMathJax,
 } from "../../util/canvas/formula-node";
 import { buildDebugStyles } from "../../util/debug-styles";
+import {
+  setupScaleWrappers,
+  updateVariableHoverState,
+} from "../../util/scale-wrapper";
 
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   // All hooks must be called before any conditional returns
@@ -47,6 +51,15 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
       dataWithStores,
       isInitialized
     );
+    // Pre-wrap all variable elements for scale animations
+    // Pass highlighted var IDs to re-apply hover state after re-render
+    if (nodeRef.current && computationStore) {
+      setupScaleWrappers(
+        nodeRef.current,
+        ".var-input, .var-base"
+        // computationStore.highlightedVarIds
+      );
+    }
   }, [data, computationStore, isInitialized]);
 
   useEffect(() => {
@@ -83,28 +96,18 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
   }, [computationStore, isInitialized, renderFormula]);
 
   // React to hover state changes and update DOM directly
+  // Uses scale wrapper helpers to apply transforms outside MathJax's layout
   useEffect(() => {
     if (!computationStore) return;
     const disposer = reaction(
-      () => Array.from(computationStore.hoverStates.entries()),
-      (hoverStates) => {
+      () => computationStore.highlightedVarIds,
+      (highlightedVarIds) => {
         if (!nodeRef.current) return;
-        hoverStates.forEach(([varId, isHovered]) => {
-          const elements = nodeRef.current!.querySelectorAll(
-            `#${CSS.escape(varId)}`
-          );
-          elements.forEach((element) => {
-            if (isHovered) {
-              element.classList.add("hovered");
-            } else {
-              element.classList.remove("hovered");
-            }
-          });
-        });
+        updateVariableHoverState(nodeRef.current, highlightedVarIds, true);
       }
     );
     return () => disposer();
-  }, [computationStore, data.id]);
+  }, [computationStore]);
 
   // All conditional returns must happen after all hooks are called
   if (!computationStore) return null;

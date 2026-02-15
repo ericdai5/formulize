@@ -1,5 +1,5 @@
 export { Formula } from "./formula";
-export { FormulizeProvider } from "./formulize-provider";
+export { Provider } from "./formulize-provider";
 export { InlineFormula } from "./inline-formula";
 export { InlineVariable } from "./inline-variable";
 export { EmbeddedFormula } from "./embedded-formula";

@@ -1,11 +1,11 @@
 import { createContext, useContext } from "react";
 
-import { FormulizeConfig, FormulizeInstance } from "../../formulize";
+import { Config, Instance } from "../../formulize";
 import { ComputationStore } from "../../store/computation";
 
-export interface FormulizeContextValue {
-  instance: FormulizeInstance | null;
-  config: FormulizeConfig | null;
+export interface StoreContextValue {
+  instance: Instance | null;
+  config: Config | null;
   isLoading: boolean;
   error: string | null;
   computationStore: ComputationStore | null;
@@ -13,15 +13,15 @@ export interface FormulizeContextValue {
   reinitialize: () => void;
 }
 
-export const FormulizeContext = createContext<FormulizeContextValue | null>(
+export const StoreContext = createContext<StoreContextValue | null>(
   null
 );
 
 /**
- * Hook to access the Formulize context.
- * Returns null if not within FormulizeProvider, allowing components
+ * Hook to access the Core context.
+ * Returns null if not within Provider, allowing components
  * to work both with context and with explicit props.
  */
-export const useFormulize = (): FormulizeContextValue | null => {
-  return useContext(FormulizeContext);
+export const useStore = (): StoreContextValue | null => {
+  return useContext(StoreContext);
 };

@@ -1,8 +1,7 @@
 /**
- * Formulize API
+ * Store API
  *
- * This provides a declarative API for creating interactive formula visualizations
- * as described in the Formulize API Documentation.
+ * This provides a declarative API for creating interactive visualizations.
  */
 import { ComputationStore, createComputationStore } from "./store/computation";
 import { IEnvironment } from "./types/environment";
@@ -12,17 +11,17 @@ import { normalizeVariables } from "./util/normalize-variables";
 /**
  * User-facing configuration type.
  */
-export type FormulizeConfig = IEnvironment;
+export type Config = IEnvironment;
 
 /**
  * Interface for the object returned by Formulize.create()
  */
-export interface FormulizeInstance {
+export interface Instance {
   environment: IEnvironment;
   computationStore: ComputationStore;
   getVariable: (name: string) => IVariable;
   setVariable: (name: string, value: number) => boolean;
-  update: (config: FormulizeConfig) => Promise<FormulizeInstance>;
+  update: (config: Config) => Promise<Instance>;
   destroy: () => void;
 }
 
@@ -35,7 +34,7 @@ function setupComputationEngine(
 }
 
 // Validate environment configuration
-function validateEnvironment(config: FormulizeConfig) {
+function validateEnvironment(config: Config) {
   if (!config) {
     throw new Error("No configuration provided");
   }
@@ -49,9 +48,9 @@ function validateEnvironment(config: FormulizeConfig) {
  * Used by both `create` (with new stores) and `update` (with existing stores).
  */
 async function initializeInstance(
-  config: FormulizeConfig,
+  config: Config,
   computationStore: ComputationStore
-): Promise<FormulizeInstance> {
+): Promise<Instance> {
   try {
     // Validate the config
     validateEnvironment(config);
@@ -114,7 +113,7 @@ async function initializeInstance(
     }
 
     // Store the id for setVariable method to use
-    const instance: FormulizeInstance = {
+    const instance: Instance = {
       environment: environment,
       computationStore,
       getVariable: (name: string): IVariable => {
@@ -152,7 +151,7 @@ async function initializeInstance(
         }
         return false;
       },
-      update: async (updatedConfig: FormulizeConfig) => {
+      update: async (updatedConfig: Config) => {
         return await initializeInstance(updatedConfig, computationStore);
       },
       destroy: () => {
@@ -169,14 +168,14 @@ async function initializeInstance(
 /**
  * Public API - creates a new Formulize instance with its own isolated stores.
  */
-async function create(config: FormulizeConfig): Promise<FormulizeInstance> {
+async function create(config: Config): Promise<Instance> {
   const computationStore = createComputationStore();
   return initializeInstance(config, computationStore);
 }
 
-// Export the Formulize API
-const Formulize = {
+// Export the Store API
+const Store = {
   create,
 };
 
-export default Formulize;
+export default Store;

@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { buildDebugStyles } from "../../util/debug-styles";
@@ -45,7 +45,7 @@ const InlineInput = observer(
     };
     fontSize?: number;
   }) => {
-    const context = useFormulize();
+    const context = useStore();
     const computationStore = context?.computationStore;
 
     const currentValue =
@@ -138,7 +138,7 @@ const InlineInput = observer(
 
 const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
   const { varId, formulaId } = data;
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
   const labelFontSize = computationStore?.environment?.labelFontSize;
 
@@ -153,7 +153,8 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
     : new Set();
   const isVariableActive =
     allFormulasVars.has(varId) || thisFormulaVars.has(varId);
-  const isHovered = computationStore?.hoverStates.get(varId) ?? false;
+  // Highlighted if mouse is over OR if dragging this variable
+  const isHovered = computationStore?.isVariableHighlighted(varId) ?? false;
 
   const valueDragRef = useVariableDrag({
     varId,
@@ -330,7 +331,7 @@ const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
           <div style={{ lineHeight: 1 }}>
             <LatexLabel
               latex={`\\text{${name}}`}
-              fontSize={labelFontSize ? labelFontSize * 0.7 : 0.7}
+              fontSize={labelFontSize ? labelFontSize * 0.67 : 0.67}
             />
           </div>
         )}

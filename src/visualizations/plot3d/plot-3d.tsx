@@ -7,7 +7,7 @@ import { observer } from "mobx-react-lite";
 import * as Plotly from "plotly.js-dist";
 
 import { IPlot3D } from "../..";
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { ComputationStore } from "../../store/computation";
 import { I3DLine, I3DPoint, I3DSurface, IPoint3D } from "../../types/plot3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
@@ -606,7 +606,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
 // Outer component that handles the null check for computationStore
 const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   // Guard: computationStore must be available

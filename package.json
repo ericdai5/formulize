@@ -1,8 +1,8 @@
 {
-  "name": "formulize-math",
+  "name": "math-notation",
   "private": false,
-  "version": "0.1.31",
-  "description": "A powerful formula editor and visualization library for mathematical expressions",
+  "version": "0.1.0",
+  "description": "A React component library for mathematical expressions",
   "type": "module",
   "main": "./dist/formulize.cjs.js",
   "module": "./dist/formulize.es.js",
@@ -21,13 +21,7 @@
     "LICENSE"
   ],
   "keywords": [
-    "formula",
     "math",
-    "editor",
-    "visualization",
-    "latex",
-    "katex",
-    "mathjax",
     "react",
     "component"
   ],
@@ -56,7 +50,7 @@
     "katex": "^0.16.0",
     "lodash": "^4.0.0",
     "lucide-react": "^0.400.0",
-    "mathjax-full": "^3.0.0",
+    "mathjax-full": "^3.2.2",
     "mathjs": "^13.0.0",
     "mobx": "^6.0.0",
     "mobx-react-lite": "^4.0.0",

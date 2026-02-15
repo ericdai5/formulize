@@ -6,7 +6,7 @@ import { SkipBack, SkipForward, StepBack, StepForward } from "lucide-react";
 
 import { goToEnd, goToStart, nextStep, prevStep } from "../engine/controller";
 import Button from "../ui/button";
-import { useFormulize } from "./hooks";
+import { useStore } from "./hooks";
 
 export interface StepControlProps {
   /** Optional className for additional styling */
@@ -15,11 +15,11 @@ export interface StepControlProps {
 
 /**
  * A step control component for navigating through collected steps.
- * Uses the new reactive step system. Must be used inside a FormulizeProvider.
+ * Uses the new reactive step system. Must be used inside a Provider.
  */
 export const StepControl: React.FC<StepControlProps> = observer(
   ({ className = "" }) => {
-    const context = useFormulize();
+    const context = useStore();
     const computationStore = context?.computationStore ?? null;
     const isLoading = context?.isLoading ?? true;
 

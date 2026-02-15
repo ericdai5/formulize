@@ -38,7 +38,7 @@ export function updateHoverLines(config: HoverLinesConfig): void {
     if (
       xValue !== undefined &&
       typeof xValue === "number" &&
-      computationStore.hoverStates.get(xAxis)
+      computationStore.isVariableHighlighted(xAxis)
     ) {
       const xPos = xScale(xValue);
 
@@ -63,7 +63,7 @@ export function updateHoverLines(config: HoverLinesConfig): void {
     if (
       yValue !== undefined &&
       typeof yValue === "number" &&
-      computationStore.hoverStates.get(yAxis)
+      computationStore.isVariableHighlighted(yAxis)
     ) {
       const yPos = yScale(yValue);
 

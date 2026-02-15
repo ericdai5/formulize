@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import { IVisualization } from "../types/visualization";
 import VisualizationRenderer from "../visualizations/visualization";
-import { useFormulize } from "./hooks";
+import { useStore } from "./hooks";
 
 interface VisualizationComponentProps {
   type: "plot2d" | "plot3d" | "custom";
@@ -19,7 +19,7 @@ export const VisualizationComponent: React.FC<VisualizationComponentProps> =
   observer(({ config, className = "", style = {} }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isReady, setIsReady] = useState(false);
-    const context = useFormulize();
+    const context = useStore();
     const computationStore = context?.computationStore;
     const isLoading = context?.isLoading ?? true;
     const instance = context?.instance;

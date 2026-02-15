@@ -4,14 +4,14 @@ import { observer } from "mobx-react-lite";
 
 import { ISliderControl } from "../../types/control";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
-import { useFormulize } from "../hooks";
+import { useStore } from "../hooks";
 
 interface SliderProps {
   control: ISliderControl;
 }
 
 const Slider = observer(({ control }: SliderProps) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   // Guard: computationStore must be available

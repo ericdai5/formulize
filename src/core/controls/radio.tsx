@@ -2,14 +2,14 @@ import { observer } from "mobx-react-lite";
 
 import { IRadioControl } from "../../types/control";
 import Latex from "../../internal/latex";
-import { useFormulize } from "../hooks";
+import { useStore } from "../hooks";
 
 interface RadioControlProps {
   control: IRadioControl;
 }
 
 export const RadioControl = observer<RadioControlProps>(({ control }) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   // Guard: computationStore must be available

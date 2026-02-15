@@ -8,9 +8,10 @@ import {
   getInputVariableState,
   processLatexContent,
 } from "../util/parse/variable";
+import { updateVariableHoverState } from "../util/scale-wrapper";
 import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { useMathJax } from "../util/use-mathjax";
-import { useFormulize } from "./hooks";
+import { useStore } from "./hooks";
 
 interface InlineFormulaProps {
   /** Formula ID to render (looks up from environment) */
@@ -223,24 +224,13 @@ const InlineFormulaInner = observer(
       return () => disposer();
     }, [mathJaxLoaded, renderFormula, computationStore]);
 
-    // React to hover state changes and update DOM directly
+    // React to highlight state changes and update DOM directly
     useEffect(() => {
       const disposer = reaction(
-        () => Array.from(computationStore.hoverStates.entries()),
-        (hoverStates) => {
+        () => computationStore.highlightedVarIds,
+        (highlightedVarIds) => {
           if (!containerRef.current) return;
-          hoverStates.forEach(([varId, isHovered]) => {
-            const elements = containerRef.current!.querySelectorAll(
-              `#${CSS.escape(varId)}`
-            );
-            elements.forEach((element) => {
-              if (isHovered) {
-                element.classList.add("hovered");
-              } else {
-                element.classList.remove("hovered");
-              }
-            });
-          });
+          updateVariableHoverState(containerRef.current, highlightedVarIds);
         }
       );
       return () => disposer();
@@ -261,14 +251,14 @@ const InlineFormulaInner = observer(
  *
  * Usage:
  * ```tsx
- * <FormulizeProvider config={config}>
+ * <Provider config={config}>
  *   <p>The formula <InlineFormula id="kinetic-energy" /> shows energy.</p>
- * </FormulizeProvider>
+ * </Provider>
  * ```
  */
 export const InlineFormula: React.FC<InlineFormulaProps> = observer(
   ({ id, className = "", style = {}, scale = 1 }) => {
-    const context = useFormulize();
+    const context = useStore();
     const instance = context?.instance;
     const isLoading = context?.isLoading ?? true;
     const computationStore = context?.computationStore;

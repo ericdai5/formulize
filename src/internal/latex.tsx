@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { useFormulize } from "../core/hooks";
+import { useStore } from "../core/hooks";
 
 interface LatexLabelProps {
   latex: string;
@@ -13,9 +13,9 @@ const LatexLabel = observer(
   ({ latex, fontSize: customFontSize }: LatexLabelProps) => {
     const labelRef = useRef<HTMLSpanElement>(null);
     // Use context if available, but don't require it (component can be used standalone)
-    const formulizeContext = useFormulize();
+    const coreContext = useStore();
     const labelFontSize =
-      formulizeContext?.computationStore?.environment?.labelFontSize;
+      coreContext?.computationStore?.environment?.labelFontSize;
 
     const fontSize = customFontSize ?? labelFontSize ?? 1.0;
 

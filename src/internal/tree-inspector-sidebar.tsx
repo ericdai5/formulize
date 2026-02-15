@@ -2,8 +2,8 @@ import React, { useState } from "react";
 
 import { X } from "lucide-react";
 
-import { useFormulize } from "../core/hooks";
-import { FormulizeConfig } from "../formulize";
+import { useStore } from "../core/hooks";
+import { Config } from "../formulize";
 import { FormulaTreePane } from "./formula-tree-pane";
 import { MathJaxTreePane } from "./mathjax-tree-pane";
 import { VariableTreesPane } from "./variable-tree-pane";
@@ -11,7 +11,7 @@ import { VariableTreesPane } from "./variable-tree-pane";
 interface TreeInspectorSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  config: FormulizeConfig | null;
+  config: Config | null;
 }
 
 type TabType = "formula" | "variables" | "mathjax";
@@ -22,7 +22,7 @@ const TreeInspectorSidebar: React.FC<TreeInspectorSidebarProps> = ({
   config,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>("formula");
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   return (

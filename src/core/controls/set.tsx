@@ -3,14 +3,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
 
 import { ISetControl } from "../../types/control";
-import { useFormulize } from "../hooks";
+import { useStore } from "../hooks";
 
 interface SetControlProps {
   control: ISetControl;
 }
 
 export const SetControl = observer<SetControlProps>(({ control }) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
 
   const { variable, availableElements, color = "#3b82f6" } = control;

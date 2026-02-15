@@ -44,7 +44,7 @@ import {
   addVariableNodesForFormula,
   updateVarNodes,
 } from "../util/canvas/variable-nodes";
-import { useFormulize } from "./hooks";
+import { useStore } from "./hooks";
 
 const nodeTypes = {
   formula: FormulaNode,
@@ -102,7 +102,7 @@ const FormulaCanvasInner = observer(
     // Helper function to get the formula latex by id
     // Uses the formulas prop passed from context (scoped to this provider)
     const getFormula = useCallback((): string | null => {
-      // Use formulas from context (scoped per FormulizeProvider)
+      // Use formulas from context (scoped per Provider)
       if (formulas && formulas.length > 0) {
         const formula = formulas.find((f) => f.id === id);
         if (formula) {
@@ -592,13 +592,13 @@ const FormulaCanvasInner = observer(
 
 export const Formula: React.FC<FormulaComponentProps> = observer(
   ({ id, className = "", style = {} }) => {
-    const context = useFormulize();
+    const context = useStore();
     const instance = context?.instance;
     const isLoading = context?.isLoading ?? true;
     const config = context?.config;
     const computationStore = context?.computationStore;
 
-    // Get formulas from context config (scoped per FormulizeProvider)
+    // Get formulas from context config (scoped per Provider)
     const formulas = config?.formulas || [];
 
     const containerStyle: React.CSSProperties = {

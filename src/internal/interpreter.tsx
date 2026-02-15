@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import { RotateCcw, X } from "lucide-react";
 
-import { useFormulize } from "../core/hooks";
+import { useStore } from "../core/hooks";
 import { StepControl } from "../core/step-control";
 import { goToStep, refresh } from "../engine/controller";
 import Button from "../ui/button";
@@ -21,7 +21,7 @@ interface StepViewerProps {
  */
 const StepViewer: React.FC<StepViewerProps> = observer(
   ({ isOpen, onClose }) => {
-    const context = useFormulize();
+    const context = useStore();
     const computationStore = context?.computationStore;
 
     // Guard: stores must be available

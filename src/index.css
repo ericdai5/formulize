@@ -24,7 +24,7 @@
   }
 
   .var-base.hovered {
-    @apply text-blue-600 rounded-md scale-110;
+    @apply text-blue-600 rounded-md;
   }
 
   .var-base.hovered * {
@@ -36,12 +36,39 @@
     @apply text-black rounded-md select-none transition-all duration-200;
   }
 
-  .var-input:active {
-    @apply scale-105;
+  .var-input.hovered {
+    @apply text-blue-600 rounded-md;
   }
 
-  .var-input.hovered {
-    @apply text-blue-600 rounded-md scale-110;
+  /* Wrapper for scaling variables outside MathJax's layout */
+  .var-scale-wrapper {
+    display: inline-block;
+  }
+
+  .var-scale-wrapper.active {
+    animation: scale-in 0.2s ease-out forwards;
+  }
+
+  .var-scale-wrapper.scale-out {
+    animation: scale-out 0.2s ease-out forwards;
+  }
+
+  @keyframes scale-in {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.1);
+    }
+  }
+
+  @keyframes scale-out {
+    from {
+      transform: scale(1.1);
+    }
+    to {
+      transform: scale(1);
+    }
   }
 
   .var-input.hovered * {
@@ -64,19 +91,19 @@
   /* Specific styling for interactive variables in label nodes */
   .label-flow-node .var-base,
   .label-flow-node .var-input {
-    line-height: 1;
+    line-height: 1.2;
+    display: inline-block;
+    transition: transform 0.2s ease-out;
+  }
+
+  .label-flow-node .var-base.hovered,
+  .label-flow-node .var-input.hovered {
+    transform: scale(1.1);
   }
 
   /* Step mode pulse animation - applied on top of var-base or var-input */
   .step-cue {
     animation: pulseUpdate 0.4s ease-in-out;
-  }
-
-  .label-flow-node .var-base.hovered,
-  .label-flow-node .var-input.hovered {
-    line-height: 1;
-    display: inline-block;
-    @apply scale-110;
   }
 
   /* Formula expression hover state */

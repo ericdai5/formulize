@@ -1,16 +1,16 @@
-import { FormulizeConfig } from "../formulize";
+import { Config } from "../formulize";
 
 // Global variable to track and cancel previous executions
 let currentExecution: (() => void) | null = null;
 
 /**
- * Execute user-provided JavaScript code in a sandboxed iframe to extract FormulizeConfig
+ * Execute user-provided JavaScript code in a sandboxed iframe to extract Config
  * Uses secure iframe sandboxing to prevent access to the main page context
  * Automatically cancels previous executions to prevent race conditions
  */
 export async function executeUserCode(
   jsCode: string
-): Promise<FormulizeConfig | null> {
+): Promise<Config | null> {
   // Cancel any previous execution
   if (currentExecution) {
     currentExecution();
@@ -19,7 +19,7 @@ export async function executeUserCode(
   // Function to deserialize config from iframe (handles function strings)
   const deserializeConfig = (
     config: Record<string, unknown>
-  ): FormulizeConfig => {
+  ): Config => {
     return JSON.parse(JSON.stringify(config), (key, value) => {
       if (value && typeof value === "object" && value.__isFunction) {
         try {
@@ -85,7 +85,7 @@ export async function executeUserCode(
         if (!config) {
           reject(
             new Error(
-              "No configuration was captured. Make sure your code calls Formulize.create(config)"
+              "No configuration was captured. Make sure your code calls Store.create(config)"
             )
           );
           return;

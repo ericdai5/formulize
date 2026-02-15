@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { reaction, runInAction } from "mobx";
 
-import { useFormulize } from "../../core/hooks";
+import { useStore } from "../../core/hooks";
 import { IContext, ICustom } from "../../types/custom";
 import {
   getVariableValue,
@@ -31,7 +31,7 @@ const ErrorDisplay: React.FC<{ error: string }> = ({ error }) => (
  * Re-renders when variable values change but avoids infinite loops
  */
 const Canvas: React.FC<CanvasProps> = ({ config }) => {
-  const context = useFormulize();
+  const context = useStore();
   const computationStore = context?.computationStore;
   const [variables, setVariables] = useState<Record<string, number>>({});
   const { component, update = {} } = config;

@@ -7,7 +7,7 @@ import { VAR_CLASSES } from "../internal/css-classes";
 import { ComputationStore } from "../store/computation";
 import { getInputVariableState } from "../util/parse/variable";
 import { useMathJax } from "../util/use-mathjax";
-import { useFormulize } from "./hooks";
+import { useStore } from "./hooks";
 
 type DisplayMode = "symbol" | "value" | "both" | "withUnits";
 
@@ -52,7 +52,7 @@ const InlineVariableInner = observer(
   }) => {
     const containerRef = useRef<HTMLSpanElement>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
-    const context = useFormulize();
+    const context = useStore();
     const config = context?.config;
 
     // Get the variable from store
@@ -60,8 +60,8 @@ const InlineVariableInner = observer(
       return computationStore.variables.get(id);
     }, [id, computationStore]);
 
-    // Get hover state for this variable
-    const isHovered = computationStore.hoverStates.get(id) ?? false;
+    // Get highlight state for this variable (hovered or dragged)
+    const isHovered = computationStore.isVariableHighlighted(id);
     const variable = getVariable();
     const variableClass = getVariableClass(variable?.input);
 
@@ -265,14 +265,14 @@ const InlineVariableInner = observer(
  *
  * Usage:
  * ```tsx
- * <FormulizeProvider config={config}>
+ * <Provider config={config}>
  *   <p>The mass <InlineVariable id="m" display="withUnits" /> affects energy.</p>
- * </FormulizeProvider>
+ * </Provider>
  * ```
  */
 export const InlineVariable: React.FC<InlineVariableProps> = observer(
   ({ id, display = "value", className = "", style = {}, scale = 1 }) => {
-    const context = useFormulize();
+    const context = useStore();
     const instance = context?.instance;
     const isLoading = context?.isLoading ?? true;
     const computationStore = context?.computationStore;

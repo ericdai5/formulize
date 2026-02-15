@@ -3,25 +3,25 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { observer } from "mobx-react-lite";
 
 import { refresh } from "../engine/controller";
-import Formulize, { FormulizeConfig, FormulizeInstance } from "../formulize";
+import Store, { Config, Instance } from "../formulize";
 import { MathJaxLoader } from "../internal/mathjax-loader";
 import { useMathJax } from "../util/use-mathjax";
-import { FormulizeContext, FormulizeContextValue } from "./hooks/use-formulize";
+import { StoreContext, StoreContextValue } from "./hooks/use-formulize";
 
-interface FormulizeProviderProps {
-  config?: FormulizeConfig;
+interface ProviderProps {
+  config?: Config;
   children: React.ReactNode;
   onError?: (error: string | null) => void;
-  onReady?: (instance: FormulizeInstance) => void;
+  onReady?: (instance: Instance) => void;
 }
 
 // Inner provider that runs after MathJax is loaded
-const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
+const ProviderInner: React.FC<ProviderProps> = observer(
   ({ config, children, onError, onReady }) => {
-    const [instance, setInstance] = useState<FormulizeInstance | null>(null);
+    const [instance, setInstance] = useState<Instance | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const instanceRef = useRef<FormulizeInstance | null>(null);
+    const instanceRef = useRef<Instance | null>(null);
     const { isLoaded: mathJaxLoaded } = useMathJax();
 
     useEffect(() => {
@@ -37,7 +37,7 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
         return;
       }
 
-      const initializeFormulize = async () => {
+      const initialize = async () => {
         setIsLoading(true);
         setError(null);
 
@@ -53,8 +53,8 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
             throw new Error("MathJax is not properly loaded");
           }
 
-          // Create new Formulize instance
-          const newInstance = await Formulize.create(config);
+          // Create new instance
+          const newInstance = await Store.create(config);
           instanceRef.current = newInstance;
 
           // Initialize steps if stepping mode is enabled
@@ -80,7 +80,7 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
         }
       };
 
-      initializeFormulize();
+      initialize();
 
       // Cleanup on unmount or config change
       return () => {
@@ -98,7 +98,7 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
       refresh(instance.computationStore);
     }, [instance]);
 
-    const contextValue: FormulizeContextValue = useMemo(
+    const contextValue: StoreContextValue = useMemo(
       () => ({
         instance,
         config: config || null,
@@ -111,20 +111,20 @@ const FormulizeProviderInner: React.FC<FormulizeProviderProps> = observer(
     );
 
     return (
-      <FormulizeContext.Provider value={contextValue}>
+      <StoreContext.Provider value={contextValue}>
         {children}
-      </FormulizeContext.Provider>
+      </StoreContext.Provider>
     );
   }
 );
 
 // Outer provider that ensures MathJax is loaded first
-export const FormulizeProvider: React.FC<FormulizeProviderProps> = (props) => {
+export const Provider: React.FC<ProviderProps> = (props) => {
   return (
     <MathJaxLoader>
-      <FormulizeProviderInner {...props} />
+      <ProviderInner {...props} />
     </MathJaxLoader>
   );
 };
 
-export default FormulizeProvider;
+export default Provider;

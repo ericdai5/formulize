@@ -11,7 +11,7 @@ import {
   getVariableTokens,
   parseVariableString,
 } from "../util/parse/formula-tree";
-import { FormulizeConfig } from "../formulize";
+import { Config } from "../formulize";
 
 interface VariableTreePaneProps {
   variableName: string;
@@ -229,7 +229,7 @@ const TreeElement = ({ tree }: { tree: AugmentedFormulaNode }) => {
 export const VariableTreesPane = ({
   config,
 }: {
-  config: FormulizeConfig | null;
+  config: Config | null;
 }) => {
   const variableNames = config?.variables ? Object.keys(config.variables) : [];
 

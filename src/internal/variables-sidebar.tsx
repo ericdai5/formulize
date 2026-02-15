@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import { Plus, Trash2, X } from "lucide-react";
 
-import { useFormulize } from "../core/hooks";
+import { useStore } from "../core/hooks";
 import { debugStore } from "../store/debug";
 import {
   IInput,
@@ -520,7 +520,7 @@ const AddVariableModal: React.FC<AddVariableModalProps> = ({
 
 const VariablesSidebar: React.FC<VariablesSidebarProps> = observer(
   ({ isOpen, onClose }) => {
-    const context = useFormulize();
+    const context = useStore();
     const computationStore = context?.computationStore;
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 

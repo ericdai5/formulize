@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import { getInputVariableState } from "./parse/variable";
 import { ComputationStore } from "../store/computation";
+import { getInputVariableState } from "./parse/variable";
 
 interface UseVariableDragProps {
   varId: string;
@@ -47,6 +47,8 @@ export const useVariableDrag = ({
         isDragging = false;
         e.preventDefault();
         e.stopPropagation();
+        // Clear dragging state - hover will be cleared by natural mouse leave if needed
+        computationStore.setVariableDrag(varId, false);
         document.removeEventListener("mousemove", handleMouseMove, true);
         document.removeEventListener("mouseup", handleMouseUp, true);
       }
@@ -58,6 +60,8 @@ export const useVariableDrag = ({
       const currentVariable = computationStore.variables.get(varId);
       startValue =
         typeof currentVariable?.value === "number" ? currentVariable.value : 0;
+      // Track which variable is being dragged
+      computationStore.setVariableDrag(varId, true);
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
