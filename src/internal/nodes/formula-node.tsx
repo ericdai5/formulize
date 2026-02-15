@@ -54,7 +54,11 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     // Pre-wrap all variable elements for scale animations
     // Pass highlighted var IDs to re-apply hover state after re-render
     if (nodeRef.current && computationStore) {
-      setupScaleWrappers(nodeRef.current, ".var-input, .var-base");
+      setupScaleWrappers(
+        nodeRef.current,
+        ".var-input, .var-base"
+        // computationStore.highlightedVarIds
+      );
     }
   }, [data, computationStore, isInitialized]);
 

@@ -20,6 +20,10 @@ export const setupScaleWrappers = (
 ): void => {
   const elements = container.querySelectorAll(selector);
   elements.forEach((element) => {
+    // Skip if already wrapped to prevent nested wrappers on repeated calls
+    if (element.parentElement?.classList.contains(WRAPPER_CLASS)) {
+      return;
+    }
     const wrapper = document.createElement("span");
     wrapper.className = WRAPPER_CLASS;
     element.parentNode?.insertBefore(wrapper, element);
@@ -92,8 +96,8 @@ export function updateVariableHoverState(
 ): void {
   const highlightedSet = new Set(highlightedVarIds);
 
-  // Remove hover from elements that are no longer highlighted
-  const currentlyHovered = container.querySelectorAll(".hovered");
+  // Remove hover from elements that are no longer highlighted (only within scale wrappers)
+  const currentlyHovered = container.querySelectorAll(".var-scale-wrapper .hovered");
   currentlyHovered.forEach((element) => {
     const htmlEl = element as HTMLElement;
     if (!highlightedSet.has(htmlEl.id)) {

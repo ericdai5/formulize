@@ -46,14 +46,14 @@
   }
 
   .var-scale-wrapper.active {
-    animation: scaleIn 0.2s ease-out forwards;
+    animation: scale-in 0.2s ease-out forwards;
   }
 
   .var-scale-wrapper.scale-out {
-    animation: scaleOut 0.2s ease-out forwards;
+    animation: scale-out 0.2s ease-out forwards;
   }
 
-  @keyframes scaleIn {
+  @keyframes scale-in {
     from {
       transform: scale(1);
     }
@@ -62,7 +62,7 @@
     }
   }
 
-  @keyframes scaleOut {
+  @keyframes scale-out {
     from {
       transform: scale(1.1);
     }
