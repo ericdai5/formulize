@@ -1,6 +1,7 @@
 import { average } from "./average";
 import { bayesWithCustomVisualization } from "./bayes-visualization";
 import { fittsLaw } from "./fitts-law";
+import { gravitationalForce } from "./gravitational-force";
 import { gravitationalPotential } from "./gravitational-potential";
 import { waveEquationSVG } from "./js-generated-svg";
 import { kinetic2D } from "./kinetic-2d";
@@ -26,6 +27,7 @@ export const examples = {
   quadratic2D,
   quadratic3D,
   sinTheta,
+  gravitationalForce,
   gravitationalPotential,
   parametric3D,
   parameterizedPlane,
@@ -47,6 +49,7 @@ export const examples = {
 export const exampleDisplayNames = {
   kinetic2D: "Kinetic Energy 2D",
   kinetic3D: "Kinetic Energy 3D",
+  gravitationalForce: "Gravitational Force",
   gravitationalPotential: "Potential Energy 2D",
   quadratic2D: "Quadratic Equation 2D",
   quadratic3D: "Quadratic Equation 3D",
