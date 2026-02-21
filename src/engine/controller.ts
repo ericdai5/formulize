@@ -2,15 +2,13 @@ import { ComputationStore } from "../store/computation";
 import { VAR_SELECTORS } from "../internal/css-classes";
 
 /**
- * Unescape a JSON-escaped string (e.g. "\\theta" -> "\theta")
- * Returns the original string if unescaping fails
+ * Normalize LaTeX strings that may arrive double-escaped (e.g. "\\\\theta" -> "\\theta").
+ * Keep already-valid LaTeX untouched (e.g. "\\theta") so commands like \frac
+ * are not converted into control characters by JSON parsing.
  */
 export const unescapeLatex = (str: string): string => {
-  try {
-    return JSON.parse(`"${str}"`);
-  } catch {
-    return str;
-  }
+  if (!str.includes("\\\\")) return str;
+  return str.replace(/\\\\/g, "\\");
 };
 
 /**

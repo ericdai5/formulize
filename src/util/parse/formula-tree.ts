@@ -2738,6 +2738,29 @@ const findMatchingSubsequences = (
 };
 
 /**
+ * Find the first expression match in a node list or any descendant node list.
+ * This allows matching subexpressions nested inside structures such as fractions.
+ */
+const findFirstRecursiveMatch = (
+  children: AugmentedFormulaNode[],
+  patternChildren: AugmentedFormulaNode[]
+): AugmentedFormulaNode[] | null => {
+  const directMatches = findMatchingSubsequences(children, patternChildren);
+  if (directMatches.length > 0) {
+    return directMatches[0].nodes;
+  }
+
+  for (const child of children) {
+    const nestedMatch = findFirstRecursiveMatch(child.children, patternChildren);
+    if (nestedMatch) {
+      return nestedMatch;
+    }
+  }
+
+  return null;
+};
+
+/**
  * Check if a subsequence of nodes matches a pattern subsequence
  */
 const subsequenceMatches = (
@@ -3083,15 +3106,14 @@ export const findExpression = (
     if (expressionTree.children.length === 0) {
       return null;
     }
-    // Find matching subsequence in the formula's children
-    const matches = findMatchingSubsequences(
+    // Find matching subsequence in the formula tree (including nested descendants)
+    const matchedNodes = findFirstRecursiveMatch(
       formulaTree.children,
       expressionTree.children
     );
-    if (matches.length === 0) {
+    if (!matchedNodes) {
       return null;
     }
-    const matchedNodes = matches[0].nodes;
     // Get cssIds directly from matched nodes
     const elementIds = matchedNodes
       .map((node) => node.cssId)
