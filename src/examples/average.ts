@@ -31,17 +31,17 @@ export const average = `const config = {
     var n = xValues.length;
     var sum = 0;
     var average = 0;
-    step({ description: "Get the count $n$ of values", values: [["n", n]] });
+    step({ description: "Get the count $n$ of values", labels: { "n": n } });
     for (var i = 0; i < n; i++) {
       var xi = xValues[i];
-      step({ description: "Get value $X_i$ from $X$", values: [["i", i + 1], ["X_i", xi], ["X", xValues]] });
-      step({ description: "Add $X_i$ to running sum of " + sum, values: [["X_i", xi]] });
+      step({ description: "Get value $X_i$ from $X$", labels: { "i": i + 1, "X_i": xi, "X": xValues } });
+      step({ description: "Add $X_i$ to running sum of " + sum, labels: { "X_i": xi } });
       sum = sum + xi;
-      step({ description: "Sum is now " + sum, expression: "\\\\sum_{i=1}^{n} X_i" });
+      step({ labels: { "\\\\sum_{i=1}^{n} X_i": "Sum is now " + sum } });
     }
     average = sum / n;
     average = Math.round(average * 100) / 100;
-    step({ description: "Divide $sum = " + sum + "$ by $n = " + n + "$ to get average.", values: [["\\\\bar{X}", average]] });
+    step({ description: "Divide $sum = " + sum + "$ by $n = " + n + "$ to get average.", labels: { "\\\\bar{X}": average } });
     vars["\\\\bar{X}"] = average;
   },
   fontSize: 1.5
