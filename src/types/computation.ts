@@ -1,9 +1,10 @@
 import { IData2DFn, IData3DFn } from "./graph";
+import { IStepInput } from "./step";
 
 /**
  * Step function type for step-through debugging.
  */
-export type IStepFn = (config: any, blockId?: string) => void;
+export type IStepFn = (config: IStepInput, blockId?: string) => void;
 
 /**
  * Context object passed to semantics functions.

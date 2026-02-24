@@ -121,10 +121,19 @@ function executeSemanticFunction(
 // ============================================================================
 
 /**
- * Helper to check if input is a single view (has 'description' property)
+ * Helper to check if input is a single view.
+ * With optional description, single-view inputs may only contain `labels`.
  */
 function isSingleView(input: IStepInput): input is IView {
-  return typeof input === "object" && "description" in input;
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return false;
+  }
+  const view = input as Record<string, unknown>;
+  return (
+    Object.prototype.hasOwnProperty.call(view, "description") ||
+    Object.prototype.hasOwnProperty.call(view, "labels") ||
+    Object.keys(view).length === 0
+  );
 }
 
 /**
@@ -142,9 +151,8 @@ function createStepCollector(stepList: ICollectedStep[]): IStepFn {
       stepList.push({
         index: stepList.length,
         id,
-        description: input.description,
-        values: input.values,
-        expression: input.expression,
+        description: input.description ?? "",
+        labels: input.labels,
         formulas: { "": input },
       });
     } else {
@@ -156,8 +164,7 @@ function createStepCollector(stepList: ICollectedStep[]): IStepFn {
         index: stepList.length,
         id,
         description: firstView?.description ?? "",
-        values: firstView?.values,
-        expression: firstView?.expression,
+        labels: firstView?.labels,
         formulas: input as Record<string, IView>,
       });
     }

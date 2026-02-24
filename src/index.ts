@@ -69,7 +69,13 @@ export type {
   I2DLine,
   I2DPoint,
 } from "./types/plot2d";
-export type { ICollectedStep, IView, IStepInput } from "./types/step";
+export type {
+  ICollectedStep,
+  IView,
+  IStepInput,
+  IStepLabels,
+  IStepLabelValue,
+} from "./types/step";
 export type { IPlot3D } from "./types/plot3d";
 export type { ICustom, IContext } from "./types/custom";
 export type { IControls } from "./types/control";

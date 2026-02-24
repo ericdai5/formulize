@@ -322,6 +322,40 @@ const resetCssIdCounter = () => {
   cssIdCounter = 0;
 };
 
+const VARIABLE_OCCURRENCE_DELIMITER = "__mn_occ__";
+
+/**
+ * Encode a variable occurrence reference for expression matching.
+ * This keeps the real DOM id unchanged (the variable symbol), while carrying
+ * occurrence info in the AST cssId for disambiguation.
+ */
+export const encodeVariableOccurrenceCssRef = (
+  variableId: string,
+  occurrenceIndex: number
+): string => `${variableId}${VARIABLE_OCCURRENCE_DELIMITER}${occurrenceIndex}`;
+
+/**
+ * Decode a variable occurrence reference produced by encodeVariableOccurrenceCssRef.
+ */
+export const decodeVariableOccurrenceCssRef = (
+  cssRef: string
+): { variableId: string; occurrenceIndex: number | null } => {
+  const delimiterIndex = cssRef.lastIndexOf(VARIABLE_OCCURRENCE_DELIMITER);
+  if (delimiterIndex < 0) {
+    return { variableId: cssRef, occurrenceIndex: null };
+  }
+  const suffix = cssRef.slice(
+    delimiterIndex + VARIABLE_OCCURRENCE_DELIMITER.length
+  );
+  if (!/^\d+$/.test(suffix)) {
+    return { variableId: cssRef, occurrenceIndex: null };
+  }
+  return {
+    variableId: cssRef.slice(0, delimiterIndex),
+    occurrenceIndex: Number(suffix),
+  };
+};
+
 /**
  * Generate a unique cssId for a node
  */
@@ -395,6 +429,7 @@ export const processVariables = (
 ): ProcessVariablesResult => {
   // Reset cssId counter for this formula
   resetCssIdCounter();
+  const variableOccurrenceCounter = new Map<string, number>();
 
   const processNode = (node: AugmentedFormulaNode): string => {
     if (node.type === "variable") {
@@ -441,8 +476,11 @@ export const processVariables = (
       });
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
-      // Store the cssId on the AST node for DOM element lookup
-      node.cssId = id;
+      const occurrenceIndex = variableOccurrenceCounter.get(id) ?? 0;
+      variableOccurrenceCounter.set(id, occurrenceIndex + 1);
+      // Store encoded occurrence info on the AST node for expression matching.
+      // The rendered DOM id stays as the variable symbol (`id`) for existing flows.
+      node.cssId = encodeVariableOccurrenceCssRef(id, occurrenceIndex);
       // Use different CSS classes based on input mode
       // Drag input variables get INPUT class (interactive), others get BASE class
       let cssClass: string = VAR_CLASSES.BASE;

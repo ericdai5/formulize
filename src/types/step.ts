@@ -1,6 +1,20 @@
 import { IValue } from "./variable";
 
 /**
+ * Label entry value for step labels.
+ * Can be a runtime numeric/set value or a custom LaTeX/text string.
+ * `null`/`undefined` means "highlight only" for expression labels (no label node).
+ */
+export type IStepLabelValue = IValue | string | null | undefined;
+
+/**
+ * Step label entries keyed by LaTeX.
+ * Key can be either a variable id (existing variable label route)
+ * or an expression scope (expression highlight + expression label route).
+ */
+export type IStepLabels = Record<string, IStepLabelValue>;
+
+/**
  * A single formula's view data
  * @property description - Optional description text to display
  * @property labels - Record of label entries keyed by LaTeX variable IDs or expression scopes
