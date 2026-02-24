@@ -33,38 +33,42 @@ export const gravitationalForce = `const config = {
     var m1 = vars.m_1;
     var m2 = vars.m_2;
     var r = vars.r;
-
     var massProduct = m1 * m2;
     step({
-      description:
-        "Multiply the two masses: $m_1 \\\\cdot m_2 = " +
+      labels: {
+        "m_1": m1,
+        "m_2": m2,
+        "m_1 m_2": "Multiply the two masses: $m_1 \\\\cdot m_2 = " +
         massProduct.toExponential(2) +
         "$",
-      values: [["m_1", m1], ["m_2", m2]],
-      expression: "m_1 m_2",
+      },
     });
-
     var rSquared = r * r;
     step({
       description: "Square the distance: $r^2 = " + rSquared.toExponential(2) + "$",
-      values: [["r", r]],
-      expression: "r^2",
+      labels: {
+        "r": r,
+        "r^2": rSquared.toExponential(2),
+      },
     });
-
     var fraction = massProduct / rSquared;
     step({
       description:
         "Divide masses by distance squared: $\\\\frac{m_1 m_2}{r^2} = " +
         fraction.toExponential(2) +
         "$",
-      expression: "\\\\frac{m_1 m_2}{r^2}",
+      labels: {
+        "\\\\frac{m_1 m_2}{r^2}": fraction.toExponential(2),
+      },
     });
 
     var force = G * fraction;
     step({
       description:
         "Multiply by $G$ to get force: $\\\\vec{F} = " + force.toFixed(1) + "$ N",
-      values: [["\\\\vec{F}", force]],
+      labels: {
+        "\\\\vec{F}": force.toFixed(1) + " N",
+      },
     });
 
     vars["\\\\vec{F}"] = force;
