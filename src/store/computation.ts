@@ -5,7 +5,7 @@ import { ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
-import { ICollectedStep, IView } from "../types/step";
+import { ICollectedStep, IStepLabelValue, IView } from "../types/step";
 import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
 import { FormulaLatexRanges } from "../util/parse/formula-text";
 import { canonicalizeFormula } from "../util/parse/formula-transform";
@@ -296,9 +296,50 @@ class ComputationStore {
     // Otherwise, return a view constructed from the step's top-level properties
     return {
       description: step.description,
-      values: step.values,
-      expression: step.expression,
+      labels: step.labels,
     };
+  }
+
+  /**
+   * Collect variable IDs from step label entries by matching labels keys to known varIds.
+   * Keys that do not match a variable are treated as expression labels.
+   */
+  private getVariableIdsFromLabels(view: IView): Set<string> {
+    const varIds = new Set<string>();
+    if (!view.labels) {
+      return varIds;
+    }
+    for (const labelLatex of Object.keys(view.labels)) {
+      if (this.variables.has(labelLatex)) {
+        varIds.add(labelLatex);
+      }
+    }
+    return varIds;
+  }
+
+  /**
+   * Extract step value entries from labels where:
+   * 1) the labels key is a known variable id, and
+   * 2) the labels value is a runtime value (number or set), not a string-only display label.
+   */
+  private getVariableValueEntriesFromLabels(view: IView): Array<[string, IValue]> {
+    const entries: Array<[string, IValue]> = [];
+    if (!view.labels) {
+      return entries;
+    }
+    for (const [labelLatex, labelValue] of Object.entries(view.labels)) {
+      if (!this.variables.has(labelLatex)) {
+        continue;
+      }
+      if (this.isRuntimeStepValue(labelValue)) {
+        entries.push([labelLatex, labelValue]);
+      }
+    }
+    return entries;
+  }
+
+  private isRuntimeStepValue(value: IStepLabelValue): value is IValue {
+    return typeof value === "number" || Array.isArray(value);
   }
 
   /**
@@ -312,20 +353,26 @@ class ComputationStore {
     const step = this.currentStep;
     if (!step) return values;
 
-    // Collect values from top-level step
-    if (step.values) {
-      for (const [varId, value] of step.values) {
-        values.set(varId, value);
-      }
-    }
-
-    // Also collect from per-formula views if present
+    // Collect values from per-formula views if present
     if (step.formulas) {
       for (const view of Object.values(step.formulas)) {
-        if (view.values) {
-          for (const [varId, value] of view.values) {
-            values.set(varId, value);
-          }
+        for (const [varId, value] of this.getVariableValueEntriesFromLabels(
+          view
+        )) {
+          values.set(varId, value);
+        }
+      }
+      return values;
+    }
+
+    // Backstop for malformed step shape (should not happen from collector).
+    if (step.labels) {
+      for (const [labelLatex, labelValue] of Object.entries(step.labels)) {
+        if (!this.variables.has(labelLatex)) {
+          continue;
+        }
+        if (this.isRuntimeStepValue(labelValue)) {
+          values.set(labelLatex, labelValue);
         }
       }
     }
@@ -347,15 +394,24 @@ class ComputationStore {
     if (step.formulas) {
       // Multi-formula step: group by formula ID
       for (const [formulaId, view] of Object.entries(step.formulas)) {
-        if (view.values && view.values.length > 0) {
-          const varIds = new Set(view.values.map(([varId]) => varId));
+        const varIds = this.getVariableIdsFromLabels(view);
+        if (varIds.size > 0) {
           activeVarsMap.set(formulaId, varIds);
         }
       }
-    } else if (step.values && step.values.length > 0) {
+    } else {
       // Single formula step: use empty string key for "all formulas"
-      const varIds = new Set(step.values.map(([varId]) => varId));
-      activeVarsMap.set("", varIds);
+      const varIds = new Set<string>();
+      if (step.labels) {
+        for (const labelLatex of Object.keys(step.labels)) {
+          if (this.variables.has(labelLatex)) {
+            varIds.add(labelLatex);
+          }
+        }
+      }
+      if (varIds.size > 0) {
+        activeVarsMap.set("", varIds);
+      }
     }
 
     return activeVarsMap;
@@ -401,20 +457,22 @@ class ComputationStore {
     // Clear and rebuild stepValues from current step
     this.stepValues.clear();
 
-    // Collect values from top-level step
-    if (step.values) {
-      for (const [varId, value] of step.values) {
-        this.stepValues.set(varId, value);
-      }
-    }
-
-    // Also collect from per-formula views if present
+    // Collect values from per-formula labels entries
     if (step.formulas) {
       for (const view of Object.values(step.formulas)) {
-        if (view.values) {
-          for (const [varId, value] of view.values) {
-            this.stepValues.set(varId, value);
-          }
+        for (const [varId, value] of this.getVariableValueEntriesFromLabels(
+          view
+        )) {
+          this.stepValues.set(varId, value);
+        }
+      }
+    } else if (step.labels) {
+      for (const [labelLatex, labelValue] of Object.entries(step.labels)) {
+        if (!this.variables.has(labelLatex)) {
+          continue;
+        }
+        if (this.isRuntimeStepValue(labelValue)) {
+          this.stepValues.set(labelLatex, labelValue);
         }
       }
     }

@@ -61,17 +61,14 @@ export const getLabelNodePos = (
   const variableCenterX = absoluteVariableX + varNodeDim.width / 2;
   const labelX = variableCenterX; // Simple center position for placeholder
 
-  // Determine optimal placement based on variable position within formula
-  // Compare variable's vertical midpoint with formula's vertical midpoint
+  // Determine placement with a bottom bias:
+  // default to below, only choose above for variables close to the top.
   const variableMidpointY = varNodePos.y + varNodeDim.height / 2; // Relative to formula
-  const formulaMidpointY = formulaNodeDim.height / 2; // Relative to formula
+  const topPreferenceThreshold = formulaNodeDim.height * 0.3;
+  const shouldPreferTop = variableMidpointY < topPreferenceThreshold;
 
-  // If variable is in upper half of formula, prefer placing label above
-  // If variable is in lower half of formula, prefer placing label below
-  const variableInUpperHalf = variableMidpointY < formulaMidpointY;
-
-  const abovePriority = variableInUpperHalf ? 1 : 2;
-  const belowPriority = variableInUpperHalf ? 2 : 1;
+  const abovePriority = shouldPreferTop ? 1 : 2;
+  const belowPriority = shouldPreferTop ? 2 : 1;
 
   // Possible placement strategies: above or below the formula node
   const placements: Array<{
@@ -109,9 +106,9 @@ export const getLabelNodePos = (
     }
   }
 
-  // Use the smart placement based on variable position
+  // Use the placement heuristic with bottom preference.
   // No collision detection with arbitrary sizes - we rely on:
-  // 1. Smart placement (above if variable in upper half, below if in lower half)
+  // 1. Bottom-first placement with top fallback for near-top variables
   // 2. Measured dimensions and adjustLabelPositions for final positioning
   const selectedPlacement = placements.sort(
     (a, b) => a.priority - b.priority
@@ -170,6 +167,16 @@ export const updateLabelPlacement = (
   });
 };
 
+const isExpressionLabelNode = (node: Node): boolean =>
+  node.type === NODE_TYPES.LABEL &&
+  (node.data as { labelKind?: string } | undefined)?.labelKind ===
+    "expression";
+
+const isVariableLabelNodeForFormula = (node: Node, formulaId: string): boolean =>
+  node.type === NODE_TYPES.LABEL &&
+  node.data.formulaId === formulaId &&
+  !isExpressionLabelNode(node);
+
 /**
  * Process variable elements for a single formula and create label nodes
  * @param formulaElement - The DOM element containing the formula
@@ -200,6 +207,8 @@ export const processVariableElementsForLabels = (
     nodeId: string;
     labelPlacement: PlacementDirection;
   }> = [];
+  const useStepLayoutPreference =
+    computationStore.isStepMode() && !!currentStep;
 
   // In step mode, label nodes should only render for a formula if:
   // 1. The step has an empty string key (applies to all formulas), OR
@@ -273,10 +282,6 @@ export const processVariableElementsForLabels = (
       height: (variableNode.data.height as number) || 0,
     };
 
-    // Stepnodes are always rendered above the equation.
-    // If there is an active view, force labels to be below to avoid edge overlaps.
-    const forcePlacement = currentStep ? "below" : undefined;
-
     const formulaDimensions = getNodeDimensions(formulaNode, {
       width: DEFAULT_DIMENSIONS.formulaWidth,
       height: DEFAULT_DIMENSIONS.formulaHeight,
@@ -288,7 +293,7 @@ export const processVariableElementsForLabels = (
       formulaNode,
       formulaDimensions,
       viewport,
-      forcePlacement
+      useStepLayoutPreference ? "below" : undefined
     );
     // Create the label node - initially hidden until positioned correctly
     // Make label a child of the formula node so it automatically moves with the formula
@@ -360,9 +365,8 @@ export const updateLabelNodes = ({
   if (existingVariableNodes.length === 0) return;
 
   // Get existing label nodes for this formula
-  const existingLabelNodes = currentNodes.filter(
-    (node) =>
-      node.type === NODE_TYPES.LABEL && node.data.formulaId === formulaId
+  const existingLabelNodes = currentNodes.filter((node) =>
+    isVariableLabelNodeForFormula(node, formulaId)
   );
   const existingLabelVarIds = new Set(
     existingLabelNodes.map((node) => node.data.varId as string)
@@ -406,9 +410,10 @@ export const updateLabelNodes = ({
 
   // Active variables changed - need to add/remove labels
   setNodes((currentNodes) => {
-    // Keep non-label nodes
-    const nonLabelNodes = currentNodes.filter(
-      (node) => node.type !== NODE_TYPES.LABEL
+    // Remove only variable labels owned by this formula.
+    // Preserve expression labels and labels from other formulas.
+    const nonManagedNodes = currentNodes.filter(
+      (node) => !isVariableLabelNodeForFormula(node, formulaId)
     );
 
     // Keep existing labels that are still needed
@@ -422,7 +427,7 @@ export const updateLabelNodes = ({
     );
 
     // Apply variable node updates (labelPlacement)
-    const updatedNodes = updateLabelPlacement(nonLabelNodes, variableNodeUpdates);
+    const updatedNodes = updateLabelPlacement(nonManagedNodes, variableNodeUpdates);
 
     return [...updatedNodes, ...keptLabels, ...labelsToAdd];
   });
@@ -487,6 +492,7 @@ interface LabelInfo {
   height: number;
   placement: PlacementDirection;
   parentId: string;
+  originX: number;
   finalX?: number; // Final X position after collision resolution
 }
 
@@ -613,29 +619,47 @@ const extractLabelInfo = (
   currentNodes: Node[],
   spacing: LabelSpacing
 ): LabelInfo | null => {
-  const cssId = node.data.varId;
-  const formulaId = node.data.formulaId;
-  if (
-    !cssId ||
-    typeof cssId !== "string" ||
-    !formulaId ||
-    typeof formulaId !== "string"
-  )
-    return null;
-  const formulaNode = findFormulaNodeById(currentNodes, formulaId);
+  const formulaId =
+    typeof node.data.formulaId === "string" ? node.data.formulaId : undefined;
+  const formulaNode = formulaId
+    ? findFormulaNodeById(currentNodes, formulaId)
+    : currentNodes.find(
+        (candidate) =>
+          candidate.type === NODE_TYPES.FORMULA && candidate.id === node.parentId
+      );
   if (!formulaNode) return null;
-  const variableNode = findVariableNodeForFormula(
-    variableNodes,
-    formulaNode.id,
-    cssId
-  );
-  if (!variableNode || !variableNode.measured) return null;
+
   const labelDimensions = getNodeDimensions(node, {
     width: DEFAULT_DIMENSIONS.labelWidth,
     height: DEFAULT_DIMENSIONS.labelHeight,
   });
-  const placement = (node.data.placement as PlacementDirection) || "below";
-  const variableCenterX = getVariableCenterX(variableNode);
+  const placement =
+    (node.data.placement as PlacementDirection | undefined) ??
+    (node.position.y < 0 ? "above" : "below");
+  const originX = Array.isArray(node.origin)
+    ? (node.origin[0] as number)
+    : 0;
+  const currentLeftX = node.position.x - labelDimensions.width * originX;
+
+  let variableCenterX: number;
+  let idealX: number;
+
+  if (isExpressionLabelNode(node)) {
+    variableCenterX = currentLeftX + labelDimensions.width / 2;
+    idealX = currentLeftX;
+  } else {
+    const cssId = node.data.varId;
+    if (!cssId || typeof cssId !== "string") return null;
+    const variableNode = findVariableNodeForFormula(
+      variableNodes,
+      formulaNode.id,
+      cssId
+    );
+    if (!variableNode || !variableNode.measured) return null;
+    variableCenterX = getVariableCenterX(variableNode);
+    idealX = variableCenterX - labelDimensions.width / 2;
+  }
+
   const formulaNodeHeight =
     formulaNode.measured?.height ||
     formulaNode.height ||
@@ -646,7 +670,6 @@ const extractLabelInfo = (
     formulaNodeHeight,
     spacing.vertical
   );
-  const idealX = variableCenterX - labelDimensions.width / 2;
   return {
     nodeId: node.id,
     idealX,
@@ -656,6 +679,7 @@ const extractLabelInfo = (
     height: labelDimensions.height,
     placement,
     parentId: formulaNode.id,
+    originX,
   };
 };
 
@@ -720,7 +744,7 @@ const applyLabelPosition = (node: Node, labelInfo: LabelInfo): Node => {
   return {
     ...node,
     position: {
-      x: finalX,
+      x: finalX + labelInfo.width * labelInfo.originX,
       y: labelInfo.y,
     },
     style: {

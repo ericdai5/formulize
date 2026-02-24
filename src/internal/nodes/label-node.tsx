@@ -14,10 +14,49 @@ import { VAR_CLASSES } from "../css-classes";
 import LatexLabel from "../latex";
 import SVGLabel from "../svg-label";
 
-export interface LabelNodeData {
-  varId: string;
+interface BaseLabelNodeData {
   formulaId?: string;
 }
+
+export interface VariableLabelNodeData extends BaseLabelNodeData {
+  labelKind?: "variable";
+  varId: string;
+}
+
+export interface ExpressionLabelNodeData extends BaseLabelNodeData {
+  labelKind: "expression";
+  expression: string;
+  expressionLabel: string;
+}
+
+export type LabelNodeData = VariableLabelNodeData | ExpressionLabelNodeData;
+
+const isExpressionLabelData = (
+  data: LabelNodeData
+): data is ExpressionLabelNodeData => data.labelKind === "expression";
+
+/**
+ * Render step label entry values exactly as provided by the author.
+ * Arrays are rendered as comma-separated entries for parity with default value labels.
+ */
+const formatStepLabelValue = (
+  value: string | number | (string | number)[] | undefined | null,
+  precision: number = INPUT_VARIABLE_DEFAULT.PRECISION
+): string | null => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value === "number") {
+    return `\\text{${value.toFixed(precision)}}`;
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return "\\emptyset";
+    }
+    return `\\text{${value.map((entry) => String(entry)).join(", ")}}`;
+  }
+  return `\\text{${String(value)}}`;
+};
 
 // Static styles to prevent re-renders
 // In React, when you pass an inline object (like style={{...}}), a new object
@@ -29,6 +68,65 @@ const HANDLE_STYLE = {
   width: 1,
   height: 1,
 };
+
+const ExpressionLabelNode = observer(
+  ({ data }: { data: ExpressionLabelNodeData }) => {
+    const { expression, expressionLabel } = data;
+    const context = useStore();
+    const computationStore = context?.computationStore;
+    const labelFontSize = computationStore?.environment?.labelFontSize;
+
+    const customStyle = computationStore?.environment?.labelNodeStyle
+      ? toJS(computationStore.environment.labelNodeStyle)
+      : {};
+
+    const debugStyles = buildDebugStyles(
+      debugStore.showLabelBorders,
+      debugStore.showLabelShadow
+    );
+
+    const expressionLabelLatex = formatStepLabelValue(
+      expressionLabel,
+      INPUT_VARIABLE_DEFAULT.PRECISION
+    );
+
+    return (
+      <div
+        className="label-flow-node text-base"
+        style={{
+          pointerEvents: "auto",
+          width: "auto",
+          height: "auto",
+          position: "relative",
+          cursor: "default",
+          ...customStyle,
+          ...debugStyles,
+        }}
+        title={`Expression label: ${expression}`}
+      >
+        <div className="flex flex-col items-center gap-2">
+          <LatexLabel
+            latex={expressionLabelLatex || expressionLabel}
+            fontSize={labelFontSize}
+          />
+        </div>
+        {/* Handle for edges to expression nodes - hidden */}
+        <Handle
+          type="source"
+          position={Position.Top}
+          id="label-handle-above"
+          style={HANDLE_STYLE}
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="label-handle-below"
+          style={HANDLE_STYLE}
+        />
+      </div>
+    );
+  }
+);
 
 // Inline editable input component for variables with input: "inline"
 const InlineInput = observer(
@@ -136,222 +234,271 @@ const InlineInput = observer(
   }
 );
 
-const LabelNode = observer(({ data }: { data: LabelNodeData }) => {
-  const { varId, formulaId } = data;
-  const context = useStore();
-  const computationStore = context?.computationStore;
-  const labelFontSize = computationStore?.environment?.labelFontSize;
+const VariableLabelNode = observer(
+  ({ data }: { data: VariableLabelNodeData }) => {
+    const { varId, formulaId } = data;
+    const context = useStore();
+    const computationStore = context?.computationStore;
+    const labelFontSize = computationStore?.environment?.labelFontSize;
 
-  // Must call all hooks before conditional returns
-  const variable = computationStore?.variables.get(varId);
-  // activeVariables is a Map<formulaId, Set<varId>>
-  // Empty string key '' means "all formulas"
-  const activeVariables = computationStore?.getActiveVariables() ?? new Map();
-  const allFormulasVars = activeVariables.get("") ?? new Set();
-  const thisFormulaVars = formulaId
-    ? activeVariables.get(formulaId) ?? new Set()
-    : new Set();
-  const isVariableActive =
-    allFormulasVars.has(varId) || thisFormulaVars.has(varId);
-  // Highlighted if mouse is over OR if dragging this variable
-  const isHovered = computationStore?.isVariableHighlighted(varId) ?? false;
+    // Must call all hooks before conditional returns
+    const variable = computationStore?.variables.get(varId);
+    // activeVariables is a Map<formulaId, Set<varId>>
+    // Empty string key '' means "all formulas"
+    const activeVariables = computationStore?.getActiveVariables() ?? new Map();
+    const allFormulasVars = activeVariables.get("") ?? new Set();
+    const thisFormulaVars = formulaId
+      ? activeVariables.get(formulaId) ?? new Set()
+      : new Set();
+    const isVariableActive =
+      allFormulasVars.has(varId) || thisFormulaVars.has(varId);
+    // Highlighted if mouse is over OR if dragging this variable
+    const isHovered = computationStore?.isVariableHighlighted(varId) ?? false;
 
-  const valueDragRef = useVariableDrag({
-    varId,
-    isDraggable: variable?.input === "drag",
-    hasDropdownOptions: !!(Array.isArray(variable?.value) || variable?.options),
-    computationStore,
-  });
+    const valueDragRef = useVariableDrag({
+      varId,
+      isDraggable: variable?.input === "drag",
+      hasDropdownOptions: !!(
+        Array.isArray(variable?.value) || variable?.options
+      ),
+      computationStore,
+    });
 
-  // All conditional returns must happen after all hooks are called
-  if (!computationStore) return null;
-  if (!variable) return null;
+    // All conditional returns must happen after all hooks are called
+    if (!computationStore) return null;
+    if (!variable) return null;
 
-  const { name, precision, labelDisplay, input } = variable;
-  const isStepModeActive = computationStore.isStepMode();
-  const isInputVariable = input === "drag" || input === "inline";
+    const { name, precision, labelDisplay, input } = variable;
+    const isStepModeActive = computationStore.isStepMode();
+    const isInputVariable = input === "drag" || input === "inline";
+    const stepView = isStepModeActive
+      ? formulaId
+        ? computationStore.getViewForFormula(formulaId)
+        : computationStore.currentStep?.formulas?.[""]
+      : undefined;
+    const hasStepLabelEntry =
+      !!stepView?.labels &&
+      Object.prototype.hasOwnProperty.call(stepView.labels, varId);
+    const stepLabelOverride = hasStepLabelEntry
+      ? stepView?.labels?.[varId]
+      : undefined;
+    const shouldHideValueFromStepLabel =
+      hasStepLabelEntry && stepLabelOverride == null;
 
-  // In step mode, hide non-active variables UNLESS they are input variables
-  // Input variables must always be visible for user interaction
-  if (isStepModeActive && !isVariableActive && !isInputVariable) {
-    return null;
-  }
-
-  // In step mode, use the isolated stepValues for display (faster rendering)
-  // For input variables, always use their actual value (not step value)
-  // In normal mode, use the variable's value from the main variables map
-  const value =
-    isStepModeActive && !isInputVariable
-      ? computationStore.getDisplayValue(varId)
-      : variable.value;
-
-  // Determine what to display based on labelDisplay setting and input mode
-  let mainDisplayText = varId; // default to name
-  let displayComponent: React.ReactNode = null;
-
-  // Check if this is an inline input variable
-  const isInlineInput = input === "inline";
-
-  if (isInlineInput) {
-    // Render inline editable input for input variables
-    displayComponent = (
-      <InlineInput varId={varId} variable={variable} fontSize={labelFontSize} />
-    );
-  } else if (
-    labelDisplay === "value" ||
-    false // inline input deprecated
-  ) {
-    if (Array.isArray(value)) {
-      // Handle set values - convert all elements to strings for display
-      const setElements = value.map((el) => String(el));
-      const isStringArray = value.every((el) => typeof el === "string");
-
-      if (setElements.length > 0) {
-        if (isStringArray) {
-          // For string arrays, use smaller non-italic LaTeX text
-          mainDisplayText = `\\scriptstyle\\textrm{${setElements.join(", ")}}`;
-        } else {
-          // For number arrays, use default LaTeX styling
-          mainDisplayText = `${setElements.join(", ")}`;
-        }
-        displayComponent = (
-          <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
-        );
-      } else {
-        mainDisplayText = "\\emptyset";
-        displayComponent = (
-          <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
-        );
-      }
-    } else if (typeof value === "number" && value !== null) {
-      const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
-      mainDisplayText = value.toFixed(displayPrecision);
-      displayComponent = (
-        <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
-      );
-    } else if (isStepModeActive && isVariableActive) {
-      // In step mode, active variables should always show something
-      // even if the value is temporarily unavailable - show a placeholder
-      mainDisplayText = "\\cdots";
-      displayComponent = (
-        <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
-      );
-    } else if (name) {
-      // If labelDisplay is "value" but no value, just show the name (handled below)
-      // Don't set displayComponent - let only the name render
-    } else {
-      // If labelDisplay is "value" but no value is set and no name, hide the label node
+    // In step mode, hide non-active variables UNLESS they are input variables
+    // Input variables must always be visible for user interaction
+    if (isStepModeActive && !isVariableActive && !isInputVariable) {
       return null;
     }
-  } else if (labelDisplay === "svg") {
-    // Render SVG instead of LaTeX
-    displayComponent = (
-      <SVGLabel
-        svgPath={variable?.svgPath}
-        svgContent={variable?.svgContent}
-        svgSize={variable?.svgSize}
-        variable={variable}
-      />
-    );
-  } else {
-    // Default to name display
-    displayComponent = (
-      <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
-    );
-  }
 
-  // Determine interactive variable styling based on input type and context
-  const getInteractiveClass = () => {
-    const classes: string[] = [];
+    // In step mode, use the isolated stepValues for display (faster rendering)
+    // For input variables, always use their actual value (not step value)
+    // In normal mode, use the variable's value from the main variables map
+    const value =
+      isStepModeActive && !isInputVariable
+        ? computationStore.getDisplayValue(varId)
+        : variable.value;
 
-    // Input variables get INPUT class, others get BASE class
-    classes.push(isInputVariable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE);
+    // Determine what to display based on labelDisplay setting and input mode
+    let mainDisplayText = varId; // default to name
+    let displayComponent: React.ReactNode = null;
 
-    // In step mode, active variables get step-cue for pulse animation
-    if (isStepModeActive && isVariableActive) {
-      classes.push("step-cue");
+    // Check if this is an inline input variable
+    const isInlineInput = input === "inline";
+
+    if (isInlineInput && !shouldHideValueFromStepLabel) {
+      // Render inline editable input for input variables
+      displayComponent = (
+        <InlineInput
+          varId={varId}
+          variable={variable}
+          fontSize={labelFontSize}
+        />
+      );
+    } else if (hasStepLabelEntry) {
+      if (shouldHideValueFromStepLabel) {
+        // Explicit null/undefined override means "hide value display for this variable".
+        if (!name) {
+          return null;
+        }
+      } else {
+        const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+        const overrideLatex = formatStepLabelValue(
+          stepLabelOverride,
+          displayPrecision
+        );
+        if (overrideLatex) {
+          mainDisplayText = overrideLatex;
+          displayComponent = (
+            <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+          );
+        } else if (!name) {
+          return null;
+        }
+      }
+    } else if (
+      labelDisplay === "value" ||
+      false // inline input deprecated
+    ) {
+      if (Array.isArray(value)) {
+        // Handle set values - convert all elements to strings for display
+        const setElements = value.map((el) => String(el));
+        const isStringArray = value.every((el) => typeof el === "string");
+
+        if (setElements.length > 0) {
+          if (isStringArray) {
+            // For string arrays, use smaller non-italic LaTeX text
+            mainDisplayText = `\\scriptstyle\\textrm{${setElements.join(", ")}}`;
+          } else {
+            // For number arrays, use default LaTeX styling
+            mainDisplayText = `${setElements.join(", ")}`;
+          }
+          displayComponent = (
+            <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+          );
+        } else {
+          mainDisplayText = "\\emptyset";
+          displayComponent = (
+            <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+          );
+        }
+      } else if (typeof value === "number" && value !== null) {
+        const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+        mainDisplayText = value.toFixed(displayPrecision);
+        displayComponent = (
+          <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+        );
+      } else if (isStepModeActive && isVariableActive) {
+        // In step mode, active variables should always show something
+        // even if the value is temporarily unavailable - show a placeholder
+        mainDisplayText = "\\cdots";
+        displayComponent = (
+          <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+        );
+      } else if (name) {
+        // If labelDisplay is "value" but no value, just show the name (handled below)
+        // Don't set displayComponent - let only the name render
+      } else {
+        // If labelDisplay is "value" but no value is set and no name, hide the label node
+        return null;
+      }
+    } else if (labelDisplay === "svg") {
+      // Render SVG instead of LaTeX
+      displayComponent = (
+        <SVGLabel
+          svgPath={variable?.svgPath}
+          svgContent={variable?.svgContent}
+          svgSize={variable?.svgSize}
+          variable={variable}
+        />
+      );
+    } else {
+      // Default to name display
+      displayComponent = (
+        <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+      );
     }
 
-    return classes.join(" ");
-  };
+    // Determine interactive variable styling based on input type and context
+    const getInteractiveClass = () => {
+      const classes: string[] = [];
 
-  const interactiveClass = getInteractiveClass();
-  const isSetVariable = Array.isArray(value);
-  // Enable drag for input variables even in step mode (so users can change values)
-  const isDraggableVar = input === "drag" && !isSetVariable && !isInlineInput;
-  const cursor = isDraggableVar ? "grab" : "default";
-  const valueCursor =
-    isSetVariable && !isStepModeActive
-      ? "pointer"
-      : input === "drag" && !isInlineInput
-        ? "ns-resize"
-        : "default";
+      // Input variables get INPUT class, others get BASE class
+      classes.push(isInputVariable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE);
 
-  const customStyle = computationStore.environment?.labelNodeStyle
-    ? toJS(computationStore.environment.labelNodeStyle)
-    : {};
+      // In step mode, active variables get step-cue for pulse animation
+      if (isStepModeActive && isVariableActive) {
+        classes.push("step-cue");
+      }
 
-  // Build debug styles that override customStyle when enabled
-  const debugStyles = buildDebugStyles(
-    debugStore.showLabelBorders,
-    debugStore.showLabelShadow
-  );
+      return classes.join(" ");
+    };
 
-  return (
-    <div
-      className="label-flow-node text-base"
-      style={{
-        pointerEvents: "auto",
-        width: "auto",
-        height: "auto",
-        position: "relative",
-        cursor,
-        ...customStyle,
-        ...debugStyles,
-      }}
-      title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggableVar ? " (draggable)" : ""}`}
-      onMouseEnter={() => computationStore.setVariableHover(varId, true)}
-      onMouseLeave={() => computationStore.setVariableHover(varId, false)}
-    >
-      <div className="flex flex-col items-center gap-2">
-        {displayComponent && (
-          <div
-            ref={
-              input === "drag" && !isSetVariable && !isInlineInput
-                ? valueDragRef
-                : null
-            }
-            className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
-            style={{ cursor: valueCursor }}
-          >
-            {displayComponent}
-          </div>
-        )}
-        {name && (
-          <div style={{ lineHeight: 1 }}>
-            <LatexLabel
-              latex={`\\text{${name}}`}
-              fontSize={labelFontSize ? labelFontSize * 0.67 : 0.67}
-            />
-          </div>
-        )}
+    const interactiveClass = getInteractiveClass();
+    const isSetVariable = Array.isArray(value);
+    // Enable drag for input variables even in step mode (so users can change values)
+    const isDraggableVar = input === "drag" && !isSetVariable && !isInlineInput;
+    const cursor = isDraggableVar ? "grab" : "default";
+    const valueCursor =
+      isSetVariable && !isStepModeActive
+        ? "pointer"
+        : input === "drag" && !isInlineInput
+          ? "ns-resize"
+          : "default";
+
+    const customStyle = computationStore.environment?.labelNodeStyle
+      ? toJS(computationStore.environment.labelNodeStyle)
+      : {};
+
+    // Build debug styles that override customStyle when enabled
+    const debugStyles = buildDebugStyles(
+      debugStore.showLabelBorders,
+      debugStore.showLabelShadow
+    );
+
+    return (
+      <div
+        className="label-flow-node text-base"
+        style={{
+          pointerEvents: "auto",
+          width: "auto",
+          height: "auto",
+          position: "relative",
+          cursor,
+          ...customStyle,
+          ...debugStyles,
+        }}
+        title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggableVar ? " (draggable)" : ""}`}
+        onMouseEnter={() => computationStore.setVariableHover(varId, true)}
+        onMouseLeave={() => computationStore.setVariableHover(varId, false)}
+      >
+        <div className="flex flex-col items-center gap-2">
+          {displayComponent && (
+            <div
+              ref={
+                input === "drag" && !isSetVariable && !isInlineInput
+                  ? valueDragRef
+                  : null
+              }
+              className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
+              style={{ cursor: valueCursor }}
+            >
+              {displayComponent}
+            </div>
+          )}
+          {name && (
+            <div style={{ lineHeight: 1 }}>
+              <LatexLabel
+                latex={`\\text{${name}}`}
+                fontSize={labelFontSize ? labelFontSize * 0.67 : 0.67}
+              />
+            </div>
+          )}
+        </div>
+        {/* Handle for edges to variable nodes positioned above - hidden */}
+        <Handle
+          type="source"
+          position={Position.Top}
+          id="label-handle-above"
+          style={HANDLE_STYLE}
+        />
+        {/* Handle for edges to variable nodes positioned below - hidden */}
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="label-handle-below"
+          style={HANDLE_STYLE}
+        />
       </div>
-      {/* Handle for edges to variable nodes positioned above - hidden */}
-      <Handle
-        type="source"
-        position={Position.Top}
-        id="label-handle-above"
-        style={HANDLE_STYLE}
-      />
-      {/* Handle for edges to variable nodes positioned below - hidden */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="label-handle-below"
-        style={HANDLE_STYLE}
-      />
-    </div>
-  );
-});
+    );
+  }
+);
+
+const LabelNode = ({ data }: { data: LabelNodeData }) => {
+  if (isExpressionLabelData(data)) {
+    return <ExpressionLabelNode data={data} />;
+  }
+  return <VariableLabelNode data={data} />;
+};
 
 export default LabelNode;

@@ -13,7 +13,7 @@ export interface ExpressionNodeData {
 
 /**
  * An invisible node that spans across multiple variable nodes.
- * Used to connect step nodes to a group of related variables.
+ * Used to connect expression labels to expression scopes.
  * When showExpressionBorders/showExpressionShadow is enabled, displays visible debugging aids.
  */
 const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
@@ -29,10 +29,12 @@ const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
         width: width,
         height: height,
         position: "relative",
-        // Show background when shadow mode is enabled
-        background: showShadow ? "rgba(96, 165, 250, 0.2)" : "transparent",
-        // Always show top border with edge color (or dashed when border mode)
-        borderTop: showBorder ? "1px dashed #60a5fa" : "1px solid #cbd5e1",
+        // Active expression scope is shown as a translucent blue overlay.
+        background: showShadow
+          ? "rgba(96, 165, 250, 0.24)"
+          : "rgba(96, 165, 250, 0.14)",
+        // Border is only for explicit debug mode.
+        borderTop: showBorder ? "1px dashed #60a5fa" : "none",
         borderLeft: showBorder ? "1px dashed #60a5fa" : "none",
         borderRight: showBorder ? "1px dashed #60a5fa" : "none",
         borderBottom: showBorder ? "1px dashed #60a5fa" : "none",
@@ -40,12 +42,30 @@ const ExpressionNode = observer(({ data }: { data: ExpressionNodeData }) => {
         pointerEvents: "none",
       }}
     >
-      {/* Handle at the top center for connecting edges from step nodes */}
+      {/* Handles on all sides so edges can attach from any direction */}
       <Handle
         type="target"
         position={Position.Top}
         id="expression-handle-top"
         style={{ ...HANDLE_STYLE, transform: "translateX(-50%)" }}
+      />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="expression-handle-bottom"
+        style={{ ...HANDLE_STYLE, transform: "translateX(-50%)" }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="expression-handle-left"
+        style={{ ...HANDLE_STYLE, transform: "translateY(-50%)" }}
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="expression-handle-right"
+        style={{ ...HANDLE_STYLE, transform: "translateY(-50%)" }}
       />
     </div>
   );

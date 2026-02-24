@@ -2738,26 +2738,30 @@ const findMatchingSubsequences = (
 };
 
 /**
- * Find the first expression match in a node list or any descendant node list.
+ * Find all expression matches in a node list and descendant node lists.
  * This allows matching subexpressions nested inside structures such as fractions.
  */
-const findFirstRecursiveMatch = (
+const findAllRecursiveMatches = (
   children: AugmentedFormulaNode[],
   patternChildren: AugmentedFormulaNode[]
-): AugmentedFormulaNode[] | null => {
+): AugmentedFormulaNode[][] => {
+  const matches: AugmentedFormulaNode[][] = [];
   const directMatches = findMatchingSubsequences(children, patternChildren);
   if (directMatches.length > 0) {
-    return directMatches[0].nodes;
+    directMatches.forEach((match) => {
+      matches.push(match.nodes);
+    });
   }
 
   for (const child of children) {
-    const nestedMatch = findFirstRecursiveMatch(child.children, patternChildren);
-    if (nestedMatch) {
-      return nestedMatch;
-    }
+    const nestedMatches = findAllRecursiveMatches(
+      child.children,
+      patternChildren
+    );
+    matches.push(...nestedMatches);
   }
 
-  return null;
+  return matches;
 };
 
 /**
@@ -3106,11 +3110,13 @@ export const findExpression = (
     if (expressionTree.children.length === 0) {
       return null;
     }
-    // Find matching subsequence in the formula tree (including nested descendants)
-    const matchedNodes = findFirstRecursiveMatch(
+    // Find matching subsequences in the formula tree (including nested descendants)
+    // and use the first recursive match in traversal order.
+    const allMatches = findAllRecursiveMatches(
       formulaTree.children,
       expressionTree.children
     );
+    const matchedNodes = allMatches[0] ?? null;
     if (!matchedNodes) {
       return null;
     }
