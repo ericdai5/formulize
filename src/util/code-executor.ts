@@ -91,15 +91,6 @@ export async function executeUserCode(
           return;
         }
 
-        if (!config.formulas) {
-          reject(
-            new Error(
-              "Invalid configuration returned. Configuration must include a formulas property."
-            )
-          );
-          return;
-        }
-
         resolve(config);
       }
     };

@@ -5,13 +5,16 @@
  */
 import { ComputationStore, createComputationStore } from "./store/computation";
 import { IEnvironment } from "./types/environment";
+import { IFormula } from "./types/formula";
 import { IVariable } from "./types/variable";
 import { normalizeVariables } from "./util/normalize-variables";
 
 /**
  * User-facing configuration type.
  */
-export type Config = IEnvironment;
+export type Config = Omit<IEnvironment, "formulas"> & {
+  formulas?: IFormula[];
+};
 
 /**
  * Interface for the object returned by Formulize.create()
@@ -38,8 +41,10 @@ function validateEnvironment(config: Config) {
   if (!config) {
     throw new Error("No configuration provided");
   }
-  if (!config.formulas || config.formulas.length === 0) {
-    throw new Error("No formulas defined in configuration");
+  if (config.formulas !== undefined && !Array.isArray(config.formulas)) {
+    throw new Error(
+      "Invalid configuration: formulas must be an array when provided"
+    );
   }
 }
 
@@ -57,9 +62,10 @@ async function initializeInstance(
 
     // Normalize variables from simplified format to full IVariable objects
     const normalizedVariables = normalizeVariables(config.variables);
+    const normalizedFormulas = config.formulas ?? [];
 
     const environment: IEnvironment = {
-      formulas: config.formulas,
+      formulas: normalizedFormulas,
       variables: normalizedVariables,
       semantics: config.semantics,
       visualizations: config.visualizations,

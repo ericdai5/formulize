@@ -255,7 +255,7 @@ export function addVariableNodesForFormula({
   getViewport,
   setNodes,
   nodesInitialized,
-  variableNodesAddedRef,
+  bootstrapCompleteRef,
   formulaId,
   containerElement,
   computationStore,
@@ -264,11 +264,17 @@ export function addVariableNodesForFormula({
   getViewport: () => { zoom: number; x: number; y: number };
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
   nodesInitialized: boolean;
-  variableNodesAddedRef: MutableRefObject<boolean>;
+  bootstrapCompleteRef: MutableRefObject<boolean>;
   formulaId: string;
   containerElement?: Element | null;
   computationStore: ComputationStore;
 }): void {
+  // Formula-only config: skip variable-node creation entirely.
+  if (computationStore.variables.size === 0) {
+    bootstrapCompleteRef.current = true;
+    return;
+  }
+
   withVarNodeContext(
     getNodes,
     getViewport,
@@ -294,6 +300,7 @@ export function addVariableNodesForFormula({
         computationStore
       );
       if (varNodes.length === 0) {
+        bootstrapCompleteRef.current = true;
         return;
       }
 
@@ -322,7 +329,7 @@ export function addVariableNodesForFormula({
         );
         return [...baseNodes, ...updatedVarNodes, ...labelNodes];
       });
-      variableNodesAddedRef.current = true;
+      bootstrapCompleteRef.current = true;
     }
   );
 }
@@ -335,18 +342,24 @@ export const useAddVariableNodes = ({
   setNodes,
   addLabelNodes,
   addstepNodes,
-  variableNodesAddedRef,
+  bootstrapCompleteRef,
   computationStore,
 }: {
   nodesInitialized: boolean;
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  variableNodesAddedRef: MutableRefObject<boolean>;
+  bootstrapCompleteRef: MutableRefObject<boolean>;
   addLabelNodes: () => void;
   addstepNodes: () => void;
   computationStore: ComputationStore;
 }) => {
   const { getNodes, getViewport } = useReactFlow();
   return () => {
+    // Formula-only config: skip variable-node creation entirely.
+    if (computationStore.variables.size === 0) {
+      bootstrapCompleteRef.current = true;
+      return;
+    }
+
     withVarNodeContext(
       getNodes,
       getViewport,
@@ -357,14 +370,17 @@ export const useAddVariableNodes = ({
           viewport,
           computationStore
         );
-        if (varNodes.length === 0) return;
+        if (varNodes.length === 0) {
+          bootstrapCompleteRef.current = true;
+          return;
+        }
         setNodes((currentNodes) => {
           const nonVarNodes = currentNodes.filter(
             (node) => node.type !== NODE_TYPES.VARIABLE
           );
           return [...nonVarNodes, ...varNodes];
         });
-        variableNodesAddedRef.current = true;
+        bootstrapCompleteRef.current = true;
         setTimeout(() => {
           addLabelNodes();
           addstepNodes();
@@ -380,12 +396,12 @@ export const useAddVariableNodes = ({
 export const useUpdateVariableNodes = ({
   nodesInitialized,
   setNodes,
-  variableNodesAddedRef,
+  bootstrapCompleteRef,
   computationStore,
 }: {
   nodesInitialized: boolean;
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  variableNodesAddedRef: MutableRefObject<boolean>;
+  bootstrapCompleteRef: MutableRefObject<boolean>;
   computationStore: ComputationStore;
 }) => {
   const { getNodes, getViewport } = useReactFlow();
@@ -425,7 +441,7 @@ export const useUpdateVariableNodes = ({
           });
         }
         if (foundNodeIds.size > 0) {
-          variableNodesAddedRef.current = true;
+          bootstrapCompleteRef.current = true;
         }
       }
     );

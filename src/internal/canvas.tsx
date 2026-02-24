@@ -32,7 +32,6 @@ import {
   checkAllNodesMeasured,
   getFormulaNodes,
   getLabelNodes,
-  getVariableNodes,
   positionAndShowstepNodes,
 } from "../util/canvas/node-helpers";
 import { addstepNodes as addstepNodesUtil } from "../util/canvas/step-node";
@@ -54,8 +53,8 @@ const CanvasFlow = observer(
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
-    // Track if variable nodes have been added to prevent re-adding
-    const variableNodesAddedRef = useRef(false);
+    // Tracks completion of the variable/label bootstrap pipeline
+    const bootstrapCompleteRef = useRef(false);
 
     // Track if initial fitView has been called to prevent re-fitting on every render
     const initialFitViewCalledRef = useRef(false);
@@ -244,14 +243,14 @@ const CanvasFlow = observer(
       setNodes,
       addLabelNodes,
       addstepNodes,
-      variableNodesAddedRef,
+      bootstrapCompleteRef,
       computationStore,
     });
 
     const updateVariableNodes = useUpdateVariableNodes({
       nodesInitialized,
       setNodes,
-      variableNodesAddedRef,
+      bootstrapCompleteRef,
       computationStore,
     });
 
@@ -263,8 +262,8 @@ const CanvasFlow = observer(
           controls: controls,
         }),
         () => {
-          // Reset the variable nodes added flag when formulas change
-          variableNodesAddedRef.current = false;
+          // Reset bootstrap completion when formulas change
+          bootstrapCompleteRef.current = false;
           // Clear manually positioned labels when formulas change
           setNodes(createNodes());
           setEdges([]); // Clear edges when nodes are reset
@@ -273,7 +272,7 @@ const CanvasFlow = observer(
       );
 
       // Initial setup
-      variableNodesAddedRef.current = false;
+      bootstrapCompleteRef.current = false;
       setNodes(createNodes());
       setEdges([]); // Clear edges on initial setup
 
@@ -284,10 +283,14 @@ const CanvasFlow = observer(
 
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
-      if (nodesInitialized && !variableNodesAddedRef.current) {
+      if (nodesInitialized && !bootstrapCompleteRef.current) {
+        if (computationStore.variables.size === 0) {
+          bootstrapCompleteRef.current = true;
+          return;
+        }
         addVariableNodes();
       }
-    }, [nodesInitialized, nodes, addVariableNodes]);
+    }, [nodesInitialized, nodes, addVariableNodes, computationStore]);
 
     // Fit view after all nodes are properly loaded and positioned (only on initial load)
     useEffect(() => {
@@ -296,11 +299,8 @@ const CanvasFlow = observer(
         nodes.length > 0 &&
         !initialFitViewCalledRef.current
       ) {
-        // Check if we have variable nodes (indicating full setup is complete)
-        const variableNodes = getVariableNodes(nodes);
-        const hasVariableNodes = variableNodes.length > 0;
-
-        if (hasVariableNodes) {
+        // Wait until variable-node bootstrap has completed (including zero-variable configs).
+        if (bootstrapCompleteRef.current) {
           fitView({ duration: 300, padding: 0.2 });
           initialFitViewCalledRef.current = true;
         }
@@ -317,7 +317,11 @@ const CanvasFlow = observer(
         () => {
           if (nodesInitialized) {
             // Variables set has changed, need to recreate all variable nodes
-            variableNodesAddedRef.current = false;
+            bootstrapCompleteRef.current = false;
+            if (computationStore.variables.size === 0) {
+              bootstrapCompleteRef.current = true;
+              return;
+            }
             addVariableNodes();
           }
         },
@@ -340,7 +344,7 @@ const CanvasFlow = observer(
             })
           ),
         () => {
-          if (nodesInitialized && variableNodesAddedRef.current) {
+          if (nodesInitialized && bootstrapCompleteRef.current) {
             updateVariableNodes();
           }
         }
@@ -424,7 +428,7 @@ const CanvasFlow = observer(
           currentStep: computationStore.currentStep,
         }),
         () => {
-          if (nodesInitialized && variableNodesAddedRef.current) {
+          if (nodesInitialized && bootstrapCompleteRef.current) {
             // Debounce using a ref that persists outside this effect
             if (labelUpdateTimeoutRef.current) {
               clearTimeout(labelUpdateTimeoutRef.current);

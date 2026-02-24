@@ -6,7 +6,7 @@ import { IVisualization } from "./visualization";
 
 export interface IEnvironment {
   formulas: IFormula[];
-  variables: IVariablesUserInput;
+  variables?: IVariablesUserInput;
   semantics?: ISemantics;
   visualizations?: IVisualization[];
   controls?: IControls[];

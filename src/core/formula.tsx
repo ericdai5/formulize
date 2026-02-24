@@ -76,7 +76,7 @@ const FormulaCanvasInner = observer(
       y: number;
     } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const variableNodesAddedRef = useRef(false);
+    const bootstrapCompleteRef = useRef(false);
     const initialFitViewCalledRef = useRef(false);
     const stepNodeRepositionedRef = useRef(false);
     const { getNodes, getViewport, fitView } = useReactFlow();
@@ -213,15 +213,15 @@ const FormulaCanvasInner = observer(
     const addVariableNodes = useCallback(() => {
       const latex = getFormula();
       if (!latex) return;
-      addVariableNodesForFormula({
-        getNodes,
-        getViewport,
-        setNodes,
-        nodesInitialized,
-        variableNodesAddedRef,
-        formulaId: id,
-        containerElement: containerRef.current,
-        computationStore,
+        addVariableNodesForFormula({
+          getNodes,
+          getViewport,
+          setNodes,
+          nodesInitialized,
+          bootstrapCompleteRef,
+          formulaId: id,
+          containerElement: containerRef.current,
+          computationStore,
       });
     }, [
       id,
@@ -247,7 +247,7 @@ const FormulaCanvasInner = observer(
         }
 
         // Reset refs and visibility when reinitializing
-        variableNodesAddedRef.current = false;
+        bootstrapCompleteRef.current = false;
         initialFitViewCalledRef.current = false;
         setCanvasVisible(false);
 
@@ -277,14 +277,22 @@ const FormulaCanvasInner = observer(
 
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
-      if (nodesInitialized && !variableNodesAddedRef.current) {
-        addVariableNodes();
+      if (!nodesInitialized || bootstrapCompleteRef.current) {
+        return;
       }
-    }, [nodesInitialized, nodes, addVariableNodes, id]);
+
+      // Formula-only config: skip variable-node bootstrap entirely.
+      if (computationStore.variables.size === 0) {
+        bootstrapCompleteRef.current = true;
+        return;
+      }
+
+      addVariableNodes();
+    }, [nodesInitialized, addVariableNodes, computationStore]);
 
     // Update variable nodes when values change
     useEffect(() => {
-      if (!variableNodesAddedRef.current) return;
+      if (!bootstrapCompleteRef.current) return;
       const updateVariables = () => {
         setNodes((nds) =>
           nds.map((node) => {
@@ -313,7 +321,7 @@ const FormulaCanvasInner = observer(
 
     // Adjust label and step node positions after they're rendered and measured, then fitView
     useEffect(() => {
-      if (!nodesInitialized || !variableNodesAddedRef.current) return;
+      if (!nodesInitialized || !bootstrapCompleteRef.current) return;
       // Check if all nodes are ready for positioning
       const { labelNodes, stepNodes, allReady } = checkAllNodesMeasured(nodes);
       // Check if there are step nodes that need to be positioned (have opacity 0)
@@ -418,7 +426,7 @@ const FormulaCanvasInner = observer(
           stepIndex: computationStore.currentStepIndex,
         }),
         () => {
-          if (nodesInitialized && variableNodesAddedRef.current) {
+          if (nodesInitialized && bootstrapCompleteRef.current) {
             // Clear any pending timeout to prevent multiple rapid updates
             if (timeoutId) {
               clearTimeout(timeoutId);
@@ -595,6 +603,7 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
     const context = useStore();
     const instance = context?.instance;
     const isLoading = context?.isLoading ?? true;
+    const error = context?.error;
     const config = context?.config;
     const computationStore = context?.computationStore;
 
@@ -607,6 +616,19 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
       overflow: "hidden",
       ...style,
     };
+
+    if (error) {
+      return (
+        <div
+          className={`formula-component ${className}`}
+          style={containerStyle}
+        >
+          <div className="flex items-center justify-center h-full">
+            <div className="text-red-500">Failed to load formula: {error}</div>
+          </div>
+        </div>
+      );
+    }
 
     // Show loading state while Formulize is initializing or no context
     if (isLoading || !instance || !computationStore) {
