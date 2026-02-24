@@ -35,7 +35,7 @@ export const task2instruction = `const config = {
     // Task 2.1 - Step 1: Before the loop
     step({
       description: "Starting with dataset of " + n + " values",
-      values: [["n", n], ["x", xValues]]
+      labels: { "n": n, "x": xValues }
     });
 
     for (var i = 0; i < n; i++) {
@@ -45,15 +45,18 @@ export const task2instruction = `const config = {
       // Task 2.1 - Step 2: Inside the loop - running sum with bracket expression
       step({
         description: "Adding value $x_{" + (i + 1) + "} = " + xi + "$ to sum",
-        values: [["x_i", xi], ["i", i + 1]],
-        expression: "\\\\left( \\\\sum_{i=1}^{n} x_i \\\\right)"
+        labels: {
+          "x_i": xi,
+          "i": i + 1,
+          "\\\\left( \\\\sum_{i=1}^{n} x_i \\\\right)": sum
+        }
       });
 
       // Task 2.3: Running average at each iteration
       var runningAverage = Math.round((sum / (i + 1)) * 100) / 100;
       step({
         description: "After " + (i + 1) + " value" + ((i + 1) > 1 ? "s" : "") + ": Average = " + runningAverage,
-        values: [["\\\\bar{x}", runningAverage]]
+        labels: { "\\\\bar{x}": runningAverage }
       });
     }
 
@@ -63,7 +66,7 @@ export const task2instruction = `const config = {
     // Task 2.1 - Step 3: After the loop - summary step
     step({
       description: "Total sum " + sum + " divided by n = " + n,
-      values: [["\\\\bar{x}", average], ["n", n]],
+      labels: { "\\\\bar{x}": average, "n": n },
       highlight: ["\\\\bar{x}"]
     });
     vars["\\\\bar{x}"] = average;
