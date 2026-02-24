@@ -2,20 +2,18 @@ import { IValue } from "./variable";
 
 /**
  * A single formula's view data
- * @property description - The description text to display
- * @property values - Array of [varId, value] tuples mapping LaTeX variable IDs to runtime values
- * @property expression - Optional expression scope for bounding box highlighting
+ * @property description - Optional description text to display
+ * @property labels - Record of label entries keyed by LaTeX variable IDs or expression scopes
  */
 export interface IView {
-  description: string;
-  values?: Array<[string, IValue]>;
-  expression?: string;
+  description?: string;
+  labels?: IStepLabels;
 }
 
 /**
  * Step input: either a single view (applies to all formulas) or multiple views keyed by formulaId
- * - Single: { description: "...", values: [...], expression: "..." }
- * - Multi-formula: { "formula-id": { description: "...", ... }, "other-id": { ... } }
+ * - Single: { description?: "...", labels?: {...} }
+ * - Multi-formula: { "formula-id": { description?: "...", labels?: {...} }, "other-id": { ... } }
  */
 export type IStepInput = IView | Record<string, IView>;
 
@@ -35,16 +33,13 @@ export interface IStep {
  * @property index - Execution order (0, 1, 2...)
  * @property id - Optional step identifier (from second parameter of step() call)
  * @property description - The description text to display
- * @property values - Array of [varId, value] tuples mapping variable IDs to runtime values
- * @property expression - Optional expression scope for bounding box highlighting
+ * @property labels - Record of label entries keyed by variable IDs or expression scopes
  * @property formulas - Optional per-formula views for multi-formula steps
  */
 export interface ICollectedStep {
   index: number;
   id?: string;
   description: string;
-  values?: Array<[string, IValue]>;
-  expression?: string;
+  labels?: IStepLabels;
   formulas?: Record<string, IView>;
 }
-
