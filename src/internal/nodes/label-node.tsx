@@ -9,6 +9,10 @@ import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { buildDebugStyles } from "../../util/debug-styles";
+import {
+  formatNumberForDisplay,
+  formatNumberForLatex,
+} from "../../util/format-number";
 import { useVariableDrag } from "../../util/use-variable-drag";
 import { VAR_CLASSES } from "../css-classes";
 import LatexLabel from "../latex";
@@ -41,13 +45,19 @@ const isExpressionLabelData = (
  */
 const formatStepLabelValue = (
   value: string | number | (string | number)[] | undefined | null,
-  precision: number = INPUT_VARIABLE_DEFAULT.PRECISION
+  options: {
+    precision?: number;
+    sigFigs?: number;
+  } = {}
 ): string | null => {
   if (value === undefined || value === null) {
     return null;
   }
   if (typeof value === "number") {
-    return `\\text{${value.toFixed(precision)}}`;
+    return `\\text{${formatNumberForDisplay(value, {
+      precision: options.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION,
+      sigFigs: options.sigFigs,
+    })}}`;
   }
   if (Array.isArray(value)) {
     if (value.length === 0) {
@@ -87,7 +97,9 @@ const ExpressionLabelNode = observer(
 
     const expressionLabelLatex = formatStepLabelValue(
       expressionLabel,
-      INPUT_VARIABLE_DEFAULT.PRECISION
+      {
+        precision: INPUT_VARIABLE_DEFAULT.PRECISION,
+      }
     );
 
     return (
@@ -139,6 +151,7 @@ const InlineInput = observer(
     variable: {
       value?: number | (string | number)[];
       precision?: number;
+      sigFigs?: number;
       step?: number;
     };
     fontSize?: number;
@@ -150,17 +163,25 @@ const InlineInput = observer(
       typeof variable.value === "number" ? variable.value : 0;
     const displayPrecision =
       variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+    const sigFigs = variable.sigFigs;
 
     // Format value with precision for display
     const formatValue = useCallback(
       (val: number) => {
         // Use precision, but don't show trailing zeros for integers
-        if (Number.isInteger(val) && displayPrecision === 0) {
+        if (
+          sigFigs === undefined &&
+          Number.isInteger(val) &&
+          displayPrecision === 0
+        ) {
           return String(val);
         }
-        return val.toFixed(displayPrecision);
+        return formatNumberForDisplay(val, {
+          precision: displayPrecision,
+          sigFigs,
+        });
       },
-      [displayPrecision]
+      [displayPrecision, sigFigs]
     );
 
     const [localValue, setLocalValue] = useState<string>(
@@ -268,7 +289,7 @@ const VariableLabelNode = observer(
     if (!computationStore) return null;
     if (!variable) return null;
 
-    const { name, precision, labelDisplay, input } = variable;
+    const { name, precision, sigFigs, labelDisplay, input } = variable;
     const isStepModeActive = computationStore.isStepMode();
     const isInputVariable = input === "drag" || input === "inline";
     const stepView = isStepModeActive
@@ -325,7 +346,10 @@ const VariableLabelNode = observer(
         const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
         const overrideLatex = formatStepLabelValue(
           stepLabelOverride,
-          displayPrecision
+          {
+            precision: displayPrecision,
+            sigFigs,
+          }
         );
         if (overrideLatex) {
           mainDisplayText = overrideLatex;
@@ -364,7 +388,10 @@ const VariableLabelNode = observer(
         }
       } else if (typeof value === "number" && value !== null) {
         const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
-        mainDisplayText = value.toFixed(displayPrecision);
+        mainDisplayText = formatNumberForLatex(value, {
+          precision: displayPrecision,
+          sigFigs,
+        });
         displayComponent = (
           <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
         );

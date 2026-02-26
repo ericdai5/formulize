@@ -141,6 +141,7 @@ async function initializeInstance(
           units: variable.units,
           name: variable.name,
           precision: variable.precision,
+          sigFigs: variable.sigFigs,
           description: variable.description,
           range: variable.range,
           step: variable.step,

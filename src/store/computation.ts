@@ -1137,6 +1137,7 @@ class ComputationStore {
         name: variableDefinition?.name,
         precision:
           variableDefinition?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION,
+        sigFigs: variableDefinition?.sigFigs,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
         step: variableDefinition?.step,

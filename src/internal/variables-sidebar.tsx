@@ -26,6 +26,7 @@ function serializeVariable(
   // Check if there are any non-default properties that require an object format
   const hasName = !!variable.name;
   const hasPrecision = variable.precision !== INPUT_VARIABLE_DEFAULT.PRECISION;
+  const hasSignificantDigits = variable.sigFigs !== undefined;
   const hasStep = variable.step !== undefined;
   const hasNonDefaultRange =
     variable.range &&
@@ -35,7 +36,7 @@ function serializeVariable(
   // For non-input variables, check if we need an object format
   if (!hasInput) {
     // If no special properties, just return the number value
-    if (!hasName && !hasPrecision && !hasStep) {
+    if (!hasName && !hasPrecision && !hasSignificantDigits && !hasStep) {
       if (typeof variable.value === "number") {
         return variable.value;
       }
@@ -49,6 +50,8 @@ function serializeVariable(
     }
     if (hasName) result.name = variable.name;
     if (hasPrecision) result.precision = variable.precision;
+    if (hasSignificantDigits)
+      result.sigFigs = variable.sigFigs;
     if (hasStep) result.step = variable.step;
     return result;
   }
@@ -73,6 +76,9 @@ function serializeVariable(
   }
   if (hasPrecision) {
     result.precision = variable.precision;
+  }
+  if (hasSignificantDigits) {
+    result.sigFigs = variable.sigFigs;
   }
   if (hasStep) {
     result.step = variable.step;
@@ -294,6 +300,7 @@ interface VariableCardProps {
   onInputChange: (input: IInput | undefined) => void;
   onRangeChange: (range: [number, number]) => void;
   onPrecisionChange: (precision: number | undefined) => void;
+  onSignificantDigitsChange: (sigFigs: number | undefined) => void;
   onStepChange: (step: number | undefined) => void;
   onDelete: () => void;
 }
@@ -307,6 +314,7 @@ const VariableCard: React.FC<VariableCardProps> = observer(
     onInputChange,
     onRangeChange,
     onPrecisionChange,
+    onSignificantDigitsChange,
     onStepChange,
     onDelete,
   }) => {
@@ -315,6 +323,7 @@ const VariableCard: React.FC<VariableCardProps> = observer(
     const range = variable.range || [-10, 10];
     const input = variable.input;
     const precision = variable.precision;
+    const sigFigs = variable.sigFigs;
     const step = variable.step;
 
     const handleMouseEnter = () => {
@@ -394,8 +403,8 @@ const VariableCard: React.FC<VariableCardProps> = observer(
           </div>
         )}
 
-        {/* Precision and Step */}
-        <div className="flex gap-2">
+        {/* Precision, Significant Digits, and Step */}
+        <div className="grid grid-cols-3 gap-2">
           <div className="flex-1">
             <Label>Precision</Label>
             <NumberInput
@@ -404,6 +413,16 @@ const VariableCard: React.FC<VariableCardProps> = observer(
               integer
               defaultValue={INPUT_VARIABLE_DEFAULT.PRECISION}
               showDefault
+            />
+          </div>
+          <div className="flex-1">
+            <Label>Sig Digits</Label>
+            <NumberInput
+              value={sigFigs ?? INPUT_VARIABLE_DEFAULT.PRECISION}
+              onChange={(val) => onSignificantDigitsChange(val)}
+              integer
+              defaultValue={INPUT_VARIABLE_DEFAULT.PRECISION}
+              showDefault={sigFigs !== undefined}
             />
           </div>
           <div className="flex-1">
@@ -580,6 +599,16 @@ const VariablesSidebar: React.FC<VariablesSidebarProps> = observer(
       updateVariable(varId, { precision });
     };
 
+    const handleSignificantDigitsChange = (
+      varId: string,
+      sigFigs: number | undefined
+    ) => {
+      updateVariable(varId, {
+        sigFigs:
+          sigFigs !== undefined ? Math.max(1, sigFigs) : undefined,
+      });
+    };
+
     const handleStepChange = (varId: string, step: number | undefined) => {
       updateVariable(varId, { step });
     };
@@ -652,6 +681,9 @@ const VariablesSidebar: React.FC<VariablesSidebarProps> = observer(
                 onRangeChange={(range) => handleRangeChange(varId, range)}
                 onPrecisionChange={(precision) =>
                   handlePrecisionChange(varId, precision)
+                }
+                onSignificantDigitsChange={(sigFigs) =>
+                  handleSignificantDigitsChange(varId, sigFigs)
                 }
                 onStepChange={(step) => handleStepChange(varId, step)}
                 onDelete={() => handleDelete(varId)}

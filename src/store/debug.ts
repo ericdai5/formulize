@@ -42,6 +42,8 @@ function serializeSingleVariableJS(value: number | IVariableUserInput): string {
   if (value.range) props.push(`range: [${value.range[0]}, ${value.range[1]}]`);
   if (value.precision !== undefined)
     props.push(`precision: ${value.precision}`);
+  if (value.sigFigs !== undefined)
+    props.push(`sigFigs: ${value.sigFigs}`);
   if (value.step !== undefined) props.push(`step: ${value.step}`);
   // Multi-line format with proper indentation
   return `{\n        ${props.join(",\n        ")},\n      }`;

@@ -1,6 +1,8 @@
 import { observer } from "mobx-react-lite";
 
 import { IRadioControl } from "../../types/control";
+import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
+import { formatNumberForDisplay } from "../../util/format-number";
 import Latex from "../../internal/latex";
 import { useStore } from "../hooks";
 
@@ -27,11 +29,15 @@ export const RadioControl = observer<RadioControlProps>(({ control }) => {
 
     const [min, max] = variableData.range;
     const step = variableData.step || 1;
-    const precision = variableData.precision;
+    const precision = variableData.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+    const sigFigs = variableData.sigFigs;
 
     const options = [];
     for (let value = min; value <= max; value += step) {
-      const formattedValue = value.toFixed(precision);
+      const formattedValue = formatNumberForDisplay(value, {
+        precision,
+        sigFigs,
+      });
       options.push({
         value: formattedValue,
         label: formattedValue,

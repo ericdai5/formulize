@@ -25,6 +25,11 @@ const variableCompletions: CompletionOption[] = [
   { label: "units", type: "property", info: "Units string" },
   { label: "name", type: "property", info: "Variable name" },
   { label: "precision", type: "property", info: "Precision (number)" },
+  {
+    label: "sigFigs",
+    type: "property",
+    info: "Significant digits (number)",
+  },
   { label: "description", type: "property", info: "Variable description" },
   { label: "range", type: "property", info: "Range tuple [number, number]" },
   { label: "step", type: "property", info: "Step size (number)" },

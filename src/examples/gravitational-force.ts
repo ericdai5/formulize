@@ -9,22 +9,27 @@ export const gravitationalForce = `const config = {
     "\\\\vec{F}": {
       default: 0,
       name: "Gravitational Force",
+      precision: 2,
     },
     G: {
       default: 6.674e-11,
       name: "Gravitational Constant",
+      sigFigs: 4,
     },
     m_1: {
       default: 5.972e24,
       name: "Mass of Earth",
+      sigFigs: 4,
     },
     m_2: {
       default: 80,
       name: "Mass of Person",
+      precision: 0,
     },
     r: {
       default: 6.371e6,
       name: "Distance (Earth's radius)",
+      sigFigs: 4,
     },
   },
   stepping: true,

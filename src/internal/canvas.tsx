@@ -341,6 +341,7 @@ const CanvasFlow = observer(
               id,
               value: variable.value,
               precision: variable.precision,
+              sigFigs: variable.sigFigs,
             })
           ),
         () => {

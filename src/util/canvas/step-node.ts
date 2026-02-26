@@ -4,6 +4,7 @@ import { unescapeLatex } from "../../engine/controller";
 import { ComputationStore } from "../../store/computation";
 import { IStepLabelValue, IView } from "../../types/step";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
+import { formatNumberForDisplay } from "../format-number";
 import { findExpression } from "../parse/formula-tree";
 import { decodeVariableOccurrenceCssRef } from "../parse/variable";
 import {
@@ -322,7 +323,7 @@ function formatStepLabelValue(labelValue: IStepLabelValue): string {
   }
   if (typeof labelValue === "number") {
     const precision = Math.max(0, INPUT_VARIABLE_DEFAULT.PRECISION);
-    return labelValue.toFixed(precision);
+    return formatNumberForDisplay(labelValue, { precision });
   }
   if (Array.isArray(labelValue)) {
     if (labelValue.length === 0) {
