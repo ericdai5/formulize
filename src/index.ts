@@ -49,6 +49,8 @@ export {
   mergeVariables,
   mergeFormulas,
 } from "./util/generators";
+export { latex } from "./util/step-label-format";
+export type { LatexNumberFormatter } from "./util/step-label-format";
 export type { LoopRange, LoopSpec, LoopContext } from "./util/generators";
 
 // Export types

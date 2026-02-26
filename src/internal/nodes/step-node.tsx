@@ -2,16 +2,21 @@ import { observer } from "mobx-react-lite";
 
 import { debugStore } from "../../store/debug";
 import { buildDebugStyles } from "../../util/debug-styles";
+import { formatInlineLatex, toLatexText } from "../../util/latex-inline";
 import LatexLabel from "../latex";
 
 export interface StepNodeData {
   description: string;
 }
 
+function formatDescriptionLatex(description: string): string {
+  // Descriptions may contain mixed text + "$$...$$" math fragments.
+  return formatInlineLatex(description) ?? toLatexText(description);
+}
+
 const StepNode = observer(({ data }: { data: StepNodeData }) => {
   const { description } = data;
-  // Wrap text in \text{} for proper LaTeX text rendering
-  const latexDescription = `\\text{${description}}`;
+  const latexDescription = formatDescriptionLatex(description);
 
   // Build debug styles from store settings
   const debugStyles = buildDebugStyles(

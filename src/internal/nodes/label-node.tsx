@@ -13,6 +13,12 @@ import {
   formatNumberForDisplay,
   formatNumberForLatex,
 } from "../../util/format-number";
+import {
+  formatInlineLatex,
+  toLatexText,
+  unwrapMathMode,
+} from "../../util/latex-inline";
+import { latex as formatLatexNumber } from "../../util/step-label-format";
 import { useVariableDrag } from "../../util/use-variable-drag";
 import { VAR_CLASSES } from "../css-classes";
 import LatexLabel from "../latex";
@@ -39,6 +45,28 @@ const isExpressionLabelData = (
   data: LabelNodeData
 ): data is ExpressionLabelNodeData => data.labelKind === "expression";
 
+function formatNumericStepLabelValue(
+  value: number,
+  options: {
+    precision?: number;
+    sigFigs?: number;
+  } = {}
+): string {
+  // Step numeric labels should follow variable formatting settings by default.
+  if (options.sigFigs !== undefined) {
+    return (
+      unwrapMathMode(formatLatexNumber(value).sigfigs(options.sigFigs)) ??
+      formatNumberForLatex(value, { sigFigs: options.sigFigs })
+    );
+  }
+
+  const precision = options.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+  return (
+    unwrapMathMode(formatLatexNumber(value).precision(precision)) ??
+    formatNumberForLatex(value, { precision })
+  );
+}
+
 /**
  * Render step label entry values exactly as provided by the author.
  * Arrays are rendered as comma-separated entries for parity with default value labels.
@@ -54,18 +82,19 @@ const formatStepLabelValue = (
     return null;
   }
   if (typeof value === "number") {
-    return `\\text{${formatNumberForDisplay(value, {
-      precision: options.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION,
-      sigFigs: options.sigFigs,
-    })}}`;
+    return formatNumericStepLabelValue(value, options);
   }
   if (Array.isArray(value)) {
     if (value.length === 0) {
       return "\\emptyset";
     }
-    return `\\text{${value.map((entry) => String(entry)).join(", ")}}`;
+    return toLatexText(value.map((entry) => String(entry)).join(", "));
   }
-  return `\\text{${String(value)}}`;
+  const inlineLatex = formatInlineLatex(value);
+  if (inlineLatex !== null) {
+    return inlineLatex;
+  }
+  return toLatexText(String(value));
 };
 
 // Static styles to prevent re-renders
