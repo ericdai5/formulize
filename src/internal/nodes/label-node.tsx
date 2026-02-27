@@ -69,7 +69,7 @@ function formatNumericStepLabelValue(
 
 /**
  * Render step label entry values exactly as provided by the author.
- * Arrays are rendered as comma-separated entries for parity with default value labels.
+ * Arrays are rendered with square brackets for explicit set/list semantics.
  */
 const formatStepLabelValue = (
   value: string | number | (string | number)[] | undefined | null,
@@ -86,9 +86,10 @@ const formatStepLabelValue = (
   }
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      return "\\emptyset";
+      return toLatexText("[]");
     }
-    return toLatexText(value.map((entry) => String(entry)).join(", "));
+    const listContents = value.map((entry) => String(entry)).join(", ");
+    return toLatexText(`[${listContents}]`);
   }
   const inlineLatex = formatInlineLatex(value);
   if (inlineLatex !== null) {
@@ -399,18 +400,19 @@ const VariableLabelNode = observer(
         const isStringArray = value.every((el) => typeof el === "string");
 
         if (setElements.length > 0) {
+          const bracketedValues = `[${setElements.join(", ")}]`;
           if (isStringArray) {
             // For string arrays, use smaller non-italic LaTeX text
-            mainDisplayText = `\\scriptstyle\\textrm{${setElements.join(", ")}}`;
+            mainDisplayText = `\\scriptstyle\\textrm{${bracketedValues}}`;
           } else {
             // For number arrays, use default LaTeX styling
-            mainDisplayText = `${setElements.join(", ")}`;
+            mainDisplayText = bracketedValues;
           }
           displayComponent = (
             <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
           );
         } else {
-          mainDisplayText = "\\emptyset";
+          mainDisplayText = "[]";
           displayComponent = (
             <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
           );

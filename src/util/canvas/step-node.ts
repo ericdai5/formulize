@@ -327,9 +327,9 @@ function formatStepLabelValue(labelValue: IStepLabelValue): string {
   }
   if (Array.isArray(labelValue)) {
     if (labelValue.length === 0) {
-      return "\\emptyset";
+      return "[]";
     }
-    return labelValue.map((value) => String(value)).join(", ");
+    return `[${labelValue.map((value) => String(value)).join(", ")}]`;
   }
   return String(labelValue);
 }

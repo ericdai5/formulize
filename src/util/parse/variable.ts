@@ -137,7 +137,8 @@ const renderNestedVariable = (
   // Get the value from the computation store
   const variable = computationStore.variables.get(symbolValue);
   if (variable) {
-    value = typeof variable.value === "number" ? variable.value : undefined;
+    const displayValue = computationStore.getDisplayValue(symbolValue);
+    value = typeof displayValue === "number" ? displayValue : undefined;
     variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
     variableSignificantDigits = variable.sigFigs;
     latexDisplay = variable.latexDisplay ?? "name";
@@ -451,8 +452,8 @@ export const processVariables = (
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
-          value =
-            typeof variable.value === "number" ? variable.value : undefined;
+          const displayValue = computationStore.getDisplayValue(originalSymbol);
+          value = typeof displayValue === "number" ? displayValue : undefined;
           isDraggable = variable.input === "drag";
           // Use the variable's precision if defined, otherwise use default
           variablePrecision =
