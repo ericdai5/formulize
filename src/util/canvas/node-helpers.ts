@@ -15,6 +15,8 @@ export const NODE_TYPES = {
   EXPRESSION: "expression",
 } as const;
 
+const DEFAULT_STEP_NODE_HEIGHT = 32;
+
 //--------------------------------------------------
 // Node Finders
 //--------------------------------------------------
@@ -321,5 +323,3 @@ export function getStepNodeYPositionAvoidingLabels(
   // Otherwise keep step above formula with fixed gap.
   return -baseOffset - stepNodeHeight;
 }
-
-const DEFAULT_STEP_NODE_HEIGHT = 32;
