@@ -16,6 +16,7 @@ import {
 } from "../types/graph";
 import { ICollectedStep, IStepInput, IView } from "../types/step";
 import { IValue, IVariable } from "../types/variable";
+import { latex } from "../util/step-label-format";
 
 /**
  * Function signature for step collection during semantics execution.
@@ -113,6 +114,7 @@ function executeSemanticFunction(
     data2d: data2dFn,
     data3d: data3dFn,
     step: stepFn,
+    latex,
   });
 }
 

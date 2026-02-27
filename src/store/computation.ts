@@ -301,6 +301,13 @@ class ComputationStore {
   }
 
   /**
+   * Check whether a step label key maps to a known variable id.
+   */
+  private isVariableLabelKey(labelLatex: string): boolean {
+    return this.variables.has(labelLatex);
+  }
+
+  /**
    * Collect variable IDs from step label entries by matching labels keys to known varIds.
    * Keys that do not match a variable are treated as expression labels.
    */
@@ -310,7 +317,7 @@ class ComputationStore {
       return varIds;
     }
     for (const labelLatex of Object.keys(view.labels)) {
-      if (this.variables.has(labelLatex)) {
+      if (this.isVariableLabelKey(labelLatex)) {
         varIds.add(labelLatex);
       }
     }
@@ -328,7 +335,7 @@ class ComputationStore {
       return entries;
     }
     for (const [labelLatex, labelValue] of Object.entries(view.labels)) {
-      if (!this.variables.has(labelLatex)) {
+      if (!this.isVariableLabelKey(labelLatex)) {
         continue;
       }
       if (this.isRuntimeStepValue(labelValue)) {
@@ -368,7 +375,7 @@ class ComputationStore {
     // Backstop for malformed step shape (should not happen from collector).
     if (step.labels) {
       for (const [labelLatex, labelValue] of Object.entries(step.labels)) {
-        if (!this.variables.has(labelLatex)) {
+        if (!this.isVariableLabelKey(labelLatex)) {
           continue;
         }
         if (this.isRuntimeStepValue(labelValue)) {
@@ -404,7 +411,7 @@ class ComputationStore {
       const varIds = new Set<string>();
       if (step.labels) {
         for (const labelLatex of Object.keys(step.labels)) {
-          if (this.variables.has(labelLatex)) {
+          if (this.isVariableLabelKey(labelLatex)) {
             varIds.add(labelLatex);
           }
         }
@@ -468,7 +475,7 @@ class ComputationStore {
       }
     } else if (step.labels) {
       for (const [labelLatex, labelValue] of Object.entries(step.labels)) {
-        if (!this.variables.has(labelLatex)) {
+        if (!this.isVariableLabelKey(labelLatex)) {
           continue;
         }
         if (this.isRuntimeStepValue(labelValue)) {
@@ -1137,6 +1144,7 @@ class ComputationStore {
         name: variableDefinition?.name,
         precision:
           variableDefinition?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION,
+        sigFigs: variableDefinition?.sigFigs,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
         step: variableDefinition?.step,

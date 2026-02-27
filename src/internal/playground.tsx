@@ -91,7 +91,7 @@ const PlaygroundCanvas = observer(() => {
               <Canvas
                 key={configKey}
                 controls={currentConfig?.controls}
-                environment={currentConfig || undefined}
+                environment={computationStore.environment || undefined}
                 computationStore={computationStore}
               />
             </div>

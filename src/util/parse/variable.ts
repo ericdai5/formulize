@@ -1,6 +1,7 @@
 import { VAR_CLASSES } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
+import { formatNumberForLatex } from "../format-number";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
   Accent,
@@ -30,8 +31,6 @@ import {
  * Configuration for processing nested variables within a formula node subtree
  */
 interface NestedVariableConfig {
-  /** Default precision for number formatting */
-  defaultPrecision: number;
   /** Computation store (required) */
   computationStore: ComputationStore;
   /** Active variables map (required) */
@@ -49,7 +48,7 @@ const processNestedVariable = (
   node: AugmentedFormulaNode,
   config: NestedVariableConfig
 ): string => {
-  const { defaultPrecision, computationStore, activeVariables } = config;
+  const { computationStore, activeVariables } = config;
 
   const processNode = (node: AugmentedFormulaNode): string => {
     // Handle symbol nodes
@@ -59,7 +58,6 @@ const processNestedVariable = (
       if (computationStore.variables.has(symbol.value)) {
         return renderNestedVariable(
           symbol.value,
-          defaultPrecision,
           computationStore,
           activeVariables
         );
@@ -76,7 +74,6 @@ const processNestedVariable = (
       if (computationStore.variables.has(accentLatex)) {
         return renderNestedVariable(
           accentLatex,
-          defaultPrecision,
           computationStore,
           activeVariables
         );
@@ -101,7 +98,6 @@ const processNestedVariable = (
       if (computationStore.variables.has(groupLatex)) {
         return renderNestedVariable(
           groupLatex,
-          defaultPrecision,
           computationStore,
           activeVariables
         );
@@ -109,7 +105,6 @@ const processNestedVariable = (
       if (computationStore.variables.has(groupLatexNoSpaces)) {
         return renderNestedVariable(
           groupLatexNoSpaces,
-          defaultPrecision,
           computationStore,
           activeVariables
         );
@@ -131,12 +126,12 @@ const processNestedVariable = (
  */
 const renderNestedVariable = (
   symbolValue: string,
-  defaultPrecision: number,
   computationStore: ComputationStore,
   activeVariables: Map<string, Set<string>>
 ): string => {
   let value: number | undefined = undefined;
-  let variablePrecision = defaultPrecision;
+  let variablePrecision = INPUT_VARIABLE_DEFAULT.PRECISION;
+  let variableSignificantDigits: number | undefined;
   let latexDisplay: "name" | "value" = "name";
   let isDraggable = false;
   // Get the value from the computation store
@@ -144,6 +139,7 @@ const renderNestedVariable = (
   if (variable) {
     value = typeof variable.value === "number" ? variable.value : undefined;
     variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+    variableSignificantDigits = variable.sigFigs;
     latexDisplay = variable.latexDisplay ?? "name";
     isDraggable = variable.input === "drag" || variable.input === "inline";
   }
@@ -162,7 +158,13 @@ const renderNestedVariable = (
   const hasValidValue = value !== null && value !== undefined && !isNaN(value);
   // Respect latexDisplay setting - only show value if latexDisplay allows it AND variable is active
   if (isActive && hasValidValue && latexDisplay === "value") {
-    return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${value!.toFixed(variablePrecision)}}}`;
+    return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${formatNumberForLatex(
+      value!,
+      {
+        precision: variablePrecision,
+        sigFigs: variableSignificantDigits,
+      }
+    )}}}`;
   }
   // Default: show symbol name (for latexDisplay="name" or when not active)
   return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${symbolValue}}}`;
@@ -440,6 +442,7 @@ export const processVariables = (
       let value: number | undefined = undefined;
       let isDraggable = false;
       let variablePrecision = defaultPrecision;
+      let variableSignificantDigits: number | undefined;
       let display: "name" | "value" = "name"; // Default to showing name
       let defaultCSS = "";
       let hoverCSS = "";
@@ -454,6 +457,7 @@ export const processVariables = (
           // Use the variable's precision if defined, otherwise use default
           variablePrecision =
             variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+          variableSignificantDigits = variable.sigFigs;
           // Use the variable's display property if defined, otherwise default to "name"
           display = variable.latexDisplay ?? "name";
           // Get custom CSS if defined
@@ -470,7 +474,6 @@ export const processVariables = (
       }
       // Process the variable's body to find and render any nested variables
       const processedBody = processNestedVariable(variableNode.body, {
-        defaultPrecision,
         computationStore,
         activeVariables,
       });
@@ -511,7 +514,13 @@ export const processVariables = (
           case "value":
             // If no value is available, fallback to showing the name
             if (value !== null && value !== undefined && !isNaN(value)) {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${value.toFixed(variablePrecision)}}}`;
+              result = `\\cssId{${id}}{\\class{${cssClass}}{${formatNumberForLatex(
+                value,
+                {
+                  precision: variablePrecision,
+                  sigFigs: variableSignificantDigits,
+                }
+              )}}}`;
             } else {
               result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
             }

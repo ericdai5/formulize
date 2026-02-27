@@ -41,8 +41,6 @@ export default defineConfig({
     postcss: "./postcss.config.js",
   },
   build: {
-    // Disable minification to preserve function source code for step engine
-    minify: false,
     lib: {
       // Entry point for the library
       entry: resolve(__dirname, "src/index.ts"),

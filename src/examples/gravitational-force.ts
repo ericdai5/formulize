@@ -9,69 +9,63 @@ export const gravitationalForce = `const config = {
     "\\\\vec{F}": {
       default: 0,
       name: "Gravitational Force",
+      precision: 2,
     },
     G: {
       default: 6.674e-11,
       name: "Gravitational Constant",
+      sigFigs: 4,
     },
     m_1: {
       default: 5.972e24,
       name: "Mass of Earth",
+      sigFigs: 4,
     },
     m_2: {
       default: 80,
       name: "Mass of Person",
+      precision: 0,
     },
     r: {
       default: 6.371e6,
-      name: "Distance (Earth's radius)",
+      name: "Earth's radius",
+      sigFigs: 4,
     },
   },
   stepping: true,
-  semantics: function({ vars, step }) {
+  semantics: function({ vars, step, latex }) {
     var G = vars.G;
     var m1 = vars.m_1;
     var m2 = vars.m_2;
     var r = vars.r;
-    var massProduct = m1 * m2;
+    var product = m1 * m2;
     step({
       labels: {
         "m_1": m1,
         "m_2": m2,
-        "m_1 m_2": "Multiply the two masses: $m_1 \\\\cdot m_2 = " +
-        massProduct.toExponential(2) +
-        "$",
+        "m_1 m_2": "Multiply the two masses = " + latex(product).sigfigs(4),
       },
     });
-    var rSquared = r * r;
+    var squared = r * r;
     step({
-      description: "Square the distance: $r^2 = " + rSquared.toExponential(2) + "$",
+      description: "Square the distance = " + latex(squared).sigfigs(4),
       labels: {
         "r": r,
-        "r^2": rSquared.toExponential(2),
+        "r^2": null,
       },
     });
-    var fraction = massProduct / rSquared;
-    step({
-      description:
-        "Divide masses by distance squared: $\\\\frac{m_1 m_2}{r^2} = " +
-        fraction.toExponential(2) +
-        "$",
-      labels: {
-        "\\\\frac{m_1 m_2}{r^2}": fraction.toExponential(2),
-      },
-    });
-
+    var fraction = product / squared;
     var force = G * fraction;
+    vars["\\\\vec{F}"] = force;
     step({
       description:
-        "Multiply by $G$ to get force: $\\\\vec{F} = " + force.toFixed(1) + "$ N",
+        "Multiply by fraction $G$ to get force",
       labels: {
-        "\\\\vec{F}": force.toFixed(1) + " N",
+        "\\\\vec{F}": latex(vars["\\\\vec{F}"]).precision(2),
+        "G": vars.G,
+        "\\\\frac{m_1 m_2}{r^2}": latex(fraction).sigfigs(4),
       },
     });
-
-    vars["\\\\vec{F}"] = force;
   },
   fontSize: 1.5,
 };`;

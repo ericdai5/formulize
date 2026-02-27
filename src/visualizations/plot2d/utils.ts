@@ -1,5 +1,4 @@
 import { ComputationStore } from "../../store/computation";
-import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { getVariable } from "../../util/computation-helpers";
 
 export interface PlotDimensions {
@@ -23,29 +22,6 @@ export function calculatePlotDimensions(
   const plotWidth = numWidth - margin.left - margin.right;
   const plotHeight = numHeight - margin.top - margin.bottom;
   return { plotWidth, plotHeight, margin };
-}
-
-/**
- * Gets variable precision for formatting
- */
-export function getVariablePrecision(
-  variableName: string,
-  computationStore: ComputationStore
-): number {
-  const variable = getVariable(variableName, computationStore);
-  return variable?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
-}
-
-/**
- * Formats a number with variable-specific precision
- */
-export function formatVariableValue(
-  value: number,
-  variableName: string,
-  computationStore: ComputationStore
-): string {
-  const precision = getVariablePrecision(variableName, computationStore);
-  return value.toFixed(precision);
 }
 
 /**

@@ -25,6 +25,7 @@ export interface IVariable {
   units?: string;
   name?: string;
   precision?: number;
+  sigFigs?: number;
   description?: string;
   range?: [number, number];
   step?: number;
