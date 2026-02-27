@@ -134,8 +134,9 @@ const FormulaCanvasInner = observer(
       adjustLabelPositionsUtil({
         getNodes,
         setNodes,
+        lockCurrentPlacements: computationStore.isDragging,
       });
-    }, [getNodes, setNodes]);
+    }, [computationStore, getNodes, setNodes]);
 
     // Enhanced onNodesChange handler
     const handleNodesChange = useCallback(

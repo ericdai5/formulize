@@ -12,13 +12,23 @@ export function toLatexText(content: string): string {
 
 export function unwrapMathMode(content: string): string | null {
   const trimmed = content.trim();
+  const delimiterLength = MATH_MODE_DELIMITER.length;
   if (
-    trimmed.length >= 4 &&
+    trimmed.length >= delimiterLength * 2 &&
     trimmed.startsWith(MATH_MODE_DELIMITER) &&
     trimmed.endsWith(MATH_MODE_DELIMITER)
   ) {
-    const inner = trimmed.slice(2, -2).trim();
-    return inner.length > 0 ? inner : null;
+    const inner = trimmed.slice(delimiterLength, -delimiterLength).trim();
+    if (inner.length === 0) {
+      return null;
+    }
+    if (inner.includes(MATH_MODE_DELIMITER)) {
+      return null;
+    }
+    if (trimmed !== `${MATH_MODE_DELIMITER}${inner}${MATH_MODE_DELIMITER}`) {
+      return null;
+    }
+    return inner;
   }
   return null;
 }

@@ -122,13 +122,26 @@ const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label }) => (
 );
 
 interface NumberInputProps {
-  value: number;
+  value: number | undefined;
   onChange: (value: number) => void;
   className?: string;
   integer?: boolean;
   defaultValue?: number;
   showDefault?: boolean;
 }
+
+const getDisplayText = (
+  value: number | undefined,
+  defaultValue?: number
+) => {
+  if (value !== undefined) {
+    return String(value);
+  }
+  if (defaultValue !== undefined) {
+    return String(defaultValue);
+  }
+  return "";
+};
 
 const NumberInput: React.FC<NumberInputProps> = ({
   value,
@@ -138,8 +151,9 @@ const NumberInput: React.FC<NumberInputProps> = ({
   defaultValue,
   showDefault = false,
 }) => {
-  const [text, setText] = useState(String(value));
+  const [text, setText] = useState(() => getDisplayText(value, defaultValue));
   const pendingValueRef = useRef<number | null>(null);
+  const didEditRef = useRef(false);
 
   const isDefault = defaultValue !== undefined && value === defaultValue;
   const showResetButton = showDefault && defaultValue !== undefined;
@@ -154,28 +168,39 @@ const NumberInput: React.FC<NumberInputProps> = ({
       // Don't update text - either waiting for parent or already have correct text
       return;
     }
-    setText(String(value));
-  }, [value]);
+    setText(getDisplayText(value, defaultValue));
+  }, [value, defaultValue]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    didEditRef.current = true;
     setText(e.target.value);
   };
 
   const handleFocus = () => {
     // Clear pending value when user focuses again (in case parent rejected the change)
     pendingValueRef.current = null;
+    didEditRef.current = false;
   };
 
   const handleBlur = () => {
     const parsed = integer ? parseInt(text, 10) : parseFloat(text);
     if (!isNaN(parsed) && isFinite(parsed)) {
-      // Store the value we're submitting to ignore stale re-renders
-      pendingValueRef.current = parsed;
-      onChange(parsed);
+      const isImplicitDefaultBlur =
+        !didEditRef.current &&
+        value === undefined &&
+        defaultValue !== undefined &&
+        parsed === defaultValue;
+
+      if (!isImplicitDefaultBlur) {
+        // Store the value we're submitting to ignore stale re-renders
+        pendingValueRef.current = parsed;
+        onChange(parsed);
+      }
       setText(String(parsed));
     } else {
-      setText(String(value));
+      setText(getDisplayText(value, defaultValue));
     }
+    didEditRef.current = false;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -418,7 +443,7 @@ const VariableCard: React.FC<VariableCardProps> = observer(
           <div className="flex-1">
             <Label>Sig Digits</Label>
             <NumberInput
-              value={sigFigs ?? INPUT_VARIABLE_DEFAULT.PRECISION}
+              value={sigFigs}
               onChange={(val) => onSignificantDigitsChange(val)}
               integer
               defaultValue={INPUT_VARIABLE_DEFAULT.PRECISION}

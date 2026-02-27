@@ -234,8 +234,9 @@ const CanvasFlow = observer(
       adjustLabelPositionsUtil({
         getNodes,
         setNodes,
+        lockCurrentPlacements: computationStore.isDragging,
       });
-    }, [getNodes, setNodes]);
+    }, [computationStore, getNodes, setNodes]);
 
     // Function to add variable nodes as subnodes using React Flow's measurement system
     const addVariableNodes = useAddVariableNodes({
@@ -319,6 +320,15 @@ const CanvasFlow = observer(
             // Variables set has changed, need to recreate all variable nodes
             bootstrapCompleteRef.current = false;
             if (computationStore.variables.size === 0) {
+              setNodes((currentNodes) =>
+                currentNodes.filter(
+                  (node) =>
+                    node.type !== NODE_TYPES.VARIABLE &&
+                    node.type !== NODE_TYPES.LABEL &&
+                    node.type !== NODE_TYPES.STEP &&
+                    node.type !== NODE_TYPES.EXPRESSION
+                )
+              );
               bootstrapCompleteRef.current = true;
               return;
             }
@@ -330,7 +340,7 @@ const CanvasFlow = observer(
         }
       );
       return () => disposer();
-    }, [nodesInitialized, addVariableNodes, computationStore.variables]);
+    }, [nodesInitialized, addVariableNodes, computationStore.variables, setNodes]);
 
     // Update variable node positions/dimensions when values change
     useEffect(() => {
