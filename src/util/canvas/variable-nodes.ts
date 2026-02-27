@@ -306,6 +306,7 @@ export function addVariableNodesForFormula({
 
       // Get active variables from computation store
       const activeVariables = computationStore.getActiveVariables();
+      const currentStep = computationStore.currentStep;
 
       setNodes((currentNodes) => {
         const baseNodes = currentNodes.filter(
@@ -321,7 +322,8 @@ export function addVariableNodesForFormula({
             nodesWithVariables,
             viewport,
             computationStore,
-            activeVariables
+            activeVariables,
+            currentStep
           );
         const updatedVarNodes = updateLabelPlacement(
           varNodes,
