@@ -49,16 +49,16 @@ export const svgKineticEnergy2D = `const config = {
       yAxisLabel: "K",
       yAxisVar: "K",
       yRange: [0, 5000],
-      graphs: [
+      lines: [
         {
-          type: "line",
-          id: "energy",
+          dataId: "energy",
           parameter: "v",
           interaction: ["vertical-drag", "m"]
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "energy",
+          dataId: "energy",
           interaction: ["horizontal-drag", "v"]
         }
       ]

@@ -8,8 +8,6 @@ import * as d3 from "d3";
 import { useStore } from "../../core/hooks";
 import { ComputationStore } from "../../store/computation";
 import {
-  type I2DLine,
-  type I2DPoint,
   type IPlot2D,
   type IVector,
 } from "../../types/plot2d";
@@ -39,7 +37,7 @@ interface GraphLineData {
 
 // Graph-based point data structure
 interface GraphPointData {
-  graphId: string;
+  dataId: string;
   name: string;
   point: DataPoint;
   color: string;
@@ -53,84 +51,84 @@ interface GraphPointData {
 
 /**
  * Calculate graph-based visualizations using explicit data2d() calls.
- * Graph configs declare id to match data2d() calls and parameter for sampling.
+ * Configs declare dataId to match data2d() calls.
  */
 function calculateGraphData(
-  graphs: IPlot2D["graphs"],
+  lines: IPlot2D["lines"],
+  points: IPlot2D["points"],
   computationStore: ComputationStore
 ): { lines: GraphLineData[]; points: GraphPointData[] } {
   const lineResults: GraphLineData[] = [];
   const pointResults: GraphPointData[] = [];
 
-  if (!graphs || graphs.length === 0) {
-    return { lines: lineResults, points: pointResults };
+  for (const lineConfig of lines ?? []) {
+    const {
+      dataId,
+      name,
+      showInLegend = true,
+      parameter,
+      range,
+      samples = 100,
+      color = "#3b82f6",
+      lineWidth = 2,
+    } = lineConfig;
+    const displayName = name || dataId;
+
+    // Get range from config or from parameter variable's range
+    let sampleRange = range;
+    if (!sampleRange) {
+      const paramVariable = computationStore.variables.get(parameter);
+      sampleRange = paramVariable?.range ?? [0, 10];
+    }
+
+    // Sample the manual function across the range
+    const sampledPoints = computationStore.sample2DLine(
+      parameter,
+      sampleRange,
+      samples,
+      dataId
+    );
+
+    if (sampledPoints.length > 0) {
+      lineResults.push({
+        name: displayName,
+        points: sampledPoints,
+        color,
+        lineWidth,
+        showInLegend,
+      });
+    }
   }
 
-  for (const graphConfig of graphs) {
-    const graphType = graphConfig.type;
-    const { id: graphId, name, showInLegend = true } = graphConfig;
-    const displayName = name || graphId;
+  for (const pointConfig of points ?? []) {
+    const {
+      dataId,
+      name,
+      showInLegend = true,
+      color = "#ef4444",
+      size = 6,
+      showLabel = true,
+      interaction,
+      stepId,
+      persistence,
+    } = pointConfig;
+    const displayName = name || dataId;
 
-    if (graphType === "line") {
-      const lineConfig = graphConfig as I2DLine;
-      const {
-        parameter,
-        range,
-        samples = 100,
-        color = "#3b82f6",
-        lineWidth = 2,
-      } = lineConfig;
-
-      // Get range from config or from parameter variable's range
-      let sampleRange = range;
-      if (!sampleRange) {
-        const paramVariable = computationStore.variables.get(parameter);
-        sampleRange = paramVariable?.range ?? [0, 10];
-      }
-
-      // Sample the manual function across the range
-      const points = computationStore.sample2DLine(
-        parameter,
-        sampleRange,
-        samples,
-        graphId
-      );
-
-      if (points.length > 0) {
-        lineResults.push({
-          name: displayName,
-          points,
-          color,
-          lineWidth,
-          showInLegend,
-        });
-      }
-    } else if (graphType === "point") {
-      const pointConfig = graphConfig as I2DPoint;
-      const {
-        color = "#ef4444",
-        size = 6,
-        showLabel = true,
+    // Run once with current values to get the current point
+    const point = computationStore.sample2DPoint(dataId);
+    if (point) {
+      pointResults.push({
+        dataId,
+        name: displayName,
+        point,
+        color,
+        size,
+        showInLegend,
+        showLabel,
         interaction,
         stepId,
         persistence,
-      } = pointConfig;
-      // Run once with current values to get the current point
-      const point = computationStore.sample2DPoint(graphId);
-      if (point) {
-        pointResults.push({
-          graphId,
-          name: displayName,
-          point,
-          color,
-          size,
-          showInLegend,
-          showLabel,
-          interaction,
-          stepId,
-          persistence,
-        });
-      }
+      });
     }
   }
 
@@ -168,7 +166,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     yLabelPos,
     yGrid = "show",
     vectors,
-    graphs,
+    lines,
+    points,
     width = PLOT2D_DEFAULTS.width,
     height = PLOT2D_DEFAULTS.height,
     interaction,
@@ -198,8 +197,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // Guard: computationStore must be available
     if (!computationStore) return;
 
-    // Check if we have graphs early (needed for drag check)
-    const hasGraphs = graphs && graphs.length > 0;
+    // Check if we have graph data early (needed for drag check)
+    const hasGraphs = (lines?.length ?? 0) > 0 || (points?.length ?? 0) > 0;
 
     // Only skip redraw during an ACTIVE drag (when both ref and store confirm dragging)
     // This allows redraws when external updates happen (e.g., stopwatch reset) even if
@@ -319,7 +318,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // Render graph-based visualizations
     if (hasGraphs) {
-      const graphResults = calculateGraphData(graphs, computationStore);
+      const graphResults = calculateGraphData(lines, points, computationStore);
 
       // Separate regular points from step-dependent points
       const regularPoints: GraphPointData[] = [];
@@ -336,8 +335,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // Has stepId and in stepping mode - collect accumulated points from dataPointMap
           const steps = computationStore.steps;
           const currentStepIndex = computationStore.currentStepIndex;
-          const graphId = pointData.graphId;
-          const allPoints = (computationStore.stepDataPointMap.get(graphId) ??
+          const dataId = pointData.dataId;
+          const allPoints = (computationStore.stepDataPointMap.get(dataId) ??
             []) as unknown as DataPoint[];
 
           // Count how many steps with matching stepId are in range [0, currentStepIndex]
@@ -405,9 +404,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
       // Add drag interaction for graph-based visualization
       // Find the first line config to use its parameter/interaction for dragging
-      const lineConfig = graphs.find((g) => g.type === "line") as
-        | I2DLine
-        | undefined;
+      const lineConfig = lines?.[0];
 
       if (lineConfig) {
         const { parameter, interaction: lineInteraction } = lineConfig;
@@ -443,12 +440,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Updates ALL lines and ALL points since shared variables may affect multiple elements
         const updatePointPosition = () => {
           // Re-sample ALL lines with current variable values (since variables may affect multiple lines)
-          const lineConfigs = graphs.filter(
-            (g) => g.type === "line"
-          ) as I2DLine[];
-          const pointConfigs = graphs.filter(
-            (g) => g.type === "point"
-          ) as I2DPoint[];
+          const lineConfigs = lines ?? [];
+          const pointConfigs = points ?? [];
 
           // Cache line points for reuse when updating points
           const linePointsCache: Map<string, DataPoint[]> = new Map();
@@ -458,7 +451,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               range,
               samples = 100,
               parameter: lineParam,
-              id: lineGraphId,
+              dataId: lineGraphId,
             } = config;
             let sampleRange = range;
             if (!sampleRange) {
@@ -493,7 +486,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             const focusedLineConfig = lineConfigs[focusState.index];
             if (focusedLineConfig) {
               focusedPointIndex = pointConfigs.findIndex(
-                (p) => p.id === focusedLineConfig.id
+                (p) => p.dataId === focusedLineConfig.dataId
               );
               if (focusedPointIndex < 0) focusedPointIndex = null;
             }
@@ -502,7 +495,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // Update ALL points (since shared variables may affect multiple points)
           pointConfigs.forEach((pointConfig, pointIndex) => {
             // Get cached line points for this point's associated line
-            const linePoints = linePointsCache.get(pointConfig.id) || [];
+            const linePoints = linePointsCache.get(pointConfig.dataId) || [];
             let pointOnCurve: DataPoint | null = null;
             // For the focused point, use dragPointX to find position on curve
             // For other points, just run the graph once to get current position
@@ -524,7 +517,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               pointOnCurve = closestPoint;
             } else {
               // For non-focused points or when not tracking, use current values
-              const point = computationStore.sample2DPoint(pointConfig.id);
+              const point = computationStore.sample2DPoint(pointConfig.dataId);
               if (point) {
                 pointOnCurve = point;
                 // Initialize dragPointX for focused point if needed
@@ -729,9 +722,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // Helper to find which line is closest to click position
         // Returns the index of the closest line with interaction, or -1 if none
         const findClosestLine = (mouseX: number, mouseY: number): number => {
-          const lineConfigs = graphs.filter(
-            (g) => g.type === "line"
-          ) as I2DLine[];
+          const lineConfigs = lines ?? [];
           let closestLineIndex = -1;
           let minDistance = Infinity;
 
@@ -743,7 +734,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               range,
               samples = 100,
               parameter: lineParam,
-              id: lineGraphId,
+              dataId: lineGraphId,
             } = config;
             let sampleRange = range;
             if (!sampleRange) {
@@ -1167,7 +1158,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // Note: Hover lines for variables removed - labels are now purely cosmetic
   }, [
     vectors,
-    graphs,
+    lines,
+    points,
     plotWidth,
     plotHeight,
     margin,
@@ -1196,7 +1188,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     // Guard: computationStore must be available
     if (!computationStore) return;
 
-    const hasGraphs = graphs && graphs.length > 0;
+    const hasGraphs = (lines?.length ?? 0) > 0 || (points?.length ?? 0) > 0;
 
     const disposer = reaction(
       () => {
@@ -1253,7 +1245,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     );
 
     return () => disposer();
-  }, [drawPlot, interaction, graphs, computationStore]);
+  }, [drawPlot, interaction, lines, points, computationStore]);
 
   // Clean up global event listeners on unmount
   useEffect(() => {

@@ -68,34 +68,34 @@ export const parametric3D = `const config = {
       xRange: [-5, 5],
       yRange: [-5, 5],
       zRange: [-5, 5],
-      graphs: [
+      surfaces: [
         {
-          type: "surface",
-          id: "plane1",
+          dataId: "plane1",
           parameters: ["x", "y"],
           name: "Plane x+y+z=1",
           opacity: 0.5,
           color: "purple",
         },
         {
-          type: "surface",
-          id: "plane2",
+          dataId: "plane2",
           parameters: ["x", "y"],
           name: "Plane x=z",
           opacity: 0.5,
           color: "green",
-        },
+        }
+      ],
+      lines: [
         {
-          type: "line",
-          id: "line",
+          dataId: "line",
           parameter: "t",
           name: "Intersection Line",
           width: 6,
           color: "yellow",
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "line",
+          dataId: "line",
           name: "Current Position",
         }
       ]

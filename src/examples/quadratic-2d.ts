@@ -55,16 +55,16 @@ export const quadratic2D = `const config = {
       yAxisVar: "y",
       xRange: [-5, 5],
       yRange: [-10, 10],
-      graphs: [
+      lines: [
         {
-          type: "line",
-          id: "quadratic",
+          dataId: "quadratic",
           parameter: "x",
           interaction: ["vertical-drag", "c"]
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "quadratic",
+          dataId: "quadratic",
           interaction: ["horizontal-drag", "x"]
         }
       ]

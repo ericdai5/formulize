@@ -73,18 +73,18 @@ export const parameterizedPlane = `const config = {
       xRange: [-15, 15],
       yRange: [-15, 15],
       zRange: [-15, 15],
-      graphs: [
+      surfaces: [
         {
-          type: "surface",
-          id: "plane",
+          dataId: "plane",
           parameters: ["t", "w"],
           name: "Parameterized Plane",
           color: "Purple",
           opacity: 0.3,
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "plane",
+          dataId: "plane",
           name: "Current Point (x, y, z)",
         }
       ]

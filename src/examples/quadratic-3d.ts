@@ -52,17 +52,17 @@ export const quadratic3D = `const config = {
       xRange: [-5, 5],
       yRange: [-5, 5],
       zRange: [-20, 40],
-      graphs: [
+      surfaces: [
         {
-          type: "surface",
-          id: "quadratic",
+          dataId: "quadratic",
           name: "Quadratic Surface",
           parameters: ["x", "c"],
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
           name: "Current Point",
-          id: "quadratic",
+          dataId: "quadratic",
         }
       ]
     }

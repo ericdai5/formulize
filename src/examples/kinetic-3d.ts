@@ -39,15 +39,15 @@ export const kinetic3D = `const config = {
       xRange: [0.5, 5],
       yRange: [0.5, 10],
       zRange: [0, 250],
-      graphs: [
+      surfaces: [
         {
-          type: "surface",
-          id: "energy",
+          dataId: "energy",
           parameters: ["m", "v"],
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "energy",
+          dataId: "energy",
         }
       ]
     }

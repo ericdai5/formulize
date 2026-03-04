@@ -20,20 +20,19 @@ export interface IVector {
 /**
  * Base configuration for graph-based 2D visualizations.
  * Uses explicit data2d() calls in manual functions to collect coordinates.
- * @property: id - Graph ID to match data2d() calls in manual function (required)
+ * @property: dataId - Data ID to match data2d() calls in manual function (required)
  * @property: name - Display name for the legend
  * @property: showInLegend - Whether to show in legend
  */
 interface I2DConfigBase {
-  id: string;
+  dataId: string;
   name?: string;
   showInLegend?: boolean;
 }
 
 /**
  * Line graph: samples over a parameter variable to create a 2D line/curve.
- * The manual function must call data2d(id, {x, y}) to provide coordinates.
- * @property: type - The type of object to graph
+ * The manual function must call data2d(dataId, {x, y}) to provide coordinates.
  * @property: parameter - The variable to vary during sampling (1 parameter for lines)
  * @property: range - Optional range to sample over the parameter (defaults to the variable's range)
  * @property: samples - Number of samples (default 100)
@@ -42,7 +41,6 @@ interface I2DConfigBase {
  * @property: interaction - Drag interaction: ["horizontal-drag" | "vertical-drag", variableName]
  */
 export interface I2DLine extends I2DConfigBase {
-  type: "line";
   parameter: string;
   range?: [number, number];
   samples?: number;
@@ -53,8 +51,7 @@ export interface I2DLine extends I2DConfigBase {
 
 /**
  * Point graph: shows the current point without sampling (0 parameters).
- * The manual function must call data2d(id, {x, y}) to provide coordinates.
- * @property type - The type of object to graph
+ * The manual function must call data2d(dataId, {x, y}) to provide coordinates.
  * @property color - Marker color
  * @property size - Marker size
  * @property showLabel - Whether to show label
@@ -66,7 +63,6 @@ export interface I2DLine extends I2DConfigBase {
  *                         false = point only visible at that exact step
  */
 export interface I2DPoint extends I2DConfigBase {
-  type: "point";
   color?: string;
   size?: number;
   showLabel?: boolean;
@@ -95,7 +91,8 @@ export type I2DConfig = I2DLine | I2DPoint;
  * @property yAxisPos - The position of the y-axis.
  * @property yGrid - The grid visibility for the y-axis.
  * @property vectors - The vectors for the plot.
- * @property graphs - Graph-based visualizations using data collected by data2d() calls.
+ * @property lines - Line visualizations sampled from data2d() calls.
+ * @property points - Point visualizations sampled from data2d() calls.
  *                    Points with stepId will only appear during stepping when that step is reached.
  * @property width - The width of the plot.
  * @property height - The height of the plot.
@@ -121,7 +118,8 @@ export interface IPlot2D {
   yLabelPos?: "center" | "top"; // Position of y-axis label along the axis line
   yGrid?: "show" | "hide"; // Grid visibility for y-axis, default is "show"
   vectors?: IVector[];
-  graphs?: I2DConfig[];
+  lines?: I2DLine[];
+  points?: I2DPoint[];
   width?: number | string;
   height?: number | string;
   tickFontSize?: number;

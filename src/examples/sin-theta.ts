@@ -50,16 +50,16 @@ export const sinTheta = `const config = {
       yAxisInterval: 0.5,
       width: 600,
       height: 300,
-      graphs: [
+      lines: [
         {
-          type: "line",
-          id: "sine",
+          dataId: "sine",
           parameter: "\\\\theta",
           interaction: ["vertical-drag", "c"]
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "sine",
+          dataId: "sine",
           interaction: ["horizontal-drag", "\\\\theta"]
         }
       ]

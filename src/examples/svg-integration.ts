@@ -109,17 +109,17 @@ export const svgIntegration = `const config = {
       yAxisVar: "N",
       yRange: [0, 1100],
       yGrid: "show",
-      graphs: [
+      lines: [
         {
-          type: "line",
-          id: "decay",
+          dataId: "decay",
           parameter: "t",
           color: "#7FFF00",
           interaction: ["vertical-drag", "N_0"]
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "decay",
+          dataId: "decay",
           color: "#7FFF00",
           interaction: ["horizontal-drag", "t"]
         }

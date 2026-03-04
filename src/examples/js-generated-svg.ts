@@ -76,17 +76,17 @@ const config = {
       yAxisVar: "w",
       yRange: [-6, 6],
       yGrid: "show",
-      graphs: [
+      lines: [
         {
-          type: "line",
-          id: "wave",
+          dataId: "wave",
           parameter: "t",
           samples: 500,
           interaction: ["vertical-drag", "A"]
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "wave",
+          dataId: "wave",
           interaction: ["horizontal-drag", "t"]
         }
       ]

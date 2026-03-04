@@ -42,29 +42,27 @@ export const fittsLaw = `const config = {
     yAxisLabel: "T",
     yAxisVar: "T_1",
     yRange: [0, 3],
-    graphs: [
+    lines: [
       {
-        type: "line",
-        id: "fitts_1",
+        dataId: "fitts_1",
         parameter: "W",
         name: "Fitts Law",
         interaction: ["vertical-drag", "D"]
       },
       {
-        type: "point",
-        id: "fitts_1",
+        dataId: "fitts_2",
+        parameter: "W",
+        name: "Fitts Law",
+        interaction: ["vertical-drag", "D"]
+      }
+    ],
+    points: [
+      {
+        dataId: "fitts_1",
         interaction: ["horizontal-drag", "W"]
       },
       {
-        type: "line",
-        id: "fitts_2",
-        parameter: "W",
-        name: "Fitts Law",
-        interaction: ["vertical-drag", "D"]
-      },
-      {
-        type: "point",
-        id: "fitts_2",
+        dataId: "fitts_2",
         interaction: ["horizontal-drag", "W"]
       }
     ]

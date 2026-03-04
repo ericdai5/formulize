@@ -49,19 +49,19 @@ export const gravitationalPotential = `const config = {
       yAxisLabel: "U",
       yAxisVar: "U",
       yRange: [0, 10000],
-      graphs: [
+      lines: [
         {
-          type: "line",
-          id: "potential",
+          dataId: "potential",
           parameter: "h",
           range: [0, 100],
           color: "#10b981",
           name: "Potential Energy",
           interaction: ["vertical-drag", "m"]
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "potential",
+          dataId: "potential",
           color: "#10b981",
           interaction: ["horizontal-drag", "h"]
         }
