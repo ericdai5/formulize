@@ -54,6 +54,24 @@ function isExpressionLabelNode(node: Node): boolean {
   );
 }
 
+function compareNodeIdSets(existingNodes: Node[], nextNodes: Node[]): boolean {
+  if (existingNodes.length !== nextNodes.length) {
+    return false;
+  }
+
+  const existingIds = new Set(existingNodes.map((node) => node.id));
+  if (existingIds.size !== existingNodes.length) {
+    return false;
+  }
+
+  const nextIds = new Set(nextNodes.map((node) => node.id));
+  if (nextIds.size !== nextNodes.length) {
+    return false;
+  }
+
+  return existingNodes.every((node) => nextIds.has(node.id));
+}
+
 /**
  * Calculate bounding box from active variable nodes
  * @param nodes - Array of all React Flow nodes
@@ -505,6 +523,12 @@ export function createStepAndExpressionNodes(
       formulaId
     );
     if (!expressionBoundingBox) {
+      console.warn("Skipping unmatched/malformed expression scope", {
+        expression: scope.expression,
+        expressionIndex,
+        formulaId,
+        scope,
+      });
       return;
     }
 
@@ -708,9 +732,12 @@ export function addstepNodes({
       (existingNode, index) => existingNode.id === allstepNodes[index]?.id
     );
   const canReuseExpressionNodes =
-    existingExpressionNodes.length === allExpressionNodes.length;
+    compareNodeIdSets(existingExpressionNodes, allExpressionNodes);
   const canReuseExpressionLabelNodes =
-    existingExpressionLabelNodes.length === allExpressionLabelNodes.length;
+    compareNodeIdSets(
+      existingExpressionLabelNodes,
+      allExpressionLabelNodes
+    );
   const hasRenderableStepArtifacts =
     allstepNodes.length > 0 ||
     allExpressionNodes.length > 0 ||
