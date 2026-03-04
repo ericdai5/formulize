@@ -803,12 +803,14 @@ const extractLabelInfo = (
     formulaNode.measured?.height ||
     formulaNode.height ||
     DEFAULT_DIMENSIONS.formulaHeight;
-  const adjustedY = calculateLabelY(
-    placement,
-    labelDimensions.height,
-    formulaNodeHeight,
-    spacing.vertical
-  );
+  const adjustedY = expressionLabel
+    ? node.position.y
+    : calculateLabelY(
+        placement,
+        labelDimensions.height,
+        formulaNodeHeight,
+        spacing.vertical
+      );
   return {
     nodeId: node.id,
     idealX,

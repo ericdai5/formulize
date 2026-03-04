@@ -178,8 +178,11 @@ const CanvasFlow = observer(
             id,
             computationStore,
           },
-          draggable: true,
           dragHandle: ".formula-drag-handle",
+          draggable: true,
+          style: {
+            cursor: "default",
+          },
         });
         currentY += 200; // Vertical spacing between formula nodes
       });
@@ -340,7 +343,12 @@ const CanvasFlow = observer(
         }
       );
       return () => disposer();
-    }, [nodesInitialized, addVariableNodes, computationStore.variables, setNodes]);
+    }, [
+      nodesInitialized,
+      addVariableNodes,
+      computationStore.variables,
+      setNodes,
+    ]);
 
     // Update variable node positions/dimensions when values change
     useEffect(() => {

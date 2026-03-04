@@ -33,8 +33,8 @@ function normalizeSignificantDigits(
   );
 }
 
-function shouldUseScientificFallback(value: number, fixedValue: string): boolean {
-  return value !== 0 && Number(fixedValue) === 0;
+function normalizeSignedZero(value: string): string {
+  return Object.is(Number(value), -0) ? value.slice(1) : value;
 }
 
 function scientificToLatex(value: string): string {
@@ -62,12 +62,7 @@ export function formatNumberForDisplay(
   }
 
   const precision = normalizePrecision(options.precision);
-  const fixedValue = value.toFixed(precision);
-  if (shouldUseScientificFallback(value, fixedValue)) {
-    return value.toExponential(precision);
-  }
-
-  return fixedValue;
+  return normalizeSignedZero(value.toFixed(precision));
 }
 
 export function formatNumberForLatex(
