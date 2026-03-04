@@ -264,6 +264,28 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         ? getAllVectorVariables(vectors)
         : { allXVariables: [], allYVariables: [] };
 
+    const resolveAxisLabel = (
+      axisLabel: string | undefined,
+      axisVar: string | undefined,
+      fallback: string
+    ) => {
+      if (axisLabel) {
+        return axisLabel;
+      }
+      if (!axisVar) {
+        return fallback;
+      }
+      const axisVariable = computationStore.variables.get(axisVar);
+      if (axisVariable?.name) {
+        // Match label-node name rendering (text mode)
+        return `\\text{${axisVariable.name}}`;
+      }
+      return axisVar;
+    };
+
+    const resolvedXAxisLabel = resolveAxisLabel(xAxisLabel, xAxisVar, "X");
+    const resolvedYAxisLabel = resolveAxisLabel(yAxisLabel, yAxisVar, "Y");
+
     // Add axes using helper function and capture label info
     const labelInfo = addAxes(svg, {
       xScale,
@@ -271,8 +293,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
       plotWidth,
       plotHeight,
       margin,
-      xLabel: xAxisLabel || "X",
-      yLabel: yAxisLabel || "Y",
+      xLabel: resolvedXAxisLabel,
+      yLabel: resolvedYAxisLabel,
       xAxis: xAxisVar, // Variable for hover highlighting (optional)
       yAxis: yAxisVar,
       xAxisInterval,

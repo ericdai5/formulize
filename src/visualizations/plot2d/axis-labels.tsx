@@ -20,8 +20,8 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
     if (!computationStore) {
       return null;
     }
-    // Get fontSize from environment, with default and scaling for MathJax scale=1.0
-    const fontSize = computationStore.environment?.fontSize ?? 1;
+    // Match label-node name styling but keep axis labels slightly more readable.
+    const fontSize = computationStore.environment?.labelFontSize ?? 1;
 
     const handleXLabelMouseEnter = () => {
       if (labelInfo.xLabel?.xAxis) {
@@ -67,12 +67,12 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
               position: "absolute",
               left: `${labelInfo.xLabel.x}px`,
               top: `${labelInfo.xLabel.y}px`,
-              transform: "translate(-50%, -50%)",
+              transform: `translate(-50%, -50%) scale(${xAxisHovered ? 1.08 : 1})`,
               cursor: "pointer",
-              padding: "8px",
-              borderRadius: "6px",
-              backgroundColor: xAxisHovered ? "#f3f4f6" : "transparent",
-              transition: "background-color 0.2s",
+              padding: "4px",
+              color: xAxisHovered ? "#2563eb" : "#111827",
+              transition: "transform 0.2s ease, color 0.2s ease",
+              transformOrigin: "center center",
             }}
             onMouseEnter={handleXLabelMouseEnter}
             onMouseLeave={handleXLabelMouseLeave}
@@ -86,12 +86,12 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
               position: "absolute",
               left: `${labelInfo.yLabel.x}px`,
               top: `${labelInfo.yLabel.y}px`,
-              transform: `translate(-50%, -50%) rotate(${labelInfo.yLabel.rotation}deg)`,
+              transform: `translate(-50%, -50%) rotate(${labelInfo.yLabel.rotation}deg) scale(${yAxisHovered ? 1.08 : 1})`,
               cursor: "pointer",
-              padding: "8px",
-              borderRadius: "6px",
-              backgroundColor: yAxisHovered ? "#f3f4f6" : "transparent",
-              transition: "background-color 0.2s",
+              padding: "4px",
+              color: yAxisHovered ? "#2563eb" : "#111827",
+              transition: "transform 0.2s ease, color 0.2s ease",
+              transformOrigin: "center center",
             }}
             onMouseEnter={handleYLabelMouseEnter}
             onMouseLeave={handleYLabelMouseLeave}
