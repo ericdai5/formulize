@@ -35,6 +35,8 @@ interface NestedVariableConfig {
   computationStore: ComputationStore;
   /** Active variables map (required) */
   activeVariables: Map<string, Set<string>>;
+  /** Variable currently being rendered; skip matching it at the root node */
+  rootVariableId?: string;
 }
 
 /**
@@ -48,14 +50,20 @@ const processNestedVariable = (
   node: AugmentedFormulaNode,
   config: NestedVariableConfig
 ): string => {
-  const { computationStore, activeVariables } = config;
+  const { computationStore, activeVariables, rootVariableId } = config;
 
-  const processNode = (node: AugmentedFormulaNode): string => {
+  const processNode = (
+    node: AugmentedFormulaNode,
+    isRoot: boolean = false
+  ): string => {
     // Handle symbol nodes
     if (node.type === "symbol") {
       const symbol = node as MathSymbol;
       // Check if this symbol is a known variable in the computation store
-      if (computationStore.variables.has(symbol.value)) {
+      if (
+        computationStore.variables.has(symbol.value) &&
+        !(isRoot && symbol.value === rootVariableId)
+      ) {
         return renderNestedVariable(
           symbol.value,
           computationStore,
@@ -71,7 +79,10 @@ const processNestedVariable = (
       // Check if the entire accent node is a known variable
       const accentLatex =
         "toLatex" in accent ? accent.toLatex("no-id", 0)[0] : "";
-      if (computationStore.variables.has(accentLatex)) {
+      if (
+        computationStore.variables.has(accentLatex) &&
+        !(isRoot && accentLatex === rootVariableId)
+      ) {
         return renderNestedVariable(
           accentLatex,
           computationStore,
@@ -95,14 +106,20 @@ const processNestedVariable = (
       }
       // Also try removing spaces for matching (e.g., "t + 1" -> "t+1")
       const groupLatexNoSpaces = groupLatex.replace(/\s+/g, "");
-      if (computationStore.variables.has(groupLatex)) {
+      if (
+        computationStore.variables.has(groupLatex) &&
+        !(isRoot && groupLatex === rootVariableId)
+      ) {
         return renderNestedVariable(
           groupLatex,
           computationStore,
           activeVariables
         );
       }
-      if (computationStore.variables.has(groupLatexNoSpaces)) {
+      if (
+        computationStore.variables.has(groupLatexNoSpaces) &&
+        !(isRoot && groupLatexNoSpaces === rootVariableId)
+      ) {
         return renderNestedVariable(
           groupLatexNoSpaces,
           computationStore,
@@ -110,7 +127,7 @@ const processNestedVariable = (
         );
       }
       // Otherwise, process children recursively
-      const children = group.body.map(processNode).join(" ");
+      const children = group.body.map((child) => processNode(child)).join(" ");
       return `{${children}}`;
     }
 
@@ -118,7 +135,7 @@ const processNestedVariable = (
     return processNodeChildren(node, processNode);
   };
 
-  return processNode(node);
+  return processNode(node, true);
 };
 
 /**
@@ -477,6 +494,7 @@ export const processVariables = (
       const processedBody = processNestedVariable(variableNode.body, {
         computationStore,
         activeVariables,
+        rootVariableId: originalSymbol,
       });
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
