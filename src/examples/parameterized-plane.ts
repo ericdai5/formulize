@@ -45,11 +45,11 @@ export const parameterizedPlane = `const config = {
       name: "Parameter w"
     }
   },
-  semantics: function({ vars, data3d }) {
+  semantics: function({ vars, sample }) {
     vars.x = 1 - vars.t - vars.w;
     vars.y = vars.t;
     vars.z = vars.w;
-    data3d("plane", {x: vars.x, y: vars.y, z: vars.z});
+    sample("plane", {x: vars.x, y: vars.y, z: vars.z});
   },
   controls: [
     {
@@ -68,13 +68,12 @@ export const parameterizedPlane = `const config = {
   graph3d: [
     {
       id: "parameterizedPlane3D",
-      title: "Parameterized Plane: x + y + z = 1",
       xRange: [-15, 15],
       yRange: [-15, 15],
       zRange: [-15, 15],
       surfaces: [
         {
-          dataId: "plane",
+          sampleId: "plane",
           parameters: ["t", "w"],
           name: "Parameterized Plane",
           color: "Purple",
@@ -83,7 +82,7 @@ export const parameterizedPlane = `const config = {
       ],
       points: [
         {
-          dataId: "plane",
+          sampleId: "plane",
           name: "Current Point (x, y, z)",
         }
       ]

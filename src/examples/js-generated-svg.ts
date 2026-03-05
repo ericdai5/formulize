@@ -61,9 +61,9 @@ const config = {
       units: "s",
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.w = vars.A * Math.sin(2 * Math.PI * vars.f * vars.t + vars.phi);
-    data2d("wave", {x: vars.t, y: vars.w});
+    sample("wave", {x: vars.t, y: vars.w});
   },
   graph2d: [
     {
@@ -78,7 +78,7 @@ const config = {
       yGrid: "show",
       lines: [
         {
-          dataId: "wave",
+          sampleId: "wave",
           parameter: "t",
           samples: 500,
           interaction: ["vertical-drag", "A"]
@@ -86,7 +86,7 @@ const config = {
       ],
       points: [
         {
-          dataId: "wave",
+          sampleId: "wave",
           interaction: ["horizontal-drag", "t"]
         }
       ]

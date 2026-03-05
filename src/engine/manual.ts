@@ -7,13 +7,7 @@
  * @module engine/manual
  */
 import { ISemantics } from "../types/computation";
-import {
-  IData2D,
-  IData2DFn,
-  IData3D,
-  IData3DFn,
-  IDataPoint,
-} from "../types/graph";
+import { ISampleFn, IDataPoint, IDataValues } from "../types/graph";
 import { ICollectedStep, IStepInput, IView } from "../types/step";
 import { IValue, IVariable } from "../types/variable";
 import { latex } from "../util/step-label-format";
@@ -27,7 +21,7 @@ export type IStepFn = (input: IStepInput, id?: string) => void;
 /**
  * Result from engine execution including variable values and graph dataPoints.
  * @property {Record<string, IValue>} values - Computed variable values after execution
- * @property {Map<string, IDataPoint[]>} dataPointMap - dataPoints captured by data2d/data3d calls, keyed by graph ID
+ * @property {Map<string, IDataPoint[]>} dataPointMap - dataPoints captured by sample() calls, keyed by graph ID
  * @property {ICollectedStep[]} stepList - Steps collected during execution via step() calls
  */
 export interface IManualEngineResult {
@@ -101,18 +95,16 @@ function collectResults(
 function executeSemanticFunction(
   semanticFn: ISemantics,
   variables: Record<string, IVariable>,
-  data3dFn: IData3DFn,
-  data2dFn: IData2DFn,
+  sampleFn: ISampleFn,
   stepFn: IStepFn
 ): void {
   // Create proxy that directly mutates variable values
   const vars = createValueProxy(variables);
   // Execute the semantic function with context object
-  // Users destructure what they need: ({ vars, data2d }) => { ... }
+  // Users destructure what they need: ({ vars, sample }) => { ... }
   semanticFn({
     vars,
-    data2d: data2dFn,
-    data3d: data3dFn,
+    sample: sampleFn,
     step: stepFn,
     latex,
   });
@@ -140,7 +132,7 @@ function isSingleView(input: IStepInput): input is IView {
 
 /**
  * Create a step collector function that collects steps during semantics execution.
- * This follows the reactive data collection pattern similar to data2d/data3d.
+ * This follows the reactive data collection pattern similar to sample().
  *
  * @param stepList - The array to collect steps into
  * @returns A step function that can be called from semantics
@@ -192,25 +184,19 @@ export function computeWithManualEngine(
   const dataPointMap = new Map<string, IDataPoint[]>();
   // Collect steps during execution (when enabled)
   const stepList: ICollectedStep[] = [];
-  // Create data3d function for 3D visualization data
-  // Usage: data3d("id", {x, y, z})
-  const data3dFn: IData3DFn = (id: string, values: IData3D) => {
+  // Create sampling function for 2D/3D visualization data
+  // Usage: sample("id", {x, y, z?})
+  const sampleFn: ISampleFn = (id: string, values: IDataValues) => {
     let dataPoints = dataPointMap.get(id);
     if (!dataPoints) {
       dataPoints = [];
       dataPointMap.set(id, dataPoints);
     }
-    dataPoints.push({ x: values.x, y: values.y, z: values.z });
-  };
-  // Create data2d function for 2D visualization data
-  // Usage: data2d("id", {x, y})
-  const data2dFn: IData2DFn = (id: string, values: IData2D) => {
-    let dataPoints = dataPointMap.get(id);
-    if (!dataPoints) {
-      dataPoints = [];
-      dataPointMap.set(id, dataPoints);
+    const dataPoint: IDataPoint = { x: values.x, y: values.y };
+    if (typeof values.z === "number") {
+      dataPoint.z = values.z;
     }
-    dataPoints.push({ x: values.x, y: values.y });
+    dataPoints.push(dataPoint);
   };
   const emptyResult: IManualEngineResult = {
     values: {},
@@ -230,7 +216,12 @@ export function computeWithManualEngine(
     const stepFn: IStepFn = collectSteps
       ? createStepCollector(stepList)
       : () => {};
-    executeSemanticFunction(semanticFn, variables, data3dFn, data2dFn, stepFn);
+    executeSemanticFunction(
+      semanticFn,
+      variables,
+      sampleFn,
+      stepFn
+    );
     return {
       values: collectResults(variables),
       dataPointMap,

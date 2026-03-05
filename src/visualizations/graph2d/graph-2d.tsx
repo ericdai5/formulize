@@ -37,7 +37,7 @@ interface GraphLineData {
 
 // Graph-based point data structure
 interface GraphPointData {
-  dataId: string;
+  sampleId: string;
   name: string;
   point: DataPoint;
   color: string;
@@ -50,8 +50,8 @@ interface GraphPointData {
 }
 
 /**
- * Calculate graph-based visualizations using explicit data2d() calls.
- * Configs declare dataId to match data2d() calls.
+ * Calculate graph-based visualizations using explicit sample() calls.
+ * Configs declare sampleId to match sample() calls.
  */
 function calculateGraphData(
   lines: IGraph2D["lines"],
@@ -63,7 +63,7 @@ function calculateGraphData(
 
   for (const lineConfig of lines ?? []) {
     const {
-      dataId,
+      sampleId,
       name,
       showInLegend = true,
       parameter,
@@ -72,7 +72,7 @@ function calculateGraphData(
       color = "#3b82f6",
       lineWidth = 2,
     } = lineConfig;
-    const displayName = name || dataId;
+    const displayName = name || sampleId;
 
     // Get range from config or from parameter variable's range
     let sampleRange = range;
@@ -86,7 +86,7 @@ function calculateGraphData(
       parameter,
       sampleRange,
       samples,
-      dataId
+      sampleId
     );
 
     if (sampledPoints.length > 0) {
@@ -102,7 +102,7 @@ function calculateGraphData(
 
   for (const pointConfig of points ?? []) {
     const {
-      dataId,
+      sampleId,
       name,
       showInLegend = true,
       color = "#ef4444",
@@ -112,13 +112,13 @@ function calculateGraphData(
       stepId,
       persistence,
     } = pointConfig;
-    const displayName = name || dataId;
+    const displayName = name || sampleId;
 
     // Run once with current values to get the current point
-    const point = computationStore.sample2DPoint(dataId);
+    const point = computationStore.sample2DPoint(sampleId);
     if (point) {
       pointResults.push({
-        dataId,
+        sampleId,
         name: displayName,
         point,
         color,
@@ -357,8 +357,8 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // Has stepId and in stepping mode - collect accumulated points from dataPointMap
           const steps = computationStore.steps;
           const currentStepIndex = computationStore.currentStepIndex;
-          const dataId = pointData.dataId;
-          const allPoints = (computationStore.stepDataPointMap.get(dataId) ??
+          const sampleId = pointData.sampleId;
+          const allPoints = (computationStore.stepDataPointMap.get(sampleId) ??
             []) as unknown as DataPoint[];
 
           // Count how many steps with matching stepId are in range [0, currentStepIndex]
@@ -473,7 +473,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               range,
               samples = 100,
               parameter: lineParam,
-              dataId: lineGraphId,
+              sampleId: lineGraphId,
             } = config;
             let sampleRange = range;
             if (!sampleRange) {
@@ -508,7 +508,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             const focusedLineConfig = lineConfigs[focusState.index];
             if (focusedLineConfig) {
               focusedPointIndex = pointConfigs.findIndex(
-                (p) => p.dataId === focusedLineConfig.dataId
+                (p) => p.sampleId === focusedLineConfig.sampleId
               );
               if (focusedPointIndex < 0) focusedPointIndex = null;
             }
@@ -517,7 +517,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           // Update ALL points (since shared variables may affect multiple points)
           pointConfigs.forEach((pointConfig, pointIndex) => {
             // Get cached line points for this point's associated line
-            const linePoints = linePointsCache.get(pointConfig.dataId) || [];
+            const linePoints = linePointsCache.get(pointConfig.sampleId) || [];
             let pointOnCurve: DataPoint | null = null;
             // For the focused point, use dragPointX to find position on curve
             // For other points, just run the graph once to get current position
@@ -539,7 +539,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               pointOnCurve = closestPoint;
             } else {
               // For non-focused points or when not tracking, use current values
-              const point = computationStore.sample2DPoint(pointConfig.dataId);
+              const point = computationStore.sample2DPoint(pointConfig.sampleId);
               if (point) {
                 pointOnCurve = point;
                 // Initialize dragPointX for focused point if needed
@@ -756,7 +756,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               range,
               samples = 100,
               parameter: lineParam,
-              dataId: lineGraphId,
+              sampleId: lineGraphId,
             } = config;
             let sampleRange = range;
             if (!sampleRange) {

@@ -33,15 +33,14 @@ export const gravitationalPotential = `const config = {
       name: "Height"
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.U = vars.m * vars.g * vars.h;
-    data2d("potential", {x: vars.h, y: vars.U});
+    sample("potential", {x: vars.h, y: vars.U});
   },
 
   graph2d: [
     {
       id: "potentialEnergyPlot",
-      title: "Potential Energy vs. Height",
       xAxisLabel: "h",
       xAxisVar: "h",
       xRange: [0, 100],
@@ -50,7 +49,7 @@ export const gravitationalPotential = `const config = {
       yRange: [0, 10000],
       lines: [
         {
-          dataId: "potential",
+          sampleId: "potential",
           parameter: "h",
           range: [0, 100],
           color: "#10b981",
@@ -60,7 +59,7 @@ export const gravitationalPotential = `const config = {
       ],
       points: [
         {
-          dataId: "potential",
+          sampleId: "potential",
           color: "#10b981",
           interaction: ["horizontal-drag", "h"]
         }

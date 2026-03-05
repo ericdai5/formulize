@@ -1294,7 +1294,7 @@ class ComputationStore {
   /**
    * Run semantics function with given variables and extract a 2D point.
    * @param variables - Variable values to use
-   * @param graphId - Graph ID to match data2d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The {x, y} point or null
    */
   private computeAndExtract2D(
@@ -1309,7 +1309,7 @@ class ComputationStore {
   /**
    * Run semantics function with given variables and extract a 3D point.
    * @param variables - Variable values to use
-   * @param graphId - Graph ID to match data3d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The {x, y, z} point or null
    */
   private computeAndExtract3D(
@@ -1360,9 +1360,9 @@ class ComputationStore {
 
   /**
    * Run the semantic function once with current values to get the current 2D point.
-   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   * Reads x, y values from the dataPoints (from explicit sample() calls).
    *
-   * @param graphId - Graph ID to match data2d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The current {x, y} point or null
    */
   sample2DPoint(graphId: string): { x: number; y: number } | null {
@@ -1371,9 +1371,9 @@ class ComputationStore {
 
   /**
    * Run the semantic function once with current values to get the current 3D point.
-   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   * Reads x, y, z values from the dataPoints (from explicit sample() calls).
    *
-   * @param graphId - Graph ID to match graph() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The current {x, y, z} point or null
    */
   sample3DPoint(graphId: string): { x: number; y: number; z: number } | null {
@@ -1382,12 +1382,12 @@ class ComputationStore {
 
   /**
    * Sample the semantic function across a parameter range to collect 2D line data.
-   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   * Reads x, y values from the dataPoints (from explicit sample() calls).
    *
    * @param parameter - The variable to vary during sampling
    * @param range - The range to sample [min, max]
    * @param samples - Number of samples (default 100)
-   * @param graphId - Graph ID to match data2d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns Array of {x, y} points
    */
   sample2DLine(
@@ -1407,12 +1407,12 @@ class ComputationStore {
 
   /**
    * Sample the semantic function across a parameter range to collect 3D line data.
-   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   * Reads x, y, z values from the dataPoints (from explicit sample() calls).
    *
    * @param parameter - The variable to vary during sampling
    * @param range - The range to sample [min, max]
    * @param samples - Number of samples (default 100)
-   * @param graphId - Graph ID to match graph() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns Array of {x, y, z} points
    */
   sample3DLine(
@@ -1432,12 +1432,12 @@ class ComputationStore {
 
   /**
    * Sample the semantic function across a 2D parameter grid to collect surface data.
-   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   * Reads x, y, z values from the dataPoints (from explicit sample() calls).
    *
    * @param parameters - The two variables to vary during sampling [param1, param2]
    * @param ranges - The ranges for each parameter [[min1, max1], [min2, max2]]
    * @param samples - Number of samples per dimension (default 50)
-   * @param graphId - Graph ID to match graph() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns Array of {x, y, z} points
    */
   sampleSurface(

@@ -39,15 +39,14 @@ export const quadratic2D = `const config = {
       name: "Coefficient c"
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
-    data2d("quadratic", {x: vars.x, y: vars.y});
+    sample("quadratic", {x: vars.x, y: vars.y});
   },
 
   graph2d: [
     {
       id: "quadraticPlot",
-      title: "Quadratic Function",
       xAxisLabel: "x",
       xAxisVar: "x",
       yAxisLabel: "y",
@@ -56,14 +55,14 @@ export const quadratic2D = `const config = {
       yRange: [-10, 10],
       lines: [
         {
-          dataId: "quadratic",
+          sampleId: "quadratic",
           parameter: "x",
           interaction: ["vertical-drag", "c"]
         }
       ],
       points: [
         {
-          dataId: "quadratic",
+          sampleId: "quadratic",
           interaction: ["horizontal-drag", "x"]
         }
       ]

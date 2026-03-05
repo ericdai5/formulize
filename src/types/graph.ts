@@ -1,33 +1,23 @@
 /**
- * Types for data2d() and data3d() functions used in manual computation.
+ * Types for sample() functions used in manual computation.
  * Allows imperative collection of visualization data points.
  */
 
 /**
- * A snapshot of coordinate values at the time of a data2d/data3d call.
+ * A snapshot of coordinate values at the time of a sample() call.
  */
 export type IDataPoint = Record<string, number>;
 
 /**
- * 2D coordinate values for data2d() calls.
+ * Coordinate values for sample() calls.
  * @property {number} x - X coordinate value
  * @property {number} y - Y coordinate value
+ * @property {number} z - Optional Z coordinate value
  */
-export interface IData2D {
+export interface IDataValues {
   x: number;
   y: number;
-}
-
-/**
- * 3D coordinate values for data3d() calls.
- * @property {number} x - X coordinate value
- * @property {number} y - Y coordinate value
- * @property {number} z - Z coordinate value
- */
-export interface IData3D {
-  x: number;
-  y: number;
-  z: number;
+  z?: number;
 }
 
 /**
@@ -43,17 +33,10 @@ export interface IData {
 }
 
 /**
- * Function to store 2D data points for visualization.
+ * Function to store visualization data points (2D/3D).
  * @param id - Unique identifier for the graph/visualization
- * @param values - Explicit coordinate values {x, y}
- * @example data2d("curve", {x: vars.x, y: vars.y})
+ * @param values - Explicit coordinate values {x, y, z?}
+ * @example sample("curve", {x: vars.x, y: vars.y})
+ * @example sample("surface", {x: vars.x, y: vars.y, z: vars.z})
  */
-export type IData2DFn = (id: string, values: IData2D) => void;
-
-/**
- * Function to store 3D data points for visualization.
- * @param id - Unique identifier for the graph/visualization
- * @param values - Explicit coordinate values {x, y, z}
- * @example data3d("surface", {x: vars.x, y: vars.y, z: vars.z})
- */
-export type IData3DFn = (id: string, values: IData3D) => void;
+export type ISampleFn = (id: string, values: IDataValues) => void;

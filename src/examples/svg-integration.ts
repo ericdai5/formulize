@@ -94,9 +94,9 @@ export const svgIntegration = `const config = {
       svgMode: "replace"
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.N = vars.N_0 * Math.exp(-vars["\\\\lambda"] * vars.t);
-    data2d("decay", {x: vars.t, y: vars.N});
+    sample("decay", {x: vars.t, y: vars.N});
   },
   graph2d: [
     {
@@ -111,7 +111,7 @@ export const svgIntegration = `const config = {
       yGrid: "show",
       lines: [
         {
-          dataId: "decay",
+          sampleId: "decay",
           parameter: "t",
           color: "#7FFF00",
           interaction: ["vertical-drag", "N_0"]
@@ -119,7 +119,7 @@ export const svgIntegration = `const config = {
       ],
       points: [
         {
-          dataId: "decay",
+          sampleId: "decay",
           color: "#7FFF00",
           interaction: ["horizontal-drag", "t"]
         }

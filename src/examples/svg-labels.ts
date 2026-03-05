@@ -36,9 +36,9 @@ export const svgKineticEnergy2D = `const config = {
       svgSize: { width: 24, height: 24 }
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
-    data2d("energy", {x: vars.v, y: vars.K});
+    sample("energy", {x: vars.v, y: vars.K});
   },
   graph2d: [
     {
@@ -51,14 +51,14 @@ export const svgKineticEnergy2D = `const config = {
       yRange: [0, 5000],
       lines: [
         {
-          dataId: "energy",
+          sampleId: "energy",
           parameter: "v",
           interaction: ["vertical-drag", "m"]
         }
       ],
       points: [
         {
-          dataId: "energy",
+          sampleId: "energy",
           interaction: ["horizontal-drag", "v"]
         }
       ]

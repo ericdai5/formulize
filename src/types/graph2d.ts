@@ -19,20 +19,20 @@ export interface IVector {
 
 /**
  * Base configuration for graph-based 2D visualizations.
- * Uses explicit data2d() calls in manual functions to collect coordinates.
- * @property: dataId - Data ID to match data2d() calls in manual function (required)
+ * Uses explicit sample() calls in manual functions to collect coordinates.
+ * @property: sampleId - Sample ID to match sample() calls in manual function (required)
  * @property: name - Display name for the legend
  * @property: showInLegend - Whether to show in legend
  */
 interface I2DConfigBase {
-  dataId: string;
+  sampleId: string;
   name?: string;
   showInLegend?: boolean;
 }
 
 /**
  * Line graph: samples over a parameter variable to create a 2D line/curve.
- * The manual function must call data2d(dataId, {x, y}) to provide coordinates.
+ * The manual function must call sample(sampleId, {x, y}) to provide coordinates.
  * @property: parameter - The variable to vary during sampling (1 parameter for lines)
  * @property: range - Optional range to sample over the parameter (defaults to the variable's range)
  * @property: samples - Number of samples (default 100)
@@ -51,7 +51,7 @@ export interface I2DLine extends I2DConfigBase {
 
 /**
  * Point graph: shows the current point without sampling (0 parameters).
- * The manual function must call data2d(dataId, {x, y}) to provide coordinates.
+ * The manual function must call sample(sampleId, {x, y}) to provide coordinates.
  * @property color - Marker color
  * @property size - Marker size
  * @property showLabel - Whether to show label
@@ -76,7 +76,6 @@ export type I2DConfig = I2DLine | I2DPoint;
 /**
  * Graph2D configuration.
  * @property id - The id of the graph.
- * @property title - The title of the plot.
  * @property xAxisLabel - The label for the x-axis (cosmetic only, does not affect graphing).
  * @property xAxisVar - The variable to bind to x-axis for hover highlighting (optional)
  * @property xRange - The range of the x-axis.
@@ -90,8 +89,8 @@ export type I2DConfig = I2DLine | I2DPoint;
  * @property yAxisPos - The position of the y-axis.
  * @property yGrid - The grid visibility for the y-axis.
  * @property vectors - The vectors for the plot.
- * @property lines - Line visualizations sampled from data2d() calls.
- * @property points - Point visualizations sampled from data2d() calls.
+ * @property lines - Line visualizations sampled from sample() calls.
+ * @property points - Point visualizations sampled from sample() calls.
  *                    Points with stepId will only appear during stepping when that step is reached.
  * @property width - The width of the plot.
  * @property height - The height of the plot.
@@ -100,7 +99,6 @@ export type I2DConfig = I2DLine | I2DPoint;
  */
 export interface IGraph2D {
   id: string;
-  title?: string;
   xAxisLabel?: string;
   xAxisVar?: string;
   xRange?: [number, number];

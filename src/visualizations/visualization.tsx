@@ -7,24 +7,14 @@ import Plot2D from "./graph2d/graph-2d";
 import Plot3D from "./graph3d/graph-3d";
 
 const PlotWrapper: React.FC<{
-  title?: string;
   renderKey: number;
   className?: string;
   children: React.ReactNode;
-}> = ({ title, renderKey, className = "", children }) => (
+}> = ({ renderKey, className = "", children }) => (
   <div
     className={`w-full h-full p-6 overflow-hidden ${className}`}
     key={`plot-container-${renderKey}`}
   >
-    {title && (
-      <div className="visualization-header mb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-lg font-medium text-gray-800">{title}</h4>
-          </div>
-        </div>
-      </div>
-    )}
     <div className="flex items-center justify-center h-full">{children}</div>
   </div>
 );
@@ -86,14 +76,14 @@ const VisualizationRenderer = ({ id }: VisualizationRendererProps) => {
 
   if (resolvedGraph.type === "graph2d") {
     return (
-      <PlotWrapper title={resolvedGraph.config.title} renderKey={renderKey}>
+      <PlotWrapper renderKey={renderKey}>
         <Plot2D key={`graph2d-${renderKey}`} config={resolvedGraph.config} />
       </PlotWrapper>
     );
   }
 
   return (
-    <PlotWrapper title={resolvedGraph.config.title} renderKey={renderKey}>
+    <PlotWrapper renderKey={renderKey}>
       <Plot3D key={`graph3d-${renderKey}`} config={resolvedGraph.config} />
     </PlotWrapper>
   );

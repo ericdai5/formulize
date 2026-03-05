@@ -76,7 +76,6 @@ export const vectorAddition = `const config = {
   graph2d: [
     {
       id: "vectorPlot",
-      title: "Vector Addition Visualization",
       xRange: [-5, 5],
       yRange: [-5, 5],
       vectors: [

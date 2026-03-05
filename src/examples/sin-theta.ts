@@ -30,9 +30,9 @@ export const sinTheta = `const config = {
       labelDisplay: "value"
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.y = vars.c * Math.sin(vars["\\\\theta"]);
-    data2d("sine", {x: vars["\\\\theta"], y: vars.y});
+    sample("sine", {x: vars["\\\\theta"], y: vars.y});
   },
 
   graph2d: [
@@ -52,14 +52,14 @@ export const sinTheta = `const config = {
       height: 300,
       lines: [
         {
-          dataId: "sine",
+          sampleId: "sine",
           parameter: "\\\\theta",
           interaction: ["vertical-drag", "c"]
         }
       ],
       points: [
         {
-          dataId: "sine",
+          sampleId: "sine",
           interaction: ["horizontal-drag", "\\\\theta"]
         }
       ]

@@ -25,9 +25,9 @@ export const kinetic2D = `const config = {
       name: "Velocity"
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
-    data2d("energy", {x: vars.v, y: vars.K});
+    sample("energy", {x: vars.v, y: vars.K});
   },
   graph2d: [
     {
@@ -36,14 +36,14 @@ export const kinetic2D = `const config = {
       yAxisVar: "K",
       lines: [
         {
-          dataId: "energy",
+          sampleId: "energy",
           parameter: "v", 
           interaction: ["vertical-drag", "m"]
         }
       ],
       points: [
         {
-          dataId: "energy",
+          sampleId: "energy",
           interaction: ["horizontal-drag", "v"]
         }
       ]

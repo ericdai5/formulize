@@ -39,21 +39,20 @@ export const quadratic3D = `const config = {
       name: "Coefficient c"
     }
   },
-  semantics: function({ vars, data3d }) {
+  semantics: function({ vars, sample }) {
     vars.y = vars.a * vars.x * vars.x + vars.b * vars.x + vars.c;
-    data3d("quadratic", {x: vars.x, y: vars.c, z: vars.y});
+    sample("quadratic", {x: vars.x, y: vars.c, z: vars.y});
   },
 
   graph3d: [
     {
       id: "quadratic3DSurface",
-      title: "3D Quadratic Surface: y = ax² + bx + c",
       xRange: [-5, 5],
       yRange: [-5, 5],
       zRange: [-20, 40],
       surfaces: [
         {
-          dataId: "quadratic",
+          sampleId: "quadratic",
           name: "Quadratic Surface",
           parameters: ["x", "c"],
         }
@@ -61,7 +60,7 @@ export const quadratic3D = `const config = {
       points: [
         {
           name: "Current Point",
-          dataId: "quadratic",
+          sampleId: "quadratic",
         }
       ]
     }

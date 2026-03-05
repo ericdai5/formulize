@@ -1,6 +1,5 @@
 export interface IGraph3D {
   id: string;
-  title?: string;
   xAxis?: string;
   xRange?: [number, number];
   yAxis?: string;
@@ -12,7 +11,7 @@ export interface IGraph3D {
   plotType?: "scatter" | "surface" | "line" | "mesh";
   showCurrentPointInLegend?: boolean;
   /**
-   * Graph-based visualizations using data collected by graph() calls in manual functions.
+   * Graph-based visualizations using data collected by sample() calls in manual functions.
    */
   lines?: I3DLine[];
   points?: I3DPoint[];
@@ -21,13 +20,13 @@ export interface IGraph3D {
 
 /**
  * Base configuration for graph-based visualizations.
- * All graphs read x, y, z values from explicit graph() calls: graph("dataId", {x, y, z})
- * @property: dataId - Graph data ID to match graph() calls in manual function.
+ * All graphs read x, y, z values from explicit sample() calls: sample("sampleId", {x, y, z})
+ * @property: sampleId - Graph sample ID to match sample() calls in manual function.
  * @property: name - Display name for the legend
  * @property: showInLegend - Whether to show in legend
  */
 interface IGraphBase {
-  dataId: string;
+  sampleId: string;
   name?: string;
   showInLegend?: boolean;
 }

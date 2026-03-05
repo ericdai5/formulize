@@ -63,7 +63,6 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
     // Parse configuration options with defaults
     const {
-      title = "",
       xAxis = "x",
       xRange = [0, 10],
       yAxis = "y",
@@ -93,7 +92,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
       [computationStore]
     );
 
-    // Calculate all graph-based visualizations using the graph() collection mechanism
+    // Calculate all graph-based visualizations using the sample() collection mechanism
     const calculateGraphData = useCallback(() => {
       const lineResults: LineData[] = [];
       const pointResults: PointData[] = [];
@@ -101,7 +100,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
       for (const lineConfig of lines ?? []) {
         const {
-          dataId,
+          sampleId,
           name,
           showInLegend = true,
           parameter,
@@ -110,7 +109,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
           color = "blue",
           width = 4,
         } = lineConfig;
-        const displayName = name || dataId;
+        const displayName = name || sampleId;
         // Get range from config or from parameter variable's range
         let sampleRange = range;
         if (!sampleRange) {
@@ -122,7 +121,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
           parameter,
           sampleRange,
           samples,
-          dataId
+          sampleId
         );
         if (sampledPoints.length > 0) {
           lineResults.push({
@@ -137,7 +136,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
       for (const surfaceConfig of surfaces ?? []) {
         const {
-          dataId,
+          sampleId,
           name,
           showInLegend = true,
           parameters,
@@ -147,7 +146,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
           opacity = 0.8,
           showColorbar = false,
         } = surfaceConfig;
-        const displayName = name || dataId;
+        const displayName = name || sampleId;
 
         // Get ranges from config or from parameter variables' ranges
         let sampleRanges = ranges;
@@ -164,11 +163,11 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
           parameters,
           sampleRanges,
           samples,
-          dataId
+          sampleId
         );
         if (sampledPoints.length > 0) {
           surfaceResults.push({
-            id: dataId,
+            id: sampleId,
             name: displayName,
             points: sampledPoints,
             samples, // Include sample count for grid reshaping
@@ -182,14 +181,14 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
       for (const pointConfig of points ?? []) {
         const {
-          dataId,
+          sampleId,
           name,
           showInLegend = true,
           color = "red",
           size = 8,
         } = pointConfig;
-        const displayName = name || dataId;
-        const point = computationStore.sample3DPoint(dataId);
+        const displayName = name || sampleId;
+        const point = computationStore.sample3DPoint(sampleId);
         if (point) {
           pointResults.push({
             name: displayName,
@@ -440,7 +439,6 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
       // Layout configuration
       const layout = {
-        title: title || "3D Visualization",
         uirevision: "persistent", // This key setting preserves user interactions like camera angle
         autosize: true, // Let Plotly automatically size to container
         scene: {
@@ -558,7 +556,6 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
       graphSurfacesData,
       graphPointsData,
       currentPoint,
-      title,
       isPlotInitialized,
       showCurrentPointInLegend,
       getVariableLabel,
