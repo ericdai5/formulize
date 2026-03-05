@@ -325,6 +325,7 @@ export const processVariableElementsForLabels = (
     width: DEFAULT_DIMENSIONS.formulaWidth,
     height: DEFAULT_DIMENSIONS.formulaHeight,
   });
+  const variableNodes = getVariableNodes(currentNodes);
   const allFormulasVars = activeVariables.get("");
   const thisFormulaVars = activeVariables.get(id);
 
@@ -367,7 +368,7 @@ export const processVariableElementsForLabels = (
     }
 
     const variableNode = findVariableNodeForFormula(
-      currentNodes,
+      variableNodes,
       formulaNode.id,
       cssId
     );
@@ -604,7 +605,10 @@ const findVariableNodeForFormula = (
   varId: string
 ): Node | undefined => {
   return nodes.find(
-    (node) => node.parentId === formulaNodeId && node.data.varId === varId
+    (node) =>
+      node.type === NODE_TYPES.VARIABLE &&
+      node.parentId === formulaNodeId &&
+      node.data.varId === varId
   );
 };
 

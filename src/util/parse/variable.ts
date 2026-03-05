@@ -35,6 +35,8 @@ interface NestedVariableConfig {
   computationStore: ComputationStore;
   /** Active variables map (required) */
   activeVariables: Map<string, Set<string>>;
+  /** Default precision for numeric display (required) */
+  defaultPrecision: number;
   /** Variable currently being rendered; skip matching it at the root node */
   rootVariableId?: string;
 }
@@ -50,7 +52,8 @@ const processNestedVariable = (
   node: AugmentedFormulaNode,
   config: NestedVariableConfig
 ): string => {
-  const { computationStore, activeVariables, rootVariableId } = config;
+  const { computationStore, activeVariables, defaultPrecision, rootVariableId } =
+    config;
 
   const processNode = (
     node: AugmentedFormulaNode,
@@ -67,7 +70,8 @@ const processNestedVariable = (
         return renderNestedVariable(
           symbol.value,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
       return symbol.value;
@@ -86,7 +90,8 @@ const processNestedVariable = (
         return renderNestedVariable(
           accentLatex,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
       // Otherwise, process the base recursively
@@ -113,7 +118,8 @@ const processNestedVariable = (
         return renderNestedVariable(
           groupLatex,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
       if (
@@ -123,7 +129,8 @@ const processNestedVariable = (
         return renderNestedVariable(
           groupLatexNoSpaces,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
       // Otherwise, process children recursively
@@ -144,10 +151,11 @@ const processNestedVariable = (
 const renderNestedVariable = (
   symbolValue: string,
   computationStore: ComputationStore,
-  activeVariables: Map<string, Set<string>>
+  activeVariables: Map<string, Set<string>>,
+  defaultPrecision: number
 ): string => {
   let value: number | undefined = undefined;
-  let variablePrecision = INPUT_VARIABLE_DEFAULT.PRECISION;
+  let variablePrecision = defaultPrecision;
   let variableSignificantDigits: number | undefined;
   let latexDisplay: "name" | "value" = "name";
   let isDraggable = false;
@@ -156,7 +164,7 @@ const renderNestedVariable = (
   if (variable) {
     const displayValue = computationStore.getDisplayValue(symbolValue);
     value = typeof displayValue === "number" ? displayValue : undefined;
-    variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+    variablePrecision = variable.precision ?? defaultPrecision;
     variableSignificantDigits = variable.sigFigs;
     latexDisplay = variable.latexDisplay ?? "name";
     isDraggable = variable.input === "drag" || variable.input === "inline";
@@ -473,8 +481,7 @@ export const processVariables = (
           value = typeof displayValue === "number" ? displayValue : undefined;
           isDraggable = variable.input === "drag";
           // Use the variable's precision if defined, otherwise use default
-          variablePrecision =
-            variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+          variablePrecision = variable.precision ?? defaultPrecision;
           variableSignificantDigits = variable.sigFigs;
           // Use the variable's display property if defined, otherwise default to "name"
           display = variable.latexDisplay ?? "name";
@@ -494,6 +501,7 @@ export const processVariables = (
       const processedBody = processNestedVariable(variableNode.body, {
         computationStore,
         activeVariables,
+        defaultPrecision,
         rootVariableId: originalSymbol,
       });
       // Use the original symbol as the CSS ID
