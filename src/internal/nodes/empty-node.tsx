@@ -1,19 +1,15 @@
-import { useMemo } from "react";
+import type { ComponentType } from "react";
 
 import { observer } from "mobx-react-lite";
 
 import { GripHorizontal, GripVertical } from "lucide-react";
 
 type EmptyNodeData = {
-  component?: any;
+  component?: ComponentType;
 };
 
 const EmptyNode = observer(({ data }: { data?: EmptyNodeData }) => {
   const WrappedComponent = data?.component;
-  const ObservedWrappedComponent = useMemo(() => {
-    if (!WrappedComponent) return null;
-    return observer(WrappedComponent);
-  }, [WrappedComponent]);
 
   return (
     <div className="visualization-node border border-slate-200 rounded-3xl p-2 min-w-[400px] relative group bg-white">
@@ -30,7 +26,7 @@ const EmptyNode = observer(({ data }: { data?: EmptyNodeData }) => {
         <GripVertical size={14} className="text-slate-400" />
       </div>
       <div className="nodrag rounded-2xl">
-        {ObservedWrappedComponent ? <ObservedWrappedComponent /> : null}
+        {WrappedComponent ? <WrappedComponent /> : null}
       </div>
     </div>
   );
