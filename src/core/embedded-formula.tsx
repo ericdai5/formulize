@@ -8,7 +8,10 @@ import {
   getInputVariableState,
   processLatexContent,
 } from "../util/parse/variable";
-import { updateVariableHoverState } from "../util/scale-wrapper";
+import {
+  setupScaleWrappers,
+  updateVariableHoverState,
+} from "../util/scale-wrapper";
 import { useMathJax } from "../util/use-mathjax";
 import { useStore } from "./hooks";
 
@@ -218,6 +221,13 @@ const EmbeddedFormulaInner = observer(
         container.appendChild(mathSpan);
         await window.MathJax.typesetPromise([container]);
 
+        // Wrap interactive variables so hover scaling happens outside MathJax layout.
+        setupScaleWrappers(
+          container,
+          ".var-input, .var-base",
+          computationStore.highlightedVarIds
+        );
+
         // After rendering, attach hover and drag event listeners to variable elements
         attachVariableInteractionListeners(container);
       } catch (error) {
@@ -311,7 +321,7 @@ const EmbeddedFormulaInner = observer(
         if (!allowPinning) return;
         // Don't toggle if clicking on a variable (they have their own input handlers)
         const target = e.target as HTMLElement;
-        if (target.closest(".var-input, .var-base")) {
+        if (target.closest(".var-scale-wrapper, .var-input, .var-base")) {
           return;
         }
         if (abbreviation) {

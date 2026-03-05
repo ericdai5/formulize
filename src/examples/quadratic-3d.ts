@@ -44,9 +44,8 @@ export const quadratic3D = `const config = {
     data3d("quadratic", {x: vars.x, y: vars.c, z: vars.y});
   },
 
-  visualizations: [
+  graph3d: [
     {
-      type: "plot3d",
       id: "quadratic3DSurface",
       title: "3D Quadratic Surface: y = ax² + bx + c",
       xRange: [-5, 5],

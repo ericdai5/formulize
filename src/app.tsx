@@ -3,11 +3,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { examples } from "./examples";
 import APIPage from "./api";
 // import EditorPage from "./pages/editor/EditorPage";
-// Auto-register built-in custom components for live app
-import { registerBuiltInComponents } from "./visualizations/custom/components";
-
-// Ensure registration happens for production builds
-registerBuiltInComponents();
 
 // Get all example keys for routing
 const exampleKeys = Object.keys(examples) as (keyof typeof examples)[];

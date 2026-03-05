@@ -38,9 +38,8 @@ export const gravitationalPotential = `const config = {
     data2d("potential", {x: vars.h, y: vars.U});
   },
 
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
       id: "potentialEnergyPlot",
       title: "Potential Energy vs. Height",
       xAxisLabel: "h",

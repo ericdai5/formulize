@@ -43,7 +43,7 @@ export interface IStep {
 
 /**
  * A collected step from reactive data collection during semantics execution.
- * Used by the new reactive step system (similar to plot2d/plot3d pattern).
+ * Used by the new reactive step system (similar to graph2d/graph3d pattern).
  * @property index - Execution order (0, 1, 2...)
  * @property id - Optional step identifier (from second parameter of step() call)
  * @property description - The description text to display

@@ -40,9 +40,9 @@ export const svgKineticEnergy2D = `const config = {
     vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
     data2d("energy", {x: vars.v, y: vars.K});
   },
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
+      id: "energySvgGraph",
       xAxisLabel: "v",
       xAxisVar: "v",
       xRange: [0, 100],

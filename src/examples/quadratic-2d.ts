@@ -44,9 +44,8 @@ export const quadratic2D = `const config = {
     data2d("quadratic", {x: vars.x, y: vars.y});
   },
 
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
       id: "quadraticPlot",
       title: "Quadratic Function",
       xAxisLabel: "x",

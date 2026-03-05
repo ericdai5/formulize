@@ -3,7 +3,7 @@ import { runInAction } from "mobx";
 import * as d3 from "d3";
 
 import { ComputationStore } from "../../store/computation";
-import { IVector } from "../../types/plot2d";
+import { IVector } from "../../types/graph2d";
 import { getVariableValue } from "../../util/computation-helpers";
 import { VECTOR_DEFAULTS } from "./defaults";
 import { createArrowMarker, getMarkerUrl, renderPointMarkers } from "./markers";

@@ -103,9 +103,14 @@ const environmentCompletions: CompletionOption[] = [
     info: "Semantics configuration (ISemantics)",
   },
   {
-    label: "visualizations",
+    label: "graph2d",
     type: "property",
-    info: "Visualizations array (IVisualization[], optional)",
+    info: "2D graph config (array of graph2d configs, optional)",
+  },
+  {
+    label: "graph3d",
+    type: "property",
+    info: "3D graph config (array of graph3d configs, optional)",
   },
   {
     label: "controls",

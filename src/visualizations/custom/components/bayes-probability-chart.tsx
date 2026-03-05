@@ -1,13 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import * as d3 from "d3";
 
-import { IContext } from "../../../types/custom";
-import { register } from "../registry";
-
-interface BayesProbabilityChartProps {
-  context: IContext;
-}
+import { Custom } from "../../../core/custom";
 
 interface Ball {
   id: number;
@@ -54,9 +49,53 @@ const COLORS = {
   gray: "#CCCCCC",
 };
 
-const BayesProbabilityChart: React.FC<BayesProbabilityChartProps> = ({
-  context,
-}) => {
+type CountStatKey = keyof Omit<Statistics, "total">;
+
+const COUNT_STAT_ITEMS: Array<{
+  key: CountStatKey;
+  label: string;
+  color: string;
+}> = [
+  { key: "redOnly", label: "count(A ∩ ¬B):", color: COLORS.red },
+  { key: "blueOnly", label: "count(B ∩ ¬A):", color: COLORS.blue },
+  { key: "both", label: "count(A ∩ B):", color: COLORS.purple },
+  { key: "neither", label: "count(¬A ∩ ¬B):", color: COLORS.gray },
+];
+
+function CountStatCard({
+  label,
+  color,
+  value,
+}: {
+  label: string;
+  color: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+      <div className="w-4 h-4 rounded" style={{ backgroundColor: color }} />
+      <span className="font-medium">{label}</span>
+      <span className="font-mono text-lg text-gray-700 ml-auto">{value}</span>
+    </div>
+  );
+}
+
+function CountsDisplay({ stats }: { stats: Statistics }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 text-sm">
+      {COUNT_STAT_ITEMS.map((item) => (
+        <CountStatCard
+          key={item.key}
+          label={item.label}
+          color={item.color}
+          value={stats[item.key]}
+        />
+      ))}
+    </div>
+  );
+}
+
+const BayesProbabilityChart = Custom(({ vars }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const animationRef = useRef<number>();
   const ballIdRef = useRef(0);
@@ -74,14 +113,14 @@ const BayesProbabilityChart: React.FC<BayesProbabilityChartProps> = ({
 
   // Get probabilities from context variables
   const getContextProbabilities = () => {
-    const pA = context.getVariable("P(A)");
-    const pB = context.getVariable("P(B)");
-    const pAandB = context.getVariable("P(A \\cap B)");
-    const pBGivenA = context.getVariable("P(B \\mid A)");
-    const pAGivenB = context.getVariable("P(A \\mid B)");
-    const pAandNotB = context.getVariable("P(A \\cap \\neg B)");
-    const pBandNotA = context.getVariable("P(B \\cap \\neg A)");
-    const pNotAandNotB = context.getVariable("P(\\\\neg A \\\\cap \\\\neg B)");
+    const pA = vars["P(A)"];
+    const pB = vars["P(B)"];
+    const pAandB = vars["P(A \\cap B)"];
+    const pBGivenA = vars["P(B \\mid A)"];
+    const pAGivenB = vars["P(A \\mid B)"];
+    const pAandNotB = vars["P(A \\cap \\neg B)"];
+    const pBandNotA = vars["P(B \\cap \\neg A)"];
+    const pNotAandNotB = vars["P(\\\\neg A \\\\cap \\\\neg B)"];
     return {
       pA,
       pB,
@@ -549,54 +588,10 @@ const BayesProbabilityChart: React.FC<BayesProbabilityChartProps> = ({
 
       {/* Counts Display */}
       <div className="bg-white p-4 rounded-lg border">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-            <div
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: COLORS.red }}
-            />
-            <span className="font-medium">count(A ∩ ¬B):</span>
-            <span className="font-mono text-lg text-gray-700 ml-auto">
-              {stats.redOnly}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-            <div
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: COLORS.blue }}
-            />
-            <span className="font-medium">count(B ∩ ¬A):</span>
-            <span className="font-mono text-lg text-gray-700 ml-auto">
-              {stats.blueOnly}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-            <div
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: COLORS.purple }}
-            />
-            <span className="font-medium">count(A ∩ B):</span>
-            <span className="font-mono text-lg text-gray-700 ml-auto">
-              {stats.both}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-            <div
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: COLORS.gray }}
-            />
-            <span className="font-medium">count(¬A ∩ ¬B):</span>
-            <span className="font-mono text-lg text-gray-700 ml-auto">
-              {stats.neither}
-            </span>
-          </div>
-        </div>
+        <CountsDisplay stats={stats} />
       </div>
     </div>
   );
-};
-
-// Self-register this component when the module is imported
-register("BayesProbabilityChart", BayesProbabilityChart);
+});
 
 export default BayesProbabilityChart;

@@ -65,9 +65,8 @@ export const parameterizedPlane = `const config = {
       orientation: "horizontal"
     }
   ],
-  visualizations: [
+  graph3d: [
     {
-      type: "plot3d",
       id: "parameterizedPlane3D",
       title: "Parameterized Plane: x + y + z = 1",
       xRange: [-15, 15],

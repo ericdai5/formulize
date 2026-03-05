@@ -243,8 +243,7 @@ const InlineFormulaInner = observer(
           if (!containerRef.current) return;
           updateVariableHoverState(
             containerRef.current,
-            highlightedVarIds,
-            true
+            highlightedVarIds
           );
         }
       );

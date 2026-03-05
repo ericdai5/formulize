@@ -65,9 +65,9 @@ const config = {
     vars.w = vars.A * Math.sin(2 * Math.PI * vars.f * vars.t + vars.phi);
     data2d("wave", {x: vars.t, y: vars.w});
   },
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
+      id: "waveGraph",
       xAxisLabel: "t",
       xAxisVar: "t",
       xRange: [0, 10],

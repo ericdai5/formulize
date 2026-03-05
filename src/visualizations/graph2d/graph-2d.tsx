@@ -8,9 +8,9 @@ import * as d3 from "d3";
 import { useStore } from "../../core/hooks";
 import { ComputationStore } from "../../store/computation";
 import {
-  type IPlot2D,
+  type IGraph2D,
   type IVector,
-} from "../../types/plot2d";
+} from "../../types/graph2d";
 import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { AxisLabels } from "./axis-labels";
 import { PLOT2D_DEFAULTS } from "./defaults";
@@ -18,7 +18,7 @@ import { calculatePlotDimensions } from "./utils";
 import { getAllVectorVariables, renderVectors } from "./vectors";
 
 interface Plot2DProps {
-  config: IPlot2D;
+  config: IGraph2D;
 }
 
 export interface DataPoint {
@@ -54,8 +54,8 @@ interface GraphPointData {
  * Configs declare dataId to match data2d() calls.
  */
 function calculateGraphData(
-  lines: IPlot2D["lines"],
-  points: IPlot2D["points"],
+  lines: IGraph2D["lines"],
+  points: IGraph2D["points"],
   computationStore: ComputationStore
 ): { lines: GraphLineData[]; points: GraphPointData[] } {
   const lineResults: GraphLineData[] = [];

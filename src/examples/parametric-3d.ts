@@ -60,9 +60,8 @@ export const parametric3D = `const config = {
     vars.z = vars.t;
     data3d("line", {x: vars.x, y: vars.y, z: vars.z});
   },
-  visualizations: [
+  graph3d: [
     {
-      type: "plot3d",
       id: "parametricPlane3D",
       title: "3D Parametric Line on Intersecting Planes",
       xRange: [-5, 5],

@@ -2,13 +2,14 @@ import { NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import ControlNode from "./control-node";
+import EmptyNode from "./empty-node";
 import ExpressionNode from "./expression-node";
 import FormulaNode from "./formula-node";
+import GraphNode from "./graph-node";
 import LabelNode from "./label-node";
 import { StepControlNode } from "./node-wrapper";
 import StepNode from "./step-node";
 import VariableNode from "./variable-node";
-import VisualizationNode from "./visualization-node";
 
 // Define custom node types
 export const nodeTypes: NodeTypes = {
@@ -20,5 +21,6 @@ export const nodeTypes: NodeTypes = {
   label: LabelNode,
   step: StepNode,
   expression: ExpressionNode,
-  visualization: VisualizationNode,
+  graph: GraphNode,
+  emptyNode: EmptyNode,
 };

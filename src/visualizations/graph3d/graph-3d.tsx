@@ -6,19 +6,18 @@ import { observer } from "mobx-react-lite";
 // Import Plotly as any to avoid type issues since @types/plotly.js-dist might not be available
 import * as Plotly from "plotly.js-dist";
 
-import { IPlot3D } from "../..";
 import { useStore } from "../../core/hooks";
 import { ComputationStore } from "../../store/computation";
-import { IPoint3D } from "../../types/plot3d";
+import { IGraph3D, IPoint3D } from "../../types/graph3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
 import { resolveColor, resolveLineColor } from "./color";
 
 interface Plot3DProps {
-  config: IPlot3D;
+  config: IGraph3D;
 }
 
 interface Plot3DInnerProps {
-  config: IPlot3D;
+  config: IGraph3D;
   computationStore: ComputationStore;
 }
 

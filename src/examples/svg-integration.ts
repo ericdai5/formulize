@@ -98,9 +98,9 @@ export const svgIntegration = `const config = {
     vars.N = vars.N_0 * Math.exp(-vars["\\\\lambda"] * vars.t);
     data2d("decay", {x: vars.t, y: vars.N});
   },
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
+      id: "decayGraph",
       xAxisLabel: "t",
       xAxisVar: "t",
       xRange: [0, 50],

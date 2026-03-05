@@ -19,9 +19,9 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { ComputationStore } from "../store/computation";
+import { debugStore } from "../store/debug";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
-import { IVisualization } from "../types/visualization";
 import { computeLabelVariableEdges } from "../util/canvas/edges";
 import {
   addLabelNodes as addLabelNodesUtil,
@@ -41,12 +41,16 @@ import {
 } from "../util/canvas/variable-nodes";
 import { CanvasControls } from "./canvas-controls";
 import { nodeTypes as defaultNodeTypes } from "./nodes/node";
+import BayesProbabilityChart from "../visualizations/custom/components/bayes-probability-chart";
 
 interface CanvasProps {
   controls?: IControls[];
   environment?: IEnvironment;
   computationStore: ComputationStore;
 }
+
+const BAYES_EXAMPLE_ID = "bayesWithCustomVisualization";
+const BAYES_FORMULA_ID = "bayes-theorem";
 
 const CanvasFlow = observer(
   ({ controls, environment, computationStore }: CanvasProps) => {
@@ -80,6 +84,7 @@ const CanvasFlow = observer(
     // Initialize React Flow state first
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+    const selectedTemplate = debugStore.selectedTemplate;
 
     /**
      * Check if a label node should be visible based on the same logic as LabelNode component
@@ -187,29 +192,54 @@ const CanvasFlow = observer(
         currentY += 200; // Vertical spacing between formula nodes
       });
 
-      // Add visualization nodes if they exist in the environment
-      if (
-        environment?.visualizations &&
-        environment.visualizations.length > 0
-      ) {
-        let vizY = 0; // Start visualizations at the same Y as formulas
-        environment.visualizations.forEach(
-          (visualization: IVisualization, index: number) => {
-            nodes.push({
-              id: `visualization-${index}`,
-              type: "visualization",
-              position: { x: 800, y: vizY }, // Position to the right of formulas
-              data: { visualization, environment },
-              draggable: true,
-              dragHandle: ".visualization-drag-handle",
-            });
-            vizY += 300; // Vertical spacing between visualization nodes (larger spacing)
-          }
-        );
+      const graph2D = environment?.graph2d ?? [];
+      const graph3D = environment?.graph3d ?? [];
+      const hasGraphNodes = graph2D.length > 0 || graph3D.length > 0;
+      let vizY = 0; // Start visualizations at the same Y as formulas
+
+      if (hasGraphNodes) {
+        graph2D.forEach((plot) => {
+          nodes.push({
+            id: `graph-node-2d-${plot.id}`,
+            type: "graph",
+            position: { x: 800, y: vizY },
+            data: { graphId: plot.id },
+            draggable: true,
+            dragHandle: ".visualization-drag-handle",
+          });
+          vizY += 300;
+        });
+        graph3D.forEach((plot) => {
+          nodes.push({
+            id: `graph-node-3d-${plot.id}`,
+            type: "graph",
+            position: { x: 800, y: vizY },
+            data: { graphId: plot.id },
+            draggable: true,
+            dragHandle: ".visualization-drag-handle",
+          });
+          vizY += 300;
+        });
+      }
+
+      const isBayesExampleSelected = selectedTemplate === BAYES_EXAMPLE_ID;
+      const hasBayesFormula = computationStore.formulas.some(
+        (formula) => formula.id === BAYES_FORMULA_ID
+      );
+
+      if (isBayesExampleSelected || hasBayesFormula) {
+        nodes.push({
+          id: "bayes-chart",
+          type: "emptyNode",
+          position: { x: 800, y: vizY },
+          data: { component: BayesProbabilityChart },
+          draggable: true,
+          dragHandle: ".empty-node-drag-handle",
+        });
       }
 
       return nodes;
-    }, [getFormula, controls, environment]);
+    }, [getFormula, controls, environment, computationStore, selectedTemplate]);
 
     // Function to add step nodes for variables with step descriptions
     const addstepNodes = useCallback(() => {

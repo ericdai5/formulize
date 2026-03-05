@@ -74,9 +74,8 @@ export interface I2DPoint extends I2DConfigBase {
 export type I2DConfig = I2DLine | I2DPoint;
 
 /**
- * Plot2D visualization configuration.
- * @property type - The type of the plot.
- * @property id - The id of the plot.
+ * Graph2D configuration.
+ * @property id - The id of the graph.
  * @property title - The title of the plot.
  * @property xAxisLabel - The label for the x-axis (cosmetic only, does not affect graphing).
  * @property xAxisVar - The variable to bind to x-axis for hover highlighting (optional)
@@ -99,9 +98,8 @@ export type I2DConfig = I2DLine | I2DPoint;
  * @property tickFontSize - The font size of the ticks.
  * @property interaction - The interaction of the plot.
  */
-export interface IPlot2D {
-  type: "plot2d";
-  id?: string;
+export interface IGraph2D {
+  id: string;
   title?: string;
   xAxisLabel?: string;
   xAxisVar?: string;

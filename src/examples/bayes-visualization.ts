@@ -84,18 +84,5 @@ export const bayesWithCustomVisualization = `const config = {
       vars["P(B \\\\cap \\\\neg A)"] = vars["P(B)"] - clampedJoint;
       vars["P(\\\\neg A \\\\cap \\\\neg B)"] = 1 - vars["P(A)"] - vars["P(B)"] + clampedJoint;
     },
-    visualizations: [
-      {
-        type: "custom",
-        id: "bayes-visualization",
-        title: "Interactive Probability Visualization",
-        width: 600,
-        height: 400,
-        component: "BayesProbabilityChart",
-        update: {
-          onVariableChange: true
-        }
-      }
-    ],
     fontSize: 1.5
   };`;

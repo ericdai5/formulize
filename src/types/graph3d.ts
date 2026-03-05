@@ -1,6 +1,5 @@
-export interface IPlot3D {
-  type: "plot3d";
-  id?: string;
+export interface IGraph3D {
+  id: string;
   title?: string;
   xAxis?: string;
   xRange?: [number, number];

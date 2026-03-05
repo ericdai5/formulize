@@ -29,15 +29,11 @@ export const kinetic2D = `const config = {
     vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
     data2d("energy", {x: vars.v, y: vars.K});
   },
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
-      xAxisLabel: "v (m/s)",
+      id: "energyGraph",
       xAxisVar: "v",
-      yAxisLabel: "K (J)",
       yAxisVar: "K",
-      xRange: [0, 100],
-      yRange: [0, 5000],
       lines: [
         {
           dataId: "energy",

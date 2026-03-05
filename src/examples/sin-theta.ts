@@ -35,9 +35,9 @@ export const sinTheta = `const config = {
     data2d("sine", {x: vars["\\\\theta"], y: vars.y});
   },
 
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
+      id: "sineGraph",
       xAxisLabel: "\\\\theta",
       xAxisVar: "\\\\theta",
       xRange: [0, 13],

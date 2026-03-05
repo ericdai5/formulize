@@ -73,9 +73,8 @@ export const vectorAddition = `const config = {
   },
   fontSize: 1.5,
   
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
       id: "vectorPlot",
       title: "Vector Addition Visualization",
       xRange: [-5, 5],

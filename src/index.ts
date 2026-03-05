@@ -15,7 +15,8 @@ export {
   Formula,
   InlineFormula,
   InlineVariable,
-  VisualizationComponent,
+  Custom,
+  Graph,
   Provider,
   EmbeddedFormula,
   StepControl,
@@ -26,21 +27,6 @@ export { useStore } from "./core/hooks";
 // Export computation API - factory function and type for scoped stores
 // Step functionality is now integrated into ComputationStore
 export { createComputationStore, ComputationStore } from "./store/computation";
-
-// Export custom visualization registration functions
-export {
-  register,
-  unRegister,
-  getAllRegistered,
-  getRegistered,
-  isRegistered,
-} from "./visualizations/custom/registry";
-
-// Export built-in custom visualizations
-export {
-  BayesProbabilityChart,
-  registerBuiltInComponents,
-} from "./visualizations/custom/components";
 
 // Export general programmatic generation utilities
 export {
@@ -66,11 +52,11 @@ export type {
 } from "./types/variable";
 export type { IVisualization } from "./types/visualization";
 export type {
-  IPlot2D,
+  IGraph2D,
   I2DConfig,
   I2DLine,
   I2DPoint,
-} from "./types/plot2d";
+} from "./types/graph2d";
 export type {
   ICollectedStep,
   IView,
@@ -78,6 +64,5 @@ export type {
   IStepLabels,
   IStepLabelValue,
 } from "./types/step";
-export type { IPlot3D } from "./types/plot3d";
-export type { ICustom, IContext } from "./types/custom";
+export type { IGraph3D } from "./types/graph3d";
 export type { IControls } from "./types/control";

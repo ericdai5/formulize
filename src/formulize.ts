@@ -12,9 +12,19 @@ import { normalizeVariables } from "./util/normalize-variables";
 /**
  * User-facing configuration type.
  */
-export type Config = Omit<IEnvironment, "formulas"> & {
+export interface Config {
   formulas?: IFormula[];
-};
+  variables?: IEnvironment["variables"];
+  semantics?: IEnvironment["semantics"];
+  graph2d?: IEnvironment["graph2d"];
+  graph3d?: IEnvironment["graph3d"];
+  controls?: IEnvironment["controls"];
+  stepping?: IEnvironment["stepping"];
+  fontSize?: IEnvironment["fontSize"];
+  labelFontSize?: IEnvironment["labelFontSize"];
+  labelNodeStyle?: IEnvironment["labelNodeStyle"];
+  formulaNodeStyle?: IEnvironment["formulaNodeStyle"];
+}
 
 /**
  * Interface for the object returned by Formulize.create()
@@ -46,6 +56,50 @@ function validateEnvironment(config: Config) {
       "Invalid configuration: formulas must be an array when provided"
     );
   }
+  if (config.graph2d !== undefined && !Array.isArray(config.graph2d)) {
+    throw new Error(
+      "Invalid configuration: graph2d must be an array when provided"
+    );
+  }
+  if (
+    Array.isArray(config.graph2d) &&
+    config.graph2d.some((graph) => !graph?.id || typeof graph.id !== "string")
+  ) {
+    throw new Error(
+      "Invalid configuration: every graph2d entry must include a string id"
+    );
+  }
+  if (config.graph3d !== undefined && !Array.isArray(config.graph3d)) {
+    throw new Error(
+      "Invalid configuration: graph3d must be an array when provided"
+    );
+  }
+  if (
+    Array.isArray(config.graph3d) &&
+    config.graph3d.some((graph) => !graph?.id || typeof graph.id !== "string")
+  ) {
+    throw new Error(
+      "Invalid configuration: every graph3d entry must include a string id"
+    );
+  }
+}
+
+function normalizeGraphs(config: Config): {
+  graph2d?: IEnvironment["graph2d"];
+  graph3d?: IEnvironment["graph3d"];
+} {
+  const normalizedGraph2D = config.graph2d;
+  const normalizedGraph3D = config.graph3d;
+  return {
+    graph2d:
+      normalizedGraph2D && normalizedGraph2D.length > 0
+        ? normalizedGraph2D
+        : undefined,
+    graph3d:
+      normalizedGraph3D && normalizedGraph3D.length > 0
+        ? normalizedGraph3D
+        : undefined,
+  };
 }
 
 /**
@@ -63,12 +117,14 @@ async function initializeInstance(
     // Normalize variables from simplified format to full IVariable objects
     const normalizedVariables = normalizeVariables(config.variables);
     const normalizedFormulas = config.formulas ?? [];
+    const normalizedGraphs = normalizeGraphs(config);
 
     const environment: IEnvironment = {
       formulas: normalizedFormulas,
       variables: normalizedVariables,
       semantics: config.semantics,
-      visualizations: config.visualizations,
+      graph2d: normalizedGraphs.graph2d,
+      graph3d: normalizedGraphs.graph3d,
       controls: config.controls,
       stepping: config.stepping,
       fontSize: config.fontSize,

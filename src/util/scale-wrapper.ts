@@ -87,24 +87,21 @@ export const deactivateScaleWrapper = (element: HTMLElement): void => {
 /**
  * Updates hover state for variable elements in a container.
  * Removes hover from elements no longer highlighted and adds to newly highlighted ones.
- * @param useScaleWrappers - If true, also activates/deactivates scale wrappers (for formula canvas)
  */
 export function updateVariableHoverState(
   container: HTMLElement,
-  highlightedVarIds: string[],
-  useScaleWrappers = false
+  highlightedVarIds: string[]
 ): void {
   const highlightedSet = new Set(highlightedVarIds);
 
-  // Remove hover from elements that are no longer highlighted (only within scale wrappers)
-  const currentlyHovered = container.querySelectorAll(".var-scale-wrapper .hovered");
+  // Remove hover from elements that are no longer highlighted.
+  const hoveredSelector = ".var-scale-wrapper .hovered";
+  const currentlyHovered = container.querySelectorAll(hoveredSelector);
   currentlyHovered.forEach((element) => {
     const htmlEl = element as HTMLElement;
     if (!highlightedSet.has(htmlEl.id)) {
       htmlEl.classList.remove("hovered");
-      if (useScaleWrappers) {
-        deactivateScaleWrapper(htmlEl);
-      }
+      deactivateScaleWrapper(htmlEl);
     }
   });
 
@@ -116,9 +113,7 @@ export function updateVariableHoverState(
       const alreadyHovered = htmlEl.classList.contains("hovered");
       if (!alreadyHovered) {
         htmlEl.classList.add("hovered");
-        if (useScaleWrappers) {
-          activateScaleWrapper(htmlEl);
-        }
+        activateScaleWrapper(htmlEl);
       }
     });
   }

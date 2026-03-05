@@ -34,8 +34,8 @@ export const fittsLaw = `const config = {
     data2d("fitts_1", {x: vars.W, y: vars.T_1});
     data2d("fitts_2", {x: vars.W, y: vars.T_2});
   },
-  visualizations: [{
-    type: "plot2d",
+  graph2d: [{
+    id: "fittsGraph",
     xAxisLabel: "W",
     xAxisVar: "W",
     xRange: [0.1, 10],

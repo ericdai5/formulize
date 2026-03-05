@@ -31,9 +31,8 @@ export const kinetic3D = `const config = {
     data3d("energy", {x: vars.m, y: vars.v, z: vars.K});
   },
 
-  visualizations: [
+  graph3d: [
     {
-      type: "plot3d",
       id: "energy3DPlot",
       title: "3D Kinetic Energy Surface",
       xRange: [0.5, 5],
