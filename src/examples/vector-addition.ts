@@ -67,9 +67,13 @@ export const vectorAddition = `const config = {
       labelDisplay: "name"
     },
   },
-  semantics: function({ vars }) {
+  semantics: function({ vars, sample }) {
     vars.c_x = vars.k_1 * vars.a_x + vars.k_2 * vars.b_x;
     vars.c_y = vars.k_1 * vars.a_y + vars.k_2 * vars.b_y;
+    sample("origin", { x: 0, y: 0 });
+    sample("vectorAEnd", { x: vars.a_x, y: vars.a_y });
+    sample("vectorBEnd", { x: vars.b_x, y: vars.b_y });
+    sample("vectorCPoint", { x: vars.c_x, y: vars.c_y });
   },
   fontSize: 1.5,
   
@@ -80,35 +84,25 @@ export const vectorAddition = `const config = {
       yRange: [-5, 5],
       vectors: [
         {
-          shape: "arrow",
-          x: [0, "a_x"],
-          y: [0, "a_y"],
-          name: "Vector A",
+          startSampleId: "origin",
+          endSampleId: "vectorAEnd",
+          interaction: ["a_x", "a_y"],
           color: "blue",
-          lineWidth: 2,
-          markerSize: 3,
           label: "A",
-          labelPosition: "mid"
         },
         {
-          shape: "arrow",
-          x: [0, "b_x"],
-          y: [0, "b_y"],
-          name: "Vector B",
+          startSampleId: "origin",
+          endSampleId: "vectorBEnd",
+          interaction: ["b_x", "b_y"],
           color: "green",
-          lineWidth: 2,
-          markerSize: 3,
           label: "B",
-          labelPosition: "mid"
         },
+      ],
+      points: [
         {
-          shape: "point",
-          x: ["c_x"],
-          y: ["c_y"],
-          name: "Tip of Vector C",
+          sampleId: "vectorCPoint",
           color: "red",
-          markerSize: 5,
-          showlegend: false
+          showLabel: false,
         }
       ]
     }

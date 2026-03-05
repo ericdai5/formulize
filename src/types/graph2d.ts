@@ -1,6 +1,25 @@
+/**
+ * Vector configuration.
+ * @property startSampleId - Sample ID for vector start point. Must match sample(sampleId, {x, y}) in semantics.
+ * @property endSampleId - Sample ID for vector end point. Must match sample(sampleId, {x, y}) in semantics.
+ * @property shape - Shape of the vector.
+ * @property color - Color of the vector.
+ * @property lineWidth - Width of the vector.
+ * @property markerSize - Size of the vector.
+ * @property name - Name of the vector.
+ * @property draggable - Whether the vector is draggable.
+ * @property showlegend - Whether to show the vector in the legend.
+ * @property interaction - Optional [xVarId, yVarId] used for vector tip drag updates and hover highlighting.
+ * @property label - Optional label for the vector.
+ * @property labelPosition - Optional position of the label.
+ * @property labelOffsetX - Optional offset of the label on the x-axis.
+ * @property labelOffsetY - Optional offset of the label on the y-axis.
+ * @property labelColor - Optional color of the label.
+ * @property labelFontSize - Optional font size of the label.
+ */
 export interface IVector {
-  x: (string | number)[];
-  y: (string | number)[];
+  startSampleId: string;
+  endSampleId: string;
   shape?: "arrow" | "dash" | "point";
   color?: string;
   lineWidth?: number;
@@ -8,7 +27,7 @@ export interface IVector {
   name?: string;
   draggable?: boolean;
   showlegend?: boolean;
-  // Optional on-canvas label configuration
+  interaction?: [string, string];
   label?: string;
   labelPosition?: "start" | "mid" | "end";
   labelOffsetX?: number;
@@ -88,7 +107,7 @@ export type I2DConfig = I2DLine | I2DPoint;
  * @property yAxisInterval - The interval of the y-axis.
  * @property yAxisPos - The position of the y-axis.
  * @property yGrid - The grid visibility for the y-axis.
- * @property vectors - The vectors for the plot.
+ * @property vectors - Vector segments whose endpoints are resolved from sample() IDs.
  * @property lines - Line visualizations sampled from sample() calls.
  * @property points - Point visualizations sampled from sample() calls.
  *                    Points with stepId will only appear during stepping when that step is reached.

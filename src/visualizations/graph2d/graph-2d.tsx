@@ -7,10 +7,7 @@ import * as d3 from "d3";
 
 import { useStore } from "../../core/hooks";
 import { ComputationStore } from "../../store/computation";
-import {
-  type IGraph2D,
-  type IVector,
-} from "../../types/graph2d";
+import { type IGraph2D, type IVector } from "../../types/graph2d";
 import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { AxisLabels } from "./axis-labels";
 import { PLOT2D_DEFAULTS } from "./defaults";
@@ -49,6 +46,20 @@ interface GraphPointData {
   persistence?: boolean;
 }
 
+function getSamplingRange(
+  range: [number, number] | undefined,
+  parameter: string,
+  computationStore: ComputationStore,
+  fallbackRange: [number, number]
+): [number, number] {
+  if (range) {
+    return range;
+  }
+
+  const paramVariable = computationStore.variables.get(parameter);
+  return paramVariable?.range ?? fallbackRange;
+}
+
 /**
  * Calculate graph-based visualizations using explicit sample() calls.
  * Configs declare sampleId to match sample() calls.
@@ -56,7 +67,8 @@ interface GraphPointData {
 function calculateGraphData(
   lines: IGraph2D["lines"],
   points: IGraph2D["points"],
-  computationStore: ComputationStore
+  computationStore: ComputationStore,
+  fallbackRange: [number, number]
 ): { lines: GraphLineData[]; points: GraphPointData[] } {
   const lineResults: GraphLineData[] = [];
   const pointResults: GraphPointData[] = [];
@@ -74,12 +86,12 @@ function calculateGraphData(
     } = lineConfig;
     const displayName = name || sampleId;
 
-    // Get range from config or from parameter variable's range
-    let sampleRange = range;
-    if (!sampleRange) {
-      const paramVariable = computationStore.variables.get(parameter);
-      sampleRange = paramVariable?.range ?? [0, 10];
-    }
+    const sampleRange = getSamplingRange(
+      range,
+      parameter,
+      computationStore,
+      fallbackRange
+    );
 
     // Sample the manual function across the range
     const sampledPoints = computationStore.sample2DLine(
@@ -340,7 +352,13 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
     // Render graph-based visualizations
     if (hasGraphs) {
-      const graphResults = calculateGraphData(lines, points, computationStore);
+      const samplingFallbackRange: [number, number] = [xMin, xMax];
+      const graphResults = calculateGraphData(
+        lines,
+        points,
+        computationStore,
+        samplingFallbackRange
+      );
 
       // Separate regular points from step-dependent points
       const regularPoints: GraphPointData[] = [];
@@ -475,11 +493,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               parameter: lineParam,
               sampleId: lineGraphId,
             } = config;
-            let sampleRange = range;
-            if (!sampleRange) {
-              const paramVariable = computationStore.variables.get(lineParam);
-              sampleRange = paramVariable?.range ?? [xMin, xMax];
-            }
+            const sampleRange = getSamplingRange(
+              range,
+              lineParam,
+              computationStore,
+              samplingFallbackRange
+            );
             const linePoints = computationStore.sample2DLine(
               lineParam,
               sampleRange,
@@ -539,7 +558,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               pointOnCurve = closestPoint;
             } else {
               // For non-focused points or when not tracking, use current values
-              const point = computationStore.sample2DPoint(pointConfig.sampleId);
+              const point = computationStore.sample2DPoint(
+                pointConfig.sampleId
+              );
               if (point) {
                 pointOnCurve = point;
                 // Initialize dragPointX for focused point if needed
@@ -758,11 +779,12 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               parameter: lineParam,
               sampleId: lineGraphId,
             } = config;
-            let sampleRange = range;
-            if (!sampleRange) {
-              const paramVariable = computationStore.variables.get(lineParam);
-              sampleRange = paramVariable?.range ?? [xMin, xMax];
-            }
+            const sampleRange = getSamplingRange(
+              range,
+              lineParam,
+              computationStore,
+              samplingFallbackRange
+            );
             // Get line points
             const linePoints = computationStore.sample2DLine(
               lineParam,

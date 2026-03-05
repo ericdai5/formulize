@@ -4,7 +4,6 @@ import * as d3 from "d3";
 
 import { ComputationStore } from "../../store/computation";
 import { IVector } from "../../types/graph2d";
-import { getVariableValue } from "../../util/computation-helpers";
 import { VECTOR_DEFAULTS } from "./defaults";
 import { createArrowMarker, getMarkerUrl, renderPointMarkers } from "./markers";
 
@@ -13,40 +12,73 @@ export interface VectorData {
   y: number;
 }
 
-/**
- * Processes vector data by resolving variable references
- */
-export function processVectorData(
-  vector: IVector,
-  computationStore: ComputationStore
-): VectorData[] {
-  const xData = vector.x.map((val) =>
-    typeof val === "string" ? getVariableValue(val, computationStore) : val
-  );
-  const yData = vector.y.map((val) =>
-    typeof val === "string" ? getVariableValue(val, computationStore) : val
-  );
+function resolveVectorPoint(
+  sampleId: string,
+  computationStore: ComputationStore,
+  pointCache: Map<string, VectorData | null>
+): VectorData | null {
+  if (pointCache.has(sampleId)) {
+    return pointCache.get(sampleId) ?? null;
+  }
 
-  return xData.map((x, i) => ({
-    x: Number(x),
-    y: Number(yData[i]),
-  }));
+  const point = computationStore.sample2DPoint(sampleId);
+  const resolvedPoint = point
+    ? {
+        x: Number(point.x),
+        y: Number(point.y),
+      }
+    : null;
+  pointCache.set(sampleId, resolvedPoint);
+  return resolvedPoint;
 }
 
 /**
- * Extracts variable names from vector config
+ * Processes vector data by resolving endpoints from sample() IDs.
  */
-function getVariableNames(vector: IVector): {
-  xAxes: string[];
-  yAxes: string[];
+export function processVectorData(
+  vector: IVector,
+  computationStore: ComputationStore,
+  pointCache: Map<string, VectorData | null>
+): VectorData[] {
+  const startPoint = resolveVectorPoint(
+    vector.startSampleId,
+    computationStore,
+    pointCache
+  );
+  const endPoint = resolveVectorPoint(
+    vector.endSampleId,
+    computationStore,
+    pointCache
+  );
+
+  if (vector.shape === "point") {
+    return endPoint ? [endPoint] : [];
+  }
+
+  if (!startPoint || !endPoint) {
+    return [];
+  }
+
+  return [startPoint, endPoint];
+}
+
+/**
+ * Extracts interaction variable names from vector config.
+ */
+function getVectorInteractionVariables(vector: IVector): {
+  xAxisVariable?: string;
+  yAxisVariable?: string;
+  allVectorVariables: string[];
 } {
-  const xAxes = vector.x.filter(
-    (val): val is string => typeof val === "string"
-  );
-  const yAxes = vector.y.filter(
-    (val): val is string => typeof val === "string"
-  );
-  return { xAxes, yAxes };
+  const xAxisVariable = vector.interaction?.[0];
+  const yAxisVariable = vector.interaction?.[1];
+  return {
+    xAxisVariable,
+    yAxisVariable,
+    allVectorVariables: [xAxisVariable, yAxisVariable].filter(
+      (varId): varId is string => !!varId
+    ),
+  };
 }
 
 /**
@@ -59,15 +91,20 @@ export function renderVector(
   vectorIndex: number,
   xScale: d3.ScaleLinear<number, number>,
   yScale: d3.ScaleLinear<number, number>,
+  pointCache: Map<string, VectorData | null>,
   plotWidth?: number,
   plotHeight?: number,
   computationStore?: ComputationStore
 ): void {
   if (!computationStore) return;
-  const vectorData = processVectorData(vector, computationStore);
+  const vectorData = processVectorData(vector, computationStore, pointCache);
+  if (vectorData.length === 0) return;
   const shape = vector.shape || VECTOR_DEFAULTS.shape;
   const color = vector.color || VECTOR_DEFAULTS.color;
-  const isDraggable = vector.draggable !== false && shape === "arrow";
+  const isDraggable =
+    vector.draggable !== false &&
+    shape === "arrow" &&
+    Array.isArray(vector.interaction);
 
   // Handle point shape differently
   if (shape === "point") {
@@ -81,6 +118,8 @@ export function renderVector(
     );
     return; // Exit early for points
   }
+
+  if (vectorData.length < 2) return;
 
   // Create arrow marker if needed
   if (shape === "arrow") {
@@ -126,8 +165,7 @@ export function renderVector(
     .style("pointer-events", "none"); // Disable pointer events on visible path
 
   // Add hover functionality to the invisible wider path
-  const { xAxes, yAxes } = getVariableNames(vector);
-  const allVectorVars = [...xAxes, ...yAxes];
+  const { allVectorVariables } = getVectorInteractionVariables(vector);
 
   hoverPath
     .on("mouseenter", function () {
@@ -140,7 +178,7 @@ export function renderVector(
         .attr("opacity", 0.8);
 
       // Set hover state for all variables in this vector
-      allVectorVars.forEach((varId) => {
+      allVectorVariables.forEach((varId) => {
         computationStore.setVariableHover(varId, true);
       });
     })
@@ -151,7 +189,7 @@ export function renderVector(
         .attr("opacity", 1);
 
       // Clear hover state for all variables in this vector
-      allVectorVars.forEach((varId) => {
+      allVectorVariables.forEach((varId) => {
         computationStore.setVariableHover(varId, false);
       });
     });
@@ -253,7 +291,10 @@ export function renderVector(
 
   // Add drag behavior for arrows
   if (isDraggable && vectorData.length >= 2) {
-    const { xAxes, yAxes } = getVariableNames(vector);
+    const { xAxisVariable, yAxisVariable } = getVectorInteractionVariables(
+      vector
+    );
+    if (!xAxisVariable || !yAxisVariable) return;
 
     // Add invisible drag handle at the arrow tip
     const tipData = vectorData[vectorData.length - 1];
@@ -268,13 +309,13 @@ export function renderVector(
       .style("cursor", "move")
       .on("mouseenter", function () {
         // Set hover state for all variables in this vector
-        allVectorVars.forEach((varId) => {
+        allVectorVariables.forEach((varId) => {
           computationStore.setVariableHover(varId, true);
         });
       })
       .on("mouseleave", function () {
         // Clear hover state for all variables in this vector
-        allVectorVars.forEach((varId) => {
+        allVectorVariables.forEach((varId) => {
           computationStore.setVariableHover(varId, false);
         });
       });
@@ -430,20 +471,13 @@ export function renderVector(
         }
 
         // Update variables with new tip position
-        if (xAxes.length > 0 && yAxes.length > 0) {
-          const endxAxis = xAxes[xAxes.length - 1];
-          const endyAxis = yAxes[yAxes.length - 1];
-
-          try {
-            runInAction(() => {
-              computationStore.setValue(endxAxis, currentTipX);
-              computationStore.setValue(endyAxis, currentTipY);
-            });
-          } catch (error) {
-            console.error("Error updating variables during drag:", error);
-          }
-        } else {
-          console.log("No variables to update:", { xAxes, yAxes });
+        try {
+          runInAction(() => {
+            computationStore.setValue(xAxisVariable, currentTipX);
+            computationStore.setValue(yAxisVariable, currentTipY);
+          });
+        } catch (error) {
+          console.error("Error updating variables during drag:", error);
         }
       })
       .on("end", function () {
@@ -466,16 +500,25 @@ export function getAllVectorVariables(vectors: IVector[]): {
   allXVariables: string[];
   allYVariables: string[];
 } {
-  const allXVariables: string[] = [];
-  const allYVariables: string[] = [];
+  const allXVariables = new Set<string>();
+  const allYVariables = new Set<string>();
 
   vectors.forEach((vector) => {
-    const { xAxes, yAxes } = getVariableNames(vector);
-    allXVariables.push(...xAxes);
-    allYVariables.push(...yAxes);
+    const { xAxisVariable, yAxisVariable } = getVectorInteractionVariables(
+      vector
+    );
+    if (xAxisVariable) {
+      allXVariables.add(xAxisVariable);
+    }
+    if (yAxisVariable) {
+      allYVariables.add(yAxisVariable);
+    }
   });
 
-  return { allXVariables, allYVariables };
+  return {
+    allXVariables: Array.from(allXVariables),
+    allYVariables: Array.from(allYVariables),
+  };
 }
 
 /**
@@ -492,6 +535,7 @@ export function renderVectors(
   computationStore?: ComputationStore
 ): void {
   if (!computationStore) return;
+  const pointCache = new Map<string, VectorData | null>();
   vectors.forEach((vector, index) => {
     renderVector(
       svg,
@@ -500,6 +544,7 @@ export function renderVectors(
       index,
       xScale,
       yScale,
+      pointCache,
       plotWidth,
       plotHeight,
       computationStore

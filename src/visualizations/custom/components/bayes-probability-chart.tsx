@@ -120,7 +120,7 @@ const BayesProbabilityChart = Custom(({ vars }) => {
     const pAGivenB = vars["P(A \\mid B)"];
     const pAandNotB = vars["P(A \\cap \\neg B)"];
     const pBandNotA = vars["P(B \\cap \\neg A)"];
-    const pNotAandNotB = vars["P(\\\\neg A \\\\cap \\\\neg B)"];
+    const pNotAandNotB = vars["P(\\neg A \\cap \\neg B)"];
     return {
       pA,
       pB,
