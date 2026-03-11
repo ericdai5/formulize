@@ -88,6 +88,8 @@ const FormulaCanvasInner = observer(
     const bootstrapCompleteRef = useRef(false);
     const initialFitViewCalledRef = useRef(false);
     const pendingStepFitRef = useRef(false);
+    const stepUpdateFrameRef = useRef<number | null>(null);
+    const stepRebuildFrameRef = useRef<number | null>(null);
     const stepNodeRepositionedRef = useRef(false);
     const { getNodes, getNodesBounds, getViewport, fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
@@ -305,34 +307,26 @@ const FormulaCanvasInner = observer(
       addVariableNodes();
     }, [nodesInitialized, addVariableNodes, computationStore]);
 
-    // Update variable nodes when values change
+    // Update variable node positions/dimensions when values change
     useEffect(() => {
-      if (!bootstrapCompleteRef.current) return;
-      const updateVariables = () => {
-        setNodes((nds) =>
-          nds.map((node) => {
-            if (node.type === "variable") {
-              const varId = node.data.varId as string;
-              const variable = computationStore.variables.get(varId);
-              if (variable) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    value: variable.value,
-                  },
-                };
-              }
-            }
-            return node;
-          })
-        );
-      };
-
-      // Listen for variable changes
-      const interval = setInterval(updateVariables, 100);
-      return () => clearInterval(interval);
-    }, [setNodes, computationStore]);
+      const disposer = reaction(
+        () =>
+          Array.from(computationStore.variables.entries()).map(
+            ([varId, variable]) => ({
+              varId,
+              value: variable.value,
+              precision: variable.precision,
+              sigFigs: variable.sigFigs,
+            })
+          ),
+        () => {
+          if (nodesInitialized && bootstrapCompleteRef.current) {
+            updateVariableNodes();
+          }
+        }
+      );
+      return () => disposer();
+    }, [nodesInitialized, updateVariableNodes, computationStore]);
 
     // Adjust label and step node positions after they're rendered and measured, then fitView
     useEffect(() => {
@@ -443,8 +437,6 @@ const FormulaCanvasInner = observer(
 
     // Update labels when step mode or active variables change
     useEffect(() => {
-      let frameId: number | null = null;
-
       const disposer = reaction(
         () => ({
           isStepMode: computationStore.isStepMode(),
@@ -453,10 +445,7 @@ const FormulaCanvasInner = observer(
           activeVariables: Array.from(
             computationStore.getActiveVariables().entries()
           ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
-          // Only track step description and index for step node updates
-          // NOT tracking full currentStep (which includes values) to avoid
-          // unnecessary rerenders when only values change during drag
-          stepDescription: computationStore.currentStep?.description,
+          currentStep: computationStore.currentStep,
           stepIndex: computationStore.currentStepIndex,
         }),
         () => {
@@ -465,31 +454,28 @@ const FormulaCanvasInner = observer(
               pendingStepFitRef.current = true;
             }
 
-            // Clear any pending frame to prevent multiple rapid updates
-            if (frameId !== null) {
-              window.cancelAnimationFrame(frameId);
+            if (stepUpdateFrameRef.current !== null) {
+              window.cancelAnimationFrame(stepUpdateFrameRef.current);
+            }
+            if (stepRebuildFrameRef.current !== null) {
+              window.cancelAnimationFrame(stepRebuildFrameRef.current);
             }
 
-            // Schedule on the next frame instead of waiting a fixed delay.
-            frameId = window.requestAnimationFrame(() => {
-              // Clear label edges but preserve step edges
-              setEdges((currentEdges) =>
-                currentEdges.filter((edge) => edge.id.startsWith("edge-step-"))
-              );
-
-              // Update variable node dimensions first (CSS classes may have changed)
+            stepUpdateFrameRef.current = window.requestAnimationFrame(() => {
+              // Variable dimensions must update first so label/expression bounds use
+              // the latest geometry when the current step changes.
               updateVariableNodes();
-
-              // Update labels and step nodes with current activeVariables
-              // Both are created with opacity 0 for measurement
-              updateLabelNodes();
-              addstepNodes();
-
-              // Reset the flag so nodes will be positioned by the label adjustment effect
               stepNodeRepositionedRef.current = false;
-
-              // The label adjustment effect will position both labels AND step nodes
-              // after they're measured, then make them visible
+              stepRebuildFrameRef.current = window.requestAnimationFrame(() => {
+                // Clear label edges but preserve step edges while labels reconcile.
+                setEdges((currentEdges) =>
+                  currentEdges.filter((edge) =>
+                    edge.id.startsWith("edge-step-")
+                  )
+                );
+                updateLabelNodes();
+                addstepNodes();
+              });
             });
           }
         },
@@ -498,8 +484,11 @@ const FormulaCanvasInner = observer(
 
       return () => {
         disposer();
-        if (frameId !== null) {
-          window.cancelAnimationFrame(frameId);
+        if (stepUpdateFrameRef.current !== null) {
+          window.cancelAnimationFrame(stepUpdateFrameRef.current);
+        }
+        if (stepRebuildFrameRef.current !== null) {
+          window.cancelAnimationFrame(stepRebuildFrameRef.current);
         }
       };
       // Note: We intentionally exclude computationStore.currentStep from deps because
