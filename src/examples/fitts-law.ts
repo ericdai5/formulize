@@ -28,43 +28,41 @@ export const fittsLaw = `const config = {
       name: "Width"
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.T_1 = vars.a + vars.b * Math.log((2 * vars.D) / vars.W);
     vars.T_2 = vars.a + vars.c * Math.log((2 * vars.D) / vars.W);
-    data2d("fitts_1", {x: vars.W, y: vars.T_1});
-    data2d("fitts_2", {x: vars.W, y: vars.T_2});
+    sample("fitts_1", {x: vars.W, y: vars.T_1});
+    sample("fitts_2", {x: vars.W, y: vars.T_2});
   },
-  visualizations: [{
-    type: "plot2d",
+  graph2d: [{
+    id: "fittsGraph",
     xAxisLabel: "W",
     xAxisVar: "W",
     xRange: [0.1, 10],
     yAxisLabel: "T",
     yAxisVar: "T_1",
     yRange: [0, 3],
-    graphs: [
+    lines: [
       {
-        type: "line",
-        id: "fitts_1",
+        sampleId: "fitts_1",
         parameter: "W",
         name: "Fitts Law",
         interaction: ["vertical-drag", "D"]
       },
       {
-        type: "point",
-        id: "fitts_1",
+        sampleId: "fitts_2",
+        parameter: "W",
+        name: "Fitts Law",
+        interaction: ["vertical-drag", "D"]
+      }
+    ],
+    points: [
+      {
+        sampleId: "fitts_1",
         interaction: ["horizontal-drag", "W"]
       },
       {
-        type: "line",
-        id: "fitts_2",
-        parameter: "W",
-        name: "Fitts Law",
-        interaction: ["vertical-drag", "D"]
-      },
-      {
-        type: "point",
-        id: "fitts_2",
+        sampleId: "fitts_2",
         interaction: ["horizontal-drag", "W"]
       }
     ]

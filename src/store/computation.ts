@@ -5,7 +5,7 @@ import { ISemantics } from "../types/computation";
 import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
-import { ICollectedStep, IView } from "../types/step";
+import { ICollectedStep, IStepLabelValue, IView } from "../types/step";
 import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
 import { FormulaLatexRanges } from "../util/parse/formula-text";
 import { canonicalizeFormula } from "../util/parse/formula-transform";
@@ -296,9 +296,57 @@ class ComputationStore {
     // Otherwise, return a view constructed from the step's top-level properties
     return {
       description: step.description,
-      values: step.values,
-      expression: step.expression,
+      labels: step.labels,
     };
+  }
+
+  /**
+   * Check whether a step label key maps to a known variable id.
+   */
+  private isVariableLabelKey(labelLatex: string): boolean {
+    return this.variables.has(labelLatex);
+  }
+
+  /**
+   * Collect variable IDs from step label entries by matching labels keys to known varIds.
+   * Keys that do not match a variable are treated as expression labels.
+   */
+  private getVariableIdsFromLabels(view: IView): Set<string> {
+    const varIds = new Set<string>();
+    if (!view.labels) {
+      return varIds;
+    }
+    for (const labelLatex of Object.keys(view.labels)) {
+      if (this.isVariableLabelKey(labelLatex)) {
+        varIds.add(labelLatex);
+      }
+    }
+    return varIds;
+  }
+
+  /**
+   * Extract step value entries from labels where:
+   * 1) the labels key is a known variable id, and
+   * 2) the labels value is a runtime value (number or set), not a string-only display label.
+   */
+  private getVariableValueEntriesFromLabels(view: IView): Array<[string, IValue]> {
+    const entries: Array<[string, IValue]> = [];
+    if (!view.labels) {
+      return entries;
+    }
+    for (const [labelLatex, labelValue] of Object.entries(view.labels)) {
+      if (!this.isVariableLabelKey(labelLatex)) {
+        continue;
+      }
+      if (this.isRuntimeStepValue(labelValue)) {
+        entries.push([labelLatex, labelValue]);
+      }
+    }
+    return entries;
+  }
+
+  private isRuntimeStepValue(value: IStepLabelValue): value is IValue {
+    return typeof value === "number" || Array.isArray(value);
   }
 
   /**
@@ -312,20 +360,26 @@ class ComputationStore {
     const step = this.currentStep;
     if (!step) return values;
 
-    // Collect values from top-level step
-    if (step.values) {
-      for (const [varId, value] of step.values) {
-        values.set(varId, value);
-      }
-    }
-
-    // Also collect from per-formula views if present
+    // Collect values from per-formula views if present
     if (step.formulas) {
       for (const view of Object.values(step.formulas)) {
-        if (view.values) {
-          for (const [varId, value] of view.values) {
-            values.set(varId, value);
-          }
+        for (const [varId, value] of this.getVariableValueEntriesFromLabels(
+          view
+        )) {
+          values.set(varId, value);
+        }
+      }
+      return values;
+    }
+
+    // Backstop for malformed step shape (should not happen from collector).
+    if (step.labels) {
+      for (const [labelLatex, labelValue] of Object.entries(step.labels)) {
+        if (!this.isVariableLabelKey(labelLatex)) {
+          continue;
+        }
+        if (this.isRuntimeStepValue(labelValue)) {
+          values.set(labelLatex, labelValue);
         }
       }
     }
@@ -347,15 +401,24 @@ class ComputationStore {
     if (step.formulas) {
       // Multi-formula step: group by formula ID
       for (const [formulaId, view] of Object.entries(step.formulas)) {
-        if (view.values && view.values.length > 0) {
-          const varIds = new Set(view.values.map(([varId]) => varId));
+        const varIds = this.getVariableIdsFromLabels(view);
+        if (varIds.size > 0) {
           activeVarsMap.set(formulaId, varIds);
         }
       }
-    } else if (step.values && step.values.length > 0) {
+    } else {
       // Single formula step: use empty string key for "all formulas"
-      const varIds = new Set(step.values.map(([varId]) => varId));
-      activeVarsMap.set("", varIds);
+      const varIds = new Set<string>();
+      if (step.labels) {
+        for (const labelLatex of Object.keys(step.labels)) {
+          if (this.isVariableLabelKey(labelLatex)) {
+            varIds.add(labelLatex);
+          }
+        }
+      }
+      if (varIds.size > 0) {
+        activeVarsMap.set("", varIds);
+      }
     }
 
     return activeVarsMap;
@@ -401,20 +464,22 @@ class ComputationStore {
     // Clear and rebuild stepValues from current step
     this.stepValues.clear();
 
-    // Collect values from top-level step
-    if (step.values) {
-      for (const [varId, value] of step.values) {
-        this.stepValues.set(varId, value);
-      }
-    }
-
-    // Also collect from per-formula views if present
+    // Collect values from per-formula labels entries
     if (step.formulas) {
       for (const view of Object.values(step.formulas)) {
-        if (view.values) {
-          for (const [varId, value] of view.values) {
-            this.stepValues.set(varId, value);
-          }
+        for (const [varId, value] of this.getVariableValueEntriesFromLabels(
+          view
+        )) {
+          this.stepValues.set(varId, value);
+        }
+      }
+    } else if (step.labels) {
+      for (const [labelLatex, labelValue] of Object.entries(step.labels)) {
+        if (!this.isVariableLabelKey(labelLatex)) {
+          continue;
+        }
+        if (this.isRuntimeStepValue(labelValue)) {
+          this.stepValues.set(labelLatex, labelValue);
         }
       }
     }
@@ -1079,6 +1144,7 @@ class ComputationStore {
         name: variableDefinition?.name,
         precision:
           variableDefinition?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION,
+        sigFigs: variableDefinition?.sigFigs,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
         step: variableDefinition?.step,
@@ -1228,7 +1294,7 @@ class ComputationStore {
   /**
    * Run semantics function with given variables and extract a 2D point.
    * @param variables - Variable values to use
-   * @param graphId - Graph ID to match data2d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The {x, y} point or null
    */
   private computeAndExtract2D(
@@ -1243,7 +1309,7 @@ class ComputationStore {
   /**
    * Run semantics function with given variables and extract a 3D point.
    * @param variables - Variable values to use
-   * @param graphId - Graph ID to match data3d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The {x, y, z} point or null
    */
   private computeAndExtract3D(
@@ -1294,9 +1360,9 @@ class ComputationStore {
 
   /**
    * Run the semantic function once with current values to get the current 2D point.
-   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   * Reads x, y values from the dataPoints (from explicit sample() calls).
    *
-   * @param graphId - Graph ID to match data2d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The current {x, y} point or null
    */
   sample2DPoint(graphId: string): { x: number; y: number } | null {
@@ -1305,9 +1371,9 @@ class ComputationStore {
 
   /**
    * Run the semantic function once with current values to get the current 3D point.
-   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   * Reads x, y, z values from the dataPoints (from explicit sample() calls).
    *
-   * @param graphId - Graph ID to match graph() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns The current {x, y, z} point or null
    */
   sample3DPoint(graphId: string): { x: number; y: number; z: number } | null {
@@ -1316,12 +1382,12 @@ class ComputationStore {
 
   /**
    * Sample the semantic function across a parameter range to collect 2D line data.
-   * Reads x, y values from the dataPoints (from explicit data2d() calls).
+   * Reads x, y values from the dataPoints (from explicit sample() calls).
    *
    * @param parameter - The variable to vary during sampling
    * @param range - The range to sample [min, max]
    * @param samples - Number of samples (default 100)
-   * @param graphId - Graph ID to match data2d() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns Array of {x, y} points
    */
   sample2DLine(
@@ -1341,12 +1407,12 @@ class ComputationStore {
 
   /**
    * Sample the semantic function across a parameter range to collect 3D line data.
-   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   * Reads x, y, z values from the dataPoints (from explicit sample() calls).
    *
    * @param parameter - The variable to vary during sampling
    * @param range - The range to sample [min, max]
    * @param samples - Number of samples (default 100)
-   * @param graphId - Graph ID to match graph() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns Array of {x, y, z} points
    */
   sample3DLine(
@@ -1366,12 +1432,12 @@ class ComputationStore {
 
   /**
    * Sample the semantic function across a 2D parameter grid to collect surface data.
-   * Reads x, y, z values from the dataPoints (from explicit data3d() calls).
+   * Reads x, y, z values from the dataPoints (from explicit sample() calls).
    *
    * @param parameters - The two variables to vary during sampling [param1, param2]
    * @param ranges - The ranges for each parameter [[min1, max1], [min2, max2]]
    * @param samples - Number of samples per dimension (default 50)
-   * @param graphId - Graph ID to match graph() calls
+   * @param graphId - Graph ID to match sample() calls
    * @returns Array of {x, y, z} points
    */
   sampleSurface(

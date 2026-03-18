@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 
 import { ISliderControl } from "../../types/control";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
+import { formatNumberForDisplay } from "../../util/format-number";
 import { useStore } from "../hooks";
 
 interface SliderProps {
@@ -60,9 +61,12 @@ const Slider = observer(({ control }: SliderProps) => {
   const formatValue = useCallback(
     (value: number) => {
       const precision = variable?.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
-      return value.toFixed(precision);
+      return formatNumberForDisplay(value, {
+        precision,
+        sigFigs: variable?.sigFigs,
+      });
     },
-    [variable?.precision, step]
+    [variable?.precision, variable?.sigFigs, step]
   );
 
   const isVertical = control.orientation === "vertical";

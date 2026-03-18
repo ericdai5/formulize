@@ -15,6 +15,8 @@ export const NODE_TYPES = {
   EXPRESSION: "expression",
 } as const;
 
+const DEFAULT_STEP_NODE_HEIGHT = 32;
+
 //--------------------------------------------------
 // Node Finders
 //--------------------------------------------------
@@ -244,12 +246,16 @@ export function positionAndShowstepNodes(
     if (node.type === NODE_TYPES.STEP) {
       // Calculate the step node X center position
       const viewCenterX = node.position.x;
+      const stepNodeHeight =
+        node.measured?.height || node.height || DEFAULT_STEP_NODE_HEIGHT;
 
       // Calculate Y position that avoids label collisions
       const newY = getStepNodeYPositionAvoidingLabels(
         currentNodes,
         formulaNode,
-        viewCenterX
+        viewCenterX,
+        25,
+        stepNodeHeight
       );
 
       return {
@@ -281,37 +287,39 @@ export function getStepNodeYPositionAvoidingLabels(
   nodes: Node[],
   formulaNode: Node,
   _stepNodeX: number,
-  baseOffset: number = 25
+  baseOffset: number = 25,
+  stepNodeHeight: number = DEFAULT_STEP_NODE_HEIGHT
 ): number {
+  const spacingBetweenStepAndLabels = 14;
+
   // Find all label nodes that belong to this formula
   const labelNodes = nodes.filter(
     (node) => node.type === NODE_TYPES.LABEL && node.parentId === formulaNode.id
   );
 
-  // If there are no labels, position above the formula with base offset
+  // If there are no labels, keep the step above the formula with a fixed gap.
   if (labelNodes.length === 0) {
-    return -baseOffset;
+    return -baseOffset - stepNodeHeight;
   }
 
-  // Find the minimum top edge of all labels that are above the formula
-  // Labels placed "above" are at negative Y
-  let minLabelTop = 0;
+  // Find the highest top edge among labels that are above the formula.
+  let minTopLabelY = Infinity;
 
   for (const labelNode of labelNodes) {
-    const labelY = labelNode.position.y;
+    const labelTopY = labelNode.position.y;
 
-    // Only consider labels that are above the formula (negative Y relative to formula)
-    if (labelY < 0) {
-      minLabelTop = Math.min(minLabelTop, labelY);
+    // Only consider labels above the formula.
+    if (labelTopY < 0) {
+      minTopLabelY = Math.min(minTopLabelY, labelTopY);
     }
   }
 
-  // If labels are above the formula, position step node above them
-  if (minLabelTop < 0) {
-    const verticalSpacing = 25;
-    return minLabelTop - verticalSpacing;
+  // If we have labels above, place step above those labels with explicit gap:
+  // [step description] ...gap... [top labels] ...gap... [formula]
+  if (minTopLabelY !== Infinity) {
+    return minTopLabelY - spacingBetweenStepAndLabels - stepNodeHeight;
   }
 
-  // Otherwise use base offset above the formula
-  return -baseOffset;
+  // Otherwise keep step above formula with fixed gap.
+  return -baseOffset - stepNodeHeight;
 }

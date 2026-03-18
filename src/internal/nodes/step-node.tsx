@@ -1,22 +1,22 @@
 import { observer } from "mobx-react-lite";
 
-import { Handle, Position } from "@xyflow/react";
-
 import { debugStore } from "../../store/debug";
 import { buildDebugStyles } from "../../util/debug-styles";
-import { HANDLE_STYLE } from "../css-classes";
+import { formatInlineLatex, toLatexText } from "../../util/latex-inline";
 import LatexLabel from "../latex";
 
 export interface StepNodeData {
-  expression: string;
   description: string;
-  activeVarIds?: string[];
+}
+
+function formatDescriptionLatex(description: string): string {
+  // Descriptions may contain mixed text + "$$...$$" math fragments.
+  return formatInlineLatex(description) ?? toLatexText(description);
 }
 
 const StepNode = observer(({ data }: { data: StepNodeData }) => {
-  const { expression, description } = data;
-  // Wrap text in \text{} for proper LaTeX text rendering
-  const latexDescription = `\\text{${description}}`;
+  const { description } = data;
+  const latexDescription = formatDescriptionLatex(description);
 
   // Build debug styles from store settings
   const debugStyles = buildDebugStyles(
@@ -35,15 +35,8 @@ const StepNode = observer(({ data }: { data: StepNodeData }) => {
         cursor: "grab",
         ...debugStyles,
       }}
-      title={`View comment for expression: ${expression} (draggable)`}
+      title="Step description"
     >
-      {/* Handle at the center bottom for connecting edges */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="step-handle-bottom"
-        style={HANDLE_STYLE}
-      />
       <LatexLabel latex={latexDescription} />
     </div>
   );

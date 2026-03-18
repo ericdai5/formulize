@@ -1,6 +1,7 @@
 import { VAR_CLASSES } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
+import { formatNumberForLatex } from "../format-number";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
   Accent,
@@ -30,12 +31,14 @@ import {
  * Configuration for processing nested variables within a formula node subtree
  */
 interface NestedVariableConfig {
-  /** Default precision for number formatting */
-  defaultPrecision: number;
   /** Computation store (required) */
   computationStore: ComputationStore;
   /** Active variables map (required) */
   activeVariables: Map<string, Set<string>>;
+  /** Default precision for numeric display (required) */
+  defaultPrecision: number;
+  /** Variable currently being rendered; skip matching it at the root node */
+  rootVariableId?: string;
 }
 
 /**
@@ -49,19 +52,26 @@ const processNestedVariable = (
   node: AugmentedFormulaNode,
   config: NestedVariableConfig
 ): string => {
-  const { defaultPrecision, computationStore, activeVariables } = config;
+  const { computationStore, activeVariables, defaultPrecision, rootVariableId } =
+    config;
 
-  const processNode = (node: AugmentedFormulaNode): string => {
+  const processNode = (
+    node: AugmentedFormulaNode,
+    isRoot: boolean = false
+  ): string => {
     // Handle symbol nodes
     if (node.type === "symbol") {
       const symbol = node as MathSymbol;
       // Check if this symbol is a known variable in the computation store
-      if (computationStore.variables.has(symbol.value)) {
+      if (
+        computationStore.variables.has(symbol.value) &&
+        !(isRoot && symbol.value === rootVariableId)
+      ) {
         return renderNestedVariable(
           symbol.value,
-          defaultPrecision,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
       return symbol.value;
@@ -73,12 +83,15 @@ const processNestedVariable = (
       // Check if the entire accent node is a known variable
       const accentLatex =
         "toLatex" in accent ? accent.toLatex("no-id", 0)[0] : "";
-      if (computationStore.variables.has(accentLatex)) {
+      if (
+        computationStore.variables.has(accentLatex) &&
+        !(isRoot && accentLatex === rootVariableId)
+      ) {
         return renderNestedVariable(
           accentLatex,
-          defaultPrecision,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
       // Otherwise, process the base recursively
@@ -98,24 +111,30 @@ const processNestedVariable = (
       }
       // Also try removing spaces for matching (e.g., "t + 1" -> "t+1")
       const groupLatexNoSpaces = groupLatex.replace(/\s+/g, "");
-      if (computationStore.variables.has(groupLatex)) {
+      if (
+        computationStore.variables.has(groupLatex) &&
+        !(isRoot && groupLatex === rootVariableId)
+      ) {
         return renderNestedVariable(
           groupLatex,
-          defaultPrecision,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
-      if (computationStore.variables.has(groupLatexNoSpaces)) {
+      if (
+        computationStore.variables.has(groupLatexNoSpaces) &&
+        !(isRoot && groupLatexNoSpaces === rootVariableId)
+      ) {
         return renderNestedVariable(
           groupLatexNoSpaces,
-          defaultPrecision,
           computationStore,
-          activeVariables
+          activeVariables,
+          defaultPrecision
         );
       }
       // Otherwise, process children recursively
-      const children = group.body.map(processNode).join(" ");
+      const children = group.body.map((child) => processNode(child)).join(" ");
       return `{${children}}`;
     }
 
@@ -123,7 +142,7 @@ const processNestedVariable = (
     return processNodeChildren(node, processNode);
   };
 
-  return processNode(node);
+  return processNode(node, true);
 };
 
 /**
@@ -131,19 +150,22 @@ const processNestedVariable = (
  */
 const renderNestedVariable = (
   symbolValue: string,
-  defaultPrecision: number,
   computationStore: ComputationStore,
-  activeVariables: Map<string, Set<string>>
+  activeVariables: Map<string, Set<string>>,
+  defaultPrecision: number
 ): string => {
   let value: number | undefined = undefined;
   let variablePrecision = defaultPrecision;
+  let variableSignificantDigits: number | undefined;
   let latexDisplay: "name" | "value" = "name";
   let isDraggable = false;
   // Get the value from the computation store
   const variable = computationStore.variables.get(symbolValue);
   if (variable) {
-    value = typeof variable.value === "number" ? variable.value : undefined;
-    variablePrecision = variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+    const displayValue = computationStore.getDisplayValue(symbolValue);
+    value = typeof displayValue === "number" ? displayValue : undefined;
+    variablePrecision = variable.precision ?? defaultPrecision;
+    variableSignificantDigits = variable.sigFigs;
     latexDisplay = variable.latexDisplay ?? "name";
     isDraggable = variable.input === "drag" || variable.input === "inline";
   }
@@ -162,7 +184,13 @@ const renderNestedVariable = (
   const hasValidValue = value !== null && value !== undefined && !isNaN(value);
   // Respect latexDisplay setting - only show value if latexDisplay allows it AND variable is active
   if (isActive && hasValidValue && latexDisplay === "value") {
-    return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${value!.toFixed(variablePrecision)}}}`;
+    return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${formatNumberForLatex(
+      value!,
+      {
+        precision: variablePrecision,
+        sigFigs: variableSignificantDigits,
+      }
+    )}}}`;
   }
   // Default: show symbol name (for latexDisplay="name" or when not active)
   return `\\cssId{${symbolValue}}{\\class{${cssClass}}{${symbolValue}}}`;
@@ -322,6 +350,40 @@ const resetCssIdCounter = () => {
   cssIdCounter = 0;
 };
 
+const VARIABLE_OCCURRENCE_DELIMITER = "__mn_occ__";
+
+/**
+ * Encode a variable occurrence reference for expression matching.
+ * This keeps the real DOM id unchanged (the variable symbol), while carrying
+ * occurrence info in the AST cssId for disambiguation.
+ */
+export const encodeVariableOccurrenceCssRef = (
+  variableId: string,
+  occurrenceIndex: number
+): string => `${variableId}${VARIABLE_OCCURRENCE_DELIMITER}${occurrenceIndex}`;
+
+/**
+ * Decode a variable occurrence reference produced by encodeVariableOccurrenceCssRef.
+ */
+export const decodeVariableOccurrenceCssRef = (
+  cssRef: string
+): { variableId: string; occurrenceIndex: number | null } => {
+  const delimiterIndex = cssRef.lastIndexOf(VARIABLE_OCCURRENCE_DELIMITER);
+  if (delimiterIndex < 0) {
+    return { variableId: cssRef, occurrenceIndex: null };
+  }
+  const suffix = cssRef.slice(
+    delimiterIndex + VARIABLE_OCCURRENCE_DELIMITER.length
+  );
+  if (!/^\d+$/.test(suffix)) {
+    return { variableId: cssRef, occurrenceIndex: null };
+  }
+  return {
+    variableId: cssRef.slice(0, delimiterIndex),
+    occurrenceIndex: Number(suffix),
+  };
+};
+
 /**
  * Generate a unique cssId for a node
  */
@@ -395,6 +457,7 @@ export const processVariables = (
 ): ProcessVariablesResult => {
   // Reset cssId counter for this formula
   resetCssIdCounter();
+  const variableOccurrenceCounter = new Map<string, number>();
 
   const processNode = (node: AugmentedFormulaNode): string => {
     if (node.type === "variable") {
@@ -405,6 +468,7 @@ export const processVariables = (
       let value: number | undefined = undefined;
       let isDraggable = false;
       let variablePrecision = defaultPrecision;
+      let variableSignificantDigits: number | undefined;
       let display: "name" | "value" = "name"; // Default to showing name
       let defaultCSS = "";
       let hoverCSS = "";
@@ -413,12 +477,12 @@ export const processVariables = (
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
-          value =
-            typeof variable.value === "number" ? variable.value : undefined;
+          const displayValue = computationStore.getDisplayValue(originalSymbol);
+          value = typeof displayValue === "number" ? displayValue : undefined;
           isDraggable = variable.input === "drag";
           // Use the variable's precision if defined, otherwise use default
-          variablePrecision =
-            variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
+          variablePrecision = variable.precision ?? defaultPrecision;
+          variableSignificantDigits = variable.sigFigs;
           // Use the variable's display property if defined, otherwise default to "name"
           display = variable.latexDisplay ?? "name";
           // Get custom CSS if defined
@@ -435,14 +499,18 @@ export const processVariables = (
       }
       // Process the variable's body to find and render any nested variables
       const processedBody = processNestedVariable(variableNode.body, {
-        defaultPrecision,
         computationStore,
         activeVariables,
+        defaultPrecision,
+        rootVariableId: originalSymbol,
       });
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
-      // Store the cssId on the AST node for DOM element lookup
-      node.cssId = id;
+      const occurrenceIndex = variableOccurrenceCounter.get(id) ?? 0;
+      variableOccurrenceCounter.set(id, occurrenceIndex + 1);
+      // Store encoded occurrence info on the AST node for expression matching.
+      // The rendered DOM id stays as the variable symbol (`id`) for existing flows.
+      node.cssId = encodeVariableOccurrenceCssRef(id, occurrenceIndex);
       // Use different CSS classes based on input mode
       // Drag input variables get INPUT class (interactive), others get BASE class
       let cssClass: string = VAR_CLASSES.BASE;
@@ -473,7 +541,13 @@ export const processVariables = (
           case "value":
             // If no value is available, fallback to showing the name
             if (value !== null && value !== undefined && !isNaN(value)) {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${value.toFixed(variablePrecision)}}}`;
+              result = `\\cssId{${id}}{\\class{${cssClass}}{${formatNumberForLatex(
+                value,
+                {
+                  precision: variablePrecision,
+                  sigFigs: variableSignificantDigits,
+                }
+              )}}}`;
             } else {
               result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
             }

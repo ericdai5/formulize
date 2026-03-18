@@ -2,21 +2,19 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { observer } from "mobx-react-lite";
 
-import { IVisualization } from "../types/visualization";
 import VisualizationRenderer from "../visualizations/visualization";
 import { useStore } from "./hooks";
 
-interface VisualizationComponentProps {
-  type: "plot2d" | "plot3d" | "custom";
-  config: IVisualization;
+interface GraphProps {
+  id: string;
   className?: string;
   style?: React.CSSProperties;
   width?: number | string;
   height?: number | string;
 }
 
-export const VisualizationComponent: React.FC<VisualizationComponentProps> =
-  observer(({ config, className = "", style = {} }) => {
+export const Graph: React.FC<GraphProps> =
+  observer(({ id, className = "", style = {} }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isReady, setIsReady] = useState(false);
     const context = useStore();
@@ -65,10 +63,10 @@ export const VisualizationComponent: React.FC<VisualizationComponentProps> =
             Loading visualization...
           </div>
         ) : (
-          <VisualizationRenderer visualization={config} />
+          <VisualizationRenderer id={id} />
         )}
       </div>
     );
   });
 
-export default VisualizationComponent;
+export default Graph;

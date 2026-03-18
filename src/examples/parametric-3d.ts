@@ -50,52 +50,50 @@ export const parametric3D = `const config = {
       name: "Parameter t"
     },
   },
-  semantics: function({ vars, data3d }) {
+  semantics: function({ vars, sample }) {
     vars.z = 1 - vars.x - vars.y;
-    data3d("plane1", {x: vars.x, y: vars.y, z: vars.z});
+    sample("plane1", {x: vars.x, y: vars.y, z: vars.z});
     vars.z = vars.x;
-    data3d("plane2", {x: vars.x, y: vars.y, z: vars.z});
+    sample("plane2", {x: vars.x, y: vars.y, z: vars.z});
     vars.x = vars.t;
     vars.y = 1 - 2 * vars.t;
     vars.z = vars.t;
-    data3d("line", {x: vars.x, y: vars.y, z: vars.z});
+    sample("line", {x: vars.x, y: vars.y, z: vars.z});
   },
-  visualizations: [
+  graph3d: [
     {
-      type: "plot3d",
       id: "parametricPlane3D",
-      title: "3D Parametric Line on Intersecting Planes",
       xRange: [-5, 5],
       yRange: [-5, 5],
       zRange: [-5, 5],
-      graphs: [
+      surfaces: [
         {
-          type: "surface",
-          id: "plane1",
+          sampleId: "plane1",
           parameters: ["x", "y"],
           name: "Plane x+y+z=1",
           opacity: 0.5,
           color: "purple",
         },
         {
-          type: "surface",
-          id: "plane2",
+          sampleId: "plane2",
           parameters: ["x", "y"],
           name: "Plane x=z",
           opacity: 0.5,
           color: "green",
-        },
+        }
+      ],
+      lines: [
         {
-          type: "line",
-          id: "line",
+          sampleId: "line",
           parameter: "t",
           name: "Intersection Line",
           width: 6,
           color: "yellow",
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "line",
+          sampleId: "line",
           name: "Current Position",
         }
       ]

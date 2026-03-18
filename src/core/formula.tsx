@@ -45,6 +45,9 @@ import {
   updateVarNodes,
 } from "../util/canvas/variable-nodes";
 import { useStore } from "./hooks";
+import { useAutoContentSize } from "./hooks/use-auto-content-size";
+import { useFitViewAfterReveal } from "./hooks/use-fit-view-after-reveal";
+import { useReportContentBounds } from "./hooks/use-report-content-bounds";
 
 const nodeTypes = {
   formula: FormulaNode,
@@ -64,10 +67,16 @@ interface FormulaCanvasInnerProps {
   id: string;
   formulas: Array<{ id: string; latex: string }>;
   computationStore: ComputationStore;
+  onContentBoundsChange?: (bounds: { width: number; height: number }) => void;
 }
 
 const FormulaCanvasInner = observer(
-  ({ id, formulas, computationStore }: FormulaCanvasInnerProps) => {
+  ({
+    id,
+    formulas,
+    computationStore,
+    onContentBoundsChange,
+  }: FormulaCanvasInnerProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [canvasVisible, setCanvasVisible] = React.useState(false);
@@ -76,10 +85,13 @@ const FormulaCanvasInner = observer(
       y: number;
     } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const variableNodesAddedRef = useRef(false);
+    const bootstrapCompleteRef = useRef(false);
     const initialFitViewCalledRef = useRef(false);
+    const pendingStepFitRef = useRef(false);
+    const stepUpdateFrameRef = useRef<number | null>(null);
+    const stepRebuildFrameRef = useRef<number | null>(null);
     const stepNodeRepositionedRef = useRef(false);
-    const { getNodes, getViewport, fitView } = useReactFlow();
+    const { getNodes, getNodesBounds, getViewport, fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
 
     // Handle context menu
@@ -134,8 +146,9 @@ const FormulaCanvasInner = observer(
       adjustLabelPositionsUtil({
         getNodes,
         setNodes,
+        lockCurrentPlacements: computationStore.isDragging,
       });
-    }, [getNodes, setNodes]);
+    }, [computationStore, getNodes, setNodes]);
 
     // Enhanced onNodesChange handler
     const handleNodesChange = useCallback(
@@ -218,7 +231,7 @@ const FormulaCanvasInner = observer(
         getViewport,
         setNodes,
         nodesInitialized,
-        variableNodesAddedRef,
+        bootstrapCompleteRef,
         formulaId: id,
         containerElement: containerRef.current,
         computationStore,
@@ -247,7 +260,7 @@ const FormulaCanvasInner = observer(
         }
 
         // Reset refs and visibility when reinitializing
-        variableNodesAddedRef.current = false;
+        bootstrapCompleteRef.current = false;
         initialFitViewCalledRef.current = false;
         setCanvasVisible(false);
 
@@ -261,6 +274,10 @@ const FormulaCanvasInner = observer(
           id: `formula-${id}`,
           type: "formula",
           position: { x: 100, y: 100 },
+          draggable: false,
+          style: {
+            cursor: "default",
+          },
           data: {
             latex: latex,
             id: id,
@@ -277,43 +294,43 @@ const FormulaCanvasInner = observer(
 
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
-      if (nodesInitialized && !variableNodesAddedRef.current) {
-        addVariableNodes();
+      if (!nodesInitialized || bootstrapCompleteRef.current) {
+        return;
       }
-    }, [nodesInitialized, nodes, addVariableNodes, id]);
 
-    // Update variable nodes when values change
+      // Formula-only config: skip variable-node bootstrap entirely.
+      if (computationStore.variables.size === 0) {
+        bootstrapCompleteRef.current = true;
+        return;
+      }
+
+      addVariableNodes();
+    }, [nodesInitialized, addVariableNodes, computationStore]);
+
+    // Update variable node positions/dimensions when values change
     useEffect(() => {
-      if (!variableNodesAddedRef.current) return;
-      const updateVariables = () => {
-        setNodes((nds) =>
-          nds.map((node) => {
-            if (node.type === "variable") {
-              const varId = node.data.varId as string;
-              const variable = computationStore.variables.get(varId);
-              if (variable) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    value: variable.value,
-                  },
-                };
-              }
-            }
-            return node;
-          })
-        );
-      };
-
-      // Listen for variable changes
-      const interval = setInterval(updateVariables, 100);
-      return () => clearInterval(interval);
-    }, [setNodes, computationStore]);
+      const disposer = reaction(
+        () =>
+          Array.from(computationStore.variables.entries()).map(
+            ([varId, variable]) => ({
+              varId,
+              value: variable.value,
+              precision: variable.precision,
+              sigFigs: variable.sigFigs,
+            })
+          ),
+        () => {
+          if (nodesInitialized && bootstrapCompleteRef.current) {
+            updateVariableNodes();
+          }
+        }
+      );
+      return () => disposer();
+    }, [nodesInitialized, updateVariableNodes, computationStore]);
 
     // Adjust label and step node positions after they're rendered and measured, then fitView
     useEffect(() => {
-      if (!nodesInitialized || !variableNodesAddedRef.current) return;
+      if (!nodesInitialized || !bootstrapCompleteRef.current) return;
       // Check if all nodes are ready for positioning
       const { labelNodes, stepNodes, allReady } = checkAllNodesMeasured(nodes);
       // Check if there are step nodes that need to be positioned (have opacity 0)
@@ -324,12 +341,16 @@ const FormulaCanvasInner = observer(
       const labelNodesNeedPositioning = labelNodes.some(
         (node) => node.style?.opacity === 0
       );
+      const shouldRunPendingStepFit =
+        pendingStepFitRef.current && canvasVisible;
 
-      // Skip if initial fitView already done AND no nodes need positioning
+      // Skip if initial fitView already done, no nodes need positioning,
+      // and there is no pending post-step refit to apply.
       if (
         initialFitViewCalledRef.current &&
         !stepNodesNeedPositioning &&
-        !labelNodesNeedPositioning
+        !labelNodesNeedPositioning &&
+        !shouldRunPendingStepFit
       ) {
         return;
       }
@@ -337,20 +358,27 @@ const FormulaCanvasInner = observer(
       // If no labels and no step nodes exist, just fitView once after variable nodes are added
       if (labelNodes.length === 0 && stepNodes.length === 0) {
         if (!initialFitViewCalledRef.current) {
-          const timeoutId = setTimeout(() => {
-            fitView({ padding: 0.2 });
+          const frameId = window.requestAnimationFrame(() => {
             initialFitViewCalledRef.current = true;
-            // Make canvas visible after fitView
-            setTimeout(() => setCanvasVisible(true), 50);
-          }, 100);
-          return () => clearTimeout(timeoutId);
+            window.requestAnimationFrame(() => {
+              setCanvasVisible(true);
+            });
+          });
+          return () => window.cancelAnimationFrame(frameId);
+        }
+
+        if (shouldRunPendingStepFit) {
+          pendingStepFitRef.current = false;
+          const frameId = window.requestAnimationFrame(() => {
+            fitView();
+          });
+          return () => window.cancelAnimationFrame(frameId);
         }
         return;
       }
 
       if (allReady) {
-        // Small delay to ensure all rendering is complete
-        const timeoutId = setTimeout(() => {
+        const layoutFrameId = window.requestAnimationFrame(() => {
           // Adjust label positions first
           if (labelNodes.length > 0) {
             adjustLabelPositions();
@@ -378,16 +406,23 @@ const FormulaCanvasInner = observer(
 
           // Fit step after all nodes are positioned and visible to avoid flashing
           if (!initialFitViewCalledRef.current) {
-            setTimeout(() => {
-              fitView({ padding: 0.2, duration: 300 });
+            window.requestAnimationFrame(() => {
               initialFitViewCalledRef.current = true;
-              // Make canvas visible after fitView
-              setTimeout(() => setCanvasVisible(true), 50);
-            }, 100);
+              window.requestAnimationFrame(() => {
+                setCanvasVisible(true);
+              });
+            });
+          } else if (shouldRunPendingStepFit) {
+            pendingStepFitRef.current = false;
+            window.requestAnimationFrame(() => {
+              fitView();
+            });
           }
-        }, 50);
+        });
 
-        return () => clearTimeout(timeoutId);
+        return () => {
+          window.cancelAnimationFrame(layoutFrameId);
+        };
       }
     }, [
       nodes,
@@ -395,14 +430,13 @@ const FormulaCanvasInner = observer(
       adjustLabelPositions,
       setNodes,
       id,
+      canvasVisible,
       fitView,
       computationStore.currentStep,
     ]);
 
     // Update labels when step mode or active variables change
     useEffect(() => {
-      let timeoutId: number | null = null;
-
       const disposer = reaction(
         () => ({
           isStepMode: computationStore.isStepMode(),
@@ -411,40 +445,38 @@ const FormulaCanvasInner = observer(
           activeVariables: Array.from(
             computationStore.getActiveVariables().entries()
           ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
-          // Only track step description and index for step node updates
-          // NOT tracking full currentStep (which includes values) to avoid
-          // unnecessary rerenders when only values change during drag
-          stepDescription: computationStore.currentStep?.description,
+          currentStep: computationStore.currentStep,
           stepIndex: computationStore.currentStepIndex,
         }),
         () => {
-          if (nodesInitialized && variableNodesAddedRef.current) {
-            // Clear any pending timeout to prevent multiple rapid updates
-            if (timeoutId) {
-              clearTimeout(timeoutId);
+          if (nodesInitialized && bootstrapCompleteRef.current) {
+            if (initialFitViewCalledRef.current) {
+              pendingStepFitRef.current = true;
             }
 
-            // Debounce the label update to prevent rapid recreation
-            timeoutId = window.setTimeout(() => {
-              // Clear label edges but preserve step edges
-              setEdges((currentEdges) =>
-                currentEdges.filter((edge) => edge.id.startsWith("edge-step-"))
-              );
+            if (stepUpdateFrameRef.current !== null) {
+              window.cancelAnimationFrame(stepUpdateFrameRef.current);
+            }
+            if (stepRebuildFrameRef.current !== null) {
+              window.cancelAnimationFrame(stepRebuildFrameRef.current);
+            }
 
-              // Update variable node dimensions first (CSS classes may have changed)
+            stepUpdateFrameRef.current = window.requestAnimationFrame(() => {
+              // Variable dimensions must update first so label/expression bounds use
+              // the latest geometry when the current step changes.
               updateVariableNodes();
-
-              // Update labels and step nodes with current activeVariables
-              // Both are created with opacity 0 for measurement
-              updateLabelNodes();
-              addstepNodes();
-
-              // Reset the flag so nodes will be positioned by the label adjustment effect
               stepNodeRepositionedRef.current = false;
-
-              // The label adjustment effect will position both labels AND step nodes
-              // after they're measured, then make them visible
-            }, 50); // Shorter debounce for more responsive updates
+              stepRebuildFrameRef.current = window.requestAnimationFrame(() => {
+                // Clear label edges but preserve step edges while labels reconcile.
+                setEdges((currentEdges) =>
+                  currentEdges.filter((edge) =>
+                    edge.id.startsWith("edge-step-")
+                  )
+                );
+                updateLabelNodes();
+                addstepNodes();
+              });
+            });
           }
         },
         { fireImmediately: true } // Fire immediately to handle initial state
@@ -452,8 +484,11 @@ const FormulaCanvasInner = observer(
 
       return () => {
         disposer();
-        if (timeoutId) {
-          clearTimeout(timeoutId);
+        if (stepUpdateFrameRef.current !== null) {
+          window.cancelAnimationFrame(stepUpdateFrameRef.current);
+        }
+        if (stepRebuildFrameRef.current !== null) {
+          window.cancelAnimationFrame(stepRebuildFrameRef.current);
         }
       };
       // Note: We intentionally exclude computationStore.currentStep from deps because
@@ -544,6 +579,17 @@ const FormulaCanvasInner = observer(
       }
     }, [nodes, edges, id, shouldLabelBeVisible, setEdges]);
 
+    useReportContentBounds({
+      nodes,
+      nodesInitialized,
+      canvasVisible,
+      getNodes,
+      getNodesBounds,
+      onContentBoundsChange,
+    });
+
+    useFitViewAfterReveal(canvasVisible, fitView);
+
     return (
       <div
         ref={containerRef}
@@ -556,8 +602,6 @@ const FormulaCanvasInner = observer(
           onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
           autoPanOnNodeDrag={false}
           panOnDrag={false}
           panOnScroll={false}
@@ -569,7 +613,6 @@ const FormulaCanvasInner = observer(
           proOptions={{ hideAttribution: true }}
           style={{
             opacity: canvasVisible ? 1 : 0,
-            transition: "opacity 0.05s ease-in",
           }}
         >
           <Background
@@ -595,18 +638,33 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
     const context = useStore();
     const instance = context?.instance;
     const isLoading = context?.isLoading ?? true;
+    const error = context?.error;
     const config = context?.config;
     const computationStore = context?.computationStore;
-
     // Get formulas from context config (scoped per Provider)
     const formulas = config?.formulas || [];
+    const { autoWidth, autoHeight, width, height, onContentBoundsChange } =
+      useAutoContentSize(style);
 
     const containerStyle: React.CSSProperties = {
-      width: "100%",
-      height: style.height || "auto",
       overflow: "hidden",
       ...style,
+      width: width,
+      height: height,
     };
+
+    if (error) {
+      return (
+        <div
+          className={`formula-component ${className}`}
+          style={containerStyle}
+        >
+          <div className="flex items-center justify-center h-full">
+            <div className="text-red-500">Failed to load formula: {error}</div>
+          </div>
+        </div>
+      );
+    }
 
     // Show loading state while Formulize is initializing or no context
     if (isLoading || !instance || !computationStore) {
@@ -614,11 +672,7 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
         <div
           className={`formula-component ${className}`}
           style={containerStyle}
-        >
-          <div className="flex items-center justify-center h-full">
-            <div className="text-gray-500">Loading formula...</div>
-          </div>
-        </div>
+        />
       );
     }
 
@@ -633,6 +687,9 @@ export const Formula: React.FC<FormulaComponentProps> = observer(
             id={id}
             formulas={formulas}
             computationStore={computationStore}
+            onContentBoundsChange={
+              autoWidth || autoHeight ? onContentBoundsChange : undefined
+            }
           />
         </ReactFlowProvider>
       </div>

@@ -6,19 +6,18 @@ import { observer } from "mobx-react-lite";
 // Import Plotly as any to avoid type issues since @types/plotly.js-dist might not be available
 import * as Plotly from "plotly.js-dist";
 
-import { IPlot3D } from "../..";
 import { useStore } from "../../core/hooks";
 import { ComputationStore } from "../../store/computation";
-import { I3DLine, I3DPoint, I3DSurface, IPoint3D } from "../../types/plot3d";
+import { IGraph3D, IPoint3D } from "../../types/graph3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
 import { resolveColor, resolveLineColor } from "./color";
 
 interface Plot3DProps {
-  config: IPlot3D;
+  config: IGraph3D;
 }
 
 interface Plot3DInnerProps {
-  config: IPlot3D;
+  config: IGraph3D;
   computationStore: ComputationStore;
 }
 
@@ -64,7 +63,6 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
     // Parse configuration options with defaults
     const {
-      title = "",
       xAxis = "x",
       xRange = [0, 10],
       yAxis = "y",
@@ -74,7 +72,9 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
       width = 600,
       height = 600,
       showCurrentPointInLegend = false,
-      graphs = null,
+      lines,
+      points,
+      surfaces,
     } = config;
 
     // Get min/max values from ranges
@@ -92,108 +92,111 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
       [computationStore]
     );
 
-    // Calculate all graph-based visualizations using the graph() collection mechanism
+    // Calculate all graph-based visualizations using the sample() collection mechanism
     const calculateGraphData = useCallback(() => {
       const lineResults: LineData[] = [];
       const pointResults: PointData[] = [];
       const surfaceResults: GraphSurfaceData[] = [];
 
-      if (!graphs || graphs.length === 0) {
-        return {
-          lines: lineResults,
-          points: pointResults,
-          surfaces: surfaceResults,
-        };
+      for (const lineConfig of lines ?? []) {
+        const {
+          sampleId,
+          name,
+          showInLegend = true,
+          parameter,
+          range,
+          samples = 100,
+          color = "blue",
+          width = 4,
+        } = lineConfig;
+        const displayName = name || sampleId;
+        // Get range from config or from parameter variable's range
+        let sampleRange = range;
+        if (!sampleRange) {
+          const paramVariable = computationStore.variables.get(parameter);
+          sampleRange = paramVariable?.range ?? [0, 10];
+        }
+        // Sample the manual function across the range by varying the parameter
+        const sampledPoints = computationStore.sample3DLine(
+          parameter,
+          sampleRange,
+          samples,
+          sampleId
+        );
+        if (sampledPoints.length > 0) {
+          lineResults.push({
+            name: displayName,
+            points: sampledPoints,
+            color: resolveLineColor(color),
+            width,
+            showInLegend,
+          });
+        }
       }
 
-      for (const graphConfig of graphs) {
-        const graphType = graphConfig.type;
-        const { id: graphId, name, showInLegend = true } = graphConfig;
-        const displayName = name || graphId;
-        if (graphType === "line") {
-          const lineConfig = graphConfig as I3DLine;
-          const {
-            parameter,
-            range,
-            samples = 100,
-            color = "blue",
-            width = 4,
-          } = lineConfig;
-          // Get range from config or from parameter variable's range
-          let sampleRange = range;
-          if (!sampleRange) {
-            const paramVariable = computationStore.variables.get(parameter);
-            sampleRange = paramVariable?.range ?? [0, 10];
-          }
-          // Sample the manual function across the range by varying the parameter
-          const points = computationStore.sample3DLine(
-            parameter,
-            sampleRange,
-            samples,
-            graphId
-          );
-          if (points.length > 0) {
-            lineResults.push({
-              name: displayName,
-              points,
-              color: resolveLineColor(color),
-              width,
-              showInLegend,
-            });
-          }
-        } else if (graphType === "surface") {
-          const surfaceConfig = graphConfig as I3DSurface;
-          const {
-            parameters,
-            ranges,
-            samples = 50,
-            color = "Viridis",
-            opacity = 0.8,
-            showColorbar = false,
-          } = surfaceConfig;
+      for (const surfaceConfig of surfaces ?? []) {
+        const {
+          sampleId,
+          name,
+          showInLegend = true,
+          parameters,
+          ranges,
+          samples = 50,
+          color = "Viridis",
+          opacity = 0.8,
+          showColorbar = false,
+        } = surfaceConfig;
+        const displayName = name || sampleId;
 
-          // Get ranges from config or from parameter variables' ranges
-          let sampleRanges = ranges;
-          if (!sampleRanges) {
-            const param1Var = computationStore.variables.get(parameters[0]);
-            const param2Var = computationStore.variables.get(parameters[1]);
-            sampleRanges = [
-              param1Var?.range ?? [0, 10],
-              param2Var?.range ?? [0, 10],
-            ];
-          }
-          // Sample the manual function across the 2D grid by varying the parameters
-          const points = computationStore.sampleSurface(
-            parameters,
-            sampleRanges,
-            samples,
-            graphId
-          );
-          if (points.length > 0) {
-            surfaceResults.push({
-              id: graphId,
-              name: displayName,
-              points,
-              samples, // Include sample count for grid reshaping
-              color,
-              opacity,
-              showInLegend,
-              showColorbar,
-            });
-          }
-        } else if (graphType === "point") {
-          const pointConfig = graphConfig as I3DPoint;
-          const { color = "red", size = 8 } = pointConfig;
-          const point = computationStore.sample3DPoint(graphId);
-          if (point) {
-            pointResults.push({
-              name: displayName,
-              point,
-              color: resolveLineColor(color),
-              size,
-              showInLegend,
-            });
-          }
+        // Get ranges from config or from parameter variables' ranges
+        let sampleRanges = ranges;
+        if (!sampleRanges) {
+          const param1Var = computationStore.variables.get(parameters[0]);
+          const param2Var = computationStore.variables.get(parameters[1]);
+          sampleRanges = [
+            param1Var?.range ?? [0, 10],
+            param2Var?.range ?? [0, 10],
+          ];
+        }
+        // Sample the manual function across the 2D grid by varying the parameters
+        const sampledPoints = computationStore.sampleSurface(
+          parameters,
+          sampleRanges,
+          samples,
+          sampleId
+        );
+        if (sampledPoints.length > 0) {
+          surfaceResults.push({
+            id: sampleId,
+            name: displayName,
+            points: sampledPoints,
+            samples, // Include sample count for grid reshaping
+            color,
+            opacity,
+            showInLegend,
+            showColorbar,
+          });
+        }
+      }
+
+      for (const pointConfig of points ?? []) {
+        const {
+          sampleId,
+          name,
+          showInLegend = true,
+          color = "red",
+          size = 8,
+        } = pointConfig;
+        const displayName = name || sampleId;
+        const point = computationStore.sample3DPoint(sampleId);
+        if (point) {
+          pointResults.push({
+            name: displayName,
+            point,
+            color: resolveLineColor(color),
+            size,
+            showInLegend,
+          });
         }
       }
 
@@ -202,7 +205,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
         points: pointResults,
         surfaces: surfaceResults,
       };
-    }, [graphs, computationStore, xAxis, yAxis]);
+    }, [lines, points, surfaces, computationStore]);
 
     // Direct calculation function without debouncing
     const calculateDataPoints = useCallback(() => {
@@ -436,7 +439,6 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
       // Layout configuration
       const layout = {
-        title: title || "3D Visualization",
         uirevision: "persistent", // This key setting preserves user interactions like camera angle
         autosize: true, // Let Plotly automatically size to container
         scene: {
@@ -520,19 +522,15 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
                     let xVarId = config.xAxis || "x";
                     let yVarId = config.yAxis || "y";
 
-                    // If xAxis/yAxis don't exist, look for surface graph parameters
+                    // If xAxis/yAxis don't exist, look for surface parameters
                     if (
                       !computationStore.variables.has(xVarId) ||
                       !computationStore.variables.has(yVarId)
                     ) {
-                      const surfaceGraph = config.graphs?.find(
-                        (g) =>
-                          g.type === "surface" &&
-                          (g as I3DSurface).parameters?.length === 2
-                      ) as I3DSurface | undefined;
-                      if (surfaceGraph?.parameters) {
-                        xVarId = surfaceGraph.parameters[0];
-                        yVarId = surfaceGraph.parameters[1];
+                      const surface = config.surfaces?.[0];
+                      if (surface?.parameters) {
+                        xVarId = surface.parameters[0];
+                        yVarId = surface.parameters[1];
                       }
                     }
 
@@ -558,7 +556,6 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
       graphSurfacesData,
       graphPointsData,
       currentPoint,
-      title,
       isPlotInitialized,
       showCurrentPointInLegend,
       getVariableLabel,

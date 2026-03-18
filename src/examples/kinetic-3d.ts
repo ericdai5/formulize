@@ -26,28 +26,26 @@ export const kinetic3D = `const config = {
       name: "Velocity"
     }
   },
-  semantics: function({ vars, data3d }) {
+  semantics: function({ vars, sample }) {
     vars.K = 0.5 * vars.m * vars.v * vars.v;
-    data3d("energy", {x: vars.m, y: vars.v, z: vars.K});
+    sample("energy", {x: vars.m, y: vars.v, z: vars.K});
   },
 
-  visualizations: [
+  graph3d: [
     {
-      type: "plot3d",
       id: "energy3DPlot",
-      title: "3D Kinetic Energy Surface",
       xRange: [0.5, 5],
       yRange: [0.5, 10],
       zRange: [0, 250],
-      graphs: [
+      surfaces: [
         {
-          type: "surface",
-          id: "energy",
+          sampleId: "energy",
           parameters: ["m", "v"],
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "energy",
+          sampleId: "energy",
         }
       ]
     }

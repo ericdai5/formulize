@@ -19,9 +19,9 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { ComputationStore } from "../store/computation";
+import { debugStore } from "../store/debug";
 import { IControls } from "../types/control";
 import { IEnvironment } from "../types/environment";
-import { IVisualization } from "../types/visualization";
 import { computeLabelVariableEdges } from "../util/canvas/edges";
 import {
   addLabelNodes as addLabelNodesUtil,
@@ -32,7 +32,6 @@ import {
   checkAllNodesMeasured,
   getFormulaNodes,
   getLabelNodes,
-  getVariableNodes,
   positionAndShowstepNodes,
 } from "../util/canvas/node-helpers";
 import { addstepNodes as addstepNodesUtil } from "../util/canvas/step-node";
@@ -42,6 +41,7 @@ import {
 } from "../util/canvas/variable-nodes";
 import { CanvasControls } from "./canvas-controls";
 import { nodeTypes as defaultNodeTypes } from "./nodes/node";
+import BayesProbabilityChart from "../visualizations/custom/components/bayes-probability-chart";
 
 interface CanvasProps {
   controls?: IControls[];
@@ -49,13 +49,16 @@ interface CanvasProps {
   computationStore: ComputationStore;
 }
 
+const BAYES_EXAMPLE_ID = "bayesWithCustomVisualization";
+const BAYES_FORMULA_ID = "bayes-theorem";
+
 const CanvasFlow = observer(
   ({ controls, environment, computationStore }: CanvasProps) => {
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
-    // Track if variable nodes have been added to prevent re-adding
-    const variableNodesAddedRef = useRef(false);
+    // Tracks completion of the variable/label bootstrap pipeline
+    const bootstrapCompleteRef = useRef(false);
 
     // Track if initial fitView has been called to prevent re-fitting on every render
     const initialFitViewCalledRef = useRef(false);
@@ -81,6 +84,7 @@ const CanvasFlow = observer(
     // Initialize React Flow state first
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+    const selectedTemplate = debugStore.selectedTemplate;
 
     /**
      * Check if a label node should be visible based on the same logic as LabelNode component
@@ -179,35 +183,63 @@ const CanvasFlow = observer(
             id,
             computationStore,
           },
-          draggable: true,
           dragHandle: ".formula-drag-handle",
+          draggable: true,
+          style: {
+            cursor: "default",
+          },
         });
         currentY += 200; // Vertical spacing between formula nodes
       });
 
-      // Add visualization nodes if they exist in the environment
-      if (
-        environment?.visualizations &&
-        environment.visualizations.length > 0
-      ) {
-        let vizY = 0; // Start visualizations at the same Y as formulas
-        environment.visualizations.forEach(
-          (visualization: IVisualization, index: number) => {
-            nodes.push({
-              id: `visualization-${index}`,
-              type: "visualization",
-              position: { x: 800, y: vizY }, // Position to the right of formulas
-              data: { visualization, environment },
-              draggable: true,
-              dragHandle: ".visualization-drag-handle",
-            });
-            vizY += 300; // Vertical spacing between visualization nodes (larger spacing)
-          }
-        );
+      const graph2D = environment?.graph2d ?? [];
+      const graph3D = environment?.graph3d ?? [];
+      const hasGraphNodes = graph2D.length > 0 || graph3D.length > 0;
+      let vizY = 0; // Start visualizations at the same Y as formulas
+
+      if (hasGraphNodes) {
+        graph2D.forEach((plot) => {
+          nodes.push({
+            id: `graph-node-2d-${plot.id}`,
+            type: "graph",
+            position: { x: 800, y: vizY },
+            data: { graphId: plot.id },
+            draggable: true,
+            dragHandle: ".visualization-drag-handle",
+          });
+          vizY += 300;
+        });
+        graph3D.forEach((plot) => {
+          nodes.push({
+            id: `graph-node-3d-${plot.id}`,
+            type: "graph",
+            position: { x: 800, y: vizY },
+            data: { graphId: plot.id },
+            draggable: true,
+            dragHandle: ".visualization-drag-handle",
+          });
+          vizY += 300;
+        });
+      }
+
+      const isBayesExampleSelected = selectedTemplate === BAYES_EXAMPLE_ID;
+      const hasBayesFormula = computationStore.formulas.some(
+        (formula) => formula.id === BAYES_FORMULA_ID
+      );
+
+      if (isBayesExampleSelected || hasBayesFormula) {
+        nodes.push({
+          id: "bayes-chart",
+          type: "emptyNode",
+          position: { x: 800, y: vizY },
+          data: { component: BayesProbabilityChart },
+          draggable: true,
+          dragHandle: ".empty-node-drag-handle",
+        });
       }
 
       return nodes;
-    }, [getFormula, controls, environment]);
+    }, [getFormula, controls, environment, computationStore, selectedTemplate]);
 
     // Function to add step nodes for variables with step descriptions
     const addstepNodes = useCallback(() => {
@@ -235,8 +267,9 @@ const CanvasFlow = observer(
       adjustLabelPositionsUtil({
         getNodes,
         setNodes,
+        lockCurrentPlacements: computationStore.isDragging,
       });
-    }, [getNodes, setNodes]);
+    }, [computationStore, getNodes, setNodes]);
 
     // Function to add variable nodes as subnodes using React Flow's measurement system
     const addVariableNodes = useAddVariableNodes({
@@ -244,14 +277,14 @@ const CanvasFlow = observer(
       setNodes,
       addLabelNodes,
       addstepNodes,
-      variableNodesAddedRef,
+      bootstrapCompleteRef,
       computationStore,
     });
 
     const updateVariableNodes = useUpdateVariableNodes({
       nodesInitialized,
       setNodes,
-      variableNodesAddedRef,
+      bootstrapCompleteRef,
       computationStore,
     });
 
@@ -263,8 +296,8 @@ const CanvasFlow = observer(
           controls: controls,
         }),
         () => {
-          // Reset the variable nodes added flag when formulas change
-          variableNodesAddedRef.current = false;
+          // Reset bootstrap completion when formulas change
+          bootstrapCompleteRef.current = false;
           // Clear manually positioned labels when formulas change
           setNodes(createNodes());
           setEdges([]); // Clear edges when nodes are reset
@@ -273,7 +306,7 @@ const CanvasFlow = observer(
       );
 
       // Initial setup
-      variableNodesAddedRef.current = false;
+      bootstrapCompleteRef.current = false;
       setNodes(createNodes());
       setEdges([]); // Clear edges on initial setup
 
@@ -284,10 +317,14 @@ const CanvasFlow = observer(
 
     // Add variable nodes when React Flow nodes are initialized and measured
     useEffect(() => {
-      if (nodesInitialized && !variableNodesAddedRef.current) {
+      if (nodesInitialized && !bootstrapCompleteRef.current) {
+        if (computationStore.variables.size === 0) {
+          bootstrapCompleteRef.current = true;
+          return;
+        }
         addVariableNodes();
       }
-    }, [nodesInitialized, nodes, addVariableNodes]);
+    }, [nodesInitialized, nodes, addVariableNodes, computationStore]);
 
     // Fit view after all nodes are properly loaded and positioned (only on initial load)
     useEffect(() => {
@@ -296,11 +333,8 @@ const CanvasFlow = observer(
         nodes.length > 0 &&
         !initialFitViewCalledRef.current
       ) {
-        // Check if we have variable nodes (indicating full setup is complete)
-        const variableNodes = getVariableNodes(nodes);
-        const hasVariableNodes = variableNodes.length > 0;
-
-        if (hasVariableNodes) {
+        // Wait until variable-node bootstrap has completed (including zero-variable configs).
+        if (bootstrapCompleteRef.current) {
           fitView({ duration: 300, padding: 0.2 });
           initialFitViewCalledRef.current = true;
         }
@@ -317,7 +351,20 @@ const CanvasFlow = observer(
         () => {
           if (nodesInitialized) {
             // Variables set has changed, need to recreate all variable nodes
-            variableNodesAddedRef.current = false;
+            bootstrapCompleteRef.current = false;
+            if (computationStore.variables.size === 0) {
+              setNodes((currentNodes) =>
+                currentNodes.filter(
+                  (node) =>
+                    node.type !== NODE_TYPES.VARIABLE &&
+                    node.type !== NODE_TYPES.LABEL &&
+                    node.type !== NODE_TYPES.STEP &&
+                    node.type !== NODE_TYPES.EXPRESSION
+                )
+              );
+              bootstrapCompleteRef.current = true;
+              return;
+            }
             addVariableNodes();
           }
         },
@@ -326,7 +373,12 @@ const CanvasFlow = observer(
         }
       );
       return () => disposer();
-    }, [nodesInitialized, addVariableNodes, computationStore.variables]);
+    }, [
+      nodesInitialized,
+      addVariableNodes,
+      computationStore.variables,
+      setNodes,
+    ]);
 
     // Update variable node positions/dimensions when values change
     useEffect(() => {
@@ -337,10 +389,11 @@ const CanvasFlow = observer(
               id,
               value: variable.value,
               precision: variable.precision,
+              sigFigs: variable.sigFigs,
             })
           ),
         () => {
-          if (nodesInitialized && variableNodesAddedRef.current) {
+          if (nodesInitialized && bootstrapCompleteRef.current) {
             updateVariableNodes();
           }
         }
@@ -424,7 +477,7 @@ const CanvasFlow = observer(
           currentStep: computationStore.currentStep,
         }),
         () => {
-          if (nodesInitialized && variableNodesAddedRef.current) {
+          if (nodesInitialized && bootstrapCompleteRef.current) {
             // Debounce using a ref that persists outside this effect
             if (labelUpdateTimeoutRef.current) {
               clearTimeout(labelUpdateTimeoutRef.current);

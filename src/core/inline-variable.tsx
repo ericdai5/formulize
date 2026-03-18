@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite";
 
 import { VAR_CLASSES } from "../internal/css-classes";
 import { ComputationStore } from "../store/computation";
+import { formatNumberForLatex } from "../util/format-number";
 import { getInputVariableState } from "../util/parse/variable";
 import { useMathJax } from "../util/use-mathjax";
 import { useStore } from "./hooks";
@@ -77,13 +78,15 @@ const InlineVariableInner = observer(
         : variable.value;
       const units = variable.units;
       const precision = variable.precision;
+      const sigFigs = variable.sigFigs;
 
       // Format value
       let formattedValue = "";
       if (typeof value === "number") {
-        formattedValue = Number.isInteger(value)
-          ? value.toString()
-          : value.toFixed(precision);
+        formattedValue = formatNumberForLatex(value, {
+          precision,
+          sigFigs,
+        });
       } else if (Array.isArray(value)) {
         formattedValue = `\\{${value.join(", ")}\\}`;
       } else {

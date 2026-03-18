@@ -1,6 +1,25 @@
+/**
+ * Vector configuration.
+ * @property startSampleId - Sample ID for vector start point. Must match sample(sampleId, {x, y}) in semantics.
+ * @property endSampleId - Sample ID for vector end point. Must match sample(sampleId, {x, y}) in semantics.
+ * @property shape - Shape of the vector.
+ * @property color - Color of the vector.
+ * @property lineWidth - Width of the vector.
+ * @property markerSize - Size of the vector.
+ * @property name - Name of the vector.
+ * @property draggable - Whether the vector is draggable.
+ * @property showlegend - Whether to show the vector in the legend.
+ * @property interaction - Optional [xVarId, yVarId] used for vector tip drag updates and hover highlighting.
+ * @property label - Optional label for the vector.
+ * @property labelPosition - Optional position of the label.
+ * @property labelOffsetX - Optional offset of the label on the x-axis.
+ * @property labelOffsetY - Optional offset of the label on the y-axis.
+ * @property labelColor - Optional color of the label.
+ * @property labelFontSize - Optional font size of the label.
+ */
 export interface IVector {
-  x: (string | number)[];
-  y: (string | number)[];
+  startSampleId: string;
+  endSampleId: string;
   shape?: "arrow" | "dash" | "point";
   color?: string;
   lineWidth?: number;
@@ -8,7 +27,7 @@ export interface IVector {
   name?: string;
   draggable?: boolean;
   showlegend?: boolean;
-  // Optional on-canvas label configuration
+  interaction?: [string, string];
   label?: string;
   labelPosition?: "start" | "mid" | "end";
   labelOffsetX?: number;
@@ -19,21 +38,20 @@ export interface IVector {
 
 /**
  * Base configuration for graph-based 2D visualizations.
- * Uses explicit data2d() calls in manual functions to collect coordinates.
- * @property: id - Graph ID to match data2d() calls in manual function (required)
+ * Uses explicit sample() calls in manual functions to collect coordinates.
+ * @property: sampleId - Sample ID to match sample() calls in manual function (required)
  * @property: name - Display name for the legend
  * @property: showInLegend - Whether to show in legend
  */
 interface I2DConfigBase {
-  id: string;
+  sampleId: string;
   name?: string;
   showInLegend?: boolean;
 }
 
 /**
  * Line graph: samples over a parameter variable to create a 2D line/curve.
- * The manual function must call data2d(id, {x, y}) to provide coordinates.
- * @property: type - The type of object to graph
+ * The manual function must call sample(sampleId, {x, y}) to provide coordinates.
  * @property: parameter - The variable to vary during sampling (1 parameter for lines)
  * @property: range - Optional range to sample over the parameter (defaults to the variable's range)
  * @property: samples - Number of samples (default 100)
@@ -42,7 +60,6 @@ interface I2DConfigBase {
  * @property: interaction - Drag interaction: ["horizontal-drag" | "vertical-drag", variableName]
  */
 export interface I2DLine extends I2DConfigBase {
-  type: "line";
   parameter: string;
   range?: [number, number];
   samples?: number;
@@ -53,8 +70,7 @@ export interface I2DLine extends I2DConfigBase {
 
 /**
  * Point graph: shows the current point without sampling (0 parameters).
- * The manual function must call data2d(id, {x, y}) to provide coordinates.
- * @property type - The type of object to graph
+ * The manual function must call sample(sampleId, {x, y}) to provide coordinates.
  * @property color - Marker color
  * @property size - Marker size
  * @property showLabel - Whether to show label
@@ -66,7 +82,6 @@ export interface I2DLine extends I2DConfigBase {
  *                         false = point only visible at that exact step
  */
 export interface I2DPoint extends I2DConfigBase {
-  type: "point";
   color?: string;
   size?: number;
   showLabel?: boolean;
@@ -78,10 +93,8 @@ export interface I2DPoint extends I2DConfigBase {
 export type I2DConfig = I2DLine | I2DPoint;
 
 /**
- * Plot2D visualization configuration.
- * @property type - The type of the plot.
- * @property id - The id of the plot.
- * @property title - The title of the plot.
+ * Graph2D configuration.
+ * @property id - The id of the graph.
  * @property xAxisLabel - The label for the x-axis (cosmetic only, does not affect graphing).
  * @property xAxisVar - The variable to bind to x-axis for hover highlighting (optional)
  * @property xRange - The range of the x-axis.
@@ -94,18 +107,17 @@ export type I2DConfig = I2DLine | I2DPoint;
  * @property yAxisInterval - The interval of the y-axis.
  * @property yAxisPos - The position of the y-axis.
  * @property yGrid - The grid visibility for the y-axis.
- * @property vectors - The vectors for the plot.
- * @property graphs - Graph-based visualizations using data collected by data2d() calls.
+ * @property vectors - Vector segments whose endpoints are resolved from sample() IDs.
+ * @property lines - Line visualizations sampled from sample() calls.
+ * @property points - Point visualizations sampled from sample() calls.
  *                    Points with stepId will only appear during stepping when that step is reached.
  * @property width - The width of the plot.
  * @property height - The height of the plot.
  * @property tickFontSize - The font size of the ticks.
  * @property interaction - The interaction of the plot.
  */
-export interface IPlot2D {
-  type: "plot2d";
-  id?: string;
-  title?: string;
+export interface IGraph2D {
+  id: string;
   xAxisLabel?: string;
   xAxisVar?: string;
   xRange?: [number, number];
@@ -121,7 +133,8 @@ export interface IPlot2D {
   yLabelPos?: "center" | "top"; // Position of y-axis label along the axis line
   yGrid?: "show" | "hide"; // Grid visibility for y-axis, default is "show"
   vectors?: IVector[];
-  graphs?: I2DConfig[];
+  lines?: I2DLine[];
+  points?: I2DPoint[];
   width?: number | string;
   height?: number | string;
   tickFontSize?: number;

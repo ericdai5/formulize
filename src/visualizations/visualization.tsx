@@ -1,69 +1,91 @@
 import React, { useEffect, useState } from "react";
 
-import { IVisualization } from "../types/visualization";
-import Canvas from "./custom/canvas";
-import Plot2D from "./plot2d/plot-2d";
-import Plot3D from "./plot3d/plot-3d";
+import { useStore } from "../core/hooks";
+import { IGraph2D } from "../types/graph2d";
+import { IGraph3D } from "../types/graph3d";
+import Plot2D from "./graph2d/graph-2d";
+import Plot3D from "./graph3d/graph-3d";
 
 const PlotWrapper: React.FC<{
-  title?: string;
   renderKey: number;
   className?: string;
   children: React.ReactNode;
-}> = ({ title, renderKey, className = "", children }) => (
+}> = ({ renderKey, className = "", children }) => (
   <div
     className={`w-full h-full p-6 overflow-hidden ${className}`}
     key={`plot-container-${renderKey}`}
   >
-    {title && (
-      <div className="visualization-header mb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-lg font-medium text-gray-800">{title}</h4>
-          </div>
-        </div>
-      </div>
-    )}
     <div className="flex items-center justify-center h-full">{children}</div>
   </div>
 );
 
-const VisualizationRenderer: React.FC<{
-  visualization: IVisualization;
-}> = ({ visualization }) => {
+type GraphEnvironment = {
+  graph2d?: IGraph2D[];
+  graph3d?: IGraph3D[];
+};
+
+interface VisualizationRendererProps {
+  id: string;
+}
+
+type ResolvedGraph =
+  | { type: "graph2d"; config: IGraph2D }
+  | { type: "graph3d"; config: IGraph3D };
+
+function resolveByExplicitId(
+  id: string,
+  environment: GraphEnvironment
+): ResolvedGraph | null {
+  const graph2d = environment.graph2d?.find((graph) => graph.id === id);
+  if (graph2d) {
+    return { type: "graph2d", config: graph2d };
+  }
+  const graph3d = environment.graph3d?.find((graph) => graph.id === id);
+  if (graph3d) {
+    return { type: "graph3d", config: graph3d };
+  }
+  return null;
+}
+
+function resolveGraph(
+  id: string,
+  environment: GraphEnvironment
+): ResolvedGraph | null {
+  return resolveByExplicitId(id, environment);
+}
+
+const VisualizationRenderer = ({ id }: VisualizationRendererProps) => {
+  const storeContext = useStore();
+  const sourceEnvironment =
+    storeContext?.instance?.environment ?? storeContext?.config ?? {};
+  const resolvedGraph = resolveGraph(id, sourceEnvironment);
+
   const [renderKey, setRenderKey] = useState(Date.now());
-  const configString = JSON.stringify(visualization);
+  const configString = JSON.stringify(resolvedGraph?.config ?? null);
   useEffect(() => {
     setRenderKey(Date.now());
-  }, [visualization.type, configString]);
+  }, [id, configString]);
 
-  if (visualization.type === "plot2d") {
+  if (!resolvedGraph) {
     return (
-      <PlotWrapper title={visualization.title} renderKey={renderKey}>
-        <Plot2D key={`plot2d-${renderKey}`} config={visualization} />
-      </PlotWrapper>
+      <div className="p-4 bg-red-100 text-red-700 rounded-lg">
+        Graph with id "{id}" not found.
+      </div>
     );
   }
 
-  if (visualization.type === "plot3d") {
+  if (resolvedGraph.type === "graph2d") {
     return (
-      <PlotWrapper title={visualization.title} renderKey={renderKey}>
-        <Plot3D
-          key={`plot3d-${renderKey}`}
-          config={visualization}
-        />
+      <PlotWrapper renderKey={renderKey}>
+        <Plot2D key={`graph2d-${renderKey}`} config={resolvedGraph.config} />
       </PlotWrapper>
     );
-  }
-
-  if (visualization.type === "custom") {
-    return <Canvas key={`custom-${renderKey}`} config={visualization} />;
   }
 
   return (
-    <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-      Unsupported visualization type: {(visualization as { type: string }).type}
-    </div>
+    <PlotWrapper renderKey={renderKey}>
+      <Plot3D key={`graph3d-${renderKey}`} config={resolvedGraph.config} />
+    </PlotWrapper>
   );
 };
 

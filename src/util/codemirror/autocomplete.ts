@@ -25,6 +25,11 @@ const variableCompletions: CompletionOption[] = [
   { label: "units", type: "property", info: "Units string" },
   { label: "name", type: "property", info: "Variable name" },
   { label: "precision", type: "property", info: "Precision (number)" },
+  {
+    label: "sigFigs",
+    type: "property",
+    info: "Significant digits (number)",
+  },
   { label: "description", type: "property", info: "Variable description" },
   { label: "range", type: "property", info: "Range tuple [number, number]" },
   { label: "step", type: "property", info: "Step size (number)" },
@@ -98,9 +103,14 @@ const environmentCompletions: CompletionOption[] = [
     info: "Semantics configuration (ISemantics)",
   },
   {
-    label: "visualizations",
+    label: "graph2d",
     type: "property",
-    info: "Visualizations array (IVisualization[], optional)",
+    info: "2D graph config (array of graph2d configs, optional)",
+  },
+  {
+    label: "graph3d",
+    type: "property",
+    info: "3D graph config (array of graph3d configs, optional)",
   },
   {
     label: "controls",

@@ -64,7 +64,6 @@ This is a **Formula Editor** built with React + TypeScript + Vite that provides 
 - Uses MobX decorators with `experimentalDecorators` enabled
 - Emotion JSX runtime configured for CSS-in-JS
 - Strict TypeScript configuration with full linting
-- Custom visualization registry system for extensible plotting
 - Multi-formula support with individual store management
 - Variable dependency tracking and automatic recomputation
 

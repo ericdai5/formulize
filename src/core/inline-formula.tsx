@@ -8,7 +8,10 @@ import {
   getInputVariableState,
   processLatexContent,
 } from "../util/parse/variable";
-import { updateVariableHoverState } from "../util/scale-wrapper";
+import {
+  setupScaleWrappers,
+  updateVariableHoverState,
+} from "../util/scale-wrapper";
 import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { useMathJax } from "../util/use-mathjax";
 import { useStore } from "./hooks";
@@ -48,67 +51,6 @@ const InlineFormulaInner = observer(
       const formula = formulas.find((f) => f.id === id);
       return formula?.latex || null;
     }, [id, computationStore.environment?.formulas]);
-
-    // Render the formula with MathJax
-    const renderFormula = useCallback(async () => {
-      if (!containerRef.current || !mathJaxLoaded || !window.MathJax) return;
-
-      const latex = getFormulaLatex();
-      if (!latex) {
-        console.warn(`InlineFormula: Formula not found with id "${id}"`);
-        return;
-      }
-
-      try {
-        const container = containerRef.current;
-
-        // Clear previous MathJax content
-        window.MathJax.typesetClear([container]);
-
-        // Process LaTeX to add interactive variable CSS classes
-        let processedLatex: string;
-        try {
-          processedLatex = processLatexContent(latex, 2, computationStore);
-        } catch (e) {
-          console.warn(
-            "InlineFormula: LaTeX processing failed, using raw latex"
-          );
-          processedLatex = latex;
-        }
-
-        // Create element with inline math mode (no \displaystyle for true inline)
-        // Use scale prop (default 1) to match surrounding text
-        const mathSpan = document.createElement("span");
-        mathSpan.style.fontSize = `${scale}em`;
-        mathSpan.textContent = `\\(${processedLatex}\\)`;
-
-        // Replace content and typeset
-        container.innerHTML = "";
-        container.appendChild(mathSpan);
-        await window.MathJax.typesetPromise([container]);
-
-        // Inject SVG elements for variables after MathJax rendering
-        try {
-          injectVariableSVGs(container, computationStore);
-        } catch (svgError) {
-          console.error(
-            "InlineFormula: Error injecting variable SVGs:",
-            svgError
-          );
-        }
-
-        // After rendering, attach hover and drag event listeners to variable elements
-        attachVariableInteractionListeners(container);
-      } catch (error) {
-        console.error("InlineFormula: Render error:", error);
-      }
-    }, [
-      id,
-      getFormulaLatex,
-      mathJaxLoaded,
-      computationStore,
-      scale,
-    ]);
 
     // Attach hover and drag listeners to elements with variable IDs
     const attachVariableInteractionListeners = useCallback(
@@ -199,6 +141,75 @@ const InlineFormulaInner = observer(
       [computationStore]
     );
 
+    // Render the formula with MathJax
+    const renderFormula = useCallback(async () => {
+      if (!containerRef.current || !mathJaxLoaded || !window.MathJax) return;
+
+      const latex = getFormulaLatex();
+      if (!latex) {
+        console.warn(`InlineFormula: Formula not found with id "${id}"`);
+        return;
+      }
+
+      try {
+        const container = containerRef.current;
+
+        // Clear previous MathJax content
+        window.MathJax.typesetClear([container]);
+
+        // Process LaTeX to add interactive variable CSS classes
+        let processedLatex: string;
+        try {
+          processedLatex = processLatexContent(latex, 2, computationStore);
+        } catch (e) {
+          console.warn(
+            "InlineFormula: LaTeX processing failed, using raw latex"
+          );
+          processedLatex = latex;
+        }
+
+        // Create element with inline math mode (no \displaystyle for true inline)
+        // Use scale prop (default 1) to match surrounding text
+        const mathSpan = document.createElement("span");
+        mathSpan.style.fontSize = `${scale}em`;
+        mathSpan.textContent = `\\(${processedLatex}\\)`;
+
+        // Replace content and typeset
+        container.innerHTML = "";
+        container.appendChild(mathSpan);
+        await window.MathJax.typesetPromise([container]);
+
+        // Inject SVG elements for variables after MathJax rendering
+        try {
+          injectVariableSVGs(container, computationStore);
+        } catch (svgError) {
+          console.error(
+            "InlineFormula: Error injecting variable SVGs:",
+            svgError
+          );
+        }
+
+        // Wrap interactive variables so hover scaling happens outside MathJax layout.
+        setupScaleWrappers(
+          container,
+          ".var-input, .var-base",
+          computationStore.highlightedVarIds
+        );
+
+        // After rendering, attach hover and drag event listeners to variable elements
+        attachVariableInteractionListeners(container);
+      } catch (error) {
+        console.error("InlineFormula: Render error:", error);
+      }
+    }, [
+      id,
+      getFormulaLatex,
+      mathJaxLoaded,
+      computationStore,
+      scale,
+      attachVariableInteractionListeners,
+    ]);
+
     // Initial render when MathJax is ready
     useEffect(() => {
       if (mathJaxLoaded) {
@@ -230,7 +241,10 @@ const InlineFormulaInner = observer(
         () => computationStore.highlightedVarIds,
         (highlightedVarIds) => {
           if (!containerRef.current) return;
-          updateVariableHoverState(containerRef.current, highlightedVarIds);
+          updateVariableHoverState(
+            containerRef.current,
+            highlightedVarIds
+          );
         }
       );
       return () => disposer();

@@ -1,6 +1,5 @@
 import katex from "katex";
 
-import { canonicalizeFormula } from "./formula-transform";
 // import * as babelPlugin from "prettier/parser-babel";
 // import * as estreePlugin from "prettier/plugins/estree";
 // import * as prettier from "prettier/standalone";
@@ -10,6 +9,7 @@ import {
   StyledRange,
   UnstyledRange,
 } from "./formula-text";
+import { canonicalizeFormula } from "./formula-transform";
 
 // import * as prettier from "prettier/standalone";
 // import * as babelPlugin from "prettier/parser-babel";
@@ -2738,6 +2738,33 @@ const findMatchingSubsequences = (
 };
 
 /**
+ * Find all expression matches in a node list and descendant node lists.
+ * This allows matching subexpressions nested inside structures such as fractions.
+ */
+const findAllRecursiveMatches = (
+  children: AugmentedFormulaNode[],
+  patternChildren: AugmentedFormulaNode[]
+): AugmentedFormulaNode[][] => {
+  const matches: AugmentedFormulaNode[][] = [];
+  const directMatches = findMatchingSubsequences(children, patternChildren);
+  if (directMatches.length > 0) {
+    directMatches.forEach((match) => {
+      matches.push(match.nodes);
+    });
+  }
+
+  for (const child of children) {
+    const nestedMatches = findAllRecursiveMatches(
+      child.children,
+      patternChildren
+    );
+    matches.push(...nestedMatches);
+  }
+
+  return matches;
+};
+
+/**
  * Check if a subsequence of nodes matches a pattern subsequence
  */
 const subsequenceMatches = (
@@ -3052,6 +3079,25 @@ export interface ExpressionMatchResult {
 }
 
 /**
+ * Collect DOM element ids for a matched node.
+ * Prefer the node's own cssId when available (for structural wrappers),
+ * otherwise recurse into descendants.
+ */
+const collectExpressionElementIds = (
+  node: AugmentedFormulaNode,
+  elementIds: Set<string>
+): void => {
+  if (node.cssId) {
+    elementIds.add(node.cssId);
+    return;
+  }
+
+  for (const child of node.children) {
+    collectExpressionElementIds(child, elementIds);
+  }
+};
+
+/**
  * Find where an expression matches within a stored formula tree.
  * Uses the cssId values that were assigned during variable processing.
  * This uses structural AST matching rather than string matching, which correctly
@@ -3083,19 +3129,23 @@ export const findExpression = (
     if (expressionTree.children.length === 0) {
       return null;
     }
-    // Find matching subsequence in the formula's children
-    const matches = findMatchingSubsequences(
+    // Find matching subsequences in the formula tree (including nested descendants)
+    // and use the first recursive match in traversal order.
+    const allMatches = findAllRecursiveMatches(
       formulaTree.children,
       expressionTree.children
     );
-    if (matches.length === 0) {
+    const matchedNodes = allMatches[0] ?? null;
+    if (!matchedNodes) {
       return null;
     }
-    const matchedNodes = matches[0].nodes;
-    // Get cssIds directly from matched nodes
-    const elementIds = matchedNodes
-      .map((node) => node.cssId)
-      .filter((id): id is string => id !== null);
+    // Collect cssIds from matched nodes. Some nodes (e.g. script) are not
+    // wrapped directly, so recurse to descendants when needed.
+    const elementIdsSet = new Set<string>();
+    matchedNodes.forEach((node) =>
+      collectExpressionElementIds(node, elementIdsSet)
+    );
+    const elementIds = Array.from(elementIdsSet);
     if (elementIds.length === 0) {
       return null;
     }

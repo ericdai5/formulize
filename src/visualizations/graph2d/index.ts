@@ -1,6 +1,6 @@
 // Main Plot2D component
-export { default as Plot2D } from "./plot-2d";
-export type { DataPoint } from "./plot-2d";
+export { default as Plot2D } from "./graph-2d";
+export type { DataPoint } from "./graph-2d";
 
 // Defaults and configuration
 export * from "./defaults";

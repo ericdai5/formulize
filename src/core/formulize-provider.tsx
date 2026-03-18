@@ -98,6 +98,28 @@ const ProviderInner: React.FC<ProviderProps> = observer(
       refresh(instance.computationStore);
     }, [instance]);
 
+    const getVariable = useCallback(
+      (variableName: string): number => {
+        const store = instance?.computationStore;
+        if (!store) return 0;
+        const variable = store.variables.get(variableName);
+        return typeof variable?.value === "number" ? variable.value : 0;
+      },
+      [instance]
+    );
+
+    const setVariable = useCallback(
+      (variableName: string, value: number): boolean => {
+        if (!instance) return false;
+        try {
+          return instance.setVariable(variableName, value);
+        } catch {
+          return false;
+        }
+      },
+      [instance]
+    );
+
     const contextValue: StoreContextValue = useMemo(
       () => ({
         instance,
@@ -105,9 +127,11 @@ const ProviderInner: React.FC<ProviderProps> = observer(
         isLoading,
         error,
         computationStore: instance?.computationStore ?? null,
+        getVariable,
+        setVariable,
         reinitialize,
       }),
-      [instance, config, isLoading, error, reinitialize]
+      [instance, config, isLoading, error, getVariable, setVariable, reinitialize]
     );
 
     return (

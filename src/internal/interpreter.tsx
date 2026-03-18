@@ -80,31 +80,24 @@ const StepViewer: React.FC<StepViewerProps> = observer(
                 <div className="text-sm font-medium">
                   {currentStep.description}
                 </div>
-                {currentStep.values && currentStep.values.length > 0 && (
-                  <div className="mt-2">
-                    <div className="text-xs text-slate-500 mb-1">Values:</div>
-                    <div className="space-y-1">
-                      {currentStep.values.map(([varId, value], i) => (
-                        <div
-                          key={i}
-                          className="text-sm font-mono bg-slate-50 px-2 py-1 rounded"
-                        >
-                          {varId} = {JSON.stringify(value)}
-                        </div>
-                      ))}
+                {currentStep.labels &&
+                  Object.keys(currentStep.labels).length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs text-slate-500 mb-1">Labels:</div>
+                      <div className="space-y-1">
+                        {Object.entries(currentStep.labels).map(
+                          ([latex, value], i) => (
+                            <div
+                              key={`${latex}-${i}`}
+                              className="text-sm font-mono bg-slate-50 px-2 py-1 rounded"
+                            >
+                              {latex} =&gt; {JSON.stringify(value)}
+                            </div>
+                          )
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-                {currentStep.expression && (
-                  <div className="mt-2">
-                    <div className="text-xs text-slate-500 mb-1">
-                      Expression:
-                    </div>
-                    <div className="text-sm font-mono bg-slate-50 px-2 py-1 rounded">
-                      {currentStep.expression}
-                    </div>
-                  </div>
-                )}
+                  )}
               </div>
             ) : (
               <div className="text-sm text-slate-500">No step selected</div>

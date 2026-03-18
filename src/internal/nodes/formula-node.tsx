@@ -103,7 +103,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
       () => computationStore.highlightedVarIds,
       (highlightedVarIds) => {
         if (!nodeRef.current) return;
-        updateVariableHoverState(nodeRef.current, highlightedVarIds, true);
+        updateVariableHoverState(nodeRef.current, highlightedVarIds);
       }
     );
     return () => disposer();

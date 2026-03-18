@@ -39,23 +39,23 @@ export const summationBasic = `const config = {
       var xi = xValues[i];
       var probability = pxValues[i];
       if (i === 0) {
-        step({ description: "Get a value x from X", values: [["x", xi], ["X", xValues]] });
-        step({ description: "Get a value P(x) from P(x)", values: [["P(x)", probability]] });
+        step({ description: "Get a value x from X", labels: { "x": xi, "X": xValues } });
+        step({ description: "Get a value P(x) from P(x)", labels: { "P(x)": probability } });
       }
       var currExpected = Math.round(xi * probability * 100) / 100;
       if (i === 0) {
-        step({ description: "This evaluates to:", values: [["x", xi], ["P(x)", probability]] });
+        step({ labels: { "x": xi, "P(x)": probability, "x P(x)": "This evaluates to: " + currExpected } });
       }
       expectedValue = Math.round((expectedValue + currExpected) * 100) / 100;
       switch (i) {
         case 0:
-          step({ description: "add up term into E", values: [["E", expectedValue]] });
+          step({ description: "add up term into E", labels: { "E": expectedValue } });
           break;
         case 1:
-          step({ description: "add next term...", values: [["E", expectedValue]] });
+          step({ description: "add next term...", labels: { "E": expectedValue } });
           break;
         case xValues.length - 1:
-          step({ description: "finish accumulating weighted sum", values: [["E", expectedValue]] });
+          step({ description: "finish accumulating weighted sum", labels: { "E": expectedValue } });
           break;
       }
     }

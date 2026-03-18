@@ -9,6 +9,10 @@ export interface StoreContextValue {
   isLoading: boolean;
   error: string | null;
   computationStore: ComputationStore | null;
+  /** Read a numeric variable value by name (returns 0 when unavailable). */
+  getVariable: (variableName: string) => number;
+  /** Update a variable value by name (returns false when unavailable). */
+  setVariable: (variableName: string, value: number) => boolean;
   /** Reinitialize steps by re-running the semantics function */
   reinitialize: () => void;
 }

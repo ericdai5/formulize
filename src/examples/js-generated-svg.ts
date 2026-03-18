@@ -61,13 +61,13 @@ const config = {
       units: "s",
     }
   },
-  semantics: function({ vars, data2d }) {
+  semantics: function({ vars, sample }) {
     vars.w = vars.A * Math.sin(2 * Math.PI * vars.f * vars.t + vars.phi);
-    data2d("wave", {x: vars.t, y: vars.w});
+    sample("wave", {x: vars.t, y: vars.w});
   },
-  visualizations: [
+  graph2d: [
     {
-      type: "plot2d",
+      id: "waveGraph",
       xAxisLabel: "t",
       xAxisVar: "t",
       xRange: [0, 10],
@@ -76,17 +76,17 @@ const config = {
       yAxisVar: "w",
       yRange: [-6, 6],
       yGrid: "show",
-      graphs: [
+      lines: [
         {
-          type: "line",
-          id: "wave",
+          sampleId: "wave",
           parameter: "t",
           samples: 500,
           interaction: ["vertical-drag", "A"]
-        },
+        }
+      ],
+      points: [
         {
-          type: "point",
-          id: "wave",
+          sampleId: "wave",
           interaction: ["horizontal-drag", "t"]
         }
       ]
