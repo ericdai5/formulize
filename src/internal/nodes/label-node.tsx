@@ -382,13 +382,18 @@ const VariableLabelNode = observer(
         if (!isLabelInlineEditable) return;
         if (computationStore.editingStates.get(varId)) return;
 
-        // Find the MathJax element inside the clicked container
+        // Find the inner MathJax content element (mjx-mn for numbers, mjx-mi for identifiers)
+        // This matches formula-node which targets MJX-MN elements, not the outer MJX-CONTAINER
         const container = e.currentTarget;
-        const mathJaxElement = container.querySelector(".MathJax") as HTMLElement;
-        if (mathJaxElement) {
+        const innerElement = (
+          container.querySelector("mjx-mn") ??
+          container.querySelector("mjx-mi") ??
+          container.querySelector("mjx-mrow")
+        ) as HTMLElement;
+        if (innerElement) {
           showInlineEditOverlay({
             varId,
-            element: mathJaxElement,
+            element: innerElement,
             computationStore,
           });
         }

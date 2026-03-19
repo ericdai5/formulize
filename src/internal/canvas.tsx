@@ -4,8 +4,6 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import {
-  Background,
-  BackgroundVariant,
   Edge,
   Node,
   NodeChange,
@@ -631,12 +629,6 @@ const CanvasFlow = observer(
           autoPanOnNodeDrag={false}
           proOptions={proOptions}
         >
-          <Background
-            color="#94A3B8"
-            gap={20}
-            size={1}
-            variant={BackgroundVariant.Dots}
-          />
           <CanvasControls />
         </ReactFlow>
       </div>
