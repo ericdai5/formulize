@@ -38,6 +38,10 @@ class ComputationStore {
   @observable
   accessor dragStates = new Map<string, boolean>();
 
+  // Currently inline-editing variable IDs (prevents formula re-render during editing)
+  @observable
+  accessor editingStates = new Map<string, boolean>();
+
   // Node hover states for visualization nodes (node ID -> hover state)
   @observable
   accessor nodeHoverStates = new Map<string, boolean>();
@@ -998,6 +1002,20 @@ class ComputationStore {
   // Check if a variable is being dragged
   isVariableDragging(varId: string): boolean {
     return this.dragStates.get(varId) ?? false;
+  }
+
+  @action
+  setVariableEditing(varId: string, isEditing: boolean) {
+    if (isEditing) {
+      this.editingStates.set(varId, true);
+    } else {
+      this.editingStates.delete(varId);
+    }
+  }
+
+  // Check if a variable is being inline edited
+  isVariableEditing(varId: string): boolean {
+    return this.editingStates.get(varId) ?? false;
   }
 
   // Check if a variable is being hovered

@@ -40,6 +40,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     };
     initializeMathJax();
   }, []);
+
   const renderFormula = useCallback(async () => {
     // Pass stores from context to the render function (convert null to undefined)
     const dataWithStores: FormulaNodeData = {
@@ -85,8 +86,15 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
         activeVariables: Array.from(
           computationStore.getActiveVariables().entries()
         ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
+        // Track editing states to trigger re-render when editing ends
+        editingStates: Array.from(computationStore.editingStates.entries()),
       }),
       () => {
+        // Skip re-render if any variable is being edited
+        // (the input element is inside the formula and would be destroyed)
+        if (computationStore.editingStates.size > 0) {
+          return;
+        }
         if (isInitialized) {
           renderFormula();
         }
@@ -137,8 +145,8 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
           <GripVertical size={14} className="text-slate-400" />
         </div>
       )}
-      {/* Formula content container */}
-      <div className="formula">
+      {/* Formula content container - nodrag allows click events for inline editing */}
+      <div className="formula nodrag">
         <div className="rendered-latex"></div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { Handle, Position } from "@xyflow/react";
 
 import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
+import { showInlineEditOverlay } from "../../util/inline-edit-overlay";
 import { useVariableDrag } from "../../util/use-variable-drag";
 import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
 
@@ -26,10 +27,15 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const showShadow = debugStore.showVariableShadow;
   const variable = computationStore.variables.get(varId);
   const isDraggable = variable?.input === "drag";
+  const isInlineEditable = variable?.input === "inline";
   const hasDropdownOptions = !!(
     Array.isArray(variable?.value) || variable?.options
   );
   const isSetVariable = variable?.dataType === "set";
+
+  // Only enable inline editing on this node if latexDisplay is "value"
+  // When latexDisplay is "name" (default), the label handles inline editing instead
+  const latexDisplay = variable?.latexDisplay ?? "name";
 
   const nodeRef = useVariableDrag({
     varId,
@@ -46,13 +52,46 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
     computationStore.setVariableHover(varId, false);
   };
 
-  // Only show draggable cursor for draggable variables without dropdown and not set variables
-  // Set variables get pointer cursor for click input
-  const cursor = isSetVariable
-    ? "pointer"
-    : isDraggable && !hasDropdownOptions
-      ? "ns-resize"
-      : "default";
+  // Prevent mousedown from causing blur on the input when already editing
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isInlineEditable || latexDisplay !== "value") return;
+
+    // If already editing this variable, prevent mousedown from stealing focus
+    if (computationStore.editingStates.get(varId)) {
+      e.preventDefault();
+    }
+  };
+
+  // Handle click for inline editable variables
+  const handleClick = () => {
+    if (!isInlineEditable || latexDisplay !== "value") return;
+    if (computationStore.editingStates.get(varId)) return;
+
+    // Find the MathJax element with this varId in the formula
+    const mathJaxElement = document.querySelector(
+      `#${CSS.escape(varId)}`
+    ) as HTMLElement;
+    if (mathJaxElement) {
+      showInlineEditOverlay({
+        varId,
+        element: mathJaxElement,
+        computationStore,
+      });
+    }
+  };
+
+  // Check if we're currently editing this variable
+  const isEditing = computationStore.editingStates.get(varId);
+
+  // Determine cursor based on variable type and inline edit capability
+  const cursor =
+    isInlineEditable && latexDisplay === "value"
+      ? "text"
+      : isSetVariable
+        ? "pointer"
+        : isDraggable && !hasDropdownOptions
+          ? "ns-resize"
+          : "default";
 
   return (
     <div
@@ -61,13 +100,16 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
         showBorders ? "border border-blue-400" : ""
       } ${showShadow ? "bg-blue-400/20" : ""}`}
       style={{
-        pointerEvents: "auto",
+        // When editing, disable pointer events so clicks pass through to the input underneath
+        pointerEvents: isEditing ? "none" : "auto",
         width: width ? `${width}px` : "auto",
         height: height ? `${height}px` : "auto",
         cursor,
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onMouseDown={handleMouseDown}
+      onClick={handleClick}
     >
       {/* Handle for incoming edges from label nodes positioned above - hidden */}
       <Handle

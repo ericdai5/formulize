@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useRef } from "react";
 
 import { toJS } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -9,10 +9,8 @@ import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { buildDebugStyles } from "../../util/debug-styles";
-import {
-  formatNumberForDisplay,
-  formatNumberForLatex,
-} from "../../util/format-number";
+import { formatNumberForLatex } from "../../util/format-number";
+import { showInlineEditOverlay } from "../../util/inline-edit-overlay";
 import {
   formatInlineLatex,
   toLatexText,
@@ -170,121 +168,6 @@ const ExpressionLabelNode = observer(
   }
 );
 
-// Inline editable input component for variables with input: "inline"
-const InlineInput = observer(
-  ({
-    varId,
-    variable,
-    fontSize,
-  }: {
-    varId: string;
-    variable: {
-      value?: number | (string | number)[];
-      precision?: number;
-      sigFigs?: number;
-      step?: number;
-    };
-    fontSize?: number;
-  }) => {
-    const context = useStore();
-    const computationStore = context?.computationStore;
-
-    const currentValue =
-      typeof variable.value === "number" ? variable.value : 0;
-    const displayPrecision =
-      variable.precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
-    const sigFigs = variable.sigFigs;
-
-    // Format value with precision for display
-    const formatValue = useCallback(
-      (val: number) => {
-        // Use precision, but don't show trailing zeros for integers
-        if (
-          sigFigs === undefined &&
-          Number.isInteger(val) &&
-          displayPrecision === 0
-        ) {
-          return String(val);
-        }
-        return formatNumberForDisplay(val, {
-          precision: displayPrecision,
-          sigFigs,
-        });
-      },
-      [displayPrecision, sigFigs]
-    );
-
-    const [localValue, setLocalValue] = useState<string>(
-      formatValue(currentValue)
-    );
-    const [isFocused, setIsFocused] = useState(false);
-
-    // Sync local value when variable value changes externally
-    useEffect(() => {
-      if (!isFocused && typeof variable.value === "number") {
-        setLocalValue(formatValue(variable.value));
-      }
-    }, [variable.value, isFocused, formatValue]);
-
-    const handleChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newValue = event.target.value;
-        setLocalValue(newValue);
-        const parsed = parseFloat(newValue);
-        if (!isNaN(parsed) && computationStore) {
-          computationStore.setValue(varId, parsed);
-        }
-      },
-      [varId, computationStore]
-    );
-
-    const handleBlur = useCallback(() => {
-      setIsFocused(false);
-      if (typeof variable.value === "number") {
-        setLocalValue(formatValue(variable.value));
-      }
-    }, [variable.value, formatValue]);
-
-    const handleFocus = useCallback(() => {
-      setIsFocused(true);
-    }, []);
-
-    const handleKeyDown = useCallback(
-      (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "Enter") {
-          (event.target as HTMLInputElement).blur();
-        }
-      },
-      []
-    );
-
-    return (
-      <input
-        type="text"
-        inputMode="decimal"
-        value={localValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onFocus={handleFocus}
-        onKeyDown={handleKeyDown}
-        size={Math.max(localValue.length, 1)}
-        className="nodrag inline-input"
-        style={{
-          width: "auto",
-          fontSize: fontSize ? `${fontSize * 2}em` : "1.8em",
-          fontFamily: "KaTeX_Main, Times New Roman, serif",
-          border: "none",
-          background: "transparent",
-          textAlign: "center",
-          outline: "none",
-          padding: "0 0.1em",
-          margin: 0,
-        }}
-      />
-    );
-  }
-);
-
 const VariableLabelNode = observer(
   ({ data }: { data: VariableLabelNodeData }) => {
     const { varId, formulaId } = data;
@@ -357,16 +240,14 @@ const VariableLabelNode = observer(
     // Check if this is an inline input variable
     const isInlineInput = input === "inline";
 
-    if (isInlineInput && !shouldHideValueFromStepLabel) {
-      // Render inline editable input for input variables
-      displayComponent = (
-        <InlineInput
-          varId={varId}
-          variable={variable}
-          fontSize={labelFontSize}
-        />
-      );
-    } else if (hasStepLabelEntry) {
+    // Check if we're currently editing this variable
+    const isEditing = computationStore.editingStates.get(varId);
+
+    // Cache the latex value to prevent re-rendering during editing
+    // This prevents the LatexLabel from re-typesetting and destroying the input overlay
+    const cachedLatexRef = useRef<string>("");
+
+    if (hasStepLabelEntry) {
       if (shouldHideValueFromStepLabel) {
         // Explicit null/undefined override means "hide value display for this variable".
         if (!name) {
@@ -423,8 +304,14 @@ const VariableLabelNode = observer(
           precision: displayPrecision,
           sigFigs,
         });
+        // When editing, use cached latex to prevent re-rendering that destroys the input overlay
+        // Only update the cache when not editing
+        if (!isEditing) {
+          cachedLatexRef.current = mainDisplayText;
+        }
+        const displayLatex = isEditing ? cachedLatexRef.current || mainDisplayText : mainDisplayText;
         displayComponent = (
-          <LatexLabel latex={mainDisplayText} fontSize={labelFontSize} />
+          <LatexLabel latex={displayLatex} fontSize={labelFontSize} />
         );
       } else if (isStepModeActive && isVariableActive) {
         // In step mode, active variables should always show something
@@ -477,12 +364,37 @@ const VariableLabelNode = observer(
     // Enable drag for input variables even in step mode (so users can change values)
     const isDraggableVar = input === "drag" && !isSetVariable && !isInlineInput;
     const cursor = isDraggableVar ? "grab" : "default";
-    const valueCursor =
-      isSetVariable && !isStepModeActive
+
+    // Determine if inline editing is enabled for this label
+    const isLabelInlineEditable = isInlineInput && labelDisplay === "value";
+
+    const valueCursor = isLabelInlineEditable
+      ? "text"
+      : isSetVariable && !isStepModeActive
         ? "pointer"
         : input === "drag" && !isInlineInput
           ? "ns-resize"
           : "default";
+
+    // Handle click to trigger inline edit overlay
+    const handleValueClick = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isLabelInlineEditable) return;
+        if (computationStore.editingStates.get(varId)) return;
+
+        // Find the MathJax element inside the clicked container
+        const container = e.currentTarget;
+        const mathJaxElement = container.querySelector(".MathJax") as HTMLElement;
+        if (mathJaxElement) {
+          showInlineEditOverlay({
+            varId,
+            element: mathJaxElement,
+            computationStore,
+          });
+        }
+      },
+      [isLabelInlineEditable, varId, computationStore]
+    );
 
     const customStyle = computationStore.environment?.labelNodeStyle
       ? toJS(computationStore.environment.labelNodeStyle)
@@ -507,8 +419,14 @@ const VariableLabelNode = observer(
           ...debugStyles,
         }}
         title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggableVar ? " (draggable)" : ""}`}
-        onMouseEnter={() => computationStore.setVariableHover(varId, true)}
-        onMouseLeave={() => computationStore.setVariableHover(varId, false)}
+        onMouseEnter={() => {
+          console.log(`[LabelNode] mouseenter varId=${varId}`);
+          computationStore.setVariableHover(varId, true);
+        }}
+        onMouseLeave={() => {
+          console.log(`[LabelNode] mouseleave varId=${varId}`);
+          computationStore.setVariableHover(varId, false);
+        }}
       >
         <div className="flex flex-col items-center gap-2">
           {displayComponent && (
@@ -520,6 +438,7 @@ const VariableLabelNode = observer(
               }
               className={`${interactiveClass} ${isHovered ? "hovered" : ""}`}
               style={{ cursor: valueCursor }}
+              onClick={isLabelInlineEditable ? handleValueClick : undefined}
             >
               {displayComponent}
             </div>

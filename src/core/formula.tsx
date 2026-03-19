@@ -307,11 +307,12 @@ const FormulaCanvasInner = observer(
       addVariableNodes();
     }, [nodesInitialized, addVariableNodes, computationStore]);
 
-    // Update variable node positions/dimensions when values change
+    // Update variable node positions/dimensions when values change or editing ends
     useEffect(() => {
+      let wasEditing = false;
       const disposer = reaction(
-        () =>
-          Array.from(computationStore.variables.entries()).map(
+        () => ({
+          variables: Array.from(computationStore.variables.entries()).map(
             ([varId, variable]) => ({
               varId,
               value: variable.value,
@@ -319,10 +320,33 @@ const FormulaCanvasInner = observer(
               sigFigs: variable.sigFigs,
             })
           ),
-        () => {
-          if (nodesInitialized && bootstrapCompleteRef.current) {
+          // Track editing states to delay update until after MathJax re-renders
+          editingStatesSize: computationStore.editingStates.size,
+        }),
+        ({ editingStatesSize }) => {
+          if (!nodesInitialized || !bootstrapCompleteRef.current) return;
+
+          // Track if we're currently editing
+          if (editingStatesSize > 0) {
+            wasEditing = true;
+            // Still update during editing - the input width reflects typed content
             updateVariableNodes();
+            return;
           }
+
+          // If editing just ended, delay to let MathJax re-render first
+          if (wasEditing) {
+            wasEditing = false;
+            // Use requestAnimationFrame to wait for MathJax to re-render
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                updateVariableNodes();
+              });
+            });
+            return;
+          }
+
+          updateVariableNodes();
         }
       );
       return () => disposer();
