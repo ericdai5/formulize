@@ -139,18 +139,11 @@ export const showInlineEditOverlay = ({
     }
   };
 
-  // Auto-resize input and update value as user types
+  // Auto-resize input as user types (no value update until commit)
   input.addEventListener("input", () => {
     // Resize input based on content
     const newWidth = Math.max(measureTextWidth(input.value), 30);
     input.style.width = `${newWidth}px`;
-
-    // Update value in real-time for live feedback (no clamping during typing)
-    // Clamping only happens on commit (Enter/blur)
-    const newValue = parseFloat(input.value);
-    if (!isNaN(newValue)) {
-      computationStore.setValue(varId, newValue);
-    }
   });
 
   // Handle blur - commit and close

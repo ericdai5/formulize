@@ -1,3 +1,5 @@
+import React from "react";
+
 import { observer } from "mobx-react-lite";
 
 import { Handle, Position } from "@xyflow/react";
@@ -63,12 +65,14 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   };
 
   // Handle click for inline editable variables
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isInlineEditable || latexDisplay !== "value") return;
     if (computationStore.editingStates.get(varId)) return;
 
-    // Find the MathJax element with this varId in the formula
-    const mathJaxElement = document.querySelector(
+    // Find the formula container that owns this variable node
+    // Then query within that container to find the correct MathJax element
+    const formulaContainer = (e.currentTarget as HTMLElement).closest(".react-flow");
+    const mathJaxElement = formulaContainer?.querySelector(
       `#${CSS.escape(varId)}`
     ) as HTMLElement;
     if (mathJaxElement) {
