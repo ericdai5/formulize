@@ -195,8 +195,41 @@ const VariableLabelNode = observer(
       hasDropdownOptions: !!(
         Array.isArray(variable?.value) || variable?.options
       ),
-      computationStore,
+      computationStore: computationStore ?? null,
     });
+
+    // Cache the latex value to prevent re-rendering during editing
+    // This prevents the LatexLabel from re-typesetting and destroying the input overlay
+    const cachedLatexRef = useRef<string>("");
+
+    // Handle click to trigger inline edit overlay
+    const handleValueClick = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!computationStore) return;
+        const isInlineInput = variable?.input === "inline";
+        const labelDisplay = variable?.labelDisplay ?? "name";
+        const isLabelInlineEditable = isInlineInput && labelDisplay === "value";
+        if (!isLabelInlineEditable) return;
+        if (computationStore.editingStates.get(varId)) return;
+
+        // Find the inner MathJax content element (mjx-mn for numbers, mjx-mi for identifiers)
+        // This matches formula-node which targets MJX-MN elements, not the outer MJX-CONTAINER
+        const container = e.currentTarget;
+        const innerElement = (
+          container.querySelector("mjx-mn") ??
+          container.querySelector("mjx-mi") ??
+          container.querySelector("mjx-mrow")
+        ) as HTMLElement;
+        if (innerElement) {
+          showInlineEditOverlay({
+            varId,
+            element: innerElement,
+            computationStore,
+          });
+        }
+      },
+      [varId, computationStore, variable?.input, variable?.labelDisplay]
+    );
 
     // All conditional returns must happen after all hooks are called
     if (!computationStore) return null;
@@ -242,10 +275,6 @@ const VariableLabelNode = observer(
 
     // Check if we're currently editing this variable
     const isEditing = computationStore.editingStates.get(varId);
-
-    // Cache the latex value to prevent re-rendering during editing
-    // This prevents the LatexLabel from re-typesetting and destroying the input overlay
-    const cachedLatexRef = useRef<string>("");
 
     if (hasStepLabelEntry) {
       if (shouldHideValueFromStepLabel) {
@@ -375,31 +404,6 @@ const VariableLabelNode = observer(
         : input === "drag" && !isInlineInput
           ? "ns-resize"
           : "default";
-
-    // Handle click to trigger inline edit overlay
-    const handleValueClick = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isLabelInlineEditable) return;
-        if (computationStore.editingStates.get(varId)) return;
-
-        // Find the inner MathJax content element (mjx-mn for numbers, mjx-mi for identifiers)
-        // This matches formula-node which targets MJX-MN elements, not the outer MJX-CONTAINER
-        const container = e.currentTarget;
-        const innerElement = (
-          container.querySelector("mjx-mn") ??
-          container.querySelector("mjx-mi") ??
-          container.querySelector("mjx-mrow")
-        ) as HTMLElement;
-        if (innerElement) {
-          showInlineEditOverlay({
-            varId,
-            element: innerElement,
-            computationStore,
-          });
-        }
-      },
-      [isLabelInlineEditable, varId, computationStore]
-    );
 
     const customStyle = computationStore.environment?.labelNodeStyle
       ? toJS(computationStore.environment.labelNodeStyle)

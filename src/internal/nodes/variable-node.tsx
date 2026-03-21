@@ -20,14 +20,11 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   const { varId, width, height } = data;
   const context = useStore();
   const computationStore = context?.computationStore;
-  if (!computationStore) {
-    return null;
-  }
 
   // Use debugStore for persistent debug display settings
   const showBorders = debugStore.showVariableBorders;
   const showShadow = debugStore.showVariableShadow;
-  const variable = computationStore.variables.get(varId);
+  const variable = computationStore?.variables.get(varId);
   const isDraggable = variable?.input === "drag";
   const isInlineEditable = variable?.input === "inline";
   const hasDropdownOptions = !!(
@@ -39,12 +36,18 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   // When latexDisplay is "name" (default), the label handles inline editing instead
   const latexDisplay = variable?.latexDisplay ?? "name";
 
+  // All hooks must be called before any conditional returns
   const nodeRef = useVariableDrag({
     varId,
     isDraggable: isSetVariable ? false : isDraggable, // Set variables are not draggable
     hasDropdownOptions: hasDropdownOptions || isSetVariable,
-    computationStore: computationStore,
+    computationStore: computationStore ?? null,
   });
+
+  // Early return after all hooks have been called
+  if (!computationStore) {
+    return null;
+  }
 
   const handleMouseEnter = () => {
     computationStore.setVariableHover(varId, true);

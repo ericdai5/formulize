@@ -191,8 +191,15 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
   // Get axis variables for hover highlighting (optional)
   const xAxisVar = config.xAxisVar;
   const yAxisVar = config.yAxisVar;
-  const xRange = config.xRange || PLOT2D_DEFAULTS.xRange;
-  const yRange = config.yRange || PLOT2D_DEFAULTS.yRange;
+  // Resolve axis ranges - prefer explicit config, then axis variable range, then defaults
+  const xAxisVarRange = xAxisVar
+    ? computationStore?.variables.get(xAxisVar)?.range
+    : undefined;
+  const yAxisVarRange = yAxisVar
+    ? computationStore?.variables.get(yAxisVar)?.range
+    : undefined;
+  const xRange = config.xRange || xAxisVarRange || PLOT2D_DEFAULTS.xRange;
+  const yRange = config.yRange || yAxisVarRange || PLOT2D_DEFAULTS.yRange;
 
   // Calculate plot dimensions using helper function
   const { plotWidth, plotHeight, margin } = calculatePlotDimensions(
