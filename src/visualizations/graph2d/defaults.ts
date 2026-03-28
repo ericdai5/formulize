@@ -3,8 +3,8 @@
  */
 
 export const PLOT2D_DEFAULTS = {
-  width: 500,
-  height: 500,
+  width: 400,
+  height: 400,
   xRange: [0, 10] as [number, number],
   yRange: [0, 100] as [number, number],
 } as const;

@@ -14,8 +14,8 @@ interface NodeWrapperProps {
  */
 export const NodeWrapper = ({ children }: NodeWrapperProps) => {
   return (
-    <div>
-      <div className="flex justify-center cursor-move py-1 text-slate-400 hover:text-slate-600">
+    <div className="group">
+      <div className="flex justify-center cursor-move py-1 text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         <GripHorizontal size={16} />
       </div>
       <div className="nodrag">{children}</div>

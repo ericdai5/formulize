@@ -160,7 +160,7 @@ const FormulaCanvasInner = observer(
 
     // Function to update only label nodes when activeVariables change
     const updateLabelNodes = useCallback(() => {
-      updateLabelNodesUtil({
+      return updateLabelNodesUtil({
         getNodes,
         getViewport,
         setNodes,
@@ -491,13 +491,14 @@ const FormulaCanvasInner = observer(
               updateVariableNodes();
               stepNodeRepositionedRef.current = false;
               stepRebuildFrameRef.current = window.requestAnimationFrame(() => {
-                // Clear label edges but preserve step edges while labels reconcile.
-                setEdges((currentEdges) =>
-                  currentEdges.filter((edge) =>
-                    edge.id.startsWith("edge-step-")
-                  )
-                );
-                updateLabelNodes();
+                const labelSetChanged = updateLabelNodes();
+                if (labelSetChanged) {
+                  setEdges((currentEdges) =>
+                    currentEdges.filter((edge) =>
+                      edge.id.startsWith("edge-step-")
+                    )
+                  );
+                }
                 addstepNodes();
               });
             });

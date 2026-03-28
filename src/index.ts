@@ -28,6 +28,22 @@ export { useStore } from "./core/hooks";
 // Step functionality is now integrated into ComputationStore
 export { createComputationStore, ComputationStore } from "./store/computation";
 
+// Export sampling API for programmatic access to interactive line/point/surface data
+export {
+  sample2DLine,
+  sample2DPoint,
+  sample3DLine,
+  sample3DPoint,
+  sampleSurface,
+  getVariableRange,
+} from "./visualizations/graph2d/sampling-api";
+export type {
+  LineSampleConfig,
+  PointSampleConfig,
+  SurfaceSampleConfig,
+  DataPoint3D,
+} from "./visualizations/graph2d/sampling-api";
+
 // Export general programmatic generation utilities
 export {
   Formula as FormulaGenerator,

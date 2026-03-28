@@ -7,18 +7,13 @@ import { observer } from "mobx-react-lite";
 import * as Plotly from "plotly.js-dist";
 
 import { useStore } from "../../core/hooks";
-import { ComputationStore } from "../../store/computation";
 import { IGraph3D, IPoint3D } from "../../types/graph3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
+import { sample3DLine, sample3DPoint, sampleSurface, getVariableRange } from "../graph2d/sampling-api";
 import { resolveColor, resolveLineColor } from "./color";
 
 interface Plot3DProps {
   config: IGraph3D;
-}
-
-interface Plot3DInnerProps {
-  config: IGraph3D;
-  computationStore: ComputationStore;
 }
 
 interface LineData {
@@ -48,9 +43,9 @@ interface GraphSurfaceData {
   showColorbar: boolean;
 }
 
-// Inner component that receives computationStore as a required prop
-const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
-  ({ config, computationStore }) => {
+const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
+  const context = useStore();
+  const computationStore = context?.computationStore;
     const plotRef = useRef<HTMLDivElement>(null);
     const clickHandlerRegistered = useRef(false);
     const [currentPoint, setCurrentPoint] = useState<IPoint3D | null>(null);
@@ -85,6 +80,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
     // Helper function to get variable label from computation store
     const getVariableLabel = useCallback(
       (variableName: string): string => {
+        if (!computationStore) return variableName;
         const varId = variableName;
         const variable = getVariable(varId, computationStore);
         return variable?.name || variableName; // Fallback to variable name if no name
@@ -94,6 +90,8 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
     // Calculate all graph-based visualizations using the sample() collection mechanism
     const calculateGraphData = useCallback(() => {
+      if (!computationStore) return { lines: [], points: [], surfaces: [] };
+
       const lineResults: LineData[] = [];
       const pointResults: PointData[] = [];
       const surfaceResults: GraphSurfaceData[] = [];
@@ -110,19 +108,9 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
           width = 4,
         } = lineConfig;
         const displayName = name || sampleId;
-        // Get range from config or from parameter variable's range
-        let sampleRange = range;
-        if (!sampleRange) {
-          const paramVariable = computationStore.variables.get(parameter);
-          sampleRange = paramVariable?.range ?? [0, 10];
-        }
-        // Sample the manual function across the range by varying the parameter
-        const sampledPoints = computationStore.sample3DLine(
-          parameter,
-          sampleRange,
-          samples,
-          sampleId
-        );
+        // Sample the line using sampling API
+        const resolvedRange = range ?? getVariableRange(parameter);
+        const sampledPoints = sample3DLine(parameter, resolvedRange, samples, sampleId);
         if (sampledPoints.length > 0) {
           lineResults.push({
             name: displayName,
@@ -147,24 +135,12 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
           showColorbar = false,
         } = surfaceConfig;
         const displayName = name || sampleId;
-
-        // Get ranges from config or from parameter variables' ranges
-        let sampleRanges = ranges;
-        if (!sampleRanges) {
-          const param1Var = computationStore.variables.get(parameters[0]);
-          const param2Var = computationStore.variables.get(parameters[1]);
-          sampleRanges = [
-            param1Var?.range ?? [0, 10],
-            param2Var?.range ?? [0, 10],
-          ];
-        }
-        // Sample the manual function across the 2D grid by varying the parameters
-        const sampledPoints = computationStore.sampleSurface(
-          parameters,
-          sampleRanges,
-          samples,
-          sampleId
-        );
+        // Sample the surface using sampling API
+        const resolvedRanges: [[number, number], [number, number]] = [
+          ranges?.[0] ?? getVariableRange(parameters[0]),
+          ranges?.[1] ?? getVariableRange(parameters[1]),
+        ];
+        const sampledPoints = sampleSurface(parameters, resolvedRanges, samples, sampleId);
         if (sampledPoints.length > 0) {
           surfaceResults.push({
             id: sampleId,
@@ -188,7 +164,8 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
           size = 8,
         } = pointConfig;
         const displayName = name || sampleId;
-        const point = computationStore.sample3DPoint(sampleId);
+        // Sample the point using sampling API
+        const point = sample3DPoint(sampleId);
         if (point) {
           pointResults.push({
             name: displayName,
@@ -209,6 +186,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
 
     // Direct calculation function without debouncing
     const calculateDataPoints = useCallback(() => {
+      if (!computationStore) return;
       try {
         const graphResults = calculateGraphData();
 
@@ -238,6 +216,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
     // Optimized MobX reaction without debouncing
     // Watch all input variables (not just axis variables) to update point graphs
     useEffect(() => {
+      if (!computationStore) return;
       const disposer = reaction(
         () => {
           const xValue = getVariableValue(xAxis, computationStore);
@@ -514,6 +493,7 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
             clickHandlerRegistered.current = true;
 
             (plotRef.current as any).on("plotly_click", (data: any) => {
+              if (!computationStore) return;
               if (data.points && data.points.length > 0) {
                 const point = data.points[0];
                 try {
@@ -589,29 +569,20 @@ const Plot3DInner: React.FC<Plot3DInnerProps> = observer(
       };
     }, []);
 
-    return (
-      <div
-        ref={plotRef}
-        style={{
-          width: typeof width === "number" ? `${width}px` : width,
-          height: typeof height === "number" ? `${height}px` : height,
-        }}
-      />
-    );
-  }
-);
-
-// Outer component that handles the null check for computationStore
-const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
-  const context = useStore();
-  const computationStore = context?.computationStore;
-
   // Guard: computationStore must be available
   if (!computationStore) {
     return <div className="plot3d-loading">Loading plot...</div>;
   }
 
-  return <Plot3DInner config={config} computationStore={computationStore} />;
+  return (
+    <div
+      ref={plotRef}
+      style={{
+        width: typeof width === "number" ? `${width}px` : width,
+        height: typeof height === "number" ? `${height}px` : height,
+      }}
+    />
+  );
 });
 
 export default Plot3D;

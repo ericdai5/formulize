@@ -20,8 +20,8 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
     if (!computationStore) {
       return null;
     }
-    // Match label-node name styling but keep axis labels slightly more readable.
-    const fontSize = computationStore.environment?.labelFontSize ?? 1;
+    // Use the main formula fontSize for axis labels
+    const fontSize = computationStore.environment?.fontSize ?? 1.5;
 
     const handleXLabelMouseEnter = () => {
       if (labelInfo.xLabel?.xAxis) {

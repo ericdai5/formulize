@@ -73,3 +73,15 @@ export interface IVariableDragState {
   symbol: string;
   varId: string;
 }
+
+export const getStepFromRange = (
+  range?: [number, number]
+): number | undefined => {
+  if (!range) {
+    return undefined;
+  }
+
+  const [minValue, maxValue] = range;
+  const step = Math.abs(maxValue - minValue) / 100;
+  return step > 0 ? step : undefined;
+};

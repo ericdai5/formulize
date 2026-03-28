@@ -17,7 +17,7 @@ const LatexLabel = observer(
     const labelFontSize =
       coreContext?.computationStore?.environment?.labelFontSize;
 
-    const fontSize = customFontSize ?? labelFontSize ?? 1.0;
+    const fontSize = customFontSize ?? labelFontSize ?? 0.8;
 
     useEffect(() => {
       let isMounted = true; // Track if component is still mounted

@@ -6,6 +6,7 @@ import { refresh } from "../engine/controller";
 import Store, { Config, Instance } from "../formulize";
 import { MathJaxLoader } from "../internal/mathjax-loader";
 import { useMathJax } from "../util/use-mathjax";
+import { setCurrentStore } from "../visualizations/graph2d/sampling-api";
 import { StoreContext, StoreContextValue } from "./hooks/use-formulize";
 
 interface ProviderProps {
@@ -90,6 +91,12 @@ const ProviderInner: React.FC<ProviderProps> = observer(
         }
       };
     }, [config, onError, onReady, mathJaxLoaded]);
+
+    // Set the current store for the sampling API whenever it changes
+    useEffect(() => {
+      setCurrentStore(instance?.computationStore ?? null);
+      return () => setCurrentStore(null);
+    }, [instance?.computationStore]);
 
     const reinitialize = useCallback(() => {
       if (!instance?.computationStore) {

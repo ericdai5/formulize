@@ -55,7 +55,7 @@ export const ButtonControl = observer<ButtonControlProps>(({ control }) => {
   };
 
   return (
-    <div>
+    <>
       {variable && (
         <div className="mb-3">
           <Latex latex={variable} />
@@ -63,11 +63,11 @@ export const ButtonControl = observer<ButtonControlProps>(({ control }) => {
       )}
       <button
         onClick={handleClick}
-        className="nodrag px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+        className="nodrag px-4 py-2 bg-gradient-to-b from-white to-gray-100 hover:from-gray-100 hover:to-gray-200 text-gray-800 rounded-xl transition-all border border-slate-300"
       >
         {label || "Click"}
       </button>
-    </div>
+    </>
   );
 });
 

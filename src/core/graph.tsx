@@ -13,8 +13,8 @@ interface GraphProps {
   height?: number | string;
 }
 
-export const Graph: React.FC<GraphProps> =
-  observer(({ id, className = "", style = {} }) => {
+export const Graph: React.FC<GraphProps> = observer(
+  ({ id, className = "", style = {} }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isReady, setIsReady] = useState(false);
     const context = useStore();
@@ -67,6 +67,7 @@ export const Graph: React.FC<GraphProps> =
         )}
       </div>
     );
-  });
+  }
+);
 
 export default Graph;

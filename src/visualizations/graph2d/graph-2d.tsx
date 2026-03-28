@@ -6,11 +6,11 @@ import { observer } from "mobx-react-lite";
 import * as d3 from "d3";
 
 import { useStore } from "../../core/hooks";
-import { ComputationStore } from "../../store/computation";
 import { type IGraph2D, type IVector } from "../../types/graph2d";
 import { type AxisLabelInfo, addAxes, addGrid } from "./axes";
 import { AxisLabels } from "./axis-labels";
 import { PLOT2D_DEFAULTS } from "./defaults";
+import { sample2DLine, sample2DPoint, getVariableRange } from "./sampling-api";
 import { calculatePlotDimensions } from "./utils";
 import { getAllVectorVariables, renderVectors } from "./vectors";
 
@@ -44,107 +44,6 @@ interface GraphPointData {
   interaction?: ["horizontal-drag" | "vertical-drag", string];
   stepId?: string;
   persistence?: boolean;
-}
-
-function getSamplingRange(
-  range: [number, number] | undefined,
-  parameter: string,
-  computationStore: ComputationStore,
-  fallbackRange: [number, number]
-): [number, number] {
-  if (range) {
-    return range;
-  }
-
-  const paramVariable = computationStore.variables.get(parameter);
-  return paramVariable?.range ?? fallbackRange;
-}
-
-/**
- * Calculate graph-based visualizations using explicit sample() calls.
- * Configs declare sampleId to match sample() calls.
- */
-function calculateGraphData(
-  lines: IGraph2D["lines"],
-  points: IGraph2D["points"],
-  computationStore: ComputationStore,
-  fallbackRange: [number, number]
-): { lines: GraphLineData[]; points: GraphPointData[] } {
-  const lineResults: GraphLineData[] = [];
-  const pointResults: GraphPointData[] = [];
-
-  for (const lineConfig of lines ?? []) {
-    const {
-      sampleId,
-      name,
-      showInLegend = true,
-      parameter,
-      range,
-      samples = 100,
-      color = "#3b82f6",
-      lineWidth = 2,
-    } = lineConfig;
-    const displayName = name || sampleId;
-
-    const sampleRange = getSamplingRange(
-      range,
-      parameter,
-      computationStore,
-      fallbackRange
-    );
-
-    // Sample the manual function across the range
-    const sampledPoints = computationStore.sample2DLine(
-      parameter,
-      sampleRange,
-      samples,
-      sampleId
-    );
-
-    if (sampledPoints.length > 0) {
-      lineResults.push({
-        name: displayName,
-        points: sampledPoints,
-        color,
-        lineWidth,
-        showInLegend,
-      });
-    }
-  }
-
-  for (const pointConfig of points ?? []) {
-    const {
-      sampleId,
-      name,
-      showInLegend = true,
-      color = "#ef4444",
-      size = 6,
-      showLabel = true,
-      interaction,
-      stepId,
-      persistence,
-    } = pointConfig;
-    const displayName = name || sampleId;
-
-    // Run once with current values to get the current point
-    const point = computationStore.sample2DPoint(sampleId);
-    if (point) {
-      pointResults.push({
-        sampleId,
-        name: displayName,
-        point,
-        color,
-        size,
-        showInLegend,
-        showLabel,
-        interaction,
-        stepId,
-        persistence,
-      });
-    }
-  }
-
-  return { lines: lineResults, points: pointResults };
 }
 
 const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
@@ -345,27 +244,302 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
     if (hasVectors) {
       // Vector mode
       const defs = svg.append("defs");
+
+      // Create clip path for vectors to cut off at grid boundaries
+      const vectorClipId = `vector-clip-${Math.random().toString(36).slice(2)}`;
+      defs
+        .append("clipPath")
+        .attr("id", vectorClipId)
+        .append("rect")
+        .attr("width", plotWidth)
+        .attr("height", plotHeight);
+
+      // Create a clipped group for all vectors
+      const vectorGroup = svg
+        .append("g")
+        .attr("class", "vectors-group")
+        .attr("clip-path", `url(#${vectorClipId})`);
+
+      // Refresh step data to ensure vectors update when variables change
+      // This is needed for smooth updates during line/variable drags
+      if (computationStore.stepping) {
+        computationStore.sampleSteps();
+      }
+
+      // Separate regular vectors from step-dependent vectors
+      const regularVectors: IVector[] = [];
+      const stepVectors: Array<{
+        config: IVector;
+        startPoints: DataPoint[];
+        endPoints: DataPoint[];
+      }> = [];
+
+      for (const vector of vectors as IVector[]) {
+        if (!vector.stepId) {
+          // No stepId - always visible
+          regularVectors.push(vector);
+        } else if (computationStore.stepping) {
+          // Has stepId and in stepping mode - collect accumulated points
+          const steps = computationStore.steps;
+          const currentStepIndex = computationStore.currentStepIndex;
+
+          // Get accumulated points for both start and end sample IDs
+          const startPoints = (computationStore.stepDataPointMap.get(
+            vector.startSampleId
+          ) ?? []) as unknown as DataPoint[];
+          const endPoints = (computationStore.stepDataPointMap.get(
+            vector.endSampleId
+          ) ?? []) as unknown as DataPoint[];
+
+          // Count how many steps with matching stepId are in range [0, currentStepIndex]
+          let matchingStepCount = 0;
+          for (let i = 0; i <= currentStepIndex && i < steps.length; i++) {
+            if (steps[i].id === vector.stepId) {
+              matchingStepCount++;
+            }
+          }
+
+          // Get accumulated data based on step progress and persistence
+          const accumulatedStartPoints: DataPoint[] =
+            vector.persistence === false
+              ? // Only show the current step's vector (no persistence)
+                matchingStepCount > 0 && startPoints[matchingStepCount - 1]
+                ? [startPoints[matchingStepCount - 1]]
+                : []
+              : // Default (true): show all vectors up to current step
+                startPoints.slice(0, matchingStepCount);
+
+          const accumulatedEndPoints: DataPoint[] =
+            vector.persistence === false
+              ? matchingStepCount > 0 && endPoints[matchingStepCount - 1]
+                ? [endPoints[matchingStepCount - 1]]
+                : []
+              : endPoints.slice(0, matchingStepCount);
+
+          if (
+            accumulatedStartPoints.length > 0 &&
+            accumulatedEndPoints.length > 0
+          ) {
+            stepVectors.push({
+              config: vector,
+              startPoints: accumulatedStartPoints,
+              endPoints: accumulatedEndPoints,
+            });
+          }
+        // If vector has stepId but stepping is disabled, don't render it at all
+        }
+      }
+
+      // Render regular vectors
       renderVectors(
-        svg,
+        vectorGroup,
         defs,
-        vectors as IVector[],
+        regularVectors,
         xScale,
         yScale,
         plotWidth,
         plotHeight,
         computationStore
       );
+
+      // Render accumulated step vectors
+      let stepVectorIndex = regularVectors.length;
+      stepVectors.forEach(({ config, startPoints, endPoints }) => {
+        const minLength = Math.min(startPoints.length, endPoints.length);
+        for (let i = 0; i < minLength; i++) {
+          const isLastVector = i === minLength - 1;
+          const startPt = startPoints[i];
+          const endPt = endPoints[i];
+
+          if (startPt && endPt) {
+            const color = config.color || "#3b82f6";
+            const lineWidth = config.lineWidth || 2;
+            const shape = config.shape || "arrow";
+            const opacity = isLastVector ? 1 : 0.5;
+            const curvature = config.curved ?? 0;
+
+            // Generate path string (curved or straight)
+            const startScreen = { x: xScale(startPt.x), y: yScale(startPt.y) };
+            const endScreen = { x: xScale(endPt.x), y: yScale(endPt.y) };
+
+            // Helper to generate curved path
+            const generateCurvedPath = (
+              start: { x: number; y: number },
+              end: { x: number; y: number },
+              curve: number
+            ): string => {
+              if (curve === 0) {
+                return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+              }
+              const midX = (start.x + end.x) / 2;
+              const midY = (start.y + end.y) / 2;
+              const dx = end.x - start.x;
+              const dy = end.y - start.y;
+              const length = Math.sqrt(dx * dx + dy * dy);
+              if (length === 0) {
+                return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+              }
+              const normalX = -dy / length;
+              const normalY = dx / length;
+              const offset = curve * length * 0.5;
+              const controlX = midX + normalX * offset;
+              const controlY = midY + normalY * offset;
+              return `M ${start.x} ${start.y} Q ${controlX} ${controlY} ${end.x} ${end.y}`;
+            };
+
+            const pathString = generateCurvedPath(startScreen, endScreen, curvature);
+
+            // Create arrow marker if needed
+            if (shape === "arrow") {
+              const markerId = `step-arrowhead-${stepVectorIndex}-${i}`;
+              defs
+                .append("marker")
+                .attr("id", markerId)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 8)
+                .attr("refY", 0)
+                .attr("markerWidth", config.markerSize || 6)
+                .attr("markerHeight", config.markerSize || 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", color);
+
+              const vectorId = `step-vector-${stepVectorIndex}-${i}`;
+              vectorGroup
+                .append("path")
+                .attr("id", vectorId)
+                .attr("fill", "none")
+                .attr("stroke", color)
+                .attr("stroke-width", lineWidth)
+                .attr("opacity", opacity)
+                .attr("marker-end", `url(#${markerId})`)
+                .attr("d", pathString);
+            } else if (shape === "dash") {
+              const vectorId = `step-vector-${stepVectorIndex}-${i}`;
+              vectorGroup
+                .append("path")
+                .attr("id", vectorId)
+                .attr("fill", "none")
+                .attr("stroke", color)
+                .attr("stroke-width", lineWidth)
+                .attr("stroke-dasharray", "5,5")
+                .attr("opacity", opacity)
+                .attr("d", pathString);
+            } else if (shape === "point") {
+              vectorGroup
+                .append("circle")
+                .attr("cx", xScale(endPt.x))
+                .attr("cy", yScale(endPt.y))
+                .attr("r", config.markerSize || 4)
+                .attr("fill", color)
+                .attr("opacity", opacity);
+            } else {
+              // Default line
+              const vectorId = `step-vector-${stepVectorIndex}-${i}`;
+              vectorGroup
+                .append("path")
+                .attr("id", vectorId)
+                .attr("fill", "none")
+                .attr("stroke", color)
+                .attr("stroke-width", lineWidth)
+                .attr("opacity", opacity)
+                .attr("d", pathString);
+            }
+
+            // Add label only for the last (most recent) vector
+            if (isLastVector && config.label) {
+              const position = config.labelPosition || "end";
+              const labelColor = config.labelColor || color;
+              const fontSize = config.labelFontSize || 12;
+
+              let labelPt: DataPoint;
+              if (position === "start") {
+                labelPt = startPt;
+              } else if (position === "mid") {
+                labelPt = {
+                  x: (startPt.x + endPt.x) / 2,
+                  y: (startPt.y + endPt.y) / 2,
+                };
+              } else {
+                labelPt = endPt;
+              }
+
+              const offsetX = config.labelOffsetX || 10;
+              const offsetY = config.labelOffsetY || -10;
+
+              vectorGroup
+                .append("text")
+                .attr("x", xScale(labelPt.x) + offsetX)
+                .attr("y", yScale(labelPt.y) + offsetY)
+                .attr("fill", labelColor)
+                .attr("font-size", fontSize)
+                .text(config.label);
+            }
+          }
+        }
+        stepVectorIndex++;
+      });
     }
 
     // Render graph-based visualizations
     if (hasGraphs) {
-      const samplingFallbackRange: [number, number] = [xMin, xMax];
-      const graphResults = calculateGraphData(
-        lines,
-        points,
-        computationStore,
-        samplingFallbackRange
-      );
+      // Refresh step data to ensure points update when variables change
+      // (Skip if already called in vectors section above)
+      if (computationStore.stepping && !hasVectors) {
+        computationStore.sampleSteps();
+      }
+
+      // Process line configs into renderable data
+      const graphLines: GraphLineData[] = [];
+      if (lines) {
+        for (const lineConfig of lines) {
+          const {
+            sampleId,
+            parameter,
+            range,
+            samples = 100,
+            color = "#3b82f6",
+            lineWidth = 2,
+            name,
+            showInLegend = true,
+          } = lineConfig;
+          const resolvedRange = range ?? getVariableRange(parameter);
+          const linePoints = sample2DLine(parameter, resolvedRange, samples, sampleId);
+          graphLines.push({ name: name || sampleId, points: linePoints, color, lineWidth, showInLegend });
+        }
+      }
+
+      // Process point configs into renderable data
+      const graphPoints: GraphPointData[] = [];
+      if (points) {
+        for (const pointConfig of points) {
+          const {
+            sampleId,
+            color = "#ef4444",
+            size = 6,
+            name,
+            showInLegend = true,
+            showLabel = false,
+            interaction,
+            stepId,
+            persistence,
+          } = pointConfig;
+          const point = sample2DPoint(sampleId);
+          graphPoints.push({
+            sampleId,
+            name: name || sampleId,
+            point: point || { x: 0, y: 0 },
+            color,
+            size,
+            showInLegend,
+            showLabel,
+            interaction,
+            stepId,
+            persistence,
+          });
+        }
+      }
 
       // Separate regular points from step-dependent points
       const regularPoints: GraphPointData[] = [];
@@ -374,7 +548,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         accumulatedPoints: DataPoint[];
       }> = [];
 
-      for (const pointData of graphResults.points) {
+      for (const pointData of graphPoints) {
         if (!pointData.stepId) {
           // No stepId - always visible as a single point
           regularPoints.push(pointData);
@@ -411,10 +585,10 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         // If has stepId but not in stepping mode, point is not visible
       }
 
-      // Generate unique clipPath id for graph lines
+      // Generate unique clipPath id for graph elements (lines and points)
       const graphClipId = `graph-clip-${Math.random().toString(36).slice(2)}`;
 
-      // Create clip path for graph lines
+      // Create clip path for graph elements
       svg
         .append("defs")
         .append("clipPath")
@@ -431,7 +605,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
         .curve(d3.curveLinear);
 
       // Render graph-based lines
-      graphResults.lines.forEach((lineData, index) => {
+      graphLines.forEach((lineData, index) => {
         if (lineData.points.length > 0) {
           svg
             .append("path")
@@ -445,6 +619,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             .style("pointer-events", "none");
         }
       });
+
+      // Create a group for points AFTER lines so points render on top
+      const pointsGroup = svg.append("g").attr("class", "points-group");
 
       // Store point data for rendering after interaction layer
       const graphPointsData = regularPoints;
@@ -500,18 +677,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               parameter: lineParam,
               sampleId: lineGraphId,
             } = config;
-            const sampleRange = getSamplingRange(
-              range,
-              lineParam,
-              computationStore,
-              samplingFallbackRange
-            );
-            const linePoints = computationStore.sample2DLine(
-              lineParam,
-              sampleRange,
-              samples,
-              lineGraphId
-            );
+            // Get line points using sampling API
+            const resolvedRange = range ?? getVariableRange(lineParam);
+            const linePoints = sample2DLine(lineParam, resolvedRange, samples, lineGraphId);
 
             // Cache for point updates
             linePointsCache.set(lineGraphId, linePoints);
@@ -565,9 +733,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               pointOnCurve = closestPoint;
             } else {
               // For non-focused points or when not tracking, use current values
-              const point = computationStore.sample2DPoint(
-                pointConfig.sampleId
-              );
+              const point = sample2DPoint(pointConfig.sampleId);
               if (point) {
                 pointOnCurve = point;
                 // Initialize dragPointX for focused point if needed
@@ -584,13 +750,22 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             const newCx = xScale(pointOnCurve.x);
             const newCy = yScale(pointOnCurve.y);
 
-            // Update circle and hit area positions
+            // Check if point is within bounds
+            const isInBounds =
+              pointOnCurve.x >= xMin &&
+              pointOnCurve.x <= xMax &&
+              pointOnCurve.y >= yMin &&
+              pointOnCurve.y <= yMax;
+
+            // Update circle and hit area positions and visibility
             d3.select(`#graph-point-${pointIndex}`)
               .attr("cx", newCx)
-              .attr("cy", newCy);
+              .attr("cy", newCy)
+              .style("display", isInBounds ? "" : "none");
             d3.select(`#graph-point-hit-${pointIndex}`)
               .attr("cx", newCx)
-              .attr("cy", newCy);
+              .attr("cy", newCy)
+              .style("display", isInBounds ? "" : "none");
 
             // Hide label during drag for performance (will redraw after drag ends)
             svg
@@ -600,6 +775,156 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               .select(`text.graph-point-label-${pointIndex}`)
               .style("display", "none");
           });
+
+          // Also update step points (points with stepId) during drag
+          // These need to be recomputed from stepDataPointMap since their positions
+          // depend on the semantics function which re-runs when variables change
+          if (computationStore.stepping) {
+            pointConfigs.forEach((pointConfig, stepPointIndex) => {
+              if (!pointConfig.stepId) return; // Skip non-step points
+
+              const sampleId = pointConfig.sampleId;
+              const allPoints = (computationStore.stepDataPointMap.get(
+                sampleId
+              ) ?? []) as unknown as DataPoint[];
+
+              // Count matching steps up to current step
+              const steps = computationStore.steps;
+              const currentStepIndex = computationStore.currentStepIndex;
+              let matchingStepCount = 0;
+              for (let i = 0; i <= currentStepIndex && i < steps.length; i++) {
+                if (steps[i].id === pointConfig.stepId) {
+                  matchingStepCount++;
+                }
+              }
+
+              // Get accumulated points
+              const accumulatedPoints: DataPoint[] =
+                pointConfig.persistence === false
+                  ? matchingStepCount > 0 && allPoints[matchingStepCount - 1]
+                    ? [allPoints[matchingStepCount - 1]]
+                    : []
+                  : allPoints.slice(0, matchingStepCount);
+
+              // Update each step point's position and visibility
+              accumulatedPoints.forEach((pt, ptIndex) => {
+                const pointId = `step-point-${stepPointIndex}-${ptIndex}`;
+                const isInBounds =
+                  pt.x >= xMin &&
+                  pt.x <= xMax &&
+                  pt.y >= yMin &&
+                  pt.y <= yMax;
+
+                if (isInBounds) {
+                  const newCx = xScale(pt.x);
+                  const newCy = yScale(pt.y);
+
+                  svg
+                    .select(`#${pointId}`)
+                    .attr("cx", newCx)
+                    .attr("cy", newCy)
+                    .style("display", "");
+                  svg
+                    .select(`#${pointId}-hit`)
+                    .attr("cx", newCx)
+                    .attr("cy", newCy)
+                    .style("display", "");
+                } else {
+                  // Hide points that are out of bounds
+                  svg.select(`#${pointId}`).style("display", "none");
+                  svg.select(`#${pointId}-hit`).style("display", "none");
+                }
+              });
+            });
+
+            // Also update step vectors during drag
+            // Refresh step data first to get updated positions
+            computationStore.sampleSteps();
+
+            const vectorConfigs = vectors ?? [];
+            // Count non-step vectors to get the starting index (matching render logic)
+            const regularVectorCount = vectorConfigs.filter(v => !v.stepId).length;
+            let stepVectorIdx = regularVectorCount;
+
+            vectorConfigs.forEach((vectorConfig) => {
+              if (!vectorConfig.stepId) return; // Skip non-step vectors
+
+              const startSampleId = vectorConfig.startSampleId;
+              const endSampleId = vectorConfig.endSampleId;
+              const allStartPoints = (computationStore.stepDataPointMap.get(
+                startSampleId
+              ) ?? []) as unknown as DataPoint[];
+              const allEndPoints = (computationStore.stepDataPointMap.get(
+                endSampleId
+              ) ?? []) as unknown as DataPoint[];
+
+              // Count matching steps up to current step
+              const steps = computationStore.steps;
+              const currentStepIndex = computationStore.currentStepIndex;
+              let matchingStepCount = 0;
+              for (let i = 0; i <= currentStepIndex && i < steps.length; i++) {
+                if (steps[i].id === vectorConfig.stepId) {
+                  matchingStepCount++;
+                }
+              }
+
+              // Get accumulated points
+              const accumulatedStartPoints: DataPoint[] =
+                vectorConfig.persistence === false
+                  ? matchingStepCount > 0 && allStartPoints[matchingStepCount - 1]
+                    ? [allStartPoints[matchingStepCount - 1]]
+                    : []
+                  : allStartPoints.slice(0, matchingStepCount);
+
+              const accumulatedEndPoints: DataPoint[] =
+                vectorConfig.persistence === false
+                  ? matchingStepCount > 0 && allEndPoints[matchingStepCount - 1]
+                    ? [allEndPoints[matchingStepCount - 1]]
+                    : []
+                  : allEndPoints.slice(0, matchingStepCount);
+
+              const curvature = vectorConfig.curved ?? 0;
+              const minLength = Math.min(accumulatedStartPoints.length, accumulatedEndPoints.length);
+
+              // Update each step vector's path
+              for (let ptIndex = 0; ptIndex < minLength; ptIndex++) {
+                const startPt = accumulatedStartPoints[ptIndex];
+                const endPt = accumulatedEndPoints[ptIndex];
+
+                if (startPt && endPt) {
+                  const vectorId = `step-vector-${stepVectorIdx}-${ptIndex}`;
+                  const startScreen = { x: xScale(startPt.x), y: yScale(startPt.y) };
+                  const endScreen = { x: xScale(endPt.x), y: yScale(endPt.y) };
+
+                  // Generate curved path
+                  let pathString: string;
+                  if (curvature === 0) {
+                    pathString = `M ${startScreen.x} ${startScreen.y} L ${endScreen.x} ${endScreen.y}`;
+                  } else {
+                    const midX = (startScreen.x + endScreen.x) / 2;
+                    const midY = (startScreen.y + endScreen.y) / 2;
+                    const dx = endScreen.x - startScreen.x;
+                    const dy = endScreen.y - startScreen.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    if (length === 0) {
+                      pathString = `M ${startScreen.x} ${startScreen.y} L ${endScreen.x} ${endScreen.y}`;
+                    } else {
+                      const normalX = -dy / length;
+                      const normalY = dx / length;
+                      const offset = curvature * length * 0.5;
+                      const controlX = midX + normalX * offset;
+                      const controlY = midY + normalY * offset;
+                      pathString = `M ${startScreen.x} ${startScreen.y} Q ${controlX} ${controlY} ${endScreen.x} ${endScreen.y}`;
+                    }
+                  }
+
+                  svg.select(`#${vectorId}`).attr("d", pathString);
+                }
+              }
+
+              stepVectorIdx++;
+            });
+          }
         };
 
         // Use refs for state so it persists across re-renders (closure fix)
@@ -650,7 +975,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           const focusState = focusStateRef.current;
 
           // Reset all lines and points first
-          graphResults.lines.forEach((lineData, i) => {
+          graphLines.forEach((lineData, i) => {
             svg
               .select(`path.graph-line-${i}`)
               .attr("stroke-width", lineData.lineWidth ?? 2)
@@ -786,19 +1111,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               parameter: lineParam,
               sampleId: lineGraphId,
             } = config;
-            const sampleRange = getSamplingRange(
-              range,
-              lineParam,
-              computationStore,
-              samplingFallbackRange
-            );
-            // Get line points
-            const linePoints = computationStore.sample2DLine(
-              lineParam,
-              sampleRange,
-              samples,
-              lineGraphId
-            );
+            // Get line points using sampling API
+            const resolvedRange = range ?? getVariableRange(lineParam);
+            const linePoints = sample2DLine(lineParam, resolvedRange, samples, lineGraphId);
 
             // Find minimum distance from click to any point on this line
             for (const point of linePoints) {
@@ -912,7 +1227,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               .style("cursor", pointInteraction ? "pointer" : "default");
 
             // Visual point circle (hit area handles clicks)
-            svg
+            pointsGroup
               .append("circle")
               .attr("id", `graph-point-${index}`)
               .attr("class", `graph-point graph-point-${index} current-point`)
@@ -1118,7 +1433,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             point.y >= yMin &&
             point.y <= yMax
           ) {
-            svg
+            pointsGroup
               .append("circle")
               .attr("class", `graph-point graph-point-${index} current-point`)
               .attr("cx", xScale(point.x))
@@ -1184,23 +1499,147 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
 
       // Render accumulated step points (points with stepId that collect from multiple steps)
       stepPoints.forEach(({ config, accumulatedPoints }, stepPointIndex) => {
-        const { color, size = 6 } = config;
+        const { color, size = 6, interaction: stepPointInteraction } = config;
+
+        // Set up interaction config if the step point has an interaction property
+        const stepPointIsVerticalDrag = stepPointInteraction
+          ? stepPointInteraction[0] === "vertical-drag"
+          : false;
+        const stepPointDragVariable = stepPointInteraction
+          ? stepPointInteraction[1]
+          : "";
+        const stepPointDragVarConfig = stepPointInteraction
+          ? computationStore.variables.get(stepPointDragVariable)
+          : null;
+        const stepPointDragRange =
+          stepPointDragVarConfig?.range ||
+          (stepPointIsVerticalDrag ? [yMin, yMax] : [xMin, xMax]);
 
         accumulatedPoints.forEach((pt, ptIndex) => {
           if (pt.x >= xMin && pt.x <= xMax && pt.y >= yMin && pt.y <= yMax) {
-            svg
+            const isLastPoint = ptIndex === accumulatedPoints.length - 1;
+            const pointId = `step-point-${stepPointIndex}-${ptIndex}`;
+
+            // Only make the most recent point interactive (if interaction is configured)
+            const isInteractive = stepPointInteraction && isLastPoint;
+
+            if (isInteractive) {
+              // Create invisible larger hit area for easier clicking
+              const stepHitArea = svg
+                .append("circle")
+                .attr("id", `${pointId}-hit`)
+                .attr("class", `step-point-hit ${pointId}-hit`)
+                .attr("cx", xScale(pt.x))
+                .attr("cy", yScale(pt.y))
+                .attr("r", 20)
+                .attr("fill", "transparent")
+                .style("pointer-events", "all")
+                .style("cursor", "pointer");
+
+              // Track initial values for relative point drag
+              let stepPointDragStartMousePos: number | null = null;
+              let stepPointDragStartValue: number | null = null;
+
+              const handleStepPointMouseMove = (event: MouseEvent) => {
+                if (!isDraggingRef.current) return;
+                if (
+                  stepPointDragStartMousePos === null ||
+                  stepPointDragStartValue === null
+                )
+                  return;
+                const svgNode = svg.node();
+                if (!svgNode) return;
+                const [mouseX, mouseY] = d3.pointer(event, svgNode);
+
+                const axisRange = stepPointIsVerticalDrag
+                  ? yMax - yMin
+                  : xMax - xMin;
+                let pixelDelta: number;
+                let delta: number;
+
+                if (stepPointIsVerticalDrag) {
+                  pixelDelta = stepPointDragStartMousePos - mouseY;
+                  delta = (pixelDelta / plotHeight) * axisRange;
+                } else {
+                  pixelDelta = mouseX - stepPointDragStartMousePos;
+                  delta = (pixelDelta / plotWidth) * axisRange;
+                }
+
+                const newValue = stepPointDragStartValue + delta;
+                const clampedValue = Math.max(
+                  stepPointDragRange[0],
+                  Math.min(stepPointDragRange[1], newValue)
+                );
+                computationStore.setValue(stepPointDragVariable, clampedValue);
+              };
+
+              // Helper to clean up global listeners for step point drag
+              const cleanupStepPointListeners = () => {
+                if (globalMouseMoveRef.current) {
+                  document.removeEventListener(
+                    "mousemove",
+                    globalMouseMoveRef.current
+                  );
+                  globalMouseMoveRef.current = null;
+                }
+                if (globalMouseUpRef.current) {
+                  document.removeEventListener(
+                    "mouseup",
+                    globalMouseUpRef.current
+                  );
+                  globalMouseUpRef.current = null;
+                }
+              };
+
+              const handleStepPointMouseUp = () => {
+                cleanupStepPointListeners();
+                stepPointDragStartMousePos = null;
+                stepPointDragStartValue = null;
+                stepHitArea.style("cursor", "grab");
+                // End drag state
+                isDraggingRef.current = false;
+                computationStore.setDragging(false);
+              };
+
+              stepHitArea.on("mousedown", (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+
+                const [mouseX, mouseY] = d3.pointer(event, svg.node());
+                stepPointDragStartMousePos = stepPointIsVerticalDrag
+                  ? mouseY
+                  : mouseX;
+                stepPointDragStartValue =
+                  (computationStore.variables.get(stepPointDragVariable)
+                    ?.value as number) ?? 0;
+
+                isDraggingRef.current = true;
+                // Don't set isLocalDragRef for step points - let MobX reaction handle redraws
+                // This ensures the graph lines and step points update live during drag
+                computationStore.setDragging(true);
+                stepHitArea.style("cursor", "grabbing");
+
+                cleanupStepPointListeners();
+                globalMouseMoveRef.current = handleStepPointMouseMove;
+                globalMouseUpRef.current = handleStepPointMouseUp;
+                document.addEventListener("mousemove", handleStepPointMouseMove);
+                document.addEventListener("mouseup", handleStepPointMouseUp);
+              });
+            }
+
+            // Visual point circle
+            pointsGroup
               .append("circle")
-              .attr(
-                "class",
-                `step-point step-point-${stepPointIndex}-${ptIndex}`
-              )
+              .attr("id", pointId)
+              .attr("class", `step-point ${pointId}`)
               .attr("cx", xScale(pt.x))
               .attr("cy", yScale(pt.y))
               .attr("r", size)
               .attr("fill", color)
               .attr("stroke", "#fff")
               .attr("stroke-width", 2)
-              .attr("opacity", 0.9);
+              .attr("opacity", isLastPoint ? 1 : 0.7)
+              .style("pointer-events", "none");
           }
         });
       });

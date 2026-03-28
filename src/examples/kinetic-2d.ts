@@ -7,23 +7,25 @@ export const kinetic2D = `const config = {
   ],
   variables: {
     K: {
-      name: "Kinetic Energy",
-      precision: 2
+      name: "Kinetic Energy $J$",
+      precision: 2,
     },
     m: {
-      input: "drag",
+      input: "inline",
       default: 1,
       range: [0.1, 10],
       step: 1,
-      name: "Mass"
+      name: "Mass $kg$",
+      latexDisplay: "value",
+      labelDisplay: "name",
     },
     v: {
       input: "drag",
       default: 2,
       range: [0.1, 100],
       step: 1,
-      name: "Velocity"
-    }
+      name: "Velocity $m/s$",
+    },
   },
   semantics: function({ vars, sample }) {
     vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);

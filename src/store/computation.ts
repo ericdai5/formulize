@@ -6,7 +6,12 @@ import { IEnvironment } from "../types/environment";
 import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
 import { ICollectedStep, IStepLabelValue, IView } from "../types/step";
-import { INPUT_VARIABLE_DEFAULT, IValue, IVariable } from "../types/variable";
+import {
+  getStepFromRange,
+  INPUT_VARIABLE_DEFAULT,
+  IValue,
+  IVariable,
+} from "../types/variable";
 import { FormulaLatexRanges } from "../util/parse/formula-text";
 import { canonicalizeFormula } from "../util/parse/formula-transform";
 import {
@@ -1165,7 +1170,9 @@ class ComputationStore {
         sigFigs: variableDefinition?.sigFigs,
         description: variableDefinition?.description,
         range: variableDefinition?.range,
-        step: variableDefinition?.step,
+        step:
+          variableDefinition?.step ??
+          getStepFromRange(variableDefinition?.range),
         options: variableDefinition?.options,
         key: variableDefinition?.key,
         latexDisplay: variableDefinition?.latexDisplay ?? "name",
@@ -1206,6 +1213,10 @@ class ComputationStore {
       } else {
         variable.range = [-10, 10];
       }
+    }
+
+    if (variable.step === undefined && variable.range) {
+      variable.step = getStepFromRange(variable.range);
     }
 
     this.variableRolesChanged++;
@@ -1263,15 +1274,18 @@ class ComputationStore {
    * Extract a 2D point from dataPoints map.
    * @param dataPointMap - Map of graph ID to data points
    * @param graphId - The graph ID to look up
-   * @returns The first valid {x, y} point or null
+   * @param position - Which point to extract: "first" for lines (parameter variation), "last" for points (final state)
+   * @returns The valid {x, y} point or null
    */
   private extractPoint2D(
     dataPointMap: Map<string, IDataPoint[]>,
-    graphId: string
+    graphId: string,
+    position: "first" | "last" = "first"
   ): { x: number; y: number } | null {
     const dataPoints = dataPointMap.get(graphId);
     if (!dataPoints || dataPoints.length === 0) return null;
-    const { x, y } = dataPoints[0];
+    const index = position === "last" ? dataPoints.length - 1 : 0;
+    const { x, y } = dataPoints[index];
     if (
       typeof x === "number" &&
       typeof y === "number" &&
@@ -1287,15 +1301,18 @@ class ComputationStore {
    * Extract a 3D point from dataPoints map.
    * @param dataPoints - Map of graph ID to data points
    * @param graphId - The graph ID to look up
-   * @returns The first valid {x, y, z} point or null
+   * @param position - Which point to extract: "first" for lines (parameter variation), "last" for points (final state)
+   * @returns The valid {x, y, z} point or null
    */
   private extractPoint3D(
     dataPointMap: Map<string, IDataPoint[]>,
-    graphId: string
+    graphId: string,
+    position: "first" | "last" = "first"
   ): { x: number; y: number; z: number } | null {
     const dataPoints = dataPointMap.get(graphId);
     if (!dataPoints || dataPoints.length === 0) return null;
-    const { x, y, z } = dataPoints[0];
+    const index = position === "last" ? dataPoints.length - 1 : 0;
+    const { x, y, z } = dataPoints[index];
     if (
       typeof x === "number" &&
       typeof y === "number" &&
@@ -1379,23 +1396,37 @@ class ComputationStore {
   /**
    * Run the semantic function once with current values to get the current 2D point.
    * Reads x, y values from the dataPoints (from explicit sample() calls).
+   * Uses the LAST sampled point to show final state after loop iterations.
    *
    * @param graphId - Graph ID to match sample() calls
    * @returns The current {x, y} point or null
    */
   sample2DPoint(graphId: string): { x: number; y: number } | null {
-    return this.computeAndExtract2D(this.getVariablesSnapshot(), graphId);
+    if (!this.semantics || typeof this.semantics !== "function") return null;
+    const result = computeWithManualEngine(
+      this.getVariablesSnapshot(),
+      this.semantics
+    );
+    // Use "last" to get final state after all iterations
+    return this.extractPoint2D(result.dataPointMap, graphId, "last");
   }
 
   /**
    * Run the semantic function once with current values to get the current 3D point.
    * Reads x, y, z values from the dataPoints (from explicit sample() calls).
+   * Uses the LAST sampled point to show final state after loop iterations.
    *
    * @param graphId - Graph ID to match sample() calls
    * @returns The current {x, y, z} point or null
    */
   sample3DPoint(graphId: string): { x: number; y: number; z: number } | null {
-    return this.computeAndExtract3D(this.getVariablesSnapshot(), graphId);
+    if (!this.semantics || typeof this.semantics !== "function") return null;
+    const result = computeWithManualEngine(
+      this.getVariablesSnapshot(),
+      this.semantics
+    );
+    // Use "last" to get final state after all iterations
+    return this.extractPoint3D(result.dataPointMap, graphId, "last");
   }
 
   /**

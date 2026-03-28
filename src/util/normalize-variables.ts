@@ -10,6 +10,7 @@
  * Note: User-facing API uses "default" property, which is converted to internal "value" property
  */
 import {
+  getStepFromRange,
   INPUT_VARIABLE_DEFAULT,
   IVariable,
   IVariableUserInput,
@@ -70,6 +71,11 @@ function applySmartDefaults(normalized: IVariable): IVariable {
       normalized.value = INPUT_VARIABLE_DEFAULT.VALUE;
     }
   }
+
+  if (normalized.step === undefined && normalized.range !== undefined) {
+    normalized.step = getStepFromRange(normalized.range);
+  }
+
   // For non-interactive variables (constants or computed by manual function),
   // value will either be set by default or calculated by the manual function
 

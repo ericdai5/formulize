@@ -16,6 +16,14 @@
  * @property labelOffsetY - Optional offset of the label on the y-axis.
  * @property labelColor - Optional color of the label.
  * @property labelFontSize - Optional font size of the label.
+ * @property stepId - Optional step ID that controls when this vector appears during stepping.
+ *                    When set, the vector only appears after the step() call with matching id has been reached.
+ * @property persistence - Controls vector visibility during stepping (default: true):
+ *                         true = vector stays visible after its step (accumulate)
+ *                         false = vector only visible at that exact step
+ * @property curved - Optional curvature amount for the vector (default: 0 = straight line).
+ *                    Positive values curve counterclockwise, negative values curve clockwise.
+ *                    Typical range: -1 to 1, where 0.3-0.5 gives a gentle curve.
  */
 export interface IVector {
   startSampleId: string;
@@ -34,6 +42,9 @@ export interface IVector {
   labelOffsetY?: number;
   labelColor?: string;
   labelFontSize?: number;
+  stepId?: string;
+  persistence?: boolean;
+  curved?: number;
 }
 
 /**

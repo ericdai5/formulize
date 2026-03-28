@@ -63,6 +63,49 @@ export function processVectorData(
 }
 
 /**
+ * Generates a curved path string (quadratic Bezier) between two points.
+ * @param start - Start point in screen coordinates
+ * @param end - End point in screen coordinates
+ * @param curvature - Curvature amount (0 = straight, positive = counterclockwise curve)
+ * @returns SVG path string
+ */
+function generateCurvedPath(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  curvature: number
+): string {
+  if (curvature === 0) {
+    // Straight line
+    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+  }
+
+  // Calculate midpoint
+  const midX = (start.x + end.x) / 2;
+  const midY = (start.y + end.y) / 2;
+
+  // Calculate perpendicular vector (rotate 90 degrees)
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.sqrt(dx * dx + dy * dy);
+
+  if (length === 0) {
+    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+  }
+
+  // Normal vector (perpendicular, counterclockwise)
+  const normalX = -dy / length;
+  const normalY = dx / length;
+
+  // Control point offset - curvature * half the line length gives a nice curve
+  const offset = curvature * length * 0.5;
+  const controlX = midX + normalX * offset;
+  const controlY = midY + normalY * offset;
+
+  // Quadratic Bezier curve
+  return `M ${start.x} ${start.y} Q ${controlX} ${controlY} ${end.x} ${end.y}`;
+}
+
+/**
  * Extracts interaction variable names from vector config.
  */
 function getVectorInteractionVariables(vector: IVector): {
@@ -130,29 +173,29 @@ export function renderVector(
     });
   }
 
-  // Create line generator
-  const line = d3
-    .line<VectorData>()
-    .x((d) => xScale(d.x))
-    .y((d) => yScale(d.y));
+  // Get curvature setting (0 = straight line)
+  const curvature = vector.curved ?? 0;
+
+  // Generate path string (curved or straight)
+  const startScreen = { x: xScale(vectorData[0].x), y: yScale(vectorData[0].y) };
+  const endScreen = { x: xScale(vectorData[1].x), y: yScale(vectorData[1].y) };
+  const pathString = generateCurvedPath(startScreen, endScreen, curvature);
 
   // Add invisible wider hover area for easier interaction
   const hoverPath = svg
     .append("path")
-    .datum(vectorData)
     .attr("fill", "none")
     .attr("stroke", "transparent")
     .attr(
       "stroke-width",
       Math.max(20, (vector.lineWidth || VECTOR_DEFAULTS.lineWidth) * 4)
     ) // Much wider hover area
-    .attr("d", line)
+    .attr("d", pathString)
     .style("cursor", "pointer");
 
   // Add the visible path
   const path = svg
     .append("path")
-    .datum(vectorData)
     .attr("fill", "none")
     .attr("stroke", color)
     .attr("stroke-width", vector.lineWidth || VECTOR_DEFAULTS.lineWidth)
@@ -161,7 +204,7 @@ export function renderVector(
       "marker-end",
       shape === "arrow" ? getMarkerUrl(`arrowhead-${vectorIndex}`) : "none"
     )
-    .attr("d", line)
+    .attr("d", pathString)
     .style("pointer-events", "none"); // Disable pointer events on visible path
 
   // Add hover functionality to the invisible wider path
@@ -382,14 +425,11 @@ export function renderVector(
 
         // Update the vector path to point to new position
         const startPoint = vectorData[0];
-        const updatedVectorData = [startPoint, { x: dataX, y: dataY }];
+        const updatedStartScreen = { x: xScale(startPoint.x), y: yScale(startPoint.y) };
+        const updatedEndScreen = { x: clampedX, y: clampedY };
+        const updatedPathString = generateCurvedPath(updatedStartScreen, updatedEndScreen, curvature);
 
-        const line = d3
-          .line<VectorData>()
-          .x((d) => xScale(d.x))
-          .y((d) => yScale(d.y));
-
-        path.datum(updatedVectorData).attr("d", line);
+        path.attr("d", updatedPathString);
 
         // If a label exists, update its position while dragging
         if (vector.label) {

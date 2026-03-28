@@ -24,6 +24,7 @@ import { computeLabelVariableEdges } from "../util/canvas/edges";
 import {
   addLabelNodes as addLabelNodesUtil,
   adjustLabelPositions as adjustLabelPositionsUtil,
+  updateAllLabelNodes as updateAllLabelNodesUtil,
 } from "../util/canvas/label-node";
 import {
   NODE_TYPES,
@@ -61,8 +62,10 @@ const CanvasFlow = observer(
     // Track if initial fitView has been called to prevent re-fitting on every render
     const initialFitViewCalledRef = useRef(false);
 
-    // Track pending label update timeout (outside useEffect for persistence)
-    const labelUpdateTimeoutRef = useRef<number | null>(null);
+    // Track pending label update animation frame (outside useEffect for persistence)
+    const labelUpdateFrameRef = useRef<number | null>(null);
+    // Track nested animation frame for label/step node rebuild
+    const labelRebuildFrameRef = useRef<number | null>(null);
 
     // Track if step nodes have been repositioned after label adjustment
     const stepNodeRepositionedRef = useRef(false);
@@ -253,6 +256,16 @@ const CanvasFlow = observer(
     // Separate function to add label nodes after variable nodes are positioned
     const addLabelNodes = useCallback(() => {
       addLabelNodesUtil({
+        getNodes,
+        getViewport,
+        setNodes,
+        computationStore,
+      });
+    }, [getNodes, getViewport, setNodes, computationStore]);
+
+    // Function to update label nodes in place (used during step transitions)
+    const updateLabelNodes = useCallback(() => {
+      return updateAllLabelNodesUtil({
         getNodes,
         getViewport,
         setNodes,
@@ -493,76 +506,92 @@ const CanvasFlow = observer(
         () => ({
           isStepMode: computationStore.isStepMode(),
           // Track activeVariables by serializing the Map to detect changes
+          // This is what determines which labels to show
           activeVariables: Array.from(
             computationStore.getActiveVariables().entries()
           ).map(([formulaId, varSet]) => [formulaId, Array.from(varSet)]),
           currentStep: computationStore.currentStep,
+          stepIndex: computationStore.currentStepIndex,
         }),
         () => {
           if (nodesInitialized && bootstrapCompleteRef.current) {
-            // Debounce using a ref that persists outside this effect
-            if (labelUpdateTimeoutRef.current) {
-              clearTimeout(labelUpdateTimeoutRef.current);
+            // Cancel any pending animation frames
+            if (labelUpdateFrameRef.current) {
+              cancelAnimationFrame(labelUpdateFrameRef.current);
+            }
+            if (labelRebuildFrameRef.current) {
+              cancelAnimationFrame(labelRebuildFrameRef.current);
             }
 
-            labelUpdateTimeoutRef.current = window.setTimeout(() => {
-              // Reset view node repositioned flag so step nodes will be added
-              // after labels are positioned. This must be done here (inside the timeout)
-              // to ensure it happens AFTER any stale label adjustment effects have run.
-              stepNodeRepositionedRef.current = false;
-
-              // Clear manually positioned labels when regenerating
-              // Remove existing label nodes, step nodes, expression nodes
-              setNodes((currentNodes) => {
-                const nonLabelViewExpressionNodes = currentNodes.filter(
-                  (node) =>
-                    node.type !== NODE_TYPES.LABEL &&
-                    node.type !== NODE_TYPES.STEP &&
-                    node.type !== NODE_TYPES.EXPRESSION
-                );
-                return nonLabelViewExpressionNodes;
-              });
-
-              // Clear edges to prevent stale edge references
-              setEdges([]);
-
-              // Update variable nodes first to ensure dimensions are correct,
-              // then re-add labels and step nodes
+            labelUpdateFrameRef.current = window.requestAnimationFrame(() => {
+              // Variable dimensions must update first so label/expression bounds use
+              // the latest geometry when the current step changes.
               updateVariableNodes();
-              window.setTimeout(() => {
-                addLabelNodes();
+              stepNodeRepositionedRef.current = false;
+              labelRebuildFrameRef.current = window.requestAnimationFrame(() => {
+                // Only clear label edges if the label set itself changed.
+                const labelSetChanged = updateLabelNodes();
+                if (labelSetChanged) {
+                  setEdges((currentEdges) =>
+                    currentEdges.filter((edge) =>
+                      edge.id.startsWith("edge-step-")
+                    )
+                  );
+                }
+                // Update labels in place (no flicker) and add/update step nodes
                 addstepNodes();
-              }, 100);
-            }, 100);
+              });
+            });
           }
-        }
+        },
+        { fireImmediately: true } // Fire immediately to handle initial state
       );
 
       return () => {
         disposer();
+        if (labelUpdateFrameRef.current) {
+          cancelAnimationFrame(labelUpdateFrameRef.current);
+        }
+        if (labelRebuildFrameRef.current) {
+          cancelAnimationFrame(labelRebuildFrameRef.current);
+        }
       };
     }, [
       nodesInitialized,
-      addLabelNodes,
+      updateLabelNodes,
       addstepNodes,
       updateVariableNodes,
-      setNodes,
       setEdges,
+      computationStore,
     ]);
 
     // Adjust label and view node positions after they're rendered and measured
     useEffect(() => {
-      if (!nodesInitialized) return;
+      if (!nodesInitialized || !bootstrapCompleteRef.current) return;
       // Check if all nodes are ready for positioning
       const { labelNodes, stepNodes, allReady } = checkAllNodesMeasured(nodes);
+
+      // Check if there are step nodes that need to be positioned (have opacity 0)
+      const stepNodesNeedPositioning = stepNodes.some(
+        (node) => node.style?.opacity === 0
+      );
+      // Check if there are label nodes that need to be positioned (have opacity 0)
+      const labelNodesNeedPositioning = labelNodes.some(
+        (node) => node.style?.opacity === 0
+      );
+
       // If no labels and no step nodes exist, nothing to do
       if (labelNodes.length === 0 && stepNodes.length === 0) {
         return;
       }
 
+      // Skip if no nodes need positioning
+      if (!stepNodesNeedPositioning && !labelNodesNeedPositioning) {
+        return;
+      }
+
       if (allReady) {
-        // Small delay to ensure all rendering is complete
-        const timeoutId = setTimeout(() => {
+        const layoutFrameId = requestAnimationFrame(() => {
           // Adjust label positions first
           if (labelNodes.length > 0) {
             adjustLabelPositions();
@@ -586,9 +615,11 @@ const CanvasFlow = observer(
               );
             }
           }
-        }, 50);
+        });
 
-        return () => clearTimeout(timeoutId);
+        return () => {
+          cancelAnimationFrame(layoutFrameId);
+        };
       }
     }, [nodes, nodesInitialized, adjustLabelPositions, setNodes]);
 

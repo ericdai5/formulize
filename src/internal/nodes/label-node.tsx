@@ -123,12 +123,9 @@ const ExpressionLabelNode = observer(
       debugStore.showLabelShadow
     );
 
-    const expressionLabelLatex = formatStepLabelValue(
-      expressionLabel,
-      {
-        precision: INPUT_VARIABLE_DEFAULT.PRECISION,
-      }
-    );
+    const expressionLabelLatex = formatStepLabelValue(expressionLabel, {
+      precision: INPUT_VARIABLE_DEFAULT.PRECISION,
+    });
 
     return (
       <div
@@ -215,11 +212,9 @@ const VariableLabelNode = observer(
         // Find the inner MathJax content element (mjx-mn for numbers, mjx-mi for identifiers)
         // This matches formula-node which targets MJX-MN elements, not the outer MJX-CONTAINER
         const container = e.currentTarget;
-        const innerElement = (
-          container.querySelector("mjx-mn") ??
+        const innerElement = (container.querySelector("mjx-mn") ??
           container.querySelector("mjx-mi") ??
-          container.querySelector("mjx-mrow")
-        ) as HTMLElement;
+          container.querySelector("mjx-mrow")) as HTMLElement;
         if (innerElement) {
           showInlineEditOverlay({
             varId,
@@ -284,13 +279,10 @@ const VariableLabelNode = observer(
         }
       } else {
         const displayPrecision = precision ?? INPUT_VARIABLE_DEFAULT.PRECISION;
-        const overrideLatex = formatStepLabelValue(
-          stepLabelOverride,
-          {
-            precision: displayPrecision,
-            sigFigs,
-          }
-        );
+        const overrideLatex = formatStepLabelValue(stepLabelOverride, {
+          precision: displayPrecision,
+          sigFigs,
+        });
         if (overrideLatex) {
           mainDisplayText = overrideLatex;
           displayComponent = (
@@ -338,7 +330,9 @@ const VariableLabelNode = observer(
         if (!isEditing) {
           cachedLatexRef.current = mainDisplayText;
         }
-        const displayLatex = isEditing ? cachedLatexRef.current || mainDisplayText : mainDisplayText;
+        const displayLatex = isEditing
+          ? cachedLatexRef.current || mainDisplayText
+          : mainDisplayText;
         displayComponent = (
           <LatexLabel latex={displayLatex} fontSize={labelFontSize} />
         );
@@ -429,11 +423,9 @@ const VariableLabelNode = observer(
         }}
         title={`Variable: ${varId}${name ? ` (${name})` : ""}${isDraggableVar ? " (draggable)" : ""}`}
         onMouseEnter={() => {
-          console.log(`[LabelNode] mouseenter varId=${varId}`);
           computationStore.setVariableHover(varId, true);
         }}
         onMouseLeave={() => {
-          console.log(`[LabelNode] mouseleave varId=${varId}`);
           computationStore.setVariableHover(varId, false);
         }}
       >
