@@ -171,6 +171,12 @@ export const updateLabelPlacement = (
   return nodes.map((node) => {
     const labelPlacement = updatesByNodeId.get(node.id);
     if (labelPlacement) {
+      if (
+        (node.data as { labelPlacement?: PlacementDirection }).labelPlacement ===
+        labelPlacement
+      ) {
+        return node;
+      }
       return {
         ...node,
         data: {
@@ -180,6 +186,23 @@ export const updateLabelPlacement = (
       };
     }
     return node;
+  });
+};
+
+const hasLabelPlacementChanges = (
+  nodes: Node[],
+  updates: LabelPlacementUpdate[]
+): boolean => {
+  if (updates.length === 0) return false;
+
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  return updates.some(({ nodeId, labelPlacement }) => {
+    const node = nodeById.get(nodeId);
+    if (!node) return false;
+    return (
+      (node.data as { labelPlacement?: PlacementDirection }).labelPlacement !==
+      labelPlacement
+    );
   });
 };
 
@@ -422,7 +445,7 @@ export const updateLabelNodes = ({
   formulaId,
   containerElement,
   computationStore,
-}: UpdateLabelNodesParams): void => {
+}: UpdateLabelNodesParams): boolean => {
   const currentNodes = getNodes();
   const viewport = getViewport();
 
@@ -434,16 +457,16 @@ export const updateLabelNodes = ({
     currentNodes,
     formulaId
   );
-  if (!formulaElement) return;
+  if (!formulaElement) return false;
   const formulaNode = findFormulaNodeById(currentNodes, formulaId);
-  if (!formulaNode || !formulaNode.measured) return;
+  if (!formulaNode || !formulaNode.measured) return false;
   // Get existing variable nodes for this formula
   const existingVariableNodes = currentNodes.filter(
     (node) =>
       node.type === NODE_TYPES.VARIABLE && node.parentId === formulaNode.id
   );
 
-  if (existingVariableNodes.length === 0) return;
+  if (existingVariableNodes.length === 0) return false;
 
   // Get existing label nodes for this formula
   const existingLabelNodes = currentNodes.filter((node) =>
@@ -481,12 +504,12 @@ export const updateLabelNodes = ({
   if (sameActiveSet) {
     // Same active variables - no need to recreate labels
     // Just update variable node placements if needed
-    if (variableNodeUpdates.length > 0) {
+    if (hasLabelPlacementChanges(currentNodes, variableNodeUpdates)) {
       setNodes((currentNodes) => {
         return updateLabelPlacement(currentNodes, variableNodeUpdates);
       });
     }
-    return;
+    return false;
   }
 
   // Active variables changed - need to add/remove labels
@@ -512,6 +535,112 @@ export const updateLabelNodes = ({
 
     return [...updatedNodes, ...keptLabels, ...labelsToAdd];
   });
+  return true;
+};
+
+/**
+ * Update label nodes for all formulas in the canvas (multi-formula version).
+ * This updates labels in place rather than removing and re-adding them,
+ * which prevents flickering during step transitions.
+ */
+export const updateAllLabelNodes = ({
+  getNodes,
+  getViewport,
+  setNodes,
+  computationStore,
+}: AddLabelNodesParams): boolean => {
+  const currentNodes = getNodes();
+  const viewport = getViewport();
+
+  // Get active variables and current step from computation store
+  const activeVariables = computationStore.getActiveVariables();
+  const currentStep = computationStore.currentStep;
+
+  // Collect updates for all formulas
+  const allNewLabelNodes: Node[] = [];
+  const allVariableNodeUpdates: LabelPlacementUpdate[] = [];
+  const labelIdsToKeep = new Set<string>();
+
+  forEachFormulaNode(currentNodes, (formulaNode, formulaElement, formulaId) => {
+    // Get existing label nodes for this formula
+    const existingLabelNodes = currentNodes.filter((node) =>
+      isVariableLabelNodeForFormula(node, formulaId)
+    );
+    const existingLabelVarIds = new Set(
+      existingLabelNodes.map((node) => node.data.varId as string)
+    );
+
+    // Calculate which labels should exist based on current activeVariables
+    const nonLabelNodes = currentNodes.filter(
+      (node) => node.type !== NODE_TYPES.LABEL
+    );
+    const { labelNodes: newLabelNodes, variableNodeUpdates } =
+      processVariableElementsForLabels(
+        formulaElement,
+        formulaNode,
+        formulaId,
+        nonLabelNodes,
+        viewport,
+        computationStore,
+        activeVariables,
+        currentStep
+      );
+
+    const newLabelVarIds = new Set(
+      newLabelNodes.map((node) => node.data.varId as string)
+    );
+
+    // Determine which existing labels to keep
+    for (const existingLabel of existingLabelNodes) {
+      const varId = existingLabel.data.varId as string;
+      if (newLabelVarIds.has(varId)) {
+        labelIdsToKeep.add(existingLabel.id);
+      }
+    }
+
+    // Determine which new labels to add (not in existing)
+    for (const newLabel of newLabelNodes) {
+      const varId = newLabel.data.varId as string;
+      if (!existingLabelVarIds.has(varId)) {
+        allNewLabelNodes.push(newLabel);
+      }
+    }
+
+    allVariableNodeUpdates.push(...variableNodeUpdates);
+  });
+
+  const hasVariableLabelRemovals = currentNodes.some((node) => {
+    if (node.type !== NODE_TYPES.LABEL) return false;
+    if (isExpressionLabelNode(node)) return false;
+    return !labelIdsToKeep.has(node.id);
+  });
+
+  if (
+    !hasVariableLabelRemovals &&
+    allNewLabelNodes.length === 0 &&
+    !hasLabelPlacementChanges(currentNodes, allVariableNodeUpdates)
+  ) {
+    return false;
+  }
+
+  // Apply all updates in a single setNodes call
+  setNodes((currentNodes) => {
+    // Remove labels that are no longer needed, keep all other nodes
+    const filteredNodes = currentNodes.filter((node) => {
+      if (node.type !== NODE_TYPES.LABEL) return true;
+      // Always keep expression labels (they are managed by step-node.ts)
+      if (isExpressionLabelNode(node)) return true;
+      // Keep variable label if it's in the keep set
+      return labelIdsToKeep.has(node.id);
+    });
+
+    // Apply variable node updates (labelPlacement)
+    const updatedNodes = updateLabelPlacement(filteredNodes, allVariableNodeUpdates);
+
+    // Add new labels
+    return [...updatedNodes, ...allNewLabelNodes];
+  });
+  return hasVariableLabelRemovals || allNewLabelNodes.length > 0;
 };
 
 /**

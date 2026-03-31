@@ -12,7 +12,7 @@ const PlotWrapper: React.FC<{
   children: React.ReactNode;
 }> = ({ renderKey, className = "", children }) => (
   <div
-    className={`w-full h-full p-6 overflow-hidden ${className}`}
+    className={`w-full h-full overflow-hidden ${className}`}
     key={`plot-container-${renderKey}`}
   >
     <div className="flex items-center justify-center h-full">{children}</div>

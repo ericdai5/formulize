@@ -10,3 +10,19 @@ export * from "./axes";
 export * from "./markers";
 export * from "./vectors";
 export * from "./utils";
+
+// Sampling API for interactive line/point/surface data access
+export {
+  sample2DLine,
+  sample2DPoint,
+  sample3DLine,
+  sample3DPoint,
+  sampleSurface,
+  getVariableRange,
+} from "./sampling-api";
+export type {
+  LineSampleConfig,
+  PointSampleConfig,
+  SurfaceSampleConfig,
+  DataPoint3D,
+} from "./sampling-api";

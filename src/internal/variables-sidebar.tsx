@@ -7,6 +7,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import { useStore } from "../core/hooks";
 import { debugStore } from "../store/debug";
 import {
+  getStepFromRange,
   IInput,
   INPUT_VARIABLE_DEFAULT,
   IVariable,
@@ -22,12 +23,14 @@ function serializeVariable(
   variable: IVariable
 ): number | IVariableUserInput | null {
   const hasInput = variable.input !== undefined;
+  const defaultStep = getStepFromRange(variable.range);
 
   // Check if there are any non-default properties that require an object format
   const hasName = !!variable.name;
   const hasPrecision = variable.precision !== INPUT_VARIABLE_DEFAULT.PRECISION;
   const hasSignificantDigits = variable.sigFigs !== undefined;
-  const hasStep = variable.step !== undefined;
+  const hasStep =
+    variable.step !== undefined && variable.step !== defaultStep;
   const hasNonDefaultRange =
     variable.range &&
     (variable.range[0] !== INPUT_VARIABLE_DEFAULT.MIN_VALUE ||
@@ -350,6 +353,7 @@ const VariableCard: React.FC<VariableCardProps> = observer(
     const precision = variable.precision;
     const sigFigs = variable.sigFigs;
     const step = variable.step;
+    const defaultStep = getStepFromRange(variable.range);
 
     const handleMouseEnter = () => {
       debugStore.setHoveredVariable(varId);
@@ -453,9 +457,9 @@ const VariableCard: React.FC<VariableCardProps> = observer(
           <div className="flex-1">
             <Label>Step</Label>
             <NumberInput
-              value={step ?? INPUT_VARIABLE_DEFAULT.STEP_SIZE}
+              value={step ?? defaultStep ?? INPUT_VARIABLE_DEFAULT.STEP_SIZE}
               onChange={(val) => onStepChange(val)}
-              defaultValue={INPUT_VARIABLE_DEFAULT.STEP_SIZE}
+              defaultValue={defaultStep ?? INPUT_VARIABLE_DEFAULT.STEP_SIZE}
               showDefault
             />
           </div>
@@ -614,7 +618,16 @@ const VariablesSidebar: React.FC<VariablesSidebarProps> = observer(
     };
 
     const handleRangeChange = (varId: string, range: [number, number]) => {
-      updateVariable(varId, { range });
+      const variable = computationStore?.variables.get(varId);
+      const currentDefaultStep = getStepFromRange(variable?.range);
+      const nextDefaultStep = getStepFromRange(range);
+      const usesDefaultStep =
+        variable?.step === undefined || variable.step === currentDefaultStep;
+
+      updateVariable(varId, {
+        range,
+        ...(usesDefaultStep ? { step: nextDefaultStep } : {}),
+      });
     };
 
     const handlePrecisionChange = (

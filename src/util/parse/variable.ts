@@ -479,7 +479,7 @@ export const processVariables = (
         if (symbol === originalSymbol) {
           const displayValue = computationStore.getDisplayValue(originalSymbol);
           value = typeof displayValue === "number" ? displayValue : undefined;
-          isDraggable = variable.input === "drag";
+          isDraggable = variable.input === "drag" || variable.input === "inline";
           // Use the variable's precision if defined, otherwise use default
           variablePrecision = variable.precision ?? defaultPrecision;
           variableSignificantDigits = variable.sigFigs;

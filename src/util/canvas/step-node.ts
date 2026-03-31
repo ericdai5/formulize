@@ -624,7 +624,30 @@ export function addstepNodes({
   const viewport = getViewport?.() || { zoom: 1, x: 0, y: 0 };
   // Get current step from computation store
   const step = computationStore.currentStep;
-  if (!step || !step.formulas || Object.keys(step.formulas).length === 0) {
+
+  // Get existing step-related nodes
+  const existingStepNodes = currentNodes.filter(
+    (node) => node.type === NODE_TYPES.STEP
+  );
+  const existingExpressionNodes = currentNodes.filter(
+    (node) => node.type === NODE_TYPES.EXPRESSION
+  );
+  const existingExpressionLabelNodes = currentNodes.filter((node) =>
+    isExpressionLabelNode(node)
+  );
+
+  // Early return if no existing step artifacts and no current step - nothing to do
+  const hasNoExistingStepArtifacts =
+    existingStepNodes.length === 0 &&
+    existingExpressionNodes.length === 0 &&
+    existingExpressionLabelNodes.length === 0;
+  const hasNoCurrentStep = !step || !step.formulas || Object.keys(step.formulas).length === 0;
+
+  if (hasNoExistingStepArtifacts && hasNoCurrentStep) {
+    return;
+  }
+
+  if (hasNoCurrentStep) {
     // Remove step, expression, and expression-label nodes if no current step
     setNodes((currentNodes) =>
       currentNodes.filter(
@@ -715,16 +738,6 @@ export function addstepNodes({
     allStepEdges.push(...stepEdges);
     stepNodeIndex += 1;
   }
-  // Get existing step nodes to check if we need to recreate
-  const existingStepNodes = currentNodes.filter(
-    (node) => node.type === NODE_TYPES.STEP
-  );
-  const existingExpressionNodes = currentNodes.filter(
-    (node) => node.type === NODE_TYPES.EXPRESSION
-  );
-  const existingExpressionLabelNodes = currentNodes.filter((node) =>
-    isExpressionLabelNode(node)
-  );
   // Check if step nodes can be updated in place (same structure, only content changed)
   const sameStructure =
     existingStepNodes.length === allstepNodes.length &&

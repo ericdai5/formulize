@@ -83,11 +83,6 @@ export const StepControl: React.FC<StepControlProps> = observer(
             disabled={computationStore.isAtEnd}
             icon={SkipForward}
           />
-          <span className="text-sm text-slate-500 ml-2">
-            {computationStore.totalSteps > 0
-              ? `${computationStore.currentStepIndex + 1} / ${computationStore.totalSteps}`
-              : "No steps"}
-          </span>
         </div>
         {/* Progress Bar */}
         <div className="h-0.5 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -95,6 +90,14 @@ export const StepControl: React.FC<StepControlProps> = observer(
             className="h-full bg-blue-500 transition-all duration-300 ease-out rounded-full"
             style={{ width: `${progress}%` }}
           />
+        </div>
+        {/* Step Numbers */}
+        <div className="flex justify-center pt-2">
+          <span className="text-sm text-slate-500">
+            {computationStore.totalSteps > 0
+              ? `${computationStore.currentStepIndex + 1} / ${computationStore.totalSteps}`
+              : "No steps"}
+          </span>
         </div>
       </div>
     );

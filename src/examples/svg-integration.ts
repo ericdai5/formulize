@@ -7,7 +7,7 @@ export const svgIntegration = `const config = {
   ],
   variables: {
     N: {
-      name: "Substance Remaining",
+      name: "Remaining Substance",
       units: "atoms",
       precision: 0,
       latexDisplay: "value",
@@ -44,7 +44,7 @@ export const svgIntegration = `const config = {
     N_0: {
       input: "drag",
       default: 1000,
-      name: "Substance Initial",
+      name: "Initial Substance",
       range: [100, 10000],
       step: 100,
       precision: 0,
@@ -56,7 +56,7 @@ export const svgIntegration = `const config = {
     "\\\\lambda": {
       input: "drag",
       default: 0.1,
-      name: "Decay Constant",
+      name: "Decay",
       range: [0.01, 0.5],
       step: 0.01,
       precision: 3,
@@ -66,7 +66,7 @@ export const svgIntegration = `const config = {
     t: {
       input: "drag",
       default: 5,
-      name: "time",
+      name: "Time",
       range: [0, 50],
       step: 0.5,
       precision: 1,

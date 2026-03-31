@@ -1,6 +1,7 @@
 import { average } from "./average";
 import { bayesWithCustomVisualization } from "./bayes-visualization";
 import { fittsLaw } from "./fitts-law";
+import { gradientDescent } from "./gradient-descent";
 import { gravitationalForce } from "./gravitational-force";
 import { gravitationalPotential } from "./gravitational-potential";
 import { waveEquationSVG } from "./js-generated-svg";
@@ -8,6 +9,7 @@ import { kinetic2D } from "./kinetic-2d";
 import { kinetic3D } from "./kinetic-3d";
 import { lossFunction } from "./loss-function";
 import { matrixMultiplication } from "./matrix-multiplication";
+import { simpleLoss } from "./simple-loss";
 import { parameterizedPlane } from "./parameterized-plane";
 import { parametric3D } from "./parametric-3d";
 import { quadratic2D } from "./quadratic-2d";
@@ -40,8 +42,10 @@ export const examples = {
   vectorAddition,
   matrixMultiplication,
   lossFunction,
+  simpleLoss,
   setOperations,
   fittsLaw,
+  gradientDescent,
   task2training,
   task2instruction,
 };
@@ -65,8 +69,10 @@ export const exampleDisplayNames = {
   vectorAddition: "Vector Addition 2D",
   matrixMultiplication: "Matrix Multiplication 3x3",
   lossFunction: "Loss Function Stepping",
+  simpleLoss: "Simple Loss Function",
   setOperations: "Set Operations",
   fittsLaw: "Fitts' Law 2D",
+  gradientDescent: "Gradient Descent Stepping",
   task2training: "Task 2 Training",
   task2instruction: "Task 2 Instruction",
 } as const;

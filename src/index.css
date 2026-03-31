@@ -40,9 +40,16 @@
     @apply text-blue-600 rounded-md;
   }
 
+  /* Inline edit input styling */
+  .inline-edit-input {
+    display: inline-block;
+    overflow: visible;
+  }
+
   /* Wrapper for scaling variables outside MathJax's layout */
   .var-scale-wrapper {
     display: inline-block;
+    overflow: visible;
   }
 
   .var-scale-wrapper.active {

@@ -6,6 +6,7 @@ import { observer } from "mobx-react-lite";
 import { VAR_CLASSES } from "../internal/css-classes";
 import { ComputationStore } from "../store/computation";
 import { formatNumberForLatex } from "../util/format-number";
+import { showInlineEditOverlay } from "../util/inline-edit-overlay";
 import { getInputVariableState } from "../util/parse/variable";
 import { useMathJax } from "../util/use-mathjax";
 import { useStore } from "./hooks";
@@ -109,16 +110,21 @@ const InlineVariableInner = observer(
       }
     }, [id, display, getVariable]);
 
-    // Attach hover and drag listeners
+    // Attach hover, drag, and inline edit listeners
     const attachInteractionListeners = useCallback(
       (container: HTMLElement) => {
         const variable = computationStore.variables.get(id);
         if (!variable) return;
 
         const isDraggable = variable.input === "drag";
+        const isInlineEditable = variable.input === "inline";
 
         // Make the whole container interactive
-        container.style.cursor = isDraggable ? "ns-resize" : "default";
+        container.style.cursor = isInlineEditable
+          ? "text"
+          : isDraggable
+            ? "ns-resize"
+            : "default";
 
         // Mouse enter - set hover state
         container.addEventListener("mouseenter", () => {
@@ -192,8 +198,49 @@ const InlineVariableInner = observer(
 
           container.addEventListener("mousedown", handleMouseDown);
         }
+
+        // Add click-to-edit for inline input variables
+        // Allow editing for "value" and "withUnits" display modes (where the value is shown)
+        const canInlineEdit = display === "value" || display === "withUnits";
+        if (isInlineEditable && canInlineEdit) {
+          const handleClick = (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Don't open if already editing
+            if (computationStore.editingStates.get(id)) {
+              return;
+            }
+
+            // Find the MathJax element inside the container
+            const mathJaxElement = (
+              container.querySelector("mjx-mn") ??
+              container.querySelector("mjx-mi") ??
+              container.querySelector("mjx-mrow")
+            ) as HTMLElement;
+
+            if (mathJaxElement) {
+              showInlineEditOverlay({
+                varId: id,
+                element: mathJaxElement,
+                computationStore,
+              });
+            }
+          };
+
+          // Prevent mousedown from causing blur when editing
+          const handleMouseDown = (e: MouseEvent) => {
+            if (computationStore.editingStates.get(id)) {
+              e.preventDefault();
+            }
+            e.stopPropagation();
+          };
+
+          container.addEventListener("click", handleClick);
+          container.addEventListener("mousedown", handleMouseDown);
+        }
       },
-      [id, computationStore, config]
+      [id, display, computationStore, config]
     );
 
     // Render the variable with MathJax

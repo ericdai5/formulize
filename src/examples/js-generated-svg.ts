@@ -47,7 +47,7 @@ const config = {
       svgSize: { width: 40, height: 40 }
     },
     w: {
-      name: "Wave Value",
+      name: "Displacement",
       units: "m",
       precision: 2,
     },

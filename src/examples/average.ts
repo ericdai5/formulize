@@ -2,13 +2,13 @@ export const average = `const config = {
   formulas: [
     {
       id: "average",
-      latex: "\\\\bar{X} = \\\\frac{1}{n} \\\\sum_{i=1}^{n} X_i"
+      latex: "\\\\mu = \\\\frac{1}{n} \\\\sum_{i=1}^{n} X_i"
     },
   ],
   variables: {
-    "\\\\bar{X}": {
+    "\\\\mu": {
       default: 0,
-      name: "Average",
+      name: "Mean",
     },
     n: {
       default: 0,
@@ -42,7 +42,7 @@ export const average = `const config = {
     average = sum / n;
     average = Math.round(average * 100) / 100;
     step({ description: "Divide $sum = " + sum + "$ by $n = " + n + "$ to get average.", labels: { "\\\\bar{X}": average } });
-    vars["\\\\bar{X}"] = average;
+    vars["\\\\mu"] = average;
   },
   fontSize: 1.5
 };`;

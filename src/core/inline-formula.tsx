@@ -4,6 +4,7 @@ import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 import { ComputationStore } from "../store/computation";
+import { attachInlineEditHandler } from "../util/inline-edit-overlay";
 import {
   getInputVariableState,
   processLatexContent,
@@ -61,6 +62,10 @@ const InlineFormulaInner = observer(
         variableIds.forEach((varId) => {
           const variable = computationStore.variables.get(varId);
           const isDraggable = variable?.input === "drag";
+          const isInlineEditable = variable?.input === "inline";
+          // Only enable inline editing on formula if latexDisplay is "value"
+          // When latexDisplay is "name" (default), the label handles inline editing instead
+          const latexDisplay = variable?.latexDisplay ?? "name";
           const elements = container.querySelectorAll(`#${CSS.escape(varId)}`);
 
           elements.forEach((element) => {
@@ -75,8 +80,12 @@ const InlineFormulaInner = observer(
               computationStore.setVariableHover(varId, false);
             });
 
-            // Add drag-to-change for input variables
-            if (isDraggable) {
+            // Add click-to-edit for inline input variables
+            if (isInlineEditable && latexDisplay === "value") {
+              attachInlineEditHandler(el, varId, computationStore);
+            }
+            // Add drag-to-change for draggable variables
+            else if (isDraggable) {
               el.style.cursor = "ns-resize";
 
               let isDragging = false;
@@ -225,9 +234,18 @@ const InlineFormulaInner = observer(
         () => {
           // Track variable values for reactivity
           const entries = Array.from(computationStore.variables.entries());
-          return entries.map(([id, v]) => ({ id, value: v.value }));
+          // Also track editing states to trigger re-render when editing ends
+          const editingStates = Array.from(computationStore.editingStates.entries());
+          return {
+            values: entries.map(([id, v]) => ({ id, value: v.value })),
+            editingStates,
+          };
         },
         () => {
+          // Skip re-render if any variable is being edited
+          if (computationStore.editingStates.size > 0) {
+            return;
+          }
           renderFormula();
         }
       );
