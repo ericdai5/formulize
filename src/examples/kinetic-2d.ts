@@ -13,7 +13,7 @@ export const kinetic2D = `const config = {
     m: {
       input: "inline",
       default: 1,
-      range: [0.1, 10],
+      range: [0, 10],
       step: 1,
       name: "Mass $kg$",
       latexDisplay: "value",
@@ -22,7 +22,7 @@ export const kinetic2D = `const config = {
     v: {
       input: "drag",
       default: 2,
-      range: [0.1, 100],
+      range: [0, 10],
       step: 1,
       name: "Velocity $m/s$",
     },
@@ -51,8 +51,8 @@ export const kinetic2D = `const config = {
       ]
     }
   ],
-  fontSize: 1.5,
-  labelFontSize:  1.0,
-  labelNodeStyle: { outline: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', backgroundColor: '#ffffff' },
-  formulaNodeStyle: { outline: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', backgroundColor: '#ffffff' }
+  fontSize: 1,
+  labelFontSize:  0.8,
+  // labelNodeStyle: { outline: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', backgroundColor: '#ffffff' },
+  // formulaNodeStyle: { outline: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', backgroundColor: '#ffffff' }
 };`;

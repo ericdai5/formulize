@@ -157,7 +157,7 @@ const renderNestedVariable = (
   let value: number | undefined = undefined;
   let variablePrecision = defaultPrecision;
   let variableSignificantDigits: number | undefined;
-  let latexDisplay: "name" | "value" = "name";
+  let latexDisplay: "name" | "value" | "svg" = "name";
   let isDraggable = false;
   // Get the value from the computation store
   const variable = computationStore.variables.get(symbolValue);
@@ -469,11 +469,10 @@ export const processVariables = (
       let isDraggable = false;
       let variablePrecision = defaultPrecision;
       let variableSignificantDigits: number | undefined;
-      let display: "name" | "value" = "name"; // Default to showing name
+      let display: "name" | "value" | "svg" = "name"; // Default to showing name
       let defaultCSS = "";
       let hoverCSS = "";
       let hasSVG = false;
-      let svgMode: "replace" | "append" | undefined = undefined;
 
       for (const [symbol, variable] of computationStore.variables.entries()) {
         if (symbol === originalSymbol) {
@@ -488,12 +487,11 @@ export const processVariables = (
           // Get custom CSS if defined
           defaultCSS = variable.defaultCSS || "";
           hoverCSS = variable.hoverCSS || "";
-          // Only treat variable as having in-formula SVG if svgMode is explicitly set
+          // Treat variable as having in-formula SVG if latexDisplay is "svg"
           hasSVG = !!(
-            variable.svgMode &&
+            variable.latexDisplay === "svg" &&
             (variable.svgPath || variable.svgContent)
           );
-          svgMode = variable.svgMode;
           break;
         }
       }
@@ -527,35 +525,37 @@ export const processVariables = (
       // Wrap the processed body with CSS classes using the variable's specific precision
       // Show name or value based on display property
       let result = "";
-      // If variable has SVG in replace mode, create a placeholder that will be replaced
-      if (hasSVG && svgMode === "replace") {
-        // Use a phantom space that will be replaced with SVG
-        result = `\\cssId{${id}}{\\class{${cssClass}}{\\phantom{M}}}`;
-      } else {
-        // Regular variable rendering (also used for append mode SVG)
-        // The SVG will be appended after MathJax rendering if hasSVG && svgMode === "append"
-        switch (display) {
-          case "name":
+      // Show based on display property (latexDisplay)
+      switch (display) {
+        case "svg":
+          // If variable has SVG content, create a placeholder that will be replaced
+          if (hasSVG) {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{\\phantom{M}}}`;
+          } else {
+            // Fallback to name if no SVG content available
             result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
-            break;
-          case "value":
-            // If no value is available, fallback to showing the name
-            if (value !== null && value !== undefined && !isNaN(value)) {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${formatNumberForLatex(
-                value,
-                {
-                  precision: variablePrecision,
-                  sigFigs: variableSignificantDigits,
-                }
-              )}}}`;
-            } else {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
-            }
-            break;
-          default:
+          }
+          break;
+        case "name":
+          result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
+          break;
+        case "value":
+          // If no value is available, fallback to showing the name
+          if (value !== null && value !== undefined && !isNaN(value)) {
+            result = `\\cssId{${id}}{\\class{${cssClass}}{${formatNumberForLatex(
+              value,
+              {
+                precision: variablePrecision,
+                sigFigs: variableSignificantDigits,
+              }
+            )}}}`;
+          } else {
             result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
-            break;
-        }
+          }
+          break;
+        default:
+          result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
+          break;
       }
       return result;
     }

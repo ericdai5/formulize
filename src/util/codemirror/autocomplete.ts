@@ -39,12 +39,12 @@ const variableCompletions: CompletionOption[] = [
   {
     label: "latexDisplay",
     type: "property",
-    info: "LaTeX display: name | value",
+    info: "LaTeX display: name | value | svg",
   },
   {
     label: "labelDisplay",
     type: "property",
-    info: "Label display: name | value | none",
+    info: "Label display: name | value | svg | none",
   },
 ];
 
@@ -66,6 +66,7 @@ const dataTypeValues: CompletionOption[] = [
 const displayValues: CompletionOption[] = [
   { label: '"name"', type: "value", info: "Display name" },
   { label: '"value"', type: "value", info: "Display value" },
+  { label: '"svg"', type: "value", info: "Display SVG" },
   { label: '"none"', type: "value", info: "No display" },
 ];
 

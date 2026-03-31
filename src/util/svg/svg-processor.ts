@@ -46,9 +46,13 @@ export const injectVariableSVGs = (
       // Skip if variable doesn't exist or doesn't have SVG configuration
       if (!variable || (!variable.svgPath && !variable.svgContent)) return;
 
-      // If svgMode is not explicitly declared, do not inject into formula content
-      // Label nodes render SVG via SVGLabel component separately
-      if (!variable.svgMode) return;
+      // Determine if we should inject SVG into formula content:
+      // - latexDisplay: "svg" triggers replace mode (SVG replaces the variable)
+      // - svgMode: "append" triggers append mode (SVG is added alongside the variable)
+      // Label nodes render SVG via SVGLabel component separately (when labelDisplay: "svg")
+      const shouldReplace = variable.latexDisplay === "svg";
+      const shouldAppend = variable.svgMode === "append";
+      if (!shouldReplace && !shouldAppend) return;
 
       // Check if SVG already exists (avoid duplicates)
       if (
@@ -137,9 +141,8 @@ export const injectVariableSVGs = (
         return;
       }
 
-      // Check if we should replace or append based on svgMode
-      const svgMode = variable.svgMode || "replace";
-      if (svgMode === "append") {
+      // Check if we should replace or append
+      if (shouldAppend) {
         // Append mode: Add SVG on top of the variable content
         // TO DO: Add custom CSS to the SVG element
         // TO DO: Add position and alignment control to SVG element

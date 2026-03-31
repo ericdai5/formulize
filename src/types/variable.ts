@@ -31,7 +31,7 @@ export interface IVariable {
   step?: number;
   options?: string[];
   key?: string;
-  latexDisplay?: "name" | "value";
+  latexDisplay?: "name" | "value" | "svg";
   labelDisplay?: "name" | "value" | "svg" | "none";
   svgPath?: string;
   svgContent?: VariableSVGContent;
