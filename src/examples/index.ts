@@ -6,6 +6,7 @@ import { gravitationalForce } from "./gravitational-force";
 import { gravitationalPotential } from "./gravitational-potential";
 import { waveEquationSVG } from "./js-generated-svg";
 import { kinetic2D } from "./kinetic-2d";
+import { kineticEnergy } from "./kinetic-energy";
 import { kinetic3D } from "./kinetic-3d";
 import { lossFunction } from "./loss-function";
 import { matrixMultiplication } from "./matrix-multiplication";
@@ -25,6 +26,7 @@ import { vectorAddition } from "./vector-addition";
 
 export const examples = {
   kinetic2D,
+  kineticEnergy,
   kinetic3D,
   quadratic2D,
   quadratic3D,
@@ -52,6 +54,7 @@ export const examples = {
 
 export const exampleDisplayNames = {
   kinetic2D: "Kinetic Energy 2D",
+  kineticEnergy: "Kinetic Energy",
   kinetic3D: "Kinetic Energy 3D",
   gravitationalForce: "Gravitational Force",
   gravitationalPotential: "Potential Energy 2D",

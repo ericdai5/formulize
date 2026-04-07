@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 import { observer } from "mobx-react-lite";
 
+import { undo, redo } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
@@ -12,6 +13,11 @@ import {
   variableHighlightExtension,
 } from "../util/codemirror/extension";
 
+export interface EditorHandle {
+  undo: () => void;
+  redo: () => void;
+}
+
 interface EditorProps {
   code: string;
   onChange: (value: string) => void;
@@ -19,8 +25,19 @@ interface EditorProps {
   error: string | null;
 }
 
-const Editor = observer(({ code, onChange, onRender, error }: EditorProps) => {
+const Editor = observer(forwardRef<EditorHandle, EditorProps>(({ code, onChange, onRender, error }, ref) => {
   const editorRef = useRef<ReactCodeMirrorRef>(null);
+
+  useImperativeHandle(ref, () => ({
+    undo: () => {
+      const view = editorRef.current?.view;
+      if (view) undo(view);
+    },
+    redo: () => {
+      const view = editorRef.current?.view;
+      if (view) redo(view);
+    },
+  }));
 
   const handleCodeMirrorChange = (value: string) => {
     onChange(value);
@@ -93,6 +110,6 @@ const Editor = observer(({ code, onChange, onRender, error }: EditorProps) => {
       )}
     </div>
   );
-});
+}));
 
 export default Editor;

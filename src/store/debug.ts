@@ -161,7 +161,18 @@ class DebugStore {
   @observable
   accessor selectedTemplate: string = "";
 
+  @observable
+  accessor autoFormat: boolean = false;
+
   private codeByTemplate: Record<string, string> = {};
+
+  @action
+  toggleAutoFormat() {
+    this.autoFormat = !this.autoFormat;
+    if (this.autoFormat) {
+      this.formatCurrentCode();
+    }
+  }
 
   @action
   setCode(newCode: string) {
@@ -173,6 +184,7 @@ class DebugStore {
 
   private formatAndSetCode(updatedCode: string) {
     this.setCode(updatedCode);
+    if (!this.autoFormat) return;
     formatCode(updatedCode).then((formatted) => {
       runInAction(() => {
         if (this.code === updatedCode) {
@@ -186,6 +198,7 @@ class DebugStore {
    * Format the current code with Prettier.
    */
   formatCurrentCode() {
+    if (!this.autoFormat) return;
     const currentCode = this.code;
     formatCode(currentCode).then((formatted) => {
       runInAction(() => {
@@ -203,6 +216,7 @@ class DebugStore {
     const codeToUse = savedCode || defaultCode;
     this.code = codeToUse;
     // Format the initial code
+    if (!this.autoFormat) return;
     formatCode(codeToUse).then((formatted) => {
       runInAction(() => {
         if (this.code === codeToUse) {

@@ -913,10 +913,20 @@ class ComputationStore {
           : 1 // Invalid value, use default of 1em
         : 1; // Default fontSize when not defined (1em for good visibility)
 
-    // Always set environment with validated fontSize
+    const validatedLabelFontSize =
+      environment.labelFontSize !== undefined
+        ? typeof environment.labelFontSize === "number" &&
+          environment.labelFontSize >= 0.5 &&
+          environment.labelFontSize <= 3.0
+          ? environment.labelFontSize
+          : 0.8
+        : 0.8;
+
+    // Always set environment with validated fontSize and labelFontSize
     this.environment = {
       ...environment,
       fontSize: validatedFontSize,
+      labelFontSize: validatedLabelFontSize,
     };
   }
 
