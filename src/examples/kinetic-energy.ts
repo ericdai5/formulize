@@ -4,9 +4,23 @@ export const kineticEnergy = `const config = {
     latex: "K = \\\\frac{1}{2}mv^2"
   }],
   variables: {
-    K: { name: "Kinetic energy" },
-    m: { default: 1, range: [0, 10], input: "inline", name: "Mass", latexDisplay: "value", labelDisplay: "name" },
-    v: { default: 2, range: [0, 10], input: "drag", name: "Velocity" },
+    K: { 
+      name: "Kinetic energy" 
+    },
+    m: { 
+      default: 1, 
+      range: [0, 10], 
+      input: "inline", 
+      name: "Mass", 
+      latexDisplay: "value", 
+      labelDisplay: "name" 
+    },
+    v: { 
+      default: 2,
+      range: [0, 10],
+      input: "drag",
+      name: "Velocity"
+    },
   },
   semantics: function({ vars, sample }) {
     vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);

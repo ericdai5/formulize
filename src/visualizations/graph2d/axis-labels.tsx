@@ -20,8 +20,8 @@ export const AxisLabels: React.FC<AxisLabelsProps> = observer(
     if (!computationStore) {
       return null;
     }
-    // Use the main formula fontSize for axis labels
-    const fontSize = computationStore.environment?.fontSize ?? 1.5;
+    // Use the labelFontSize for axis labels
+    const fontSize = computationStore.environment?.labelFontSize ?? 1.5;
 
     const handleXLabelMouseEnter = () => {
       if (labelInfo.xLabel?.xAxis) {

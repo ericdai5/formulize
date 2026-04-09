@@ -8,7 +8,6 @@ export const svgIntegration = `const config = {
   variables: {
     N: {
       name: "Remaining Substance",
-      units: "atoms",
       precision: 0,
       svgContent: dynamicDecaySvg,
       latexDisplay: "svg"
@@ -18,9 +17,7 @@ export const svgIntegration = `const config = {
       default: 1000,
       name: "Initial Substance",
       range: [100, 10000],
-      step: 100,
       precision: 0,
-      units: "atoms",
       svgContent: dynamicInitialSvg,
       latexDisplay: "svg"
     },
@@ -29,9 +26,7 @@ export const svgIntegration = `const config = {
       default: 0.1,
       name: "Decay",
       range: [0.01, 0.5],
-      step: 0.01,
       precision: 3,
-      units: "1/hr",
       latexDisplay: "name",
     },
     t: {
@@ -39,9 +34,7 @@ export const svgIntegration = `const config = {
       default: 5,
       name: "Time",
       range: [0, 50],
-      step: 0.5,
       precision: 1,
-      units: "hr",
       svgContent: dynamicClockSvg,
       latexDisplay: "svg"
     }
@@ -56,11 +49,9 @@ export const svgIntegration = `const config = {
       xAxisLabel: "t",
       xAxisVar: "t",
       xRange: [0, 50],
-      xGrid: "show",
       yAxisLabel: "N",
       yAxisVar: "N",
       yRange: [0, 1100],
-      yGrid: "show",
       lines: [
         {
           sampleId: "decay",
@@ -81,14 +72,12 @@ export const svgIntegration = `const config = {
   fontSize: 1.5
 };
 
-// Dynamic SVG - remaining substance fades as decay progresses
 function dynamicDecaySvg(ctx) {
   const value = typeof ctx.value === 'number' ? ctx.value : 1000;
   const env = ctx.environment || {};
   const N_0 = env["N_{0}"] || 1000;
   const ratio = Math.min(value / N_0, 1);
-  const saturation = ratio; // Direct percentage of initial substance
-
+  const saturation = ratio;
   return \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <circle cx="12" cy="12" r="10" fill="#00E676" opacity="\${saturation * 0.4}"/>
     <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" opacity="\${saturation}"/>
@@ -98,7 +87,6 @@ function dynamicDecaySvg(ctx) {
   </svg>\`;
 }
 
-// Dynamic SVG - initial substance at full saturation
 function dynamicInitialSvg(ctx) {
   return \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <circle cx="12" cy="12" r="10" fill="#00E676" opacity="0.4"/>
@@ -109,13 +97,10 @@ function dynamicInitialSvg(ctx) {
   </svg>\`;
 }
 
-// Dynamic SVG - clock hands rotate based on time value
 function dynamicClockSvg(ctx) {
   const time = typeof ctx.value === 'number' ? ctx.value : 0;
-  // Hour hand rotates once per 12 hours, minute hand once per hour
   const hourAngle = (time / 12) * 360;
   const minuteAngle = (time % 1) * 360;
-
   return \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <!-- Outer clock circle -->
     <circle cx="12" cy="12" r="10" fill="#E0E7FF" stroke="#4169E1" stroke-width="2"/>
