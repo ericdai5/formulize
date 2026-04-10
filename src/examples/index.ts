@@ -1,6 +1,7 @@
 import { average } from "./average";
 import { averageStepping } from "./average-stepping";
 import { bayesWithCustomVisualization } from "./bayes-visualization";
+import { bayesSimpleVisualization } from "./bayes-visualization-simple";
 import { fittsLaw } from "./fitts-law";
 import { gradientDescent } from "./gradient-descent";
 import { gravitationalForce } from "./gravitational-force";
@@ -37,6 +38,7 @@ export const examples = {
   parametric3D,
   parameterizedPlane,
   bayesWithCustomVisualization,
+  bayesSimpleVisualization,
   average,
   averageStepping,
   summationBasic,
@@ -66,6 +68,7 @@ export const exampleDisplayNames = {
   parametric3D: "Parametric 3D",
   parameterizedPlane: "Parameterized Plane 3D",
   bayesWithCustomVisualization: "Bayes Theorem",
+  bayesSimpleVisualization: "Bayes Simple",
   average: "Average Stepping",
   averageStepping: "Average with Stepping",
   summationBasic: "Summation Stepping",
