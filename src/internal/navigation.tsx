@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, setViewMode }) => {
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-slate-900">Math Notation</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Delta DSL</h1>
           </div>
           <div className="space-y-1">
             <button
