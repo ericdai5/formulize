@@ -1,17 +1,17 @@
 {
-  "name": "math-notation",
+  "name": "delta-dsl",
   "private": false,
-  "version": "0.1.6",
-  "description": "A React component library for mathematical expressions",
+  "version": "0.0.1",
+  "description": "A React DSL for interactive mathematical expressions and visualizations",
   "type": "module",
-  "main": "./dist/formulize.cjs.js",
-  "module": "./dist/formulize.es.js",
+  "main": "./dist/delta-dsl.cjs",
+  "module": "./dist/delta-dsl.js",
   "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/formulize.es.js",
-      "require": "./dist/formulize.cjs.js",
-      "types": "./dist/types/index.d.ts"
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/delta-dsl.js",
+      "require": "./dist/delta-dsl.cjs"
     },
     "./style.css": "./dist/style.css"
   },
@@ -22,19 +22,26 @@
   ],
   "keywords": [
     "math",
+    "dsl",
+    "formula",
     "react",
-    "component"
+    "typescript",
+    "visualization"
   ],
   "author": "Eric Dai <Ericdai2000@gmail.com>, Zain Khan <zain6khan@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ericdai5/formulize.git"
+    "url": "git+https://github.com/ericdai5/delta-dsl.git"
   },
   "bugs": {
-    "url": "https://github.com/ericdai5/formulize/issues"
+    "url": "https://github.com/ericdai5/delta-dsl/issues"
   },
-  "homepage": "https://github.com/ericdai5/formulize#readme",
+  "homepage": "https://github.com/ericdai5/delta-dsl#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "peerDependencies": {
     "@codemirror/autocomplete": "^6.0.0",
     "@codemirror/lang-javascript": "^6.0.0",
@@ -59,23 +66,6 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": false
-    },
-    "react-dom": {
-      "optional": false
-    },
-    "plotly.js-dist": {
-      "optional": true
-    },
-    "d3": {
-      "optional": true
-    },
-    "@xyflow/react": {
-      "optional": true
-    }
-  },
   "sideEffects": [
     "*.css",
     "src/**/*.css"
@@ -87,8 +77,9 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run",
-    "prepare": "husky install",
-    "prepublishOnly": "npm run build"
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky",
+    "prepublishOnly": "npm run test && npm run typecheck && npm run build"
   },
   "dependencies": {
     "dompurify": "^3.2.3",

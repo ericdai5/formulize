@@ -1,10 +1,10 @@
-# Formulize
+# Delta DSL
 
-An API for interactive mathematical formula built with React, TypeScript, and Vite that provides real-time formula visualization and computation capabilities.
+A DSL for interactive mathematical formulas built with React, TypeScript, and Vite that provides real-time visualization and computation capabilities.
 
 ## Features
 
-- **Formulize API** - Declarative API for programmatic "executable" formula configuration
+- **Delta DSL API** - Declarative API for programmatic "executable" formula configuration
 - **Multi-Engine Computation** - Support for manual step-through, symbolic algebra
 - **Real-time Visualization** - 2D/3D plotting with D3.js and Plotly.js integration
 - **Variable Management** - Dependency tracking and automatic recomputation
@@ -13,19 +13,13 @@ An API for interactive mathematical formula built with React, TypeScript, and Vi
 
 ### Quick Start (Recommended)
 
-Install with all peer dependencies automatically:
-
 ```bash
-npx install-peerdeps formulize-math
-```
-
-```bash
-npm install formulize-math
+npm install delta-dsl
 ```
 
 ### Manual Peer Dependencies Installation
 
-Formulize requires several peer dependencies. Install them based on your needs:
+Delta DSL requires several peer dependencies. Install them based on your needs:
 
 **Core (Required):**
 
@@ -45,7 +39,7 @@ npm install mathjax-full better-react-mathjax katex mathjs
 npm install @xyflow/react lucide-react lodash
 ```
 
-**3D Plotting (Optional - for Plot3D):**
+**2D/3D Plotting (Required for Graph):**
 
 ```bash
 npm install plotly.js-dist d3
@@ -60,13 +54,57 @@ npm install codemirror @codemirror/autocomplete @codemirror/lang-javascript @cod
 **All-in-one installation:**
 
 ```bash
-npm install formulize-math react react-dom mobx mobx-react-lite mobx-state-tree mathjax-full better-react-mathjax katex mathjs @xyflow/react lucide-react lodash plotly.js-dist d3 codemirror @codemirror/autocomplete @codemirror/lang-javascript @codemirror/language @codemirror/legacy-modes @codemirror/state @codemirror/view @uiw/react-codemirror
+npm install delta-dsl react react-dom mobx mobx-react-lite mobx-state-tree mathjax-full better-react-mathjax katex mathjs @xyflow/react lucide-react lodash plotly.js-dist d3 codemirror @codemirror/autocomplete @codemirror/lang-javascript @codemirror/language @codemirror/legacy-modes @codemirror/state @codemirror/view @uiw/react-codemirror
 ```
 
 Don't forget to import the CSS:
 
 ```tsx
-import "formulize-math/style.css";
+import "delta-dsl/style.css";
+```
+
+### Basic Usage
+
+```tsx
+import { type Config, Formula, Provider } from "delta-dsl";
+import "delta-dsl/style.css";
+
+const config: Config = {
+  formulas: [
+    {
+      id: "kinetic-energy",
+      latex: String.raw`K = \frac{1}{2}mv^2`,
+    },
+  ],
+  variables: {
+    K: { name: "Kinetic energy", units: "J" },
+    m: {
+      default: 1,
+      input: "inline",
+      range: [0, 10],
+      name: "Mass",
+      units: "kg",
+    },
+    v: {
+      default: 2,
+      input: "drag",
+      range: [0, 10],
+      name: "Velocity",
+      units: "m/s",
+    },
+  },
+  semantics: ({ vars }) => {
+    vars.K = 0.5 * vars.m * vars.v ** 2;
+  },
+};
+
+export default function App() {
+  return (
+    <Provider config={config}>
+      <Formula id="kinetic-energy" />
+    </Provider>
+  );
+}
 ```
 
 ## Technology Stack
@@ -83,7 +121,7 @@ import "formulize-math/style.css";
 
 ### Prerequisites
 
-- Node.js (version 16 or higher)
+- Node.js (version 18 or higher)
 - npm or yarn
 
 ### Setup
@@ -146,7 +184,7 @@ npm run deploy
 
 ## Project Structure
 
-- `src/api/` - Formulize API and computation engines
+- `src/api/` - Delta DSL API and computation engines
 - `src/renderer/` - Core interactive formula components
 - `src/visualizations/` - 2D/3D plotting engines
 - `src/types/` - TypeScript type definitions

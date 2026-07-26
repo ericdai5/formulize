@@ -4,7 +4,7 @@
  *
  * Usage:
  * ```typescript
- * import { sample2DLine, sample2DPoint } from "formulize";
+ * import { sample2DLine, sample2DPoint } from "delta-dsl";
  *
  * // Inside a component within Provider:
  * const linePoints = sample2DLine("w_t", [0, 10], 100, "loss");

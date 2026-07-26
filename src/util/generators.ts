@@ -6,7 +6,7 @@
  *
  * @example
  * ```typescript
- * import { Formula, Variable } from "math-notation";
+ * import { Formula, Variable } from "delta-dsl";
  *
  * const config: Config = {
  *   formulas: [

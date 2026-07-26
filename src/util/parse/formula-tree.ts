@@ -75,7 +75,9 @@ export const debugLatex = async (latex: string) => {
   console.log("Parsed augmented formula:", parsed);
 };
 
-window.debugLatex = debugLatex;
+if (typeof window !== "undefined") {
+  window.debugLatex = debugLatex;
+}
 
 export const checkFormulaCode = (latex: string) => {
   try {
