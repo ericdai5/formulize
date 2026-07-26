@@ -1,43 +1,29 @@
 # Delta DSL
 
-Delta is a JSON DSL and React component library for adding interactivity to
-typeset formulas in web documents. It lets authors make formulas computable,
-explain them with step-by-step walkthroughs, and synchronize manipulation
-across formulas, prose, and visualizations.
+Delta is a domain-specific language for enlivening typeset formulas with
+interactive explanations. It lets authors make formulas computable, explain
+them with step-by-step walkthroughs, and link manipulation across formulas,
+text, and visuals. Delta integrates with LaTeX math in web-based writing
+contexts, while its runtime handles state management.
 
 The npm package is
 [`delta-dsl`](https://www.npmjs.com/package/delta-dsl).
 
-## Installation
+## Getting started
 
-Delta currently supports React 18.
+Start with a React 18 application and build an interactive kinetic-energy
+formula one piece at a time.
+
+### 1. Install Delta
 
 ```bash
 npm install delta-dsl react@18 react-dom@18
 ```
 
-npm 7 and newer install the package's declared peer dependencies
-automatically when normal peer resolution is enabled. If
-`npm config get legacy-peer-deps` prints `true`, use:
+### 2. Render a formula
 
-```bash
-npm install delta-dsl react@18 react-dom@18 --legacy-peer-deps=false
-```
-
-Import Delta's stylesheet once in the application:
-
-```tsx
-import "delta-dsl/style.css";
-```
-
-Import package APIs from `delta-dsl` and the stylesheet from
-`delta-dsl/style.css`. Other deep-import paths are not public package exports.
-
-## Getting started
-
-This example follows the kinetic-energy calculator from the Delta paper. It
-adds a LaTeX formula, makes mass directly editable, makes velocity draggable,
-and recomputes kinetic energy whenever either input changes.
+Create `src/App.tsx`. Import the stylesheet once, define the formula in LaTeX,
+and render it by ID inside a `Provider`.
 
 ```tsx
 import { type Config, Formula, Provider } from "delta-dsl";
@@ -50,32 +36,6 @@ const kineticConfig: Config = {
       latex: "K = \\frac{1}{2}mv^2",
     },
   ],
-  variables: {
-    K: {
-      name: "Kinetic Energy",
-      precision: 2,
-      latexDisplay: "value",
-      labelDisplay: "name",
-    },
-    m: {
-      name: "Mass",
-      default: 5,
-      input: "inline",
-      range: [0, 20],
-      latexDisplay: "value",
-      labelDisplay: "name",
-    },
-    v: {
-      name: "Velocity",
-      default: 2,
-      input: "drag",
-      range: [0, 10],
-      labelDisplay: "value",
-    },
-  },
-  semantics: function ({ vars }) {
-    vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
-  },
 };
 
 export default function App() {
@@ -87,9 +47,71 @@ export default function App() {
 }
 ```
 
-Click the mass value in the formula, enter a number, and press Enter. Drag the
-velocity value vertically to scrub it. Delta reruns `semantics`, updates
-`vars.K`, and rerenders the affected formula.
+At this point, the page displays the typeset formula.
+
+### 3. Add labels and starting values
+
+Add `variables` beside `formulas` in `kineticConfig`. The keys match the
+literal variable names in the LaTeX.
+
+```tsx
+variables: {
+  K: { name: "Kinetic Energy" },
+  m: { name: "Mass", default: 5 },
+  v: { name: "Velocity", default: 2 },
+},
+```
+
+Delta now connects each label and starting value to its occurrence in the
+formula.
+
+### 4. Make the inputs interactive
+
+Update the `m` and `v` entries. `inline` enables direct text entry, while
+`drag` enables vertical scrubbing.
+
+```tsx
+m: {
+  name: "Mass",
+  default: 5,
+  input: "inline",
+  range: [0, 20],
+},
+v: {
+  name: "Velocity",
+  default: 2,
+  input: "drag",
+  range: [0, 10],
+},
+```
+
+Edit mass directly or scrub velocity by dragging.
+
+### 5. Compute kinetic energy
+
+Add `semantics` beside `variables`. Read the input values from `vars` and
+assign the computed result back to `vars.K`.
+
+```tsx
+semantics: function ({ vars }) {
+  vars.K = 0.5 * vars.m * Math.pow(vars.v, 2);
+},
+```
+
+Changing mass or velocity now reruns `semantics` and updates kinetic energy.
+
+### Installation notes
+
+npm 7 and newer install Delta's declared peer dependencies automatically when
+normal peer resolution is enabled. If
+`npm config get legacy-peer-deps` prints `true`, use:
+
+```bash
+npm install delta-dsl react@18 react-dom@18 --legacy-peer-deps=false
+```
+
+Import package APIs from `delta-dsl` and the stylesheet from
+`delta-dsl/style.css`. Other deep-import paths are not public package exports.
 
 ## Language constructs
 
@@ -102,9 +124,6 @@ A Delta `Config` has three main constructs:
    steps.
 
 The optional top-level constructs are `graph2d`, `graph3d`, and `stepping`.
-The paper also identifies styling properties such as `color`, `fontSize`,
-`labelFontSize`, `lineWidth`, and `opacity`, while omitting styling fields from
-its formal grammar.
 
 ### Formulas
 
@@ -158,7 +177,7 @@ variables: {
 }
 ```
 
-The variable properties described in the paper are:
+Variable properties:
 
 | Property       | Purpose                                                      |
 | -------------- | ------------------------------------------------------------ |
@@ -172,7 +191,7 @@ The variable properties described in the paper are:
 | `latexDisplay` | Show the selector's `"name"`, `"value"`, or `"svg"` in situ  |
 | `labelDisplay` | Show `"name"`, `"value"`, `"svg"`, or `"none"` in its label  |
 | `svgContent`   | Function that maps the value and variable environment to SVG |
-| `svgSize`      | SVG dimensions as `{ w, h }`                                 |
+| `svgSize`      | Dimensions for the generated SVG                             |
 
 Values can be numbers or lists. Lists can be displayed and used by
 `semantics`, but they are not interactive. A variable's `svgContent` can
@@ -270,7 +289,7 @@ graph2d: [
 ],
 ```
 
-The paper describes these 2D graph properties:
+2D graph properties:
 
 - Graph: `id`, `xAxisVar`, `yAxisVar`, `xAxisLabel`, `yAxisLabel`, `xRange`,
   `yRange`, `lines`, `points`, and `vectors`.
@@ -281,8 +300,7 @@ The paper describes these 2D graph properties:
 - Drag interaction: `["horizontal-drag", variableId]` or
   `["vertical-drag", variableId]`.
 
-A 3D graph can contain surfaces, lines, and points. Its paper-described
-properties are:
+A 3D graph can contain surfaces, lines, and points. Its properties are:
 
 - Graph: `id`, `xRange`, `yRange`, `zRange`, `surfaces`, `lines`, and `points`.
 - Surface: `sampleId`, `parameters`, `ranges`, and `samples`.
@@ -294,29 +312,22 @@ Points and vectors can use `stepId` to synchronize with a walkthrough. Setting
 
 ### Synchronization
 
-Artifacts inside the same `Provider` share variable values and hover state.
-This supports:
+Items inside the same `Provider` share variable values. Linked formula and
+prose occurrences also synchronize hover highlighting. This supports:
 
 - variables embedded in prose that stay linked to formula occurrences;
 - multiple formulas synchronized through shared variable selectors;
 - custom content that reads and writes the shared `vars` object; and
 - bidirectional links between formulas and graphs.
 
-The paper describes inline prose variables and custom content as integration
-mechanisms, but does not define their exact exported component names or prop
-contracts.
-
 ## Implementation
 
-As described in the paper, Delta parses a formula's LaTeX into an AST with
-KaTeX, identifies configured variables, and renders the augmented LaTeX to
-HTML with MathJax. Formula labels use a ReactFlow canvas. A MobX store keeps
-variable values, hover state, steps, and samples synchronized through React
-context.
+Delta parses a formula's LaTeX into an AST with KaTeX, identifies configured
+variables, and renders the augmented LaTeX to HTML with MathJax. Formula
+labels use a ReactFlow canvas. A MobX store keeps variable values, hover state,
+steps, and samples synchronized through React context.
 
 ## Repository development
-
-The development application requires Node.js 20 or newer.
 
 ```bash
 git clone https://github.com/ericdai5/delta-dsl.git
