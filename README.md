@@ -1,4 +1,4 @@
-# Delta DSL
+# Delta
 
 Delta is a domain-specific language for enlivening typeset formulas with
 interactive explanations. It lets authors make formulas computable, explain
