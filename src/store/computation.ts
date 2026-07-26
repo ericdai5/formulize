@@ -7,10 +7,10 @@ import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
 import { ICollectedStep, IStepLabelValue, IView } from "../types/step";
 import {
-  getStepFromRange,
   INPUT_VARIABLE_DEFAULT,
   IValue,
   IVariable,
+  getStepFromRange,
 } from "../types/variable";
 import { FormulaLatexRanges } from "../util/parse/formula-text";
 import { canonicalizeFormula } from "../util/parse/formula-transform";
@@ -338,7 +338,9 @@ class ComputationStore {
    * 1) the labels key is a known variable id, and
    * 2) the labels value is a runtime value (number or set), not a string-only display label.
    */
-  private getVariableValueEntriesFromLabels(view: IView): Array<[string, IValue]> {
+  private getVariableValueEntriesFromLabels(
+    view: IView
+  ): Array<[string, IValue]> {
     const entries: Array<[string, IValue]> = [];
     if (!view.labels) {
       return entries;
@@ -913,10 +915,20 @@ class ComputationStore {
           : 1 // Invalid value, use default of 1em
         : 1; // Default fontSize when not defined (1em for good visibility)
 
-    // Always set environment with validated fontSize
+    const validatedLabelFontSize =
+      environment.labelFontSize !== undefined
+        ? typeof environment.labelFontSize === "number" &&
+          environment.labelFontSize >= 0.5 &&
+          environment.labelFontSize <= 3.0
+          ? environment.labelFontSize
+          : 0.8
+        : 0.8;
+
+    // Always set environment with validated fontSize and labelFontSize
     this.environment = {
       ...environment,
       fontSize: validatedFontSize,
+      labelFontSize: validatedLabelFontSize,
     };
   }
 
@@ -1184,6 +1196,8 @@ class ComputationStore {
         defaultCSS: variableDefinition?.defaultCSS,
         hoverCSS: variableDefinition?.hoverCSS,
         input: variableDefinition?.input,
+        filter: variableDefinition?.filter,
+        exclude: variableDefinition?.exclude,
       });
     }
   }

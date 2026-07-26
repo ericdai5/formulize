@@ -6,6 +6,7 @@ import { ICollectedStep } from "../../types/step";
 import {
   NODE_TYPES,
   findFormulaNodeById,
+  findVariableNodesForFormulaNode,
   forEachFormulaNode,
   getFormulaElementFromContainer,
   getVariableNodes,
@@ -95,7 +96,8 @@ export const getLabelNodePos = (
 
   // Default (non-step) mode: choose the lane that yields a shorter vertical path
   // from variable center to label center. This keeps edges more direct.
-  const variableCenterY = formulaNodePos.y + varNodePos.y + varNodeDim.height / 2;
+  const variableCenterY =
+    formulaNodePos.y + varNodePos.y + varNodeDim.height / 2;
   const formulaCenterY = formulaNodePos.y + formulaNodeDim.height / 2;
   const abovePlacement = placements.find((p) => p.type === "above");
   const belowPlacement = placements.find((p) => p.type === "below");
@@ -115,9 +117,8 @@ export const getLabelNodePos = (
   if (aboveDistance < belowDistance) {
     selectedPlacement = abovePlacement;
   } else if (aboveDistance === belowDistance) {
-    selectedPlacement = variableCenterY <= formulaCenterY
-      ? abovePlacement
-      : belowPlacement;
+    selectedPlacement =
+      variableCenterY <= formulaCenterY ? abovePlacement : belowPlacement;
   }
 
   return {
@@ -172,8 +173,8 @@ export const updateLabelPlacement = (
     const labelPlacement = updatesByNodeId.get(node.id);
     if (labelPlacement) {
       if (
-        (node.data as { labelPlacement?: PlacementDirection }).labelPlacement ===
-        labelPlacement
+        (node.data as { labelPlacement?: PlacementDirection })
+          .labelPlacement === labelPlacement
       ) {
         return node;
       }
@@ -208,10 +209,12 @@ const hasLabelPlacementChanges = (
 
 const isExpressionLabelNode = (node: Node): boolean =>
   node.type === NODE_TYPES.LABEL &&
-  (node.data as { labelKind?: string } | undefined)?.labelKind ===
-    "expression";
+  (node.data as { labelKind?: string } | undefined)?.labelKind === "expression";
 
-const isVariableLabelNodeForFormula = (node: Node, formulaId: string): boolean =>
+const isVariableLabelNodeForFormula = (
+  node: Node,
+  formulaId: string
+): boolean =>
   node.type === NODE_TYPES.LABEL &&
   node.data.formulaId === formulaId &&
   !isExpressionLabelNode(node);
@@ -355,7 +358,9 @@ export const processVariableElementsForLabels = (
   // Track which variables already have labels to prevent duplicates
   const processedVariables = new Set<string>();
   // Find variable elements within this formula
-  const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
+  const variableElements = formulaElement.querySelectorAll(
+    VAR_SELECTORS.ALL
+  );
   variableElements.forEach((varElement: Element) => {
     const htmlVarElement = varElement as HTMLElement;
     const cssId = htmlVarElement.id;
@@ -390,11 +395,11 @@ export const processVariableElementsForLabels = (
       return;
     }
 
-    const variableNode = findVariableNodeForFormula(
+    const variableNode = findVariableNodesForFormulaNode(
       variableNodes,
       formulaNode.id,
       cssId
-    );
+    )[0];
     if (!variableNode) return;
 
     const htmlElementPosition = variableNode.position;
@@ -531,7 +536,10 @@ export const updateLabelNodes = ({
     );
 
     // Apply variable node updates (labelPlacement)
-    const updatedNodes = updateLabelPlacement(nonManagedNodes, variableNodeUpdates);
+    const updatedNodes = updateLabelPlacement(
+      nonManagedNodes,
+      variableNodeUpdates
+    );
 
     return [...updatedNodes, ...keptLabels, ...labelsToAdd];
   });
@@ -635,7 +643,10 @@ export const updateAllLabelNodes = ({
     });
 
     // Apply variable node updates (labelPlacement)
-    const updatedNodes = updateLabelPlacement(filteredNodes, allVariableNodeUpdates);
+    const updatedNodes = updateLabelPlacement(
+      filteredNodes,
+      allVariableNodeUpdates
+    );
 
     // Add new labels
     return [...updatedNodes, ...allNewLabelNodes];
@@ -726,22 +737,6 @@ const getNodeDimensions = (
 });
 
 /**
- * Find a variable node by its varId and parent formula
- */
-const findVariableNodeForFormula = (
-  nodes: Node[],
-  formulaNodeId: string,
-  varId: string
-): Node | undefined => {
-  return nodes.find(
-    (node) =>
-      node.type === NODE_TYPES.VARIABLE &&
-      node.parentId === formulaNodeId &&
-      node.data.varId === varId
-  );
-};
-
-/**
  * Sort labels by their variable's center X position
  * This maintains correct left-to-right ordering to prevent edge crossings
  */
@@ -757,7 +752,10 @@ const NEAR_STRAIGHT_PAIR_MAX_OFFSET = 14;
  * This intentionally "un-optimizes" balanced centering when both labels are only a
  * little off-center, which improves readability in simple two-label cases.
  */
-const maybeStraightenNearPair = (sorted: LabelInfo[], spacing: number): void => {
+const maybeStraightenNearPair = (
+  sorted: LabelInfo[],
+  spacing: number
+): void => {
   if (sorted.length !== 2) return;
   const [left, right] = sorted;
   if (left.isExpressionLabel || right.isExpressionLabel) return;
@@ -893,7 +891,8 @@ const extractLabelInfo = (
     ? findFormulaNodeById(currentNodes, formulaId)
     : currentNodes.find(
         (candidate) =>
-          candidate.type === NODE_TYPES.FORMULA && candidate.id === node.parentId
+          candidate.type === NODE_TYPES.FORMULA &&
+          candidate.id === node.parentId
       );
   if (!formulaNode) return null;
 
@@ -904,9 +903,7 @@ const extractLabelInfo = (
   const placement =
     (node.data.placement as PlacementDirection | undefined) ??
     (node.position.y < 0 ? "above" : "below");
-  const originX = Array.isArray(node.origin)
-    ? (node.origin[0] as number)
-    : 0;
+  const originX = Array.isArray(node.origin) ? (node.origin[0] as number) : 0;
   const currentLeftX = node.position.x - labelDimensions.width * originX;
   const expressionLabel = isExpressionLabelNode(node);
   const lockPlacement =
@@ -922,11 +919,11 @@ const extractLabelInfo = (
   } else {
     const cssId = node.data.varId;
     if (!cssId || typeof cssId !== "string") return null;
-    const variableNode = findVariableNodeForFormula(
+    const variableNode = findVariableNodesForFormulaNode(
       variableNodes,
       formulaNode.id,
       cssId
-    );
+    )[0];
     if (!variableNode || !variableNode.measured) return null;
     variableCenterX = getVariableCenterX(variableNode);
     idealX = variableCenterX - labelDimensions.width / 2;
@@ -1027,7 +1024,9 @@ const horizontalDisplacement = (label: LabelInfo): number =>
   Math.abs((label.finalX ?? label.idealX) - label.idealX);
 
 const getMovableLabels = (labels: LabelInfo[]): LabelInfo[] => {
-  return labels.filter((label) => !label.isExpressionLabel && !label.lockPlacement);
+  return labels.filter(
+    (label) => !label.isExpressionLabel && !label.lockPlacement
+  );
 };
 
 const shouldOptimizePlacements = (
@@ -1115,7 +1114,9 @@ const optimizePlacementsForFormula = (
   allowPlacementSwitching: boolean
 ): void => {
   const movableLabels = getMovableLabels(labels);
-  if (!shouldOptimizePlacements(movableLabels.length, allowPlacementSwitching)) {
+  if (
+    !shouldOptimizePlacements(movableLabels.length, allowPlacementSwitching)
+  ) {
     resolveByPlacementForFormula(labels, spacing);
     return;
   }

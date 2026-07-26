@@ -1,5 +1,7 @@
-import { ComputationStore } from "../store/computation";
 import { VAR_SELECTORS } from "../internal/css-classes";
+import { ComputationStore } from "../store/computation";
+
+const ALL_VARIABLE_SELECTOR = `${VAR_SELECTORS.ALL}[id]`;
 
 /**
  * Normalize LaTeX strings that may arrive double-escaped (e.g. "\\\\theta" -> "\\theta").
@@ -29,7 +31,9 @@ const isInFormulaContainer = (
  * NOTE: This function does NOT clear existing cues - call clearAllCues() first if needed.
  */
 export const applyCue = (updatedVarIds: Set<string>, formulaId?: string) => {
-  const interactiveElements = document.querySelectorAll(VAR_SELECTORS.ANY);
+  const interactiveElements = document.querySelectorAll(
+    ALL_VARIABLE_SELECTOR
+  );
   interactiveElements.forEach((element) => {
     const htmlEl = element as HTMLElement;
     const varId = htmlEl.id;
@@ -47,7 +51,9 @@ export const applyCue = (updatedVarIds: Set<string>, formulaId?: string) => {
  * Clear all visual cues from interactive elements
  */
 export const clearAllCues = () => {
-  const interactiveElements = document.querySelectorAll(VAR_SELECTORS.ALL);
+  const interactiveElements = document.querySelectorAll(
+    ALL_VARIABLE_SELECTOR
+  );
   interactiveElements.forEach((element) => {
     (element as HTMLElement).classList.remove("step-cue");
   });

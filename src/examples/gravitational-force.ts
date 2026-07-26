@@ -23,6 +23,8 @@ export const gravitationalForce = `const config = {
     },
     m_2: {
       default: 80,
+      range: [1, 200],
+      input: "drag",
       name: "Mass of Person",
       precision: 0,
     },
@@ -67,5 +69,4 @@ export const gravitationalForce = `const config = {
       },
     });
   },
-  fontSize: 1.5,
 };`;

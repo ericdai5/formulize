@@ -7,11 +7,11 @@ import { Plus, Trash2, X } from "lucide-react";
 import { useStore } from "../core/hooks";
 import { debugStore } from "../store/debug";
 import {
-  getStepFromRange,
   IInput,
   INPUT_VARIABLE_DEFAULT,
   IVariable,
   IVariableUserInput,
+  getStepFromRange,
 } from "../types/variable";
 import Modal from "../ui/modal";
 
@@ -29,17 +29,25 @@ function serializeVariable(
   const hasName = !!variable.name;
   const hasPrecision = variable.precision !== INPUT_VARIABLE_DEFAULT.PRECISION;
   const hasSignificantDigits = variable.sigFigs !== undefined;
-  const hasStep =
-    variable.step !== undefined && variable.step !== defaultStep;
+  const hasStep = variable.step !== undefined && variable.step !== defaultStep;
   const hasNonDefaultRange =
     variable.range &&
     (variable.range[0] !== INPUT_VARIABLE_DEFAULT.MIN_VALUE ||
       variable.range[1] !== INPUT_VARIABLE_DEFAULT.MAX_VALUE);
+  const hasFilter = variable.filter !== undefined;
+  const hasExclude = variable.exclude !== undefined;
 
   // For non-input variables, check if we need an object format
   if (!hasInput) {
     // If no special properties, just return the number value
-    if (!hasName && !hasPrecision && !hasSignificantDigits && !hasStep) {
+    if (
+      !hasName &&
+      !hasPrecision &&
+      !hasSignificantDigits &&
+      !hasStep &&
+      !hasFilter &&
+      !hasExclude
+    ) {
       if (typeof variable.value === "number") {
         return variable.value;
       }
@@ -53,9 +61,10 @@ function serializeVariable(
     }
     if (hasName) result.name = variable.name;
     if (hasPrecision) result.precision = variable.precision;
-    if (hasSignificantDigits)
-      result.sigFigs = variable.sigFigs;
+    if (hasSignificantDigits) result.sigFigs = variable.sigFigs;
     if (hasStep) result.step = variable.step;
+    if (hasFilter) result.filter = variable.filter;
+    if (hasExclude) result.exclude = variable.exclude;
     return result;
   }
 
@@ -85,6 +94,12 @@ function serializeVariable(
   }
   if (hasStep) {
     result.step = variable.step;
+  }
+  if (hasFilter) {
+    result.filter = variable.filter;
+  }
+  if (hasExclude) {
+    result.exclude = variable.exclude;
   }
   return result;
 }
@@ -133,10 +148,7 @@ interface NumberInputProps {
   showDefault?: boolean;
 }
 
-const getDisplayText = (
-  value: number | undefined,
-  defaultValue?: number
-) => {
+const getDisplayText = (value: number | undefined, defaultValue?: number) => {
   if (value !== undefined) {
     return String(value);
   }
@@ -642,8 +654,7 @@ const VariablesSidebar: React.FC<VariablesSidebarProps> = observer(
       sigFigs: number | undefined
     ) => {
       updateVariable(varId, {
-        sigFigs:
-          sigFigs !== undefined ? Math.max(1, sigFigs) : undefined,
+        sigFigs: sigFigs !== undefined ? Math.max(1, sigFigs) : undefined,
       });
     };
 

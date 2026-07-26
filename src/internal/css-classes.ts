@@ -2,9 +2,11 @@
  * Centralized CSS class names for interactive variables
  */
 export const VAR_CLASSES = {
+  ALL: "var",
   BASE: "var-base",
   INPUT: "var-input",
   INDEX: "var-index",
+  INSTANCE: "var-instance-",
 } as const;
 
 /**
@@ -14,8 +16,7 @@ export const VAR_SELECTORS = {
   BASE: `.${VAR_CLASSES.BASE}`,
   INPUT: `.${VAR_CLASSES.INPUT}`,
   INDEX: `.${VAR_CLASSES.INDEX}`,
-  ALL: ".var-base, .var-input",
-  ANY: '[class*="var-"]',
+  ALL: `.${VAR_CLASSES.ALL}`,
 } as const;
 
 /**

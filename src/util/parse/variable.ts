@@ -2,6 +2,10 @@ import { VAR_CLASSES } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 import { INPUT_VARIABLE_DEFAULT } from "../../types/variable";
 import { formatNumberForLatex } from "../format-number";
+import {
+  getVariableInstanceClass,
+  shouldAugmentVariableOccurrence,
+} from "../variable-occurrence";
 import { injectDefaultCSS, injectHoverCSS } from "./custom-css";
 import {
   Accent,
@@ -52,8 +56,12 @@ const processNestedVariable = (
   node: AugmentedFormulaNode,
   config: NestedVariableConfig
 ): string => {
-  const { computationStore, activeVariables, defaultPrecision, rootVariableId } =
-    config;
+  const {
+    computationStore,
+    activeVariables,
+    defaultPrecision,
+    rootVariableId,
+  } = config;
 
   const processNode = (
     node: AugmentedFormulaNode,
@@ -157,7 +165,7 @@ const renderNestedVariable = (
   let value: number | undefined = undefined;
   let variablePrecision = defaultPrecision;
   let variableSignificantDigits: number | undefined;
-  let latexDisplay: "name" | "value" = "name";
+  let latexDisplay: "name" | "value" | "svg" = "name";
   let isDraggable = false;
   // Get the value from the computation store
   const variable = computationStore.variables.get(symbolValue);
@@ -169,8 +177,10 @@ const renderNestedVariable = (
     latexDisplay = variable.latexDisplay ?? "name";
     isDraggable = variable.input === "drag" || variable.input === "inline";
   }
-  // Determine CSS class based on input type
-  const cssClass = isDraggable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE;
+  // Augmented variables share a common marker and use input mode as a modifier.
+  const cssClass = `${VAR_CLASSES.ALL} ${
+    isDraggable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE
+  }`;
   // Show value when active, symbol when not active
   // activeVariables is a Map<formulaId, Set<varId>>
   // Check if variable is active in any formula's set
@@ -426,6 +436,114 @@ const getLargeOperatorType = (
   return null;
 };
 
+interface IndexedVariableOccurrence {
+  node: Variable;
+  sourceStart: number | null;
+  sourceEnd: number | null;
+  traversalOrder: number;
+}
+
+const getNodeSourceRange = (
+  node: AugmentedFormulaNode
+): { start: number | null; end: number | null } => {
+  let start = node.sourceStart;
+  let end = node.sourceEnd;
+
+  for (const child of node.children) {
+    const childRange = getNodeSourceRange(child);
+    if (
+      childRange.start !== null &&
+      (start === null || childRange.start < start)
+    ) {
+      start = childRange.start;
+    }
+    if (childRange.end !== null && (end === null || childRange.end > end)) {
+      end = childRange.end;
+    }
+  }
+
+  return { start, end };
+};
+
+/**
+ * Assign 1-indexed occurrence numbers for each variable in authored LaTeX
+ * order. Tree traversal order is only used as a deterministic fallback when
+ * KaTeX does not expose source offsets for a node.
+ */
+export const getVariableSourceOrdinals = (
+  formula: AugmentedFormula
+): WeakMap<Variable, number> => {
+  const occurrencesByVariable = new Map<string, IndexedVariableOccurrence[]>();
+  let traversalOrder = 0;
+
+  const collect = (node: AugmentedFormulaNode) => {
+    if (node.type === "variable") {
+      const variableNode = node as Variable;
+      const sourceRange = getNodeSourceRange(variableNode.body);
+      const occurrences =
+        occurrencesByVariable.get(variableNode.originalSymbol) ?? [];
+      occurrences.push({
+        node: variableNode,
+        sourceStart: sourceRange.start,
+        sourceEnd: sourceRange.end,
+        traversalOrder: traversalOrder++,
+      });
+      occurrencesByVariable.set(variableNode.originalSymbol, occurrences);
+    }
+    node.children.forEach(collect);
+  };
+  formula.children.forEach(collect);
+
+  const ordinals = new WeakMap<Variable, number>();
+  for (const occurrences of occurrencesByVariable.values()) {
+    occurrences
+      .sort((left, right) => {
+        if (left.sourceStart !== null && right.sourceStart !== null) {
+          const startDifference = left.sourceStart - right.sourceStart;
+          if (startDifference !== 0) {
+            return startDifference;
+          }
+          if (left.sourceEnd !== null && right.sourceEnd !== null) {
+            const endDifference = left.sourceEnd - right.sourceEnd;
+            if (endDifference !== 0) {
+              return endDifference;
+            }
+          }
+        } else if (left.sourceStart !== null) {
+          return -1;
+        } else if (right.sourceStart !== null) {
+          return 1;
+        }
+        return left.traversalOrder - right.traversalOrder;
+      })
+      .forEach((occurrence, index) => {
+        ordinals.set(occurrence.node, index + 1);
+      });
+  }
+  return ordinals;
+};
+
+const getNestedVariableNodes = (
+  formula: AugmentedFormula
+): WeakSet<Variable> => {
+  const nestedVariables = new WeakSet<Variable>();
+
+  const collect = (
+    node: AugmentedFormulaNode,
+    hasVariableAncestor: boolean
+  ) => {
+    const isVariable = node.type === "variable";
+    if (isVariable && hasVariableAncestor) {
+      nestedVariables.add(node as Variable);
+    }
+    node.children.forEach((child) =>
+      collect(child, hasVariableAncestor || isVariable)
+    );
+  };
+  formula.children.forEach((child) => collect(child, false));
+  return nestedVariables;
+};
+
 /**
  * Result of processing a formula's variables
  */
@@ -447,76 +565,91 @@ export interface ProcessVariablesResult {
  * @param defaultPrecision - Default precision for numeric display
  * @param computationStore - The computation store to use (required)
  * @param activeVariables - The active variables map (required)
+ * @param formulaId - Formula ID used to resolve per-formula occurrence rules
  * @returns Object containing processed LaTeX and tokens array
  */
 export const processVariables = (
   formula: AugmentedFormula,
   defaultPrecision: number = INPUT_VARIABLE_DEFAULT.PRECISION,
   computationStore: ComputationStore,
-  activeVariables: Map<string, Set<string>>
+  activeVariables: Map<string, Set<string>>,
+  formulaId?: string
 ): ProcessVariablesResult => {
   // Reset cssId counter for this formula
   resetCssIdCounter();
-  const variableOccurrenceCounter = new Map<string, number>();
+  const variableSourceOrdinals = getVariableSourceOrdinals(formula);
+  const nestedVariableNodes = getNestedVariableNodes(formula);
 
   const processNode = (node: AugmentedFormulaNode): string => {
     if (node.type === "variable") {
       const variableNode = node as Variable;
       const originalSymbol = variableNode.originalSymbol;
+      const variable = computationStore.variables.get(originalSymbol);
+      const instance = variableSourceOrdinals.get(variableNode) ?? 1;
+      const isNestedVariable = nestedVariableNodes.has(variableNode);
 
       // Get the value, type, and precision from the computation store
       let value: number | undefined = undefined;
       let isDraggable = false;
       let variablePrecision = defaultPrecision;
       let variableSignificantDigits: number | undefined;
-      let display: "name" | "value" = "name"; // Default to showing name
+      let display: "name" | "value" | "svg" = "name"; // Default to showing name
       let defaultCSS = "";
       let hoverCSS = "";
       let hasSVG = false;
-      let svgMode: "replace" | "append" | undefined = undefined;
 
-      for (const [symbol, variable] of computationStore.variables.entries()) {
-        if (symbol === originalSymbol) {
-          const displayValue = computationStore.getDisplayValue(originalSymbol);
-          value = typeof displayValue === "number" ? displayValue : undefined;
-          isDraggable = variable.input === "drag" || variable.input === "inline";
-          // Use the variable's precision if defined, otherwise use default
-          variablePrecision = variable.precision ?? defaultPrecision;
-          variableSignificantDigits = variable.sigFigs;
-          // Use the variable's display property if defined, otherwise default to "name"
-          display = variable.latexDisplay ?? "name";
-          // Get custom CSS if defined
-          defaultCSS = variable.defaultCSS || "";
-          hoverCSS = variable.hoverCSS || "";
-          // Only treat variable as having in-formula SVG if svgMode is explicitly set
-          hasSVG = !!(
-            variable.svgMode &&
-            (variable.svgPath || variable.svgContent)
-          );
-          svgMode = variable.svgMode;
-          break;
-        }
+      if (variable) {
+        const displayValue = computationStore.getDisplayValue(originalSymbol);
+        value = typeof displayValue === "number" ? displayValue : undefined;
+        isDraggable = variable.input === "drag" || variable.input === "inline";
+        variablePrecision = variable.precision ?? defaultPrecision;
+        variableSignificantDigits = variable.sigFigs;
+        display = variable.latexDisplay ?? "name";
+        defaultCSS = variable.defaultCSS || "";
+        hoverCSS = variable.hoverCSS || "";
+        hasSVG = !!(
+          variable.latexDisplay === "svg" &&
+          (variable.svgPath || variable.svgContent)
+        );
       }
+
       // Process the variable's body to find and render any nested variables
-      const processedBody = processNestedVariable(variableNode.body, {
-        computationStore,
-        activeVariables,
-        defaultPrecision,
-        rootVariableId: originalSymbol,
-      });
+      const processedBody =
+        collectVariableIds(variableNode.body).length > 0
+          ? processNode(variableNode.body)
+          : processNestedVariable(variableNode.body, {
+              computationStore,
+              activeVariables,
+              defaultPrecision,
+              rootVariableId: originalSymbol,
+            });
+
       // Use the original symbol as the CSS ID
       const id = originalSymbol;
-      const occurrenceIndex = variableOccurrenceCounter.get(id) ?? 0;
-      variableOccurrenceCounter.set(id, occurrenceIndex + 1);
       // Store encoded occurrence info on the AST node for expression matching.
       // The rendered DOM id stays as the variable symbol (`id`) for existing flows.
-      node.cssId = encodeVariableOccurrenceCssRef(id, occurrenceIndex);
-      // Use different CSS classes based on input mode
-      // Drag input variables get INPUT class (interactive), others get BASE class
-      let cssClass: string = VAR_CLASSES.BASE;
-      if (isDraggable) {
-        cssClass = VAR_CLASSES.INPUT;
+      node.cssId = encodeVariableOccurrenceCssRef(id, instance - 1);
+
+      const shouldAugment = shouldAugmentVariableOccurrence(
+        variable,
+        formulaId,
+        instance
+      );
+      const cssClasses = [getVariableInstanceClass(instance)];
+      if (shouldAugment) {
+        cssClasses.unshift(
+          VAR_CLASSES.ALL,
+          isDraggable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE
+        );
       }
+      const cssClass = cssClasses.join(" ");
+      const wrapOccurrence = (content: string) =>
+        `\\cssId{${id}}{\\class{${cssClass}}{${content}}}`;
+
+      if (!shouldAugment) {
+        return wrapOccurrence(processedBody);
+      }
+
       // Inject custom CSS and/or hover CSS into document head if defined
       if (defaultCSS) {
         injectDefaultCSS(id, defaultCSS, computationStore, value);
@@ -527,35 +660,48 @@ export const processVariables = (
       // Wrap the processed body with CSS classes using the variable's specific precision
       // Show name or value based on display property
       let result = "";
-      // If variable has SVG in replace mode, create a placeholder that will be replaced
-      if (hasSVG && svgMode === "replace") {
-        // Use a phantom space that will be replaced with SVG
-        result = `\\cssId{${id}}{\\class{${cssClass}}{\\phantom{M}}}`;
-      } else {
-        // Regular variable rendering (also used for append mode SVG)
-        // The SVG will be appended after MathJax rendering if hasSVG && svgMode === "append"
-        switch (display) {
-          case "name":
-            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
+      // Show based on display property (latexDisplay)
+      switch (display) {
+        case "svg":
+          if (isNestedVariable) {
+            result = wrapOccurrence(processedBody);
             break;
-          case "value":
-            // If no value is available, fallback to showing the name
-            if (value !== null && value !== undefined && !isNaN(value)) {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${formatNumberForLatex(
-                value,
-                {
-                  precision: variablePrecision,
-                  sigFigs: variableSignificantDigits,
-                }
-              )}}}`;
-            } else {
-              result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
-            }
-            break;
-          default:
-            result = `\\cssId{${id}}{\\class{${cssClass}}{${processedBody}}}`;
-            break;
-        }
+          }
+          // If variable has SVG content, create a placeholder that will be replaced
+          if (hasSVG) {
+            result = wrapOccurrence("\\phantom{M}");
+          } else {
+            // Fallback to name if no SVG content available
+            result = wrapOccurrence(processedBody);
+          }
+          break;
+        case "name":
+          result = wrapOccurrence(processedBody);
+          break;
+        case "value":
+          // If no value is available, fallback to showing the name
+          if (
+            (!isNestedVariable ||
+              Array.from(activeVariables.values()).some((variables) =>
+                variables.has(originalSymbol)
+              )) &&
+            value !== null &&
+            value !== undefined &&
+            !isNaN(value)
+          ) {
+            result = wrapOccurrence(
+              formatNumberForLatex(value, {
+                precision: variablePrecision,
+                sigFigs: variableSignificantDigits,
+              })
+            );
+          } else {
+            result = wrapOccurrence(processedBody);
+          }
+          break;
+        default:
+          result = wrapOccurrence(processedBody);
+          break;
       }
       return result;
     }
@@ -790,7 +936,8 @@ export const processLatexContent = (
       formula,
       defaultPrecision,
       computationStore,
-      activeVariables
+      activeVariables,
+      formulaId
     );
     // Store the formula tree with cssId values for DOM element lookup
     if (formulaId) {

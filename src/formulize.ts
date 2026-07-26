@@ -56,6 +56,26 @@ function validateEnvironment(config: Config) {
       "Invalid configuration: formulas must be an array when provided"
     );
   }
+  if (
+    Array.isArray(config.formulas) &&
+    config.formulas.some(
+      (formula) =>
+        !formula ||
+        typeof formula.id !== "string" ||
+        formula.id.length === 0 ||
+        typeof formula.latex !== "string"
+    )
+  ) {
+    throw new Error(
+      "Invalid configuration: every formula must include a non-empty string id and a LaTeX string"
+    );
+  }
+  if (Array.isArray(config.formulas)) {
+    const formulaIds = config.formulas.map((formula) => formula.id);
+    if (new Set(formulaIds).size !== formulaIds.length) {
+      throw new Error("Invalid configuration: formula ids must be unique");
+    }
+  }
   if (config.graph2d !== undefined && !Array.isArray(config.graph2d)) {
     throw new Error(
       "Invalid configuration: graph2d must be an array when provided"
@@ -114,9 +134,13 @@ async function initializeInstance(
     // Validate the config
     validateEnvironment(config);
 
-    // Normalize variables from simplified format to full IVariable objects
-    const normalizedVariables = normalizeVariables(config.variables);
     const normalizedFormulas = config.formulas ?? [];
+    const formulaIds = new Set(normalizedFormulas.map((formula) => formula.id));
+    // Normalize variables from simplified format to full IVariable objects
+    const normalizedVariables = normalizeVariables(
+      config.variables,
+      formulaIds
+    );
     const normalizedGraphs = normalizeGraphs(config);
 
     const environment: IEnvironment = {
@@ -203,6 +227,8 @@ async function initializeInstance(
           step: variable.step,
           options: variable.options,
           key: variable.key,
+          filter: variable.filter,
+          exclude: variable.exclude,
         };
       },
       setVariable: (name: string, value: number) => {

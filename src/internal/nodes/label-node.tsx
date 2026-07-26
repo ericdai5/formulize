@@ -371,8 +371,11 @@ const VariableLabelNode = observer(
     const getInteractiveClass = () => {
       const classes: string[] = [];
 
-      // Input variables get INPUT class, others get BASE class
-      classes.push(isInputVariable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE);
+      // All augmented variables share a marker; input mode is a modifier.
+      classes.push(
+        VAR_CLASSES.ALL,
+        isInputVariable ? VAR_CLASSES.INPUT : VAR_CLASSES.BASE
+      );
 
       // In step mode, active variables get step-cue for pulse animation
       if (isStepModeActive && isVariableActive) {

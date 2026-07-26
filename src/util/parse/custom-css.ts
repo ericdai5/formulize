@@ -1,3 +1,4 @@
+import { VAR_CLASSES } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 
 /**
@@ -44,12 +45,13 @@ export const injectDefaultCSS = (
   if (!hasDynamicValue && cachedCSS === processedCSS) return;
 
   const escapedId = CSS.escape(varId);
+  const formulaVariableSelector = `#${escapedId}.${VAR_CLASSES.ALL}`;
 
   // Remove existing rules if present
   for (let i = sheet.cssRules.length - 1; i >= 0; i--) {
     const rule = sheet.cssRules[i] as CSSStyleRule;
     if (
-      rule.selectorText === `#${escapedId}` ||
+      rule.selectorText === formulaVariableSelector ||
       rule.selectorText === `.label-flow-node #${escapedId}`
     ) {
       sheet.deleteRule(i);
@@ -57,7 +59,7 @@ export const injectDefaultCSS = (
   }
 
   // Add rules for both formula nodes and label nodes
-  const cssRule = `#${escapedId} { ${processedCSS} }`;
+  const cssRule = `${formulaVariableSelector} { ${processedCSS} }`;
   const labelCssRule = `.label-flow-node #${escapedId} { ${processedCSS} }`;
   sheet.insertRule(cssRule, sheet.cssRules.length);
   sheet.insertRule(labelCssRule, sheet.cssRules.length);
@@ -89,12 +91,13 @@ export const injectHoverCSS = (
   if (!hasDynamicValue && cachedHoverCSS === processedCSS) return;
 
   const escapedId = CSS.escape(varId);
+  const formulaVariableHoverSelector = `#${escapedId}.${VAR_CLASSES.ALL}.hovered`;
 
   // Remove existing hover rules if present
   for (let i = sheet.cssRules.length - 1; i >= 0; i--) {
     const rule = sheet.cssRules[i] as CSSStyleRule;
     if (
-      rule.selectorText === `#${escapedId}.hovered` ||
+      rule.selectorText === formulaVariableHoverSelector ||
       rule.selectorText === `.label-flow-node #${escapedId}.hovered`
     ) {
       sheet.deleteRule(i);
@@ -102,7 +105,7 @@ export const injectHoverCSS = (
   }
 
   // Add hover rules for both formula nodes and label nodes
-  const hoverRule = `#${escapedId}.hovered { ${processedCSS} }`;
+  const hoverRule = `${formulaVariableHoverSelector} { ${processedCSS} }`;
   const labelHoverRule = `.label-flow-node #${escapedId}.hovered { ${processedCSS} }`;
   sheet.insertRule(hoverRule, sheet.cssRules.length);
   sheet.insertRule(labelHoverRule, sheet.cssRules.length);

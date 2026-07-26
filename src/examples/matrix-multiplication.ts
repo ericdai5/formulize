@@ -6,7 +6,6 @@ export const matrixMultiplication = `const config = {
     }
   ],
   variables: {
-    // Matrix A (3x3)
     "a_{11}": { input: "drag", default: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "a_{12}": { input: "drag", default: 2, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "a_{13}": { input: "drag", default: 0, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
@@ -16,7 +15,6 @@ export const matrixMultiplication = `const config = {
     "a_{31}": { input: "drag", default: 3, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "a_{32}": { input: "drag", default: 0, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "a_{33}": { input: "drag", default: 2, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    // Matrix B (3x3)
     "b_{11}": { input: "drag", default: 2, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "b_{12}": { input: "drag", default: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "b_{13}": { input: "drag", default: 0, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
@@ -26,7 +24,6 @@ export const matrixMultiplication = `const config = {
     "b_{31}": { input: "drag", default: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "b_{32}": { input: "drag", default: 0, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "b_{33}": { input: "drag", default: 1, range: [-5, 5], step: 1, precision: 0, latexDisplay: "value", labelDisplay: "none" },
-    // Matrix C (3x3 result)
     "c_{11}": { precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "c_{12}": { precision: 0, latexDisplay: "value", labelDisplay: "none" },
     "c_{13}": { precision: 0, latexDisplay: "value", labelDisplay: "none" },
@@ -38,21 +35,6 @@ export const matrixMultiplication = `const config = {
     "c_{33}": { precision: 0, latexDisplay: "value", labelDisplay: "none" }
   },
   controls: [
-    {
-      type: "radio",
-      variable: "a_{11}",
-      orientation: "horizontal"
-    },
-    {
-      type: "radio",
-      variable: "a_{12}",
-      orientation: "horizontal"
-    },
-    {
-      type: "radio",
-      variable: "b_{22}",
-      orientation: "horizontal"
-    },
     {
       type: "button",
       label: "Reset All to Zero",
@@ -94,7 +76,6 @@ export const matrixMultiplication = `const config = {
     }
   ],
   semantics: ({ vars }) => {
-    // Matrix A
     const a11 = vars["a_{11}"] || 0;
     const a12 = vars["a_{12}"] || 0;
     const a13 = vars["a_{13}"] || 0;
@@ -104,7 +85,6 @@ export const matrixMultiplication = `const config = {
     const a31 = vars["a_{31}"] || 0;
     const a32 = vars["a_{32}"] || 0;
     const a33 = vars["a_{33}"] || 0;
-    // Matrix B
     const b11 = vars["b_{11}"] || 0;
     const b12 = vars["b_{12}"] || 0;
     const b13 = vars["b_{13}"] || 0;
@@ -114,7 +94,6 @@ export const matrixMultiplication = `const config = {
     const b31 = vars["b_{31}"] || 0;
     const b32 = vars["b_{32}"] || 0;
     const b33 = vars["b_{33}"] || 0;
-    // Matrix multiplication C = A * B
     vars["c_{11}"] = a11 * b11 + a12 * b21 + a13 * b31;
     vars["c_{12}"] = a11 * b12 + a12 * b22 + a13 * b32;
     vars["c_{13}"] = a11 * b13 + a12 * b23 + a13 * b33;
@@ -125,6 +104,4 @@ export const matrixMultiplication = `const config = {
     vars["c_{32}"] = a31 * b12 + a32 * b22 + a33 * b32;
     vars["c_{33}"] = a31 * b13 + a32 * b23 + a33 * b33;
   },
-  fontSize: 1.5,
-  labelFontSize:  1.0
 };`;

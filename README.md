@@ -118,6 +118,12 @@ npm run preview
 
 ### Code Quality
 
+Run the focused test suite:
+
+```bash
+npm test
+```
+
 Run linting:
 
 ```bash

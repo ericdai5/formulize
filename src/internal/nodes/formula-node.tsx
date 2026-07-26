@@ -16,6 +16,7 @@ import {
   setupScaleWrappers,
   updateVariableHoverState,
 } from "../../util/scale-wrapper";
+import { VAR_SELECTORS } from "../css-classes";
 
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
@@ -57,7 +58,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     if (nodeRef.current && computationStore) {
       setupScaleWrappers(
         nodeRef.current,
-        ".var-input, .var-base"
+        VAR_SELECTORS.ALL
         // computationStore.highlightedVarIds
       );
     }
@@ -141,7 +142,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     >
       {/* Left Handle - only show if showDragHandle is true */}
       {showDragHandle && (
-        <div className="formula-drag-handle absolute top-1/2 -left-4 transform -translate-y-1/2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md px-0.5 py-1 cursor-move z-20 opacity-0 group-hover:opacity-100">
+        <div className="formula-drag-handle absolute top-1/2 -left-4 transform -translate-y-1/2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md px-0.5 py-1 cursor-move z-20 opacity-0 transition-opacity duration-200">
           <GripVertical size={14} className="text-slate-400" />
         </div>
       )}

@@ -1,5 +1,7 @@
 import { average } from "./average";
+import { averageStepping } from "./average-stepping";
 import { bayesWithCustomVisualization } from "./bayes-visualization";
+import { bayesSimpleVisualization } from "./bayes-visualization-simple";
 import { fittsLaw } from "./fitts-law";
 import { gradientDescent } from "./gradient-descent";
 import { gravitationalForce } from "./gravitational-force";
@@ -7,24 +9,28 @@ import { gravitationalPotential } from "./gravitational-potential";
 import { waveEquationSVG } from "./js-generated-svg";
 import { kinetic2D } from "./kinetic-2d";
 import { kinetic3D } from "./kinetic-3d";
+import { kineticEnergy } from "./kinetic-energy";
 import { lossFunction } from "./loss-function";
 import { matrixMultiplication } from "./matrix-multiplication";
-import { simpleLoss } from "./simple-loss";
 import { parameterizedPlane } from "./parameterized-plane";
 import { parametric3D } from "./parametric-3d";
 import { quadratic2D } from "./quadratic-2d";
 import { quadratic3D } from "./quadratic-3d";
 import { setOperations } from "./set-operations";
+import { simpleLoss } from "./simple-loss";
 import { sinTheta } from "./sin-theta";
 import { summationBasic } from "./summation-basic";
 import { svgIntegration } from "./svg-integration";
 import { svgKineticEnergy2D } from "./svg-labels";
 import { task2instruction } from "./task-2-instruction";
 import { task2training } from "./task-2-training";
+import { nthSelection } from "./nth-selection";
 import { vectorAddition } from "./vector-addition";
 
 export const examples = {
   kinetic2D,
+  kineticEnergy,
+  nthSelection,
   kinetic3D,
   quadratic2D,
   quadratic3D,
@@ -34,7 +40,9 @@ export const examples = {
   parametric3D,
   parameterizedPlane,
   bayesWithCustomVisualization,
+  bayesSimpleVisualization,
   average,
+  averageStepping,
   summationBasic,
   svgIntegration,
   svgKineticEnergy2D,
@@ -52,6 +60,8 @@ export const examples = {
 
 export const exampleDisplayNames = {
   kinetic2D: "Kinetic Energy 2D",
+  kineticEnergy: "Kinetic Energy",
+  nthSelection: "Nth Selection",
   kinetic3D: "Kinetic Energy 3D",
   gravitationalForce: "Gravitational Force",
   gravitationalPotential: "Potential Energy 2D",
@@ -61,7 +71,9 @@ export const exampleDisplayNames = {
   parametric3D: "Parametric 3D",
   parameterizedPlane: "Parameterized Plane 3D",
   bayesWithCustomVisualization: "Bayes Theorem",
+  bayesSimpleVisualization: "Bayes Simple",
   average: "Average Stepping",
+  averageStepping: "Average with Stepping",
   summationBasic: "Summation Stepping",
   svgIntegration: "SVG Radioactive Decay",
   svgKineticEnergy2D: "SVG Kinetic Energy",

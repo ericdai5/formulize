@@ -1,10 +1,15 @@
 import { memo } from "react";
 
 import { useReactFlow } from "@xyflow/react";
-import { Maximize, Minus, Plus } from "lucide-react";
+import { Maximize, Minus, Move, Plus } from "lucide-react";
+
+interface CanvasControlsProps {
+  showGrips?: boolean;
+  onToggleGrips?: () => void;
+}
 
 // Custom Controls Component - Memoized to prevent unnecessary re-renders
-export const CanvasControls = memo(() => {
+export const CanvasControls = memo(({ showGrips, onToggleGrips }: CanvasControlsProps) => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   const handleZoomIn = () => {
@@ -44,6 +49,20 @@ export const CanvasControls = memo(() => {
       >
         <Maximize size={16} />
       </button>
+
+      {onToggleGrips && (
+        <button
+          onClick={onToggleGrips}
+          className={`w-10 h-10 border rounded-xl flex items-center justify-center hover:scale-105 transition-all duration-200 shadow-sm ${
+            showGrips
+              ? "bg-slate-100 border-slate-300 text-slate-800"
+              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+          title={showGrips ? "Hide Move Handles" : "Show Move Handles"}
+        >
+          <Move size={16} />
+        </button>
+      )}
     </div>
   );
 });

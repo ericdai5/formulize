@@ -8,59 +8,25 @@ export const svgIntegration = `const config = {
   variables: {
     N: {
       name: "Remaining Substance",
-      units: "atoms",
       precision: 0,
-      latexDisplay: "value",
-      svgContent: \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <!-- Green radioactive hazard symbol -->
-        <g>
-          <!-- Background circle -->
-          <circle cx="12" cy="12" r="10" fill="#00E676" opacity="0.2">
-            <animate attributeName="opacity" values="0.2;0.4;0.2" dur="2s" repeatCount="indefinite"/>
-          </circle>
-
-          <!-- Three evenly spaced radioactive petals (120 degrees apart) -->
-          <g>
-            <animateTransform attributeName="transform" type="rotate"
-                             from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/>
-            <!-- Top petal (0 degrees) -->
-            <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676"/>
-            <!-- Bottom right petal (120 degrees from top) -->
-            <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" transform="rotate(120 12 12)"/>
-            <!-- Bottom left petal (240 degrees from top) -->
-            <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" transform="rotate(240 12 12)"/>
-          </g>
-
-          <!-- Center circle -->
-          <circle cx="12" cy="12" r="2.5" fill="#00C853">
-            <animate attributeName="r" values="2.5;3;2.5" dur="1.5s" repeatCount="indefinite"/>
-          </circle>
-        </g>
-      </svg>\`,
-      svgMode: "replace",
-      defaultCSS: "filter: drop-shadow(0 0 8px #7FFF00) saturate(calc({value} / 1000));",
-      hoverCSS: "filter: drop-shadow(0 0 12px #00FF00); transform: scale(1.1);"
+      svgContent: dynamicDecaySvg,
+      latexDisplay: "svg"
     },
-    N_0: {
+    "N_{0}": {
       input: "drag",
       default: 1000,
       name: "Initial Substance",
       range: [100, 10000],
-      step: 100,
       precision: 0,
-      units: "atoms",
-      latexDisplay: "name",
-      defaultCSS: "filter: drop-shadow(0 0 8px #7FFF00) saturate(1);",
-      hoverCSS: "filter: drop-shadow(0 0 12px #00FF00); transform: scale(1.1);"
+      svgContent: dynamicInitialSvg,
+      latexDisplay: "svg"
     },
     "\\\\lambda": {
       input: "drag",
       default: 0.1,
       name: "Decay",
       range: [0.01, 0.5],
-      step: 0.01,
       precision: 3,
-      units: "1/hr",
       latexDisplay: "name",
     },
     t: {
@@ -68,34 +34,13 @@ export const svgIntegration = `const config = {
       default: 5,
       name: "Time",
       range: [0, 50],
-      step: 0.5,
       precision: 1,
-      units: "hr",
-      latexDisplay: "value",
-      svgContent: \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <!-- Outer clock circle -->
-        <circle cx="12" cy="12" r="10" fill="#E0E7FF" stroke="#4169E1" stroke-width="2"/>
-        <!-- Clock hands -->
-        <g>
-          <!-- Hour hand (shorter, slower) -->
-          <line x1="12" y1="12" x2="12" y2="8" stroke="#2563EB" stroke-width="2" stroke-linecap="round">
-            <animateTransform attributeName="transform" type="rotate"
-                             from="0 12 12" to="360 12 12" dur="120s" repeatCount="indefinite"/>
-          </line>
-          <!-- Minute hand (longer, faster) -->
-          <line x1="12" y1="12" x2="12" y2="5" stroke="#4169E1" stroke-width="1.5" stroke-linecap="round">
-            <animateTransform attributeName="transform" type="rotate"
-                             from="0 12 12" to="360 12 12" dur="10s" repeatCount="indefinite"/>
-          </line>
-        </g>
-        <!-- Center dot -->
-        <circle cx="12" cy="12" r="1" fill="#1E40AF"/>
-      </svg>\`,
-      svgMode: "replace"
+      svgContent: dynamicClockSvg,
+      latexDisplay: "svg"
     }
   },
   semantics: function({ vars, sample }) {
-    vars.N = vars.N_0 * Math.exp(-vars["\\\\lambda"] * vars.t);
+    vars.N = vars["N_{0}"] * Math.exp(-vars["\\\\lambda"] * vars.t);
     sample("decay", {x: vars.t, y: vars.N});
   },
   graph2d: [
@@ -104,17 +49,15 @@ export const svgIntegration = `const config = {
       xAxisLabel: "t",
       xAxisVar: "t",
       xRange: [0, 50],
-      xGrid: "show",
       yAxisLabel: "N",
       yAxisVar: "N",
       yRange: [0, 1100],
-      yGrid: "show",
       lines: [
         {
           sampleId: "decay",
           parameter: "t",
           color: "#7FFF00",
-          interaction: ["vertical-drag", "N_0"]
+          interaction: ["vertical-drag", "N_{0}"]
         }
       ],
       points: [
@@ -127,4 +70,47 @@ export const svgIntegration = `const config = {
     }
   ],
   fontSize: 1.5
-};`;
+};
+
+function dynamicDecaySvg(ctx) {
+  const value = typeof ctx.value === 'number' ? ctx.value : 1000;
+  const env = ctx.environment || {};
+  const N_0 = env["N_{0}"] || 1000;
+  const ratio = Math.min(value / N_0, 1);
+  const saturation = ratio;
+  return \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="#00E676" opacity="\${saturation * 0.4}"/>
+    <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" opacity="\${saturation}"/>
+    <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" opacity="\${saturation}" transform="rotate(120 12 12)"/>
+    <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" opacity="\${saturation}" transform="rotate(240 12 12)"/>
+    <circle cx="12" cy="12" r="2.5" fill="#00C853" opacity="\${saturation}"/>
+  </svg>\`;
+}
+
+function dynamicInitialSvg(ctx) {
+  return \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="#00E676" opacity="0.4"/>
+    <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676"/>
+    <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" transform="rotate(120 12 12)"/>
+    <path d="M 12 12 L 10 5 A 4.5 4.5 0 0 1 14 5 Z" fill="#00E676" transform="rotate(240 12 12)"/>
+    <circle cx="12" cy="12" r="2.5" fill="#00C853"/>
+  </svg>\`;
+}
+
+function dynamicClockSvg(ctx) {
+  const time = typeof ctx.value === 'number' ? ctx.value : 0;
+  const hourAngle = (time / 12) * 360;
+  const minuteAngle = (time % 1) * 360;
+  return \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <!-- Outer clock circle -->
+    <circle cx="12" cy="12" r="10" fill="#E0E7FF" stroke="#4169E1" stroke-width="2"/>
+    <!-- Hour hand -->
+    <line x1="12" y1="12" x2="12" y2="7" stroke="#2563EB" stroke-width="2" stroke-linecap="round"
+          transform="rotate(\${hourAngle} 12 12)"/>
+    <!-- Minute hand -->
+    <line x1="12" y1="12" x2="12" y2="5" stroke="#4169E1" stroke-width="1.5" stroke-linecap="round"
+          transform="rotate(\${minuteAngle} 12 12)"/>
+    <!-- Center dot -->
+    <circle cx="12" cy="12" r="1" fill="#1E40AF"/>
+  </svg>\`;
+}`;

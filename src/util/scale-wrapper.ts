@@ -3,6 +3,7 @@
  * Wraps elements in a span and toggles classes to animate scale in/out
  * without causing DOM restructuring on unhover.
  */
+import { getVariableElements } from "./variable-occurrence";
 
 const WRAPPER_CLASS = "var-scale-wrapper";
 const ACTIVE_CLASS = "active";
@@ -33,13 +34,10 @@ export const setupScaleWrappers = (
   // Re-apply hover state after re-render for currently dragging variables
   if (draggingVarIds && draggingVarIds.length > 0) {
     for (const varId of draggingVarIds) {
-      const draggingElements = container.querySelectorAll(
-        `#${CSS.escape(varId)}`
-      );
+      const draggingElements = getVariableElements(container, varId);
       draggingElements.forEach((element) => {
-        const htmlEl = element as HTMLElement;
-        htmlEl.classList.add("hovered");
-        activateScaleWrapper(htmlEl, true); // immediate=true, no animation
+        element.classList.add("hovered");
+        activateScaleWrapper(element, true); // immediate=true, no animation
       });
     }
   }
@@ -107,13 +105,12 @@ export function updateVariableHoverState(
 
   // Add hover to highlighted elements
   for (const varId of highlightedVarIds) {
-    const elements = container.querySelectorAll(`#${CSS.escape(varId)}`);
+    const elements = getVariableElements(container, varId);
     elements.forEach((element) => {
-      const htmlEl = element as HTMLElement;
-      const alreadyHovered = htmlEl.classList.contains("hovered");
+      const alreadyHovered = element.classList.contains("hovered");
       if (!alreadyHovered) {
-        htmlEl.classList.add("hovered");
-        activateScaleWrapper(htmlEl);
+        element.classList.add("hovered");
+        activateScaleWrapper(element);
       }
     });
   }

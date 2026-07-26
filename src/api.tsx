@@ -1,19 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { observer } from "mobx-react-lite";
 
 import {
-  ChevronLeft,
-  ChevronRight,
   PanelRightClose,
   PanelRightOpen,
+  Redo2,
+  Sparkles,
+  Undo2,
 } from "lucide-react";
 
 import { Provider } from "./core";
 import { examples as formulaExamples } from "./examples";
 import { Config } from "./formulize";
-import Editor from "./internal/api-code-editor";
+import Editor, { EditorHandle } from "./internal/api-code-editor";
 import ExampleSwitcher from "./internal/example-switcher";
 import PlaygroundCanvas from "./internal/playground";
 import { debugStore } from "./store/debug";
@@ -41,11 +42,10 @@ const APIPage = observer(() => {
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
-
-  const currentIndex = useMemo(
-    () => (selectedTemplate ? exampleKeys.indexOf(selectedTemplate) : -1),
-    [selectedTemplate, exampleKeys]
-  );
+  const [editorWidth, setEditorWidth] = useState(400);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isResizing = useRef(false);
+  const editorRef = useRef<EditorHandle>(null);
 
   // Navigate to example by updating the URL
   const setSelectedTemplate = useCallback(
@@ -56,24 +56,6 @@ const APIPage = observer(() => {
     },
     [navigate]
   );
-
-  const goToPrevious = useCallback(() => {
-    if (currentIndex > 0) {
-      navigate(`/examples/${exampleKeys[currentIndex - 1]}`);
-    } else if (currentIndex === 0) {
-      // Wrap to last
-      navigate(`/examples/${exampleKeys[exampleKeys.length - 1]}`);
-    }
-  }, [currentIndex, exampleKeys, navigate]);
-
-  const goToNext = useCallback(() => {
-    if (currentIndex < exampleKeys.length - 1) {
-      navigate(`/examples/${exampleKeys[currentIndex + 1]}`);
-    } else if (currentIndex === exampleKeys.length - 1) {
-      // Wrap to first
-      navigate(`/examples/${exampleKeys[0]}`);
-    }
-  }, [currentIndex, exampleKeys, navigate]);
 
   // Execute code and extract config
   const executeCode = useCallback(async (codeToExecute: string) => {
@@ -116,15 +98,49 @@ const APIPage = observer(() => {
     }
   }, []);
 
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isResizing.current = true;
+      const startX = e.clientX;
+      const startWidth = editorWidth;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!isResizing.current) return;
+        const delta = moveEvent.clientX - startX;
+        const containerWidth =
+          containerRef.current?.getBoundingClientRect().width ?? 1200;
+        const newWidth = Math.min(
+          Math.max(300, startWidth + delta),
+          containerWidth - 300
+        );
+        setEditorWidth(newWidth);
+      };
+
+      const handleMouseUp = () => {
+        isResizing.current = false;
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [editorWidth]
+  );
+
   return (
-    <div className="relative h-full flex">
+    <div ref={containerRef} className="relative h-full flex">
       {/* Editor Panel */}
       <div
-        className={`transition-all duration-300 ease-in-out ${
-          isRendered ? "w-1/3 border-r border-slate-200" : "w-0"
-        } overflow-hidden flex flex-col`}
+        className={`${isRendered ? "border-r border-slate-200" : ""} overflow-hidden flex flex-col flex-shrink-0`}
+        style={{ width: isRendered ? editorWidth : 0, transition: isRendered ? undefined : "width 0.3s ease-in-out" }}
       >
-        <div className="min-w-[400px] h-full flex flex-col">
+        <div className="min-w-[300px] h-full flex flex-col">
           <div className="p-2.5 border-b border-slate-200 flex-shrink-0">
             <div className="flex items-center justify-between">
               <ExampleSwitcher
@@ -134,20 +150,29 @@ const APIPage = observer(() => {
               <div className="flex items-center gap-2">
                 <div className="flex items-center border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <button
-                    onClick={goToPrevious}
+                    onClick={() => editorRef.current?.undo()}
                     className="p-2.5 hover:bg-slate-50 transition-colors border-r border-slate-200"
-                    title="Previous Example"
+                    title="Undo"
                   >
-                    <ChevronLeft className="w-4 h-4 text-slate-600" />
+                    <Undo2 className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
-                    onClick={goToNext}
+                    onClick={() => editorRef.current?.redo()}
                     className="p-2.5 hover:bg-slate-50 transition-colors"
-                    title="Next Example"
+                    title="Redo"
                   >
-                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                    <Redo2 className="w-4 h-4 text-slate-600" />
                   </button>
                 </div>
+                <IconButton
+                  size="lg"
+                  icon={Sparkles}
+                  alt="Format Code"
+                  onClick={() => debugStore.toggleAutoFormat()}
+                  title="Format Code"
+                  tooltipPosition="right"
+                  isActive={debugStore.autoFormat}
+                />
                 <IconButton
                   size="lg"
                   icon={PanelRightOpen}
@@ -161,6 +186,7 @@ const APIPage = observer(() => {
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             <Editor
+              ref={editorRef}
               code={debugStore.code}
               onChange={(newCode) => debugStore.setCode(newCode)}
               onRender={() => {}}
@@ -170,10 +196,20 @@ const APIPage = observer(() => {
         </div>
       </div>
 
+      {/* Resize Handle */}
+      {isRendered && (
+        <div className="relative flex-shrink-0 w-0">
+          <div
+            onMouseDown={handleResizeStart}
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 cursor-col-resize group flex items-center justify-center w-4 h-12"
+          >
+            <div className="w-1.5 h-8 rounded-full bg-white border border-slate-200 group-hover:bg-slate-100 group-hover:border-slate-300 transition-colors shadow-sm" />
+          </div>
+        </div>
+      )}
+
       {/* Main Content Panel */}
-      <div
-        className={`relative flex-1 transition-all duration-300 ease-in-out`}
-      >
+      <div className="relative flex-1 min-w-0">
         <Provider
           config={config || undefined}
           onError={handleRenderError}

@@ -500,7 +500,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
             range,
             samples = 100,
             color = "#3b82f6",
-            lineWidth = 2,
+            lineWidth = PLOT2D_DEFAULTS.lineWidth,
             name,
             showInLegend = true,
           } = lineConfig;
@@ -978,7 +978,7 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
           graphLines.forEach((lineData, i) => {
             svg
               .select(`path.graph-line-${i}`)
-              .attr("stroke-width", lineData.lineWidth ?? 2)
+              .attr("stroke-width", lineData.lineWidth)
               .attr("filter", null);
           });
           graphPointsData.forEach((_, i) => {
@@ -992,10 +992,9 @@ const Plot2D: React.FC<Plot2DProps> = observer(({ config }) => {
               "cursor",
               isVerticalDrag ? "ns-resize" : "ew-resize"
             );
-            // Add visual indicator for focused line
+            // Add a visual indicator without changing the configured line width
             svg
               .select(`path.graph-line-${lineIndex}`)
-              .attr("stroke-width", 3)
               .attr("filter", "drop-shadow(0 0 3px rgba(59, 130, 246, 0.5))");
           } else if (focusState?.type === "point") {
             const pointIndex = focusState.index;

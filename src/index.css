@@ -144,4 +144,12 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+
+  /* Show all drag handles when move mode is active */
+  .show-grips .formula-drag-handle,
+  .show-grips .control-drag-handle,
+  .show-grips .visualization-drag-handle,
+  .show-grips .empty-node-drag-handle {
+    opacity: 1 !important;
+  }
 }

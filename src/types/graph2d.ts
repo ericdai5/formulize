@@ -67,7 +67,7 @@ interface I2DConfigBase {
  * @property: range - Optional range to sample over the parameter (defaults to the variable's range)
  * @property: samples - Number of samples (default 100)
  * @property: color - Line color
- * @property: lineWidth - Line width
+ * @property: lineWidth - Line width in pixels (default 2; fractional values are supported)
  * @property: interaction - Drag interaction: ["horizontal-drag" | "vertical-drag", variableName]
  */
 export interface I2DLine extends I2DConfigBase {

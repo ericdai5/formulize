@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -53,6 +53,10 @@ const BAYES_FORMULA_ID = "bayes-theorem";
 
 const CanvasFlow = observer(
   ({ controls, environment, computationStore }: CanvasProps) => {
+    // Toggle state for showing all drag handles
+    const [showGrips, setShowGrips] = useState(false);
+    const toggleGrips = useCallback(() => setShowGrips((prev) => !prev), []);
+
     // Ref for the canvas container to observe size changes
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -637,7 +641,7 @@ const CanvasFlow = observer(
     const proOptions = useMemo(() => ({ hideAttribution: true }), []);
 
     return (
-      <div ref={canvasContainerRef} className="w-full h-full min-h-[500px]">
+      <div ref={canvasContainerRef} className={`w-full h-full min-h-[500px] ${showGrips ? "show-grips" : ""}`}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -651,16 +655,16 @@ const CanvasFlow = observer(
           minZoom={0.3}
           maxZoom={2}
           zoomOnScroll={false}
-          panOnScroll={false}
+          panOnScroll={true}
           zoomOnPinch={true}
           zoomOnDoubleClick={false}
-          panOnDrag={true}
+          panOnDrag={false}
           selectNodesOnDrag={false}
           preventScrolling={false}
           autoPanOnNodeDrag={false}
           proOptions={proOptions}
         >
-          <CanvasControls />
+          <CanvasControls showGrips={showGrips} onToggleGrips={toggleGrips} />
         </ReactFlow>
       </div>
     );

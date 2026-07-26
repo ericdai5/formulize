@@ -153,6 +153,23 @@ const buildAugmentedFormula = (
   katexTree: katex.ParseNode,
   id: string
 ): AugmentedFormulaNode => {
+  const node = buildAugmentedFormulaNode(katexTree, id);
+  const location = (
+    katexTree as katex.ParseNode & {
+      loc?: { start: number; end: number };
+    }
+  ).loc;
+  if (location) {
+    node.sourceStart = location.start;
+    node.sourceEnd = location.end;
+  }
+  return node;
+};
+
+const buildAugmentedFormulaNode = (
+  katexTree: katex.ParseNode,
+  id: string
+): AugmentedFormulaNode => {
   switch (katexTree.type) {
     case "html": {
       const [child, ...rest] = katexTree.body;
@@ -536,7 +553,20 @@ abstract class AugmentedFormulaNodeBase {
    * Set by processVariables when wrapping elements with cssId.
    */
   public cssId: string | null = null;
+  /**
+   * Character offsets in the authored LaTeX. KaTeX supplies these offsets;
+   * leaf nodes retain them through canonicalization so occurrence selection can
+   * follow the order users see in source.
+   */
+  public sourceStart: number | null = null;
+  public sourceEnd: number | null = null;
   constructor(public id: string) {}
+
+  protected copySourceRangeTo<T extends AugmentedFormulaNodeBase>(node: T): T {
+    node.sourceStart = this.sourceStart;
+    node.sourceEnd = this.sourceEnd;
+    return node;
+  }
 
   protected latexWithId(
     mode: LatexMode,
@@ -754,7 +784,7 @@ export class MathSymbol extends AugmentedFormulaNodeBase {
       leftSibling === undefined ? this._leftSibling : leftSibling;
     symbol._rightSibling =
       rightSibling === undefined ? this._rightSibling : rightSibling;
-    return symbol;
+    return this.copySourceRangeTo(symbol);
   }
 
   get children(): AugmentedFormulaNode[] {
@@ -1243,7 +1273,7 @@ export class Space extends AugmentedFormulaNodeBase {
       leftSibling === undefined ? this._leftSibling : leftSibling;
     space._rightSibling =
       rightSibling === undefined ? this._rightSibling : rightSibling;
-    return space;
+    return this.copySourceRangeTo(space);
   }
 
   get children(): AugmentedFormulaNode[] {
@@ -1473,7 +1503,7 @@ export class Op extends AugmentedFormulaNodeBase {
       leftSibling === undefined ? this._leftSibling : leftSibling;
     op._rightSibling =
       rightSibling === undefined ? this._rightSibling : rightSibling;
-    return op;
+    return this.copySourceRangeTo(op);
   }
 
   get children(): AugmentedFormulaNode[] {

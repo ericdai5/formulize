@@ -12,9 +12,7 @@ const config = {
       default: 2,
       name: "Amplitude",
       range: [0.5, 5],
-      step: 0.1,
       precision: 1,
-      units: "m",
       latexDisplay: "value",
       svgContent: amplitudeSvg,
       labelDisplay: "svg",
@@ -25,9 +23,7 @@ const config = {
       default: 1,
       name: "Frequency",
       range: [-3, 3],
-      step: 0.1,
       precision: 1,
-      units: "Hz",
       latexDisplay: "value",
       svgContent: frequencySvg,
       labelDisplay: "svg",
@@ -38,9 +34,6 @@ const config = {
       default: 0,
       name: "Phase",
       range: [-6.28, 6.28],
-      step: 0.1,
-      precision: 2,
-      units: "rad",
       latexDisplay: "value",
       svgContent: phaseSvg,
       labelDisplay: "svg",
@@ -48,17 +41,13 @@ const config = {
     },
     w: {
       name: "Displacement",
-      units: "m",
-      precision: 2,
     },
     t: {
       input: "drag",
       default: 0,
       name: "Time",
       range: [0, 10],
-      step: 0.1,
       precision: 1,
-      units: "s",
     }
   },
   semantics: function({ vars, sample }) {
@@ -92,10 +81,8 @@ const config = {
       ]
     }
   ],
-  fontSize: 1.5
 };
 
-// SVG content generator functions
 function amplitudeSvg(ctx) {
   const amplitude = typeof ctx.value === 'number' ? ctx.value : 2;
   const normalizedAmp = (amplitude / 5) * 40;

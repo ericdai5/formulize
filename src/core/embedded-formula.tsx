@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
+import { VAR_SELECTORS } from "../internal/css-classes";
 import { ComputationStore } from "../store/computation";
 import { attachInlineEditHandler } from "../util/inline-edit-overlay";
 import {
@@ -14,6 +15,7 @@ import {
   updateVariableHoverState,
 } from "../util/scale-wrapper";
 import { useMathJax } from "../util/use-mathjax";
+import { getVariableElements } from "../util/variable-occurrence";
 import { useStore } from "./hooks";
 
 interface EmbeddedFormulaProps {
@@ -107,7 +109,7 @@ const EmbeddedFormulaInner = observer(
           // Only enable inline editing on formula if latexDisplay is "value"
           // When latexDisplay is "name" (default), the label handles inline editing instead
           const latexDisplay = variable?.latexDisplay ?? "name";
-          const elements = container.querySelectorAll(`#${CSS.escape(varId)}`);
+          const elements = getVariableElements(container, varId);
 
           elements.forEach((element) => {
             const el = element as HTMLElement;
@@ -212,7 +214,7 @@ const EmbeddedFormulaInner = observer(
         // Process LaTeX to add interactive variable CSS classes
         let processedLatex: string;
         try {
-          processedLatex = processLatexContent(latex, 2, computationStore);
+          processedLatex = processLatexContent(latex, 2, computationStore, id);
         } catch (e) {
           console.warn(
             "EmbeddedFormula: LaTeX processing failed, using raw latex"
@@ -233,7 +235,7 @@ const EmbeddedFormulaInner = observer(
         // Wrap interactive variables so hover scaling happens outside MathJax layout.
         setupScaleWrappers(
           container,
-          ".var-input, .var-base",
+          VAR_SELECTORS.ALL,
           computationStore.highlightedVarIds
         );
 
@@ -267,7 +269,9 @@ const EmbeddedFormulaInner = observer(
           // Track variable values for reactivity
           const entries = Array.from(computationStore.variables.entries());
           // Also track editing states to trigger re-render when editing ends
-          const editingStates = Array.from(computationStore.editingStates.entries());
+          const editingStates = Array.from(
+            computationStore.editingStates.entries()
+          );
           return {
             values: entries.map(([id, v]) => ({ id, value: v.value })),
             editingStates,
@@ -339,7 +343,10 @@ const EmbeddedFormulaInner = observer(
         if (!allowPinning) return;
         // Don't toggle if clicking on a variable (they have their own input handlers)
         const target = e.target as HTMLElement;
-        if (target.closest(".var-scale-wrapper, .var-input, .var-base")) {
+        const variableTarget = target.closest(
+          `.var-scale-wrapper, ${VAR_SELECTORS.ALL}`
+        );
+        if (variableTarget && e.currentTarget.contains(variableTarget)) {
           return;
         }
         if (abbreviation) {

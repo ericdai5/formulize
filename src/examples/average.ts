@@ -16,9 +16,11 @@ export const average = `const config = {
     },
     i: {
       name: "Index",
+      precision: 0,
     },
     X_i: {
       name: "Value at index i",
+      precision: 0,
     },
     X: {
       default: [10, 20, 30, 40, 50],
