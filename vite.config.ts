@@ -44,9 +44,13 @@ export default defineConfig({
     lib: {
       // Entry point for the library
       entry: resolve(__dirname, "src/index.ts"),
-      name: "Formulize",
+      name: "Delta",
       // File name for the output files
-      fileName: (format) => `formulize.${format}.js`,
+      fileName: (format) => {
+        if (format === "cjs") return "delta-dsl.cjs";
+        if (format === "es") return "delta-dsl.js";
+        return `delta-dsl.${format}.js`;
+      },
       formats: ["es", "cjs", "umd"],
     },
     rollupOptions: {

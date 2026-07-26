@@ -3,14 +3,22 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { reaction, runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 
-// Import Plotly as any to avoid type issues since @types/plotly.js-dist might not be available
-import * as Plotly from "plotly.js-dist";
-
 import { useStore } from "../../core/hooks";
 import { IGraph3D, IPoint3D } from "../../types/graph3d";
 import { getVariable, getVariableValue } from "../../util/computation-helpers";
 import { sample3DLine, sample3DPoint, sampleSurface, getVariableRange } from "../graph2d/sampling-api";
 import { resolveColor, resolveLineColor } from "./color";
+
+type IPlotlyApi = {
+  newPlot: (...args: unknown[]) => Promise<unknown>;
+  react: (...args: unknown[]) => Promise<unknown>;
+  purge: (element: HTMLElement) => void;
+};
+
+const resolvePlotlyApi = (module: unknown): IPlotlyApi => {
+  const moduleWithDefault = module as { default?: unknown };
+  return (moduleWithDefault.default ?? module) as IPlotlyApi;
+};
 
 interface Plot3DProps {
   config: IGraph3D;
@@ -47,6 +55,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   const context = useStore();
   const computationStore = context?.computationStore;
     const plotRef = useRef<HTMLDivElement>(null);
+    const plotlyRef = useRef<IPlotlyApi | null>(null);
     const clickHandlerRegistered = useRef(false);
     const [currentPoint, setCurrentPoint] = useState<IPoint3D | null>(null);
     const [linesData, setLinesData] = useState<LineData[]>([]);
@@ -55,6 +64,30 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       GraphSurfaceData[]
     >([]);
     const [isPlotInitialized, setIsPlotInitialized] = useState(false);
+    const [isPlotlyLoaded, setIsPlotlyLoaded] = useState(false);
+    const [plotlyLoadError, setPlotlyLoadError] = useState<string | null>(null);
+
+    useEffect(() => {
+      let isMounted = true;
+
+      void import("plotly.js-dist")
+        .then((plotlyModule) => {
+          if (!isMounted) return;
+          plotlyRef.current = resolvePlotlyApi(plotlyModule);
+          setIsPlotlyLoaded(true);
+        })
+        .catch((error: unknown) => {
+          if (!isMounted) return;
+          const message =
+            error instanceof Error ? error.message : "Unknown Plotly load error";
+          setPlotlyLoadError(message);
+          console.error("Error loading Plotly:", error);
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }, []);
 
     // Parse configuration options with defaults
     const {
@@ -266,7 +299,10 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
     // Optimized plotting effect
     useEffect(() => {
+      const plotly = plotlyRef.current;
       if (
+        !isPlotlyLoaded ||
+        !plotly ||
         !plotRef.current ||
         (linesData.length === 0 &&
           graphSurfacesData.length === 0 &&
@@ -478,8 +514,8 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
 
       // Use newPlot for initial creation, react for updates to preserve user interactions
       const plotMethod = isPlotInitialized
-        ? (Plotly as any).react
-        : (Plotly as any).newPlot;
+        ? plotly.react
+        : plotly.newPlot;
 
       plotMethod(plotRef.current, plotData, layout, plotlyConfig)
         .then(() => {
@@ -536,6 +572,7 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       graphSurfacesData,
       graphPointsData,
       currentPoint,
+      isPlotlyLoaded,
       isPlotInitialized,
       showCurrentPointInLegend,
       getVariableLabel,
@@ -557,9 +594,9 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
       const currentPlotRef = plotRef.current;
       return () => {
         // Cleanup Plotly instance and event listeners
-        if (currentPlotRef) {
+        if (currentPlotRef && plotlyRef.current) {
           try {
-            (Plotly as any).purge(currentPlotRef);
+            plotlyRef.current.purge(currentPlotRef);
           } catch (error) {
             console.debug("Error during Plotly cleanup:", error);
           }
@@ -572,6 +609,14 @@ const Plot3D: React.FC<Plot3DProps> = observer(({ config }) => {
   // Guard: computationStore must be available
   if (!computationStore) {
     return <div className="plot3d-loading">Loading plot...</div>;
+  }
+
+  if (plotlyLoadError) {
+    return (
+      <div className="plot3d-error">
+        Unable to load 3D plotting: {plotlyLoadError}
+      </div>
+    );
   }
 
   return (
