@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { reaction } from "mobx";
 import { observer } from "mobx-react-lite";
 
+import { VAR_SELECTORS } from "../internal/css-classes";
 import { ComputationStore } from "../store/computation";
 import { attachInlineEditHandler } from "../util/inline-edit-overlay";
 import {
@@ -15,6 +16,7 @@ import {
 } from "../util/scale-wrapper";
 import { injectVariableSVGs } from "../util/svg/svg-processor";
 import { useMathJax } from "../util/use-mathjax";
+import { getVariableElements } from "../util/variable-occurrence";
 import { useStore } from "./hooks";
 
 interface InlineFormulaProps {
@@ -66,7 +68,7 @@ const InlineFormulaInner = observer(
           // Only enable inline editing on formula if latexDisplay is "value"
           // When latexDisplay is "name" (default), the label handles inline editing instead
           const latexDisplay = variable?.latexDisplay ?? "name";
-          const elements = container.querySelectorAll(`#${CSS.escape(varId)}`);
+          const elements = getVariableElements(container, varId);
 
           elements.forEach((element) => {
             const el = element as HTMLElement;
@@ -169,7 +171,7 @@ const InlineFormulaInner = observer(
         // Process LaTeX to add interactive variable CSS classes
         let processedLatex: string;
         try {
-          processedLatex = processLatexContent(latex, 2, computationStore);
+          processedLatex = processLatexContent(latex, 2, computationStore, id);
         } catch (e) {
           console.warn(
             "InlineFormula: LaTeX processing failed, using raw latex"
@@ -201,7 +203,7 @@ const InlineFormulaInner = observer(
         // Wrap interactive variables so hover scaling happens outside MathJax layout.
         setupScaleWrappers(
           container,
-          ".var-input, .var-base",
+          VAR_SELECTORS.ALL,
           computationStore.highlightedVarIds
         );
 
@@ -235,7 +237,9 @@ const InlineFormulaInner = observer(
           // Track variable values for reactivity
           const entries = Array.from(computationStore.variables.entries());
           // Also track editing states to trigger re-render when editing ends
-          const editingStates = Array.from(computationStore.editingStates.entries());
+          const editingStates = Array.from(
+            computationStore.editingStates.entries()
+          );
           return {
             values: entries.map(([id, v]) => ({ id, value: v.value })),
             editingStates,
@@ -259,10 +263,7 @@ const InlineFormulaInner = observer(
         () => computationStore.highlightedVarIds,
         (highlightedVarIds) => {
           if (!containerRef.current) return;
-          updateVariableHoverState(
-            containerRef.current,
-            highlightedVarIds
-          );
+          updateVariableHoverState(containerRef.current, highlightedVarIds);
         }
       );
       return () => disposer();

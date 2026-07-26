@@ -1,8 +1,8 @@
 /**
  * SVG Processor for handling SVG in variables
  */
-import { ComputationStore } from "../../store/computation";
 import { VAR_SELECTORS } from "../../internal/css-classes";
+import { ComputationStore } from "../../store/computation";
 import {
   SVGConfig,
   SVGGeneratorContext,
@@ -46,6 +46,16 @@ export const injectVariableSVGs = (
       // Skip if variable doesn't exist or doesn't have SVG configuration
       if (!variable || (!variable.svgPath && !variable.svgContent)) return;
 
+      // Neutral occurrence wrappers intentionally keep the variable ID so
+      // occurrence indexing stays stable, but only augmented occurrences have
+      // an interactive variable class and should receive SVG content.
+      const element = varElement.matches(VAR_SELECTORS.ALL)
+        ? varElement
+        : Array.from(
+            varElement.querySelectorAll(VAR_SELECTORS.ALL)
+          ).find((candidate) => candidate.closest("[id]") === varElement);
+      if (!element) return;
+
       // Determine if we should inject SVG into formula content:
       // - latexDisplay: "svg" triggers replace mode (SVG replaces the variable)
       // - svgMode: "append" triggers append mode (SVG is added alongside the variable)
@@ -63,9 +73,6 @@ export const injectVariableSVGs = (
       ) {
         return;
       }
-
-      // For compatibility, look for elements with specific variable classes
-      const element = varElement.querySelector(VAR_SELECTORS.ALL) || varElement;
 
       // Create SVG element
       let svgElement: SVGElement | HTMLElement;

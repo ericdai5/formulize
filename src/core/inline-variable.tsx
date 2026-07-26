@@ -303,7 +303,9 @@ const InlineVariableInner = observer(
     return (
       <span
         ref={containerRef}
-        className={`inline-variable ${variableClass} ${isHovered ? "hovered" : ""}`}
+        className={`inline-variable ${VAR_CLASSES.ALL} ${variableClass} ${
+          isHovered ? "hovered" : ""
+        }`}
         style={{ display: "inline", verticalAlign: "baseline" }}
       />
     );

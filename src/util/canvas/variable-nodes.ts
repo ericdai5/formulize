@@ -5,6 +5,10 @@ import { Node, useReactFlow } from "@xyflow/react";
 import { VAR_SELECTORS } from "../../internal/css-classes";
 import { ComputationStore } from "../../store/computation";
 import {
+  getVariableDimensionKey,
+  getVariableOccurrenceRef,
+} from "../variable-occurrence";
+import {
   processVariableElementsForLabels,
   updateLabelPlacement,
 } from "./label-node";
@@ -63,18 +67,21 @@ export function getVariablePositionAndDimensions(
  * Create a variable node object
  * @param nodeId - The unique node ID
  * @param cssId - The CSS ID (varId) of the variable
+ * @param instance - The 1-indexed variable occurrence in authored LaTeX order
  * @param position - Position relative to parent formula node
  * @param dimensions - Width and height of the variable element
  * @param parentId - The parent formula node ID
- * @param computationStore - The scoped computation store (optional, defaults to global)
+ * @param formulaId - The public formula ID
  * @returns A React Flow node object for the variable
  */
 export function createVariableNode(
   nodeId: string,
   cssId: string,
+  instance: number,
   position: { x: number; y: number },
   dimensions: { width: number; height: number },
-  parentId: string
+  parentId: string,
+  formulaId: string
 ): Node {
   return {
     id: nodeId,
@@ -85,6 +92,9 @@ export function createVariableNode(
     data: {
       varId: cssId,
       symbol: cssId,
+      instance,
+      formulaId,
+      formulaNodeId: parentId,
       width: dimensions.width,
       height: dimensions.height,
       labelPlacement: "below",
@@ -115,13 +125,16 @@ export const updateVarNodes = (
 ): { updatedNodes: Node[]; newNodes: Node[] } => {
   const updatedNodes: Node[] = [];
   const newNodes: Node[] = [];
-  const variableElements = formulaElement.querySelectorAll(VAR_SELECTORS.ANY);
-  variableElements.forEach((varElement: Element, elementIndex: number) => {
+  const variableElements = formulaElement.querySelectorAll(
+    VAR_SELECTORS.ALL
+  );
+  variableElements.forEach((varElement: Element) => {
     const htmlVarElement = varElement as HTMLElement;
-    const cssId = htmlVarElement.id;
-    if (!cssId) return;
+    const occurrence = getVariableOccurrenceRef(htmlVarElement);
+    if (!occurrence) return;
+    const { varId: cssId, instance } = occurrence;
     if (!computationStore.variables.has(cssId)) return;
-    const nodeId = `variable-${id}-${cssId}-${elementIndex}`;
+    const nodeId = `variable-${id}-${cssId}-${instance}`;
     foundNodeIds.add(nodeId);
     const { position, dimensions } = getVariablePositionAndDimensions(
       htmlVarElement,
@@ -130,8 +143,8 @@ export const updateVarNodes = (
     );
 
     // Store fresh dimensions in computation store for use by expression node calculation
-    // Use formula-specific key to handle same variable appearing in multiple formulas
-    const dimensionKey = `${id}-${cssId}`;
+    // Scope the key to the exact authored occurrence in this formula.
+    const dimensionKey = getVariableDimensionKey(id, cssId, instance);
     computationStore.setVariableDimensions(dimensionKey, {
       x: position.x,
       y: position.y,
@@ -146,13 +159,20 @@ export const updateVarNodes = (
       const dimChanged =
         varNode.data.width !== dimensions.width ||
         varNode.data.height !== dimensions.height;
+      const occurrenceChanged =
+        varNode.data.instance !== instance ||
+        varNode.data.formulaId !== id ||
+        varNode.data.formulaNodeId !== formulaNode.id;
       // Only add to updated nodes if something actually changed
-      if (posChanged || dimChanged) {
+      if (posChanged || dimChanged || occurrenceChanged) {
         updatedNodes.push({
           ...varNode,
           position,
           data: {
             ...varNode.data,
+            instance,
+            formulaId: id,
+            formulaNodeId: formulaNode.id,
             width: dimensions.width,
             height: dimensions.height,
           },
@@ -161,7 +181,15 @@ export const updateVarNodes = (
     } else {
       // Create new node
       newNodes.push(
-        createVariableNode(nodeId, cssId, position, dimensions, formulaNode.id)
+        createVariableNode(
+          nodeId,
+          cssId,
+          instance,
+          position,
+          dimensions,
+          formulaNode.id,
+          id
+        )
       );
     }
   });

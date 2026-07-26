@@ -8,6 +8,10 @@ import { formatNumberForDisplay } from "../format-number";
 import { findExpression } from "../parse/formula-tree";
 import { decodeVariableOccurrenceCssRef } from "../parse/variable";
 import {
+  getVariableDimensionKey,
+  getVariableOccurrenceElement,
+} from "../variable-occurrence";
+import {
   NODE_TYPES,
   getFormulaElement,
   getFormulaNodes,
@@ -90,44 +94,59 @@ export function calculateBoundingBoxFromVariableNodes(
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-  // If computationStore and formulaId are provided, use fresh dimensions from store
-  if (computationStore && formulaId) {
-    let found = false;
-    for (const varId of activeVarIds) {
-      // Use formula-specific key to get dimensions for the correct formula
-      const dimensionKey = `${formulaId}-${varId}`;
-      const dims = computationStore.getVariableDimensions(dimensionKey);
-      if (dims) {
-        minX = Math.min(minX, dims.x);
-        maxX = Math.max(maxX, dims.x + dims.width);
-        minY = Math.min(minY, dims.y);
-        maxY = Math.max(maxY, dims.y + dims.height);
-        found = true;
-      }
-    }
-    if (found && minX !== Infinity && maxX !== -Infinity) {
-      return { minX, maxX, minY, maxY };
-    }
-  }
 
-  // Fallback to node-based measurement (may have stale dimensions)
-  const activeVariableNodes = nodes.filter(
-    (node) =>
-      node.type === NODE_TYPES.VARIABLE &&
-      activeVarIds.includes((node.data as { varId?: string })?.varId || "")
-  );
+  const formulaNodeId = formulaId
+    ? nodes.find(
+        (node) => node.type === NODE_TYPES.FORMULA && node.data.id === formulaId
+      )?.id
+    : undefined;
+
+  // Include every selected occurrence of each active variable, but never mix
+  // occurrences from another formula.
+  const activeVariableNodes = nodes.filter((node) => {
+    if (node.type !== NODE_TYPES.VARIABLE) return false;
+    const data = node.data as {
+      varId?: string;
+      formulaId?: string;
+    };
+    if (!activeVarIds.includes(data.varId || "")) return false;
+    if (!formulaId) return true;
+    return formulaNodeId
+      ? node.parentId === formulaNodeId
+      : data.formulaId === formulaId;
+  });
   if (activeVariableNodes.length === 0) {
     return null;
   }
   activeVariableNodes.forEach((node) => {
+    const data = node.data as {
+      varId?: string;
+      instance?: number;
+      width?: number;
+      height?: number;
+    };
+    const instance =
+      typeof data.instance === "number" &&
+      Number.isSafeInteger(data.instance) &&
+      data.instance > 0
+        ? data.instance
+        : null;
+    const freshDimensions =
+      computationStore && formulaId && data.varId && instance !== null
+        ? computationStore.getVariableDimensions(
+            getVariableDimensionKey(formulaId, data.varId, instance)
+          )
+        : undefined;
     const width =
-      node.measured?.width || (node.data as { width?: number })?.width || 20;
+      freshDimensions?.width || node.measured?.width || data.width || 20;
     const height =
-      node.measured?.height || (node.data as { height?: number })?.height || 20;
-    minX = Math.min(minX, node.position.x);
-    maxX = Math.max(maxX, node.position.x + width);
-    minY = Math.min(minY, node.position.y);
-    maxY = Math.max(maxY, node.position.y + height);
+      freshDimensions?.height || node.measured?.height || data.height || 20;
+    const x = freshDimensions?.x ?? node.position.x;
+    const y = freshDimensions?.y ?? node.position.y;
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x + width);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y + height);
   });
 
   if (minX === Infinity || maxX === -Infinity) {
@@ -188,18 +207,15 @@ export function calculateBoundingBoxFromExpression(
       decodeVariableOccurrenceCssRef(cssRef);
     let element: Element | null = null;
     if (occurrenceIndex !== null) {
-      const escapedMatches = Array.from(
-        formulaElement.querySelectorAll(`[id="${CSS.escape(variableId)}"]`)
+      element = getVariableOccurrenceElement(
+        formulaElement,
+        variableId,
+        occurrenceIndex + 1
       );
-      const matches =
-        escapedMatches.length > 0
-          ? escapedMatches
-          : Array.from(formulaElement.querySelectorAll(`[id="${variableId}"]`));
-      element = matches[occurrenceIndex] ?? null;
     } else {
-      element =
-        formulaElement.querySelector(`[id="${CSS.escape(variableId)}"]`) ||
-        formulaElement.querySelector(`[id="${variableId}"]`);
+      element = formulaElement.querySelector(
+        `[id="${CSS.escape(variableId)}"]`
+      );
     }
     if (element) {
       expressionElements.push(element);
@@ -641,7 +657,8 @@ export function addstepNodes({
     existingStepNodes.length === 0 &&
     existingExpressionNodes.length === 0 &&
     existingExpressionLabelNodes.length === 0;
-  const hasNoCurrentStep = !step || !step.formulas || Object.keys(step.formulas).length === 0;
+  const hasNoCurrentStep =
+    !step || !step.formulas || Object.keys(step.formulas).length === 0;
 
   if (hasNoExistingStepArtifacts && hasNoCurrentStep) {
     return;
@@ -744,13 +761,14 @@ export function addstepNodes({
     existingStepNodes.every(
       (existingNode, index) => existingNode.id === allstepNodes[index]?.id
     );
-  const canReuseExpressionNodes =
-    compareNodeIdSets(existingExpressionNodes, allExpressionNodes);
-  const canReuseExpressionLabelNodes =
-    compareNodeIdSets(
-      existingExpressionLabelNodes,
-      allExpressionLabelNodes
-    );
+  const canReuseExpressionNodes = compareNodeIdSets(
+    existingExpressionNodes,
+    allExpressionNodes
+  );
+  const canReuseExpressionLabelNodes = compareNodeIdSets(
+    existingExpressionLabelNodes,
+    allExpressionLabelNodes
+  );
   const hasRenderableStepArtifacts =
     allstepNodes.length > 0 ||
     allExpressionNodes.length > 0 ||

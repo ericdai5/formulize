@@ -61,18 +61,14 @@ export type { IEnvironment } from "./types/environment";
 export type { IFormula } from "./types/formula";
 export type {
   IVariable,
+  IOccurence,
   IValue,
   IVariableInput,
   IVariableUserInput,
   IVariablesUserInput,
 } from "./types/variable";
 export type { IVisualization } from "./types/visualization";
-export type {
-  IGraph2D,
-  I2DConfig,
-  I2DLine,
-  I2DPoint,
-} from "./types/graph2d";
+export type { IGraph2D, I2DConfig, I2DLine, I2DPoint } from "./types/graph2d";
 export type {
   ICollectedStep,
   IView,

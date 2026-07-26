@@ -86,6 +86,7 @@
     "deploy": "rm -rf docs/forge/* && cp -r dist/* docs/forge/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "test": "vitest run",
     "prepare": "husky install",
     "prepublishOnly": "npm run build"
   },
@@ -147,7 +148,8 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.2.2",
     "vite": "^5.1.4",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^2.1.9"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --cache --fix",

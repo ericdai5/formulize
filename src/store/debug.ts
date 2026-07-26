@@ -42,9 +42,12 @@ function serializeSingleVariableJS(value: number | IVariableUserInput): string {
   if (value.range) props.push(`range: [${value.range[0]}, ${value.range[1]}]`);
   if (value.precision !== undefined)
     props.push(`precision: ${value.precision}`);
-  if (value.sigFigs !== undefined)
-    props.push(`sigFigs: ${value.sigFigs}`);
+  if (value.sigFigs !== undefined) props.push(`sigFigs: ${value.sigFigs}`);
   if (value.step !== undefined) props.push(`step: ${value.step}`);
+  if (value.filter !== undefined)
+    props.push(`filter: ${JSON.stringify(value.filter)}`);
+  if (value.exclude !== undefined)
+    props.push(`exclude: ${JSON.stringify(value.exclude)}`);
   // Multi-line format with proper indentation
   return `{\n        ${props.join(",\n        ")},\n      }`;
 }
@@ -57,24 +60,52 @@ function updateSingleVariableInCode(
   varId: string,
   value: number | IVariableUserInput
 ): string {
-  const escapedVarId = varId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const varRegex = new RegExp(
-    `(${escapedVarId}:\\s*)(-?\\d+(?:\\.\\d+)?|\\{[^{}]*\\})`
-  );
+  const range = findVariableCodeRange(code, varId);
+  if (!range) {
+    return code;
+  }
   const newValue = serializeSingleVariableJS(value);
-  return code.replace(varRegex, `$1${newValue}`);
+  return (
+    code.slice(0, range.valueStart) + newValue + code.slice(range.valueEnd)
+  );
 }
 
 /**
  * Delete a variable from the code string.
  */
 function deleteVariableFromCode(code: string, varId: string): string {
-  const escapedVarId = varId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const varRegex = new RegExp(
-    `\\s*${escapedVarId}:\\s*(-?\\d+(?:\\.\\d+)?|\\{[^{}]*\\}),?\\s*`,
-    "g"
-  );
-  return code.replace(varRegex, "");
+  const range = findVariableCodeRange(code, varId);
+  if (!range) {
+    return code;
+  }
+
+  let entryStart = range.entryStart;
+  let entryEnd = range.valueEnd;
+
+  // Include indentation when the variable occupies its own line.
+  const lineStart = code.lastIndexOf("\n", entryStart - 1) + 1;
+  if (/^\s*$/.test(code.slice(lineStart, entryStart))) {
+    entryStart = lineStart;
+  }
+
+  // Prefer consuming the following comma and line break. If this is the final
+  // entry, leaving the previous entry's comma produces a valid trailing comma.
+  while (code[entryEnd] === " " || code[entryEnd] === "\t") {
+    entryEnd++;
+  }
+  if (code[entryEnd] === ",") {
+    entryEnd++;
+  }
+  while (code[entryEnd] === " " || code[entryEnd] === "\t") {
+    entryEnd++;
+  }
+  if (code[entryEnd] === "\r" && code[entryEnd + 1] === "\n") {
+    entryEnd += 2;
+  } else if (code[entryEnd] === "\n") {
+    entryEnd++;
+  }
+
+  return code.slice(0, entryStart) + code.slice(entryEnd);
 }
 
 /**
@@ -101,6 +132,74 @@ function findBalancedBraces(
       }
     }
   }
+  return null;
+}
+
+interface VariableCodeRange {
+  entryStart: number;
+  valueStart: number;
+  valueEnd: number;
+}
+
+/**
+ * Find a variable entry and its value inside the top-level `variables` block.
+ * Object values use balanced braces so occurrence rules can contain nested
+ * `{ formula, instance }` objects without breaking editor updates.
+ */
+function findVariableCodeRange(
+  code: string,
+  varId: string
+): VariableCodeRange | null {
+  const variablesMatch = code.match(/variables:\s*\{/);
+  if (!variablesMatch || variablesMatch.index === undefined) {
+    return null;
+  }
+
+  const variablesBraces = findBalancedBraces(code, variablesMatch.index);
+  if (!variablesBraces) {
+    return null;
+  }
+
+  const variablesBlock = code.slice(
+    variablesBraces.contentStart,
+    variablesBraces.contentEnd
+  );
+  const blockOffset = variablesBraces.contentStart;
+  const escapedVarId = varId
+    .replace(/\\/g, "\\\\\\\\")
+    .replace(/[.*+?^${}()|[\]]/g, "\\$&");
+  const startRegex = new RegExp(
+    `(?<![a-zA-Z0-9_])(["']?)${escapedVarId}\\1:\\s*`,
+    "g"
+  );
+
+  let match: RegExpExecArray | null;
+  while ((match = startRegex.exec(variablesBlock)) !== null) {
+    const entryStart = blockOffset + match.index;
+    const valueStart = entryStart + match[0].length;
+    const afterColon = code.slice(valueStart);
+    const numberMatch = afterColon.match(/^-?\d+(?:\.\d+)?/);
+
+    if (numberMatch) {
+      return {
+        entryStart,
+        valueStart,
+        valueEnd: valueStart + numberMatch[0].length,
+      };
+    }
+
+    if (afterColon.startsWith("{")) {
+      const braces = findBalancedBraces(code, valueStart);
+      if (braces) {
+        return {
+          entryStart,
+          valueStart,
+          valueEnd: braces.contentEnd + 1,
+        };
+      }
+    }
+  }
+
   return null;
 }
 
@@ -264,66 +363,8 @@ class DebugStore {
    * Returns { from, to } for CodeMirror highlighting, or null if not found.
    */
   findVariableRange(varId: string): { from: number; to: number } | null {
-    // First, find the variables block to constrain our search
-    const variablesMatch = this.code.match(/variables:\s*\{/);
-    if (!variablesMatch || variablesMatch.index === undefined) {
-      return null;
-    }
-    const variablesBlockStart = variablesMatch.index;
-    const variablesBraces = findBalancedBraces(this.code, variablesBlockStart);
-    if (!variablesBraces) {
-      return null;
-    }
-    const variablesBlock = this.code.slice(
-      variablesBraces.contentStart,
-      variablesBraces.contentEnd
-    );
-    const blockOffset = variablesBraces.contentStart;
-
-    // Escape for regex:
-    // 1. Quadruple backslashes: In source code, \ is written as \\.
-    //    In regex string, we need \\\\ to match \\ in text.
-    // 2. Escape other regex special chars
-    const escapedVarId = varId
-      .replace(/\\/g, "\\\\\\\\")
-      .replace(/[.*+?^${}()|[\]]/g, "\\$&");
-
-    // Match variable key with optional quotes: varId:, "varId":, or 'varId':
-    // Use negative lookbehind to ensure we're not matching part of another word
-    // (e.g., 't:' should not match inside 'input:' or 'default:')
-    // Use backreference to ensure matching quote types
-    const startRegex = new RegExp(
-      `(?<![a-zA-Z0-9_])(["']?)${escapedVarId}\\1:\\s*`,
-      "g"
-    );
-
-    // Loop through all matches to find one with a valid value type (number or object)
-    // This skips false matches inside strings/template literals
-    let match;
-    while ((match = startRegex.exec(variablesBlock)) !== null) {
-      const matchIndex = match.index;
-      const from = blockOffset + matchIndex;
-      const valueStart = from + match[0].length;
-
-      // Check what comes after the colon
-      const afterColon = this.code.slice(valueStart);
-
-      // Check if it's a number (including negative and decimal)
-      const numberMatch = afterColon.match(/^-?\d+(?:\.\d+)?/);
-      if (numberMatch) {
-        return { from, to: valueStart + numberMatch[0].length };
-      }
-
-      // Check if it's an object (starts with {)
-      if (afterColon.startsWith("{")) {
-        const braces = findBalancedBraces(this.code, valueStart);
-        if (braces) {
-          return { from, to: braces.contentEnd + 1 };
-        }
-      }
-    }
-
-    return null;
+    const range = findVariableCodeRange(this.code, varId);
+    return range ? { from: range.entryStart, to: range.valueEnd } : null;
   }
 
   // ==================== Debug Visualization Settings ====================

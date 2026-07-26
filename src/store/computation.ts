@@ -7,10 +7,10 @@ import { IFormula } from "../types/formula";
 import { IDataPoint } from "../types/graph";
 import { ICollectedStep, IStepLabelValue, IView } from "../types/step";
 import {
-  getStepFromRange,
   INPUT_VARIABLE_DEFAULT,
   IValue,
   IVariable,
+  getStepFromRange,
 } from "../types/variable";
 import { FormulaLatexRanges } from "../util/parse/formula-text";
 import { canonicalizeFormula } from "../util/parse/formula-transform";
@@ -338,7 +338,9 @@ class ComputationStore {
    * 1) the labels key is a known variable id, and
    * 2) the labels value is a runtime value (number or set), not a string-only display label.
    */
-  private getVariableValueEntriesFromLabels(view: IView): Array<[string, IValue]> {
+  private getVariableValueEntriesFromLabels(
+    view: IView
+  ): Array<[string, IValue]> {
     const entries: Array<[string, IValue]> = [];
     if (!view.labels) {
       return entries;
@@ -1194,6 +1196,8 @@ class ComputationStore {
         defaultCSS: variableDefinition?.defaultCSS,
         hoverCSS: variableDefinition?.hoverCSS,
         input: variableDefinition?.input,
+        filter: variableDefinition?.filter,
+        exclude: variableDefinition?.exclude,
       });
     }
   }

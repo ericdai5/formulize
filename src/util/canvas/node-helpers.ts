@@ -69,6 +69,40 @@ export function findLabelNodesById(nodes: Node[], id: string): Node[] {
 }
 
 /**
+ * Find variable nodes within a React Flow formula node, ordered by their
+ * authored LaTeX occurrence.
+ *
+ * @param nodes - Array of variable or canvas nodes
+ * @param formulaNodeId - Internal React Flow ID of the parent formula node
+ * @param varId - Variable identifier (cssId)
+ * @returns Matching variable nodes in occurrence order
+ */
+export function findVariableNodesForFormulaNode(
+  nodes: Node[],
+  formulaNodeId: string,
+  varId: string
+): Node[] {
+  return nodes
+    .filter(
+      (node) =>
+        node.type === NODE_TYPES.VARIABLE &&
+        node.parentId === formulaNodeId &&
+        node.data.varId === varId
+    )
+    .sort((left, right) => {
+      const leftInstance =
+        typeof left.data.instance === "number"
+          ? left.data.instance
+          : Number.POSITIVE_INFINITY;
+      const rightInstance =
+        typeof right.data.instance === "number"
+          ? right.data.instance
+          : Number.POSITIVE_INFINITY;
+      return leftInstance - rightInstance || left.id.localeCompare(right.id);
+    });
+}
+
+/**
  * Find variable nodes by varId (CSS identifier) within a specific formula
  * @param nodes - Array of all React Flow nodes
  * @param id - The id to filter by
@@ -82,12 +116,7 @@ export function findVariableNodesByVarId(
 ): Node[] {
   const formulaNode = findFormulaNodeById(nodes, id);
   if (!formulaNode) return [];
-  return nodes.filter(
-    (node) =>
-      node.type === NODE_TYPES.VARIABLE &&
-      node.parentId === formulaNode.id &&
-      node.data.varId === varId
-  );
+  return findVariableNodesForFormulaNode(nodes, formulaNode.id, varId);
 }
 
 //--------------------------------------------------

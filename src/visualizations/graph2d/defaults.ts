@@ -7,6 +7,7 @@ export const PLOT2D_DEFAULTS = {
   height: 400,
   xRange: [0, 10] as [number, number],
   yRange: [0, 100] as [number, number],
+  lineWidth: 2,
 } as const;
 
 export const VECTOR_DEFAULTS = {

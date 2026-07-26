@@ -18,6 +18,11 @@ export type IValue = number | (string | number)[];
  */
 export type IInput = "drag" | "inline";
 
+export interface IOccurence {
+  formula: string[];
+  instance: number[];
+}
+
 export interface IVariable {
   value?: IValue;
   dataType?: "scalar" | "vector" | "matrix" | "set";
@@ -40,6 +45,8 @@ export interface IVariable {
   defaultCSS?: string;
   hoverCSS?: string;
   input?: IInput;
+  filter?: IOccurence[];
+  exclude?: IOccurence[];
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   setupScaleWrappers,
   updateVariableHoverState,
 } from "../../util/scale-wrapper";
+import { VAR_SELECTORS } from "../css-classes";
 
 // Custom Formula Node Component
 const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
@@ -57,7 +58,7 @@ const FormulaNode = observer(({ data }: { data: FormulaNodeData }) => {
     if (nodeRef.current && computationStore) {
       setupScaleWrappers(
         nodeRef.current,
-        ".var-input, .var-base"
+        VAR_SELECTORS.ALL
         // computationStore.highlightedVarIds
       );
     }

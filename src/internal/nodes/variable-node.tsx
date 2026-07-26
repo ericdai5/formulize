@@ -8,16 +8,19 @@ import { useStore } from "../../core/hooks";
 import { debugStore } from "../../store/debug";
 import { showInlineEditOverlay } from "../../util/inline-edit-overlay";
 import { useVariableDrag } from "../../util/use-variable-drag";
+import { getVariableElement } from "../../util/variable-occurrence";
 import { HANDLE_STYLE, VAR_CLASSES } from "../css-classes";
 
 export interface VariableNodeData {
   varId: string;
+  instance: number;
+  formulaNodeId?: string;
   width?: number;
   height?: number;
 }
 
 const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
-  const { varId, width, height } = data;
+  const { varId, instance, formulaNodeId, width, height } = data;
   const context = useStore();
   const computationStore = context?.computationStore;
 
@@ -74,10 +77,18 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
 
     // Find the formula container that owns this variable node
     // Then query within that container to find the correct MathJax element
-    const formulaContainer = (e.currentTarget as HTMLElement).closest(".react-flow");
-    const mathJaxElement = formulaContainer?.querySelector(
-      `#${CSS.escape(varId)}`
-    ) as HTMLElement;
+    const reactFlowContainer = (e.currentTarget as HTMLElement).closest(
+      ".react-flow"
+    );
+    const formulaElement = formulaNodeId
+      ? reactFlowContainer?.querySelector(
+          `[data-id="${CSS.escape(formulaNodeId)}"] .formula-node`
+        )
+      : null;
+    const searchRoot = formulaElement ?? reactFlowContainer;
+    const mathJaxElement = searchRoot
+      ? getVariableElement(searchRoot, varId, instance)
+      : null;
     if (mathJaxElement) {
       showInlineEditOverlay({
         varId,
@@ -103,7 +114,7 @@ const VariableNode = observer(({ data }: { data: VariableNodeData }) => {
   return (
     <div
       ref={nodeRef}
-      className={`${VAR_CLASSES.BASE} text-xs text-white border-dashed text-center nodrag ${
+      className={`${VAR_CLASSES.ALL} ${VAR_CLASSES.BASE} text-xs text-white border-dashed text-center nodrag ${
         showBorders ? "border border-blue-400" : ""
       } ${showShadow ? "bg-blue-400/20" : ""}`}
       style={{
